@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Mic, Pause, Play, RotateCcw } from 'lucide-react';
+import { Send, Mic, Pause, Play, RotateCcw, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 // Dharma Wheel SVG Component
 const DharmaWheel = ({ className }: { className?: string }) => (
@@ -21,13 +21,15 @@ interface DailyQuestionProps {
   question: string;
   day: number;
   totalDays: number;
+  onDayChange: (newDay: number) => void;
 }
 
-export function DailyQuestion({ question, day, totalDays }: DailyQuestionProps) {
+export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQuestionProps) {
   const [response, setResponse] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [showDayPicker, setShowDayPicker] = useState(false);
 
   const handleResponseChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
@@ -52,11 +54,32 @@ export function DailyQuestion({ question, day, totalDays }: DailyQuestionProps) 
   };
 
   const handleSkip = () => {
-    // Skip to next question logic
+    const nextDay = day < totalDays ? day + 1 : 1;
+    onDayChange(nextDay);
     setResponse('');
     setWordCount(0);
   };
 
+  const handlePreviousDay = () => {
+    const prevDay = day > 1 ? day - 1 : totalDays;
+    onDayChange(prevDay);
+    setResponse('');
+    setWordCount(0);
+  };
+
+  const handleNextDay = () => {
+    const nextDay = day < totalDays ? day + 1 : 1;
+    onDayChange(nextDay);
+    setResponse('');
+    setWordCount(0);
+  };
+
+  const handleDaySelect = (selectedDay: number) => {
+    onDayChange(selectedDay);
+    setResponse('');
+    setWordCount(0);
+    setShowDayPicker(false);
+  };
   if (hasSubmitted) {
     return (
       <div className="max-w-2xl mx-auto">
@@ -81,7 +104,7 @@ export function DailyQuestion({ question, day, totalDays }: DailyQuestionProps) 
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100/50 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-50/80 to-teal-50/80 p-6 border-b border-gray-100/50">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <DharmaWheel className="w-6 h-6 text-blue-600" />
               <span className="text-sm font-medium text-blue-700">Day {day} of {totalDays}</span>
@@ -96,6 +119,90 @@ export function DailyQuestion({ question, day, totalDays }: DailyQuestionProps) 
               </div>
             </div>
           </div>
+          
+          {/* Day Navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={handlePreviousDay}
+              className="flex items-center gap-2 px-3 py-2 bg-white/80 text-gray-600 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+            
+            <div className="relative">
+              <button
+                onClick={() => setShowDayPicker(!showDayPicker)}
+                className="flex items-center gap-2 px-4 py-2 bg-white/80 text-gray-700 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
+              >
+                <Calendar className="w-4 h-4" />
+                Jump to Day
+              </button>
+              
+              {showDayPicker && (
+                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200/50 p-4 z-10 w-80">
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Select Day (1-{totalDays})</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={totalDays}
+                      defaultValue={day}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const value = parseInt((e.target as HTMLInputElement).value);
+                          if (value >= 1 && value <= totalDays) {
+                            handleDaySelect(value);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-5 gap-1 max-h-32 overflow-y-auto">
+                    {Array.from({ length: Math.min(50, totalDays) }, (_, i) => i + 1).map((dayNum) => (
+                      <button
+                        key={dayNum}
+                        onClick={() => handleDaySelect(dayNum)}
+                        className={`px-2 py-1 text-xs rounded transition-all duration-200 ${
+                          dayNum === day
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {dayNum}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {totalDays > 50 && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 text-center">
+                        Use the input field above to jump to any day (1-{totalDays})
+                      </p>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => setShowDayPicker(false)}
+                    className="w-full mt-3 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={handleNextDay}
+              className="flex items-center gap-2 px-3 py-2 bg-white/80 text-gray-600 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          
           <h2 className="text-xl font-medium text-gray-900 leading-relaxed">{question}</h2>
         </div>
 

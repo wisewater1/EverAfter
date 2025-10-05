@@ -33,6 +33,7 @@ function App() {
               question={currentQuestion}
               day={currentDay}
               totalDays={365}
+              onDayChange={setCurrentDay}
             />
           </div>
         );
