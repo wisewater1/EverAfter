@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Mic, MessageCircle, Filter, Search, Play, Heart, Star, Clock } from 'lucide-react';
+import { Calendar, Mic, MessageCircle, Filter, Search, Play, Heart, Star, Clock, Sun, Sunset, Moon, RotateCcw } from 'lucide-react';
 
 // Dharma Wheel SVG Component
 const DharmaWheel = ({ className }: { className?: string }) => (
@@ -33,6 +33,12 @@ export function MemoryTimeline() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>('all');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'category' | 'favorites'>('newest');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const memories: Memory[] = [
     {
@@ -88,11 +94,69 @@ export function MemoryTimeline() {
 
   const filteredMemories = memories.filter(memory => {
     const matchesCategory = selectedCategory === 'all' || memory.category === selectedCategory;
+    const matchesType = selectedType === 'all' || memory.type === selectedType;
+    const matchesDifficulty = selectedDifficulty === 'all' || memory.difficulty === selectedDifficulty;
+    const matchesTimeOfDay = selectedTimeOfDay === 'all' || memory.timeOfDay === selectedTimeOfDay;
+    const matchesFavorites = !showFavoritesOnly || memory.favorite;
     const matchesSearch = memory.response.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          memory.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          memory.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    
+    let matchesDateRange = true;
+    if (dateRange.start || dateRange.end) {
+      const memoryDate = new Date(memory.date);
+      if (dateRange.start) {
+        matchesDateRange = matchesDateRange && memoryDate >= new Date(dateRange.start);
+      }
+      if (dateRange.end) {
+        matchesDateRange = matchesDateRange && memoryDate <= new Date(dateRange.end);
+      }
+    }
+    
+    return matchesCategory && matchesType && matchesDifficulty && matchesTimeOfDay && 
+           matchesFavorites && matchesSearch && matchesDateRange;
   });
+
+  // Sort filtered memories
+  const sortedMemories = [...filteredMemories].sort((a, b) => {
+    switch (sortBy) {
+      case 'newest':
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      case 'oldest':
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'category':
+        return a.category.localeCompare(b.category);
+      case 'favorites':
+        if (a.favorite && !b.favorite) return -1;
+        if (!a.favorite && b.favorite) return 1;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      default:
+        return 0;
+    }
+  });
+
+  const clearAllFilters = () => {
+    setSelectedCategory('all');
+    setSelectedType('all');
+    setSelectedDifficulty('all');
+    setSelectedTimeOfDay('all');
+    setDateRange({ start: '', end: '' });
+    setSortBy('newest');
+    setShowFavoritesOnly(false);
+    setSearchTerm('');
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (selectedCategory !== 'all') count++;
+    if (selectedType !== 'all') count++;
+    if (selectedDifficulty !== 'all') count++;
+    if (selectedTimeOfDay !== 'all') count++;
+    if (dateRange.start || dateRange.end) count++;
+    if (showFavoritesOnly) count++;
+    if (searchTerm) count++;
+    return count;
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -154,34 +218,162 @@ export function MemoryTimeline() {
           
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-3 bg-gray-50 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200"
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-200 border ${
+              showFilters || getActiveFilterCount() > 0
+                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+            }`}
           >
             <Filter className="w-4 h-4" />
             Filters
+            {getActiveFilterCount() > 0 && (
+              <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {getActiveFilterCount()}
+              </span>
+            )}
           </button>
         </div>
         
-        {/* Category Filters */}
-        <div className="flex gap-2 flex-wrap mt-4 pt-4 border-t border-gray-100">
-          {categories.map((category) => (
-            <button
-              key={category.key}
-              onClick={() => setSelectedCategory(category.key)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${getCategoryButtonColor(category, selectedCategory === category.key)}`}
-            >
-              {category.label}
-              <span className="ml-2 text-xs opacity-75">({category.count})</span>
-            </button>
-          ))}
-        </div>
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-100 space-y-6">
+            {/* Category Filters */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Category</label>
+              <div className="flex gap-2 flex-wrap">
+                {categories.map((category) => (
+                  <button
+                    key={category.key}
+                    onClick={() => setSelectedCategory(category.key)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${getCategoryButtonColor(category, selectedCategory === category.key)}`}
+                  >
+                    {category.label}
+                    <span className="ml-2 text-xs opacity-75">({category.count})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Type and Difficulty Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Response Type</label>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { key: 'all', label: 'All Types', count: memories.length },
+                    { key: 'text', label: 'Text', count: memories.filter(m => m.type === 'text').length },
+                    { key: 'voice', label: 'Voice', count: memories.filter(m => m.type === 'voice').length },
+                    { key: 'story', label: 'Story', count: memories.filter(m => m.type === 'story').length }
+                  ].map((type) => (
+                    <button
+                      key={type.key}
+                      onClick={() => setSelectedType(type.key)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                        selectedType === type.key
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {type.label} ({type.count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Time of Day</label>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { key: 'all', label: 'All Times', icon: Clock },
+                    { key: 'morning', label: 'Morning', icon: Sun },
+                    { key: 'afternoon', label: 'Afternoon', icon: Sun },
+                    { key: 'evening', label: 'Evening', icon: Sunset },
+                    { key: 'night', label: 'Night', icon: Moon }
+                  ].map((time) => (
+                    <button
+                      key={time.key}
+                      onClick={() => setSelectedTimeOfDay(time.key)}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                        selectedTimeOfDay === time.key
+                          ? 'bg-purple-600 text-white border-purple-600'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <time.icon className="w-3 h-3" />
+                      {time.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Date Range and Sort Options */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Date Range</label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Start date"
+                  />
+                  <input
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="End date"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Sort By</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="category">By Category</option>
+                  <option value="favorites">Favorites First</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Additional Options */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showFavoritesOnly}
+                  onChange={(e) => setShowFavoritesOnly(e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Show favorites only</span>
+              </label>
+
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Timeline */}
       <div className="space-y-8">
-        {filteredMemories.map((memory, index) => (
+        {sortedMemories.map((memory, index) => (
           <div key={memory.id} className="relative group">
             {/* Timeline line */}
-            {index !== filteredMemories.length - 1 && (
+            {index !== sortedMemories.length - 1 && (
               <div className="absolute left-8 top-16 w-px h-full bg-gradient-to-b from-gray-200 to-transparent" />
             )}
             
@@ -264,7 +456,7 @@ export function MemoryTimeline() {
       </div>
 
       {/* Empty State */}
-      {filteredMemories.length === 0 && (
+      {sortedMemories.length === 0 && (
         <div className="text-center py-16">
           <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Search className="w-10 h-10 text-gray-400" />
@@ -273,6 +465,14 @@ export function MemoryTimeline() {
           <p className="text-gray-600 max-w-md mx-auto">
             Try adjusting your search terms or filter criteria to find the memories you're looking for.
           </p>
+          {getActiveFilterCount() > 0 && (
+            <button
+              onClick={clearAllFilters}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Clear All Filters
+            </button>
+          )}
         </div>
       )}
     </div>
