@@ -4,19 +4,23 @@ import { LandingPage } from './components/LandingPage';
 import { DailyQuestion } from './components/DailyQuestion';
 import FamilyDashboard from './components/FamilyDashboard';
 import { MemoryTimeline } from './components/MemoryTimeline';
-import { getQuestionByDay, getRandomQuestion } from './data/questions';
+import { getQuestionByDay, getRandomQuestion, getQuestionsForDay } from './data/questions';
 
 type AppState = 'landing' | 'daily-question' | 'family-dashboard' | 'memory-timeline';
 
 function App() {
   const [currentView, setCurrentView] = useState<AppState>('landing');
   const [currentDay, setCurrentDay] = useState(127);
+  const [savedResponses, setSavedResponses] = useState<any[]>([]);
   const [currentUser] = useState({
     name: 'Sarah Chen',
     role: 'family' as const
   });
 
-  const currentQuestion = getQuestionByDay(currentDay)?.question || getRandomQuestion().question;
+  const handleSaveResponse = (responseData: any) => {
+    setSavedResponses(prev => [...prev, responseData]);
+    console.log('Saved response:', responseData);
+  };
 
   const handleGetStarted = () => {
     setCurrentView('daily-question');
@@ -30,10 +34,10 @@ function App() {
         return (
           <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 py-16">
             <DailyQuestion 
-              question={currentQuestion}
               day={currentDay}
               totalDays={365}
               onDayChange={setCurrentDay}
+              onSaveResponse={handleSaveResponse}
             />
           </div>
         );
@@ -85,7 +89,7 @@ function App() {
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                Memory Timeline
+                Memory Timeline ({savedResponses.length})
               </button>
               <button
                 onClick={() => setCurrentView('family-dashboard')}

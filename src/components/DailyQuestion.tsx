@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Send, Mic, Pause, Play, RotateCcw, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Mic, Pause, Play, RotateCcw, ChevronLeft, ChevronRight, Calendar, Clock, Sun, Sunset, Moon, Stars } from 'lucide-react';
+import { getQuestionsForDay, getCurrentTimeQuestion, getTimeGreeting, getPersonalityAspectDescription, Question } from '../data/questions';
 
 // Dharma Wheel SVG Component
 const DharmaWheel = ({ className }: { className?: string }) => (
@@ -18,18 +19,41 @@ const DharmaWheel = ({ className }: { className?: string }) => (
 );
 
 interface DailyQuestionProps {
-  question: string;
   day: number;
   totalDays: number;
   onDayChange: (newDay: number) => void;
+  onSaveResponse: (response: any) => void;
 }
 
-export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQuestionProps) {
+export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: DailyQuestionProps) {
   const [response, setResponse] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [showDayPicker, setShowDayPicker] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<'current' | 'morning' | 'afternoon' | 'evening' | 'night'>('current');
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+
+  // Get questions for the current day
+  const dailyQuestions = getQuestionsForDay(day);
+  const timeBasedQuestion = getCurrentTimeQuestion(day);
+
+  useEffect(() => {
+    if (selectedTimeSlot === 'current') {
+      setCurrentQuestion(timeBasedQuestion);
+    } else {
+      const timeIndex = {
+        'morning': 0,
+        'afternoon': 1,
+        'evening': 2,
+        'night': 3
+      }[selectedTimeSlot];
+      setCurrentQuestion(dailyQuestions.questions[timeIndex!]);
+    }
+    setResponse('');
+    setWordCount(0);
+  }, [day, selectedTimeSlot]);
 
   const handleResponseChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
@@ -37,15 +61,60 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
     setWordCount(text.trim().split(/\s+/).filter(word => word.length > 0).length);
   };
 
-  const handleSubmit = () => {
-    if (response.trim()) {
+  const handleSubmit = async () => {
+    if (response.trim() && currentQuestion) {
+      setIsSaving(true);
+      
+      const responseData = {
+        day,
+        questionId: currentQuestion.id,
+        question: currentQuestion.question,
+        response: response.trim(),
+        timeOfDay: currentQuestion.timeOfDay,
+        personalityAspect: currentQuestion.personalityAspect,
+        category: currentQuestion.category,
+        difficulty: currentQuestion.difficulty,
+        timestamp: new Date().toISOString(),
+        type: isRecording ? 'voice' : 'text',
+        wordCount
+      };
+
+      // Simulate save delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      onSaveResponse(responseData);
+      setIsSaving(false);
       setHasSubmitted(true);
-      // Here we would save the response
+      
       setTimeout(() => {
         setHasSubmitted(false);
         setResponse('');
         setWordCount(0);
+        // Auto-advance to next time slot or next day
+        advanceToNextQuestion();
       }, 3000);
+    }
+  };
+
+  const advanceToNextQuestion = () => {
+    const currentHour = new Date().getHours();
+    const timeSlots = ['morning', 'afternoon', 'evening', 'night'];
+    const currentTimeSlot = selectedTimeSlot === 'current' ? 
+      (currentHour >= 6 && currentHour < 12 ? 'morning' :
+       currentHour >= 12 && currentHour < 17 ? 'afternoon' :
+       currentHour >= 17 && currentHour < 21 ? 'evening' : 'night') :
+      selectedTimeSlot;
+    
+    const currentIndex = timeSlots.indexOf(currentTimeSlot);
+    
+    if (currentIndex < timeSlots.length - 1) {
+      // Move to next time slot
+      setSelectedTimeSlot(timeSlots[currentIndex + 1] as any);
+    } else {
+      // Move to next day, morning
+      const nextDay = day < totalDays ? day + 1 : 1;
+      onDayChange(nextDay);
+      setSelectedTimeSlot('morning');
     }
   };
 
@@ -54,10 +123,7 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
   };
 
   const handleSkip = () => {
-    const nextDay = day < totalDays ? day + 1 : 1;
-    onDayChange(nextDay);
-    setResponse('');
-    setWordCount(0);
+    advanceToNextQuestion();
   };
 
   const handlePreviousDay = () => {
@@ -80,6 +146,27 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
     setWordCount(0);
     setShowDayPicker(false);
   };
+
+  const getTimeIcon = (timeOfDay: string) => {
+    switch (timeOfDay) {
+      case 'morning': return Sun;
+      case 'afternoon': return Sun;
+      case 'evening': return Sunset;
+      case 'night': return Moon;
+      default: return Clock;
+    }
+  };
+
+  const getTimeColor = (timeOfDay: string) => {
+    switch (timeOfDay) {
+      case 'morning': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'afternoon': return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'evening': return 'text-purple-600 bg-purple-50 border-purple-200';
+      case 'night': return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+      default: return 'text-blue-600 bg-blue-50 border-blue-200';
+    }
+  };
+
   if (hasSubmitted) {
     return (
       <div className="max-w-2xl mx-auto">
@@ -87,17 +174,31 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <DharmaWheel className="w-8 h-8 text-green-600" />
           </div>
-          <h3 className="text-xl font-medium text-green-900 mb-2">Thank you for sharing</h3>
+          <h3 className="text-xl font-medium text-green-900 mb-2">Memory Preserved</h3>
           <p className="text-green-700 mb-4">Your precious memory has been safely recorded and encrypted.</p>
           <div className="text-sm text-green-600">
-            Memory {day} of {totalDays} complete
+            {currentQuestion && (
+              <>
+                <div className="mb-2">
+                  {currentQuestion.timeOfDay.charAt(0).toUpperCase() + currentQuestion.timeOfDay.slice(1)} reflection complete
+                </div>
+                <div className="text-xs opacity-75">
+                  {getPersonalityAspectDescription(currentQuestion.personalityAspect)}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
+  if (!currentQuestion) {
+    return <div className="max-w-2xl mx-auto text-center">Loading question...</div>;
+  }
+
   const progressPercentage = (day / totalDays) * 100;
+  const TimeIcon = getTimeIcon(currentQuestion.timeOfDay);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -107,7 +208,10 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <DharmaWheel className="w-6 h-6 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Day {day} of {totalDays}</span>
+              <div>
+                <span className="text-sm font-medium text-blue-700">Day {day} of {totalDays}</span>
+                <div className="text-xs text-gray-500 mt-0.5">{getTimeGreeting()}</div>
+              </div>
             </div>
             <div className="text-right">
               <div className="text-xs text-gray-500 mb-1">{progressPercentage.toFixed(1)}% Complete</div>
@@ -119,6 +223,43 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
               </div>
             </div>
           </div>
+
+          {/* Time Slot Selector */}
+          <div className="mb-6">
+            <div className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wide">Question Time</div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setSelectedTimeSlot('current')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${
+                  selectedTimeSlot === 'current'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white/80 text-gray-600 border-gray-200 hover:bg-white hover:text-gray-800'
+                }`}
+              >
+                <Clock className="w-3 h-3" />
+                Current Time
+              </button>
+              
+              {dailyQuestions.questions.map((q, index) => {
+                const timeSlot = ['morning', 'afternoon', 'evening', 'night'][index];
+                const Icon = getTimeIcon(q.timeOfDay);
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setSelectedTimeSlot(timeSlot as any)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${
+                      selectedTimeSlot === timeSlot
+                        ? getTimeColor(q.timeOfDay).replace('text-', 'bg-').replace('bg-', 'bg-').replace('-600', '-600 text-white border-').replace('bg-', '').replace(' text-white border-', ' text-white border-').replace('50 border-', '600 border-').replace('200', '600')
+                        : `bg-white/80 border-gray-200 hover:bg-white hover:text-gray-800 ${getTimeColor(q.timeOfDay).split(' ')[0]}`
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {q.timeOfDay.charAt(0).toUpperCase() + q.timeOfDay.slice(1)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           
           {/* Day Navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -127,7 +268,7 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
               className="flex items-center gap-2 px-3 py-2 bg-white/80 text-gray-600 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
             >
               <ChevronLeft className="w-4 h-4" />
-              Previous
+              Previous Day
             </button>
             
             <div className="relative">
@@ -198,12 +339,38 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
               onClick={handleNextDay}
               className="flex items-center gap-2 px-3 py-2 bg-white/80 text-gray-600 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
             >
-              Next
+              Next Day
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          
-          <h2 className="text-xl font-medium text-gray-900 leading-relaxed">{question}</h2>
+
+          {/* Question Header */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${getTimeColor(currentQuestion.timeOfDay)}`}>
+              <TimeIcon className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-medium text-gray-900 leading-relaxed mb-2">{currentQuestion.question}</h2>
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span className={`px-2 py-1 rounded-full border ${getTimeColor(currentQuestion.timeOfDay)}`}>
+                  {currentQuestion.timeOfDay.charAt(0).toUpperCase() + currentQuestion.timeOfDay.slice(1)} Reflection
+                </span>
+                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full border border-gray-200">
+                  {currentQuestion.category.charAt(0).toUpperCase() + currentQuestion.category.slice(1)}
+                </span>
+                <span className={`px-2 py-1 rounded-full border ${
+                  currentQuestion.difficulty === 'light' ? 'bg-green-50 text-green-700 border-green-200' :
+                  currentQuestion.difficulty === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                  'bg-red-50 text-red-700 border-red-200'
+                }`}>
+                  {currentQuestion.difficulty.charAt(0).toUpperCase() + currentQuestion.difficulty.slice(1)}
+                </span>
+              </div>
+              <div className="mt-2 text-xs text-gray-500 italic">
+                {getPersonalityAspectDescription(currentQuestion.personalityAspect)}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Content */}
@@ -257,11 +424,20 @@ export function DailyQuestion({ question, day, totalDays, onDayChange }: DailyQu
 
               <button
                 onClick={handleSubmit}
-                disabled={!response.trim()}
+                disabled={!response.trim() || isSaving}
                 className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl text-sm font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:from-blue-700 hover:to-teal-700"
               >
-                <Send className="w-4 h-4" />
-                Save Memory
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Save Memory
+                  </>
+                )}
               </button>
             </div>
           </div>
