@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Mic, Pause, Play, RotateCcw, ChevronLeft, ChevronRight, Calendar, Clock, Sun, Sunset, Moon, Stars } from 'lucide-react';
+import { Send, Mic, Pause, Play, RotateCcw, ChevronLeft, ChevronRight, Calendar, Clock, Sun, Sunset, Moon, Star as Stars } from 'lucide-react';
 import { getQuestionsForDay, getCurrentTimeQuestion, getTimeGreeting, getPersonalityAspectDescription, Question } from '../data/questions';
 
 // Dharma Wheel SVG Component
