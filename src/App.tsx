@@ -10,12 +10,12 @@ type AppState = 'landing' | 'daily-question' | 'family-dashboard' | 'memory-time
 
 function App() {
   const [currentView, setCurrentView] = useState<AppState>('landing');
+  const [currentDay, setCurrentDay] = useState(127);
   const [currentUser] = useState({
     name: 'Sarah Chen',
     role: 'family' as const
   });
 
-  const currentDay = 127;
   const currentQuestion = getQuestionByDay(currentDay)?.question || getRandomQuestion().question;
 
   const handleGetStarted = () => {
