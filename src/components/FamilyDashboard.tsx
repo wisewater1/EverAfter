@@ -5,7 +5,10 @@ import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircl
 interface Saint {
   id: string;
   name: string;
-  title: string;
+                <button 
+                  onClick={() => setShowInviteModal(true)}
+                  className="text-purple-600 hover:text-purple-700 text-sm font-medium transition-colors"
+                >
   description: string;
   responsibilities: string[];
   tier: 'classic' | 'premium';
