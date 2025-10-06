@@ -5,7 +5,7 @@ import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircl
 interface Saint {
   id: string;
   name: string;
-  title: string;
+                           <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
   description: string;
   responsibilities: string[];
   tier: 'classic' | 'premium';
