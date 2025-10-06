@@ -3,7 +3,20 @@ import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircl
 
 // Saints AI Engram System
 interface Saint {
+interface SaintActivity {
   id: string;
+  saintId: string;
+  action: string;
+  description: string;
+  timestamp: string;
+  status: 'completed' | 'in_progress' | 'scheduled';
+  impact: 'high' | 'medium' | 'low';
+  category: 'communication' | 'support' | 'protection' | 'memory' | 'family' | 'charity';
+  details?: string;
+}
+
+  id: string;
+import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles, MessageSquare, Mail, Phone, Calendar, Gift, AlertTriangle, FileText, Camera, Music } from 'lucide-react';
   name: string;
   title: string;
   description: string;
@@ -12,6 +25,9 @@ interface Saint {
   price?: number;
   active: boolean;
   icon: React.ComponentType<{ className?: string }>;
+  todayActivities: number;
+  weeklyActivities: number;
+  lastActive: string;
 }
 
 const saints: Saint[] = [
@@ -23,7 +39,10 @@ const saints: Saint[] = [
     responsibilities: ['Grief counseling', 'Emotional support', 'Healing rituals', 'Comfort messages'],
     tier: 'classic',
     active: true,
-    icon: Heart
+    icon: Heart,
+    todayActivities: 7,
+    weeklyActivities: 23,
+    lastActive: '12 minutes ago'
   },
   {
     id: 'michael',
@@ -33,7 +52,10 @@ const saints: Saint[] = [
     responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
     tier: 'classic',
     active: true,
-    icon: Shield
+    icon: Shield,
+    todayActivities: 12,
+    weeklyActivities: 45,
+    lastActive: '3 minutes ago'
   },
   {
     id: 'martin',
@@ -44,7 +66,10 @@ const saints: Saint[] = [
     tier: 'premium',
     price: 29.99,
     active: false,
-    icon: Crown
+    icon: Crown,
+    todayActivities: 0,
+    weeklyActivities: 0,
+    lastActive: 'Never'
   },
   {
     id: 'agatha',
@@ -55,12 +80,108 @@ const saints: Saint[] = [
     tier: 'premium',
     price: 34.99,
     active: false,
-    icon: Star
+    icon: Star,
+    todayActivities: 0,
+    weeklyActivities: 0,
+    lastActive: 'Never'
   }
 ];
 
+// Today's Saint Activities
+const todayActivities: SaintActivity[] = [
+  {
+    id: '1',
+    saintId: 'michael',
+    action: 'Security Scan Completed',
+    description: 'Performed comprehensive security audit of all family member accounts',
+    timestamp: '2024-01-20T14:30:00Z',
+    status: 'completed',
+    impact: 'high',
+    category: 'protection',
+    details: 'Scanned 3 family accounts, updated 2 weak passwords, enabled 2FA on 1 account'
+  },
+  {
+    id: '2',
+    saintId: 'raphael',
+    action: 'Comfort Message Sent',
+    description: 'Sent personalized comfort message to Emma during difficult moment',
+    timestamp: '2024-01-20T13:45:00Z',
+    status: 'completed',
+    impact: 'high',
+    category: 'support',
+    details: 'Detected emotional distress through voice analysis, provided gentle guidance'
+  },
+  {
+    id: '3',
+    saintId: 'michael',
+    action: 'Privacy Settings Updated',
+    description: 'Automatically adjusted privacy settings based on new family member invitation',
+    timestamp: '2024-01-20T12:15:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'protection',
+    details: 'Updated access permissions for Emma Johnson, maintained security protocols'
+  },
+  {
+    id: '4',
+    saintId: 'raphael',
+    action: 'Memory Preservation',
+    description: 'Automatically backed up and encrypted today\'s memory responses',
+    timestamp: '2024-01-20T11:30:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'memory',
+    details: 'Processed 2 new memories, applied emotional context analysis'
+  },
+  {
+    id: '5',
+    saintId: 'michael',
+    action: 'Threat Detection',
+    description: 'Blocked 3 suspicious login attempts from unknown locations',
+    timestamp: '2024-01-20T10:45:00Z',
+    status: 'completed',
+    impact: 'high',
+    category: 'protection',
+    details: 'Detected attempts from Russia, China, and Nigeria. All blocked successfully.'
+  },
+  {
+    id: '6',
+    saintId: 'raphael',
+    action: 'Family Check-in',
+    description: 'Sent gentle wellness check to Michael Johnson after missed daily question',
+    timestamp: '2024-01-20T09:20:00Z',
+    status: 'completed',
+    impact: 'low',
+    category: 'family',
+    details: 'Noticed 2-day absence, sent caring reminder without pressure'
+  },
+  {
+    id: '7',
+    saintId: 'michael',
+    action: 'Data Integrity Check',
+    description: 'Verified integrity of all stored memories and family data',
+    timestamp: '2024-01-20T08:00:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'protection',
+    details: 'Checked 247 memories, all checksums verified, no corruption detected'
+  },
+  {
+    id: '8',
+    saintId: 'raphael',
+    action: 'Emotional Analysis',
+    description: 'Analyzed recent responses for emotional patterns and well-being indicators',
+    timestamp: '2024-01-20T07:30:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'support',
+    details: 'Detected positive emotional trend, noted increased storytelling frequency'
+  }
+];
 export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
+  const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
 
   const familyMembers = [
     { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },
@@ -238,6 +359,7 @@ export default function FamilyDashboard() {
         {/* Saints AI Tab */}
         {activeTab === 'saints' && (
           <div className="space-y-6">
+            {/* Saints AI Overview */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center">
@@ -246,6 +368,59 @@ export default function FamilyDashboard() {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">Saints AI Engrams</h3>
                   <p className="text-sm text-gray-500">Autonomous AI profiles that handle responsibilities based on your wishes</p>
+                </div>
+              </div>
+              {/* Today's Activity Summary */}
+              <div className="mb-8 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-700/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-medium text-white">Today's Activities</h4>
+                      <p className="text-sm text-gray-400">Your Saints completed {todayActivities.length} tasks today</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-light text-white">{todayActivities.length}</div>
+                    <div className="text-xs text-gray-400">Completed</div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Shield className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm font-medium text-white">Protection</span>
+                    </div>
+                    <div className="text-lg font-semibold text-blue-400">
+                      {todayActivities.filter(a => a.category === 'protection').length}
+                    </div>
+                    <div className="text-xs text-gray-400">Security actions</div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Heart className="w-4 h-4 text-pink-400" />
+                      <span className="text-sm font-medium text-white">Support</span>
+                    </div>
+                    <div className="text-lg font-semibold text-pink-400">
+                      {todayActivities.filter(a => a.category === 'support').length}
+                    </div>
+                    <div className="text-xs text-gray-400">Comfort actions</div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Camera className="w-4 h-4 text-green-400" />
+                      <span className="text-sm font-medium text-white">Memory</span>
+                    </div>
+                    <div className="text-lg font-semibold text-green-400">
+                      {todayActivities.filter(a => a.category === 'memory').length}
+                    </div>
+                    <div className="text-xs text-gray-400">Memory actions</div>
+                  </div>
                 </div>
               </div>
 
@@ -295,6 +470,27 @@ export default function FamilyDashboard() {
 
                     <p className="text-sm text-gray-600 mb-4 leading-relaxed">{saint.description}</p>
 
+                    {/* Today's Activity Stats */}
+                    {saint.active && (
+                      <div className="mb-4 p-3 bg-gray-700/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-300 uppercase tracking-wide">Today's Activity</span>
+                          <span className="text-xs text-gray-400">{saint.lastActive}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-semibold text-white">{saint.todayActivities}</span>
+                            <span className="text-xs text-gray-400">today</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-semibold text-white">{saint.weeklyActivities}</span>
+                            <span className="text-xs text-gray-400">this week</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="mb-4">
                       <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">Responsibilities</h5>
                       <div className="flex flex-wrap gap-1">
@@ -311,41 +507,188 @@ export default function FamilyDashboard() {
                         <span className="text-lg font-semibold text-gray-900">${saint.price}/month</span>
                       )}
                       
-                      <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      <div className="flex items-center gap-2">
+                        {saint.active && (
+                          <button
+                            onClick={() => setSelectedSaint(selectedSaint === saint.id ? null : saint.id)}
+                            className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-600 transition-all duration-200"
+                          >
+                            View Activity
+                          </button>
+                        )}
+                        <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                         saint.active
                           ? 'bg-red-100 text-red-700 hover:bg-red-200'
                           : saint.tier === 'premium'
                             ? 'bg-amber-600 text-white hover:bg-amber-700'
                             : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}>
+                        }`}>
                         {saint.active ? 'Deactivate' : saint.tier === 'premium' ? 'Subscribe' : 'Activate'}
-                      </button>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Active Saints Status */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Active Saints Status</h3>
-              
-              <div className="space-y-4">
-                {saints.filter(saint => saint.active).map((saint) => (
-                  <div key={saint.id} className="flex items-center justify-between p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <div className="flex items-center gap-3">
-                      <saint.icon className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{saint.name}</p>
-                        <p className="text-xs text-gray-500">Monitoring and responding autonomously</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-gray-600">Active</span>
-                    </div>
+            {/* Detailed Activity Feed */}
+            <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700/50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-blue-100 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-green-600" />
                   </div>
-                ))}
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Today's Activity Feed</h3>
+                    <p className="text-sm text-gray-400">Real-time actions performed by your Saints</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-400">Live</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {todayActivities
+                  .filter(activity => selectedSaint ? activity.saintId === selectedSaint : true)
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .map((activity) => {
+                    const saint = saints.find(s => s.id === activity.saintId);
+                    const timeAgo = new Date(Date.now() - new Date(activity.timestamp).getTime()).toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    });
+                    
+                    return (
+                      <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors">
+                        <div className="flex-shrink-0">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            saint?.active ? 'bg-blue-100' : 'bg-gray-100'
+                          }`}>
+                            {saint && <saint.icon className={`w-5 h-5 ${saint.active ? 'text-blue-600' : 'text-gray-600'}`} />}
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <h4 className="text-sm font-medium text-white">{activity.action}</h4>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                activity.impact === 'high' ? 'bg-red-100 text-red-800' :
+                                activity.impact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {activity.impact} impact
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                              <Clock className="w-3 h-3" />
+                              {timeAgo}
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-gray-300 mb-2">{activity.description}</p>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">by {saint?.name}</span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                activity.category === 'protection' ? 'bg-blue-100 text-blue-800' :
+                                activity.category === 'support' ? 'bg-pink-100 text-pink-800' :
+                                activity.category === 'memory' ? 'bg-green-100 text-green-800' :
+                                activity.category === 'family' ? 'bg-purple-100 text-purple-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {activity.category}
+                              </span>
+                            </div>
+                            
+                            {activity.details && (
+                              <button
+                                onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
+                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                              >
+                                {showActivityDetails === activity.id ? 'Hide Details' : 'View Details'}
+                              </button>
+                            )}
+                          </div>
+                          
+                          {showActivityDetails === activity.id && activity.details && (
+                            <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-600/50">
+                              <p className="text-xs text-gray-300 leading-relaxed">{activity.details}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+              
+              {selectedSaint && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <button
+                    onClick={() => setSelectedSaint(null)}
+                    className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
+                  >
+                    ← Show all Saints activity
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Performance Analytics */}
+            <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700/50 p-6">
+              <h3 className="text-lg font-medium text-white mb-6">Saints Performance Analytics</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-base font-medium text-white mb-4">Activity Categories</h4>
+                  <div className="space-y-3">
+                    {[
+                      { category: 'protection', label: 'Security & Protection', count: todayActivities.filter(a => a.category === 'protection').length, color: 'blue' },
+                      { category: 'support', label: 'Emotional Support', count: todayActivities.filter(a => a.category === 'support').length, color: 'pink' },
+                      { category: 'memory', label: 'Memory Preservation', count: todayActivities.filter(a => a.category === 'memory').length, color: 'green' },
+                      { category: 'family', label: 'Family Care', count: todayActivities.filter(a => a.category === 'family').length, color: 'purple' }
+                    ].map((item) => (
+                      <div key={item.category} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            item.color === 'blue' ? 'bg-blue-500' :
+                            item.color === 'pink' ? 'bg-pink-500' :
+                            item.color === 'green' ? 'bg-green-500' :
+                            'bg-purple-500'
+                          }`}></div>
+                          <span className="text-sm font-semibold text-white">{item.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-base font-medium text-white mb-4">Impact Levels</h4>
+                  <div className="space-y-3">
+                    {[
+                      { impact: 'high', label: 'High Impact Actions', count: todayActivities.filter(a => a.impact === 'high').length, color: 'red' },
+                      { impact: 'medium', label: 'Medium Impact Actions', count: todayActivities.filter(a => a.impact === 'medium').length, color: 'yellow' },
+                      { impact: 'low', label: 'Low Impact Actions', count: todayActivities.filter(a => a.impact === 'low').length, color: 'green' }
+                    ].map((item) => (
+                      <div key={item.impact} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            item.color === 'red' ? 'bg-red-500' :
+                            item.color === 'yellow' ? 'bg-yellow-500' :
+                            'bg-green-500'
+                          }`}></div>
+                          <span className="text-sm font-semibold text-white">{item.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
