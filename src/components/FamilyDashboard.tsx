@@ -182,9 +182,9 @@ export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
 
   const familyMembers = [
     { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },
@@ -199,7 +199,7 @@ export default function FamilyDashboard() {
   ];
 
   const handleInvite = () => {
-    if (inviteEmail) {
+    if (inviteEmail.trim()) {
       // Simulate sending invite
       console.log('Inviting:', inviteEmail);
       setInviteEmail('');
