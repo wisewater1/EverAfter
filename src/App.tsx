@@ -28,7 +28,7 @@ interface SaintActivity {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const saints: SaintActivity[] = [
+const saints: Saint[] = [
   {
     id: 'raphael',
     name: 'St. Raphael',
@@ -781,105 +781,6 @@ export default function FamilyDashboard() {
                 <Shield className="w-6 h-6 text-green-600" />
                 <h3 className="text-lg font-semibold text-white">Privacy & Security</h3>
               </div>
-              <p className="text-sm text-gray-300 mb-6">Your memories are protected with enterprise-grade security</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="p-4 border border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">End-to-End Encryption</span>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    </div>
-                    <p className="text-xs text-gray-400">All data encrypted with AES-256</p>
-                  </div>
-                  
-                  <div className="p-4 border border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">Two-Factor Authentication</span>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    </div>
-                    <p className="text-xs text-gray-400">SMS and authenticator app enabled</p>
-                  </div>
-                  
-                  <div className="p-4 border border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">Data Backup</span>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    </div>
-                    <p className="text-xs text-gray-400">Automatic daily backups to secure cloud</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="p-4 border border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">Access Logs</span>
-                      <button className="text-xs text-blue-400 hover:text-blue-300">View</button>
-                    </div>
-                    <p className="text-xs text-gray-400">Monitor all account access</p>
-                  </div>
-                  
-                  <div className="p-4 border border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">Data Export</span>
-                      <button className="text-xs text-blue-400 hover:text-blue-300">Export</button>
-                    </div>
-                    <p className="text-xs text-gray-400">Download all your data anytime</p>
-                  </div>
-                  
-                  <div className="p-4 border border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-white">Account Deletion</span>
-                      <button className="text-xs text-red-400 hover:text-red-300">Delete</button>
-                    </div>
-                    <p className="text-xs text-gray-400">Permanently remove all data</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <div className="bg-gray-800 rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Account Settings</h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-                  <input 
-                    type="email" 
-                    defaultValue="sarah.johnson@email.com"
-                    className="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Notification Preferences</label>
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input type="checkbox" defaultChecked className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500" />
-                      <span className="ml-2 text-sm text-gray-300">Daily question reminders</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input type="checkbox" defaultChecked className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500" />
-                      <span className="ml-2 text-sm text-gray-300">Family activity updates</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input type="checkbox" className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500" />
-                      <span className="ml-2 text-sm text-gray-300">Weekly memory summaries</span>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t border-gray-700">
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Save Changes
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -887,3 +788,4 @@ export default function FamilyDashboard() {
     </div>
   );
 }
+              
