@@ -204,8 +204,8 @@ export default function FamilyDashboard() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white rounded-lg shadow-sm mb-6 border border-gray-100/50">
-          <div className="border-b border-gray-100">
+        <div className="bg-gray-800 rounded-lg shadow-sm mb-6 border border-gray-700/50">
+          <div className="border-b border-gray-700">
             <nav className="flex space-x-6 px-6">
               {[
                 { id: 'overview', label: 'Overview', icon: Eye },
@@ -218,14 +218,17 @@ export default function FamilyDashboard() {
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex items-center space-x-2 py-3 px-1 border-b-2 text-sm transition-colors ${
+                  className={`flex items-center space-x-2 py-3 px-1 border-b-2 text-sm transition-colors relative ${
                     activeTab === id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 bg-blue-900/20'
+                      : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                   }`}
                 >
                   <Icon className="w-3 h-3" />
                   <span>{label}</span>
+                  {activeTab === id && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-teal-600/10 rounded-t-lg"></div>
+                  )}
                 </button>
               ))}
             </nav>
@@ -237,52 +240,52 @@ export default function FamilyDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Stats Cards */}
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+              <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Memories</p>
-                    <p className="text-2xl font-light text-gray-900 mt-1">247</p>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Memories</p>
+                    <p className="text-2xl font-light text-white mt-1">247</p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 bg-blue-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
                     <Clock className="w-5 h-5 text-blue-600" />
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">+12 this week</p>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+              <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Family</p>
-                    <p className="text-2xl font-light text-gray-900 mt-1">2</p>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Family</p>
+                    <p className="text-2xl font-light text-white mt-1">2</p>
                   </div>
-                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 bg-green-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/25">
                     <Users className="w-5 h-5 text-green-600" />
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">1 pending invitation</p>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+              <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Privacy</p>
-                    <p className="text-2xl font-light text-gray-900 mt-1">100%</p>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Privacy</p>
+                    <p className="text-2xl font-light text-white mt-1">100%</p>
                   </div>
-                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 bg-green-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/25">
                     <Shield className="w-5 h-5 text-green-600" />
                   </div>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">All measures active</p>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+              <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Days</p>
-                    <p className="text-2xl font-light text-gray-900 mt-1">89</p>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Days</p>
+                    <p className="text-2xl font-light text-white mt-1">89</p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 bg-blue-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
                     <CheckCircle className="w-5 h-5 text-blue-600" />
                   </div>
                 </div>
@@ -291,8 +294,8 @@ export default function FamilyDashboard() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
-              <h3 className="text-base font-medium text-gray-900 mb-4">Recent Activity</h3>
+            <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
+              <h3 className="text-base font-medium text-white mb-4">Recent Activity</h3>
               <div className="space-y-4">
                 {recentActivities.map((activity, index) => (
                   <div key={index} className="flex items-start space-x-3">
@@ -301,8 +304,8 @@ export default function FamilyDashboard() {
                       activity.type === 'settings' ? 'bg-yellow-500' : 'bg-green-500'
                     }`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-900">{activity.action}</p>
-                      <p className="text-xs text-gray-500">by {activity.user} • {activity.time}</p>
+                      <p className="text-xs text-gray-200">{activity.action}</p>
+                      <p className="text-xs text-gray-400">by {activity.user} • {activity.time}</p>
                     </div>
                   </div>
                 ))}
@@ -313,44 +316,44 @@ export default function FamilyDashboard() {
 
         {/* Family Members Tab */}
         {activeTab === 'members' && (
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Family Members</h3>
-              <p className="text-sm text-gray-600">Manage who has access to memories and their permissions</p>
+          <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 backdrop-blur-sm">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold text-white">Family Members</h3>
+              <p className="text-sm text-gray-300">Manage who has access to memories and their permissions</p>
             </div>
             <div className="p-6">
               <div className="space-y-4">
                 {familyMembers.map((member, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 border border-gray-700 rounded-lg shadow-sm hover:shadow-md hover:shadow-gray-500/25 transition-all duration-200 backdrop-blur-sm">
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center shadow-lg shadow-gray-500/25">
+                        <span className="text-sm font-medium text-gray-200">
                           {member.name.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{member.name}</p>
-                        <p className="text-sm text-gray-500">{member.role} • Last active {member.lastActive}</p>
+                        <p className="font-medium text-white">{member.name}</p>
+                        <p className="text-sm text-gray-400">{member.role} • Last active {member.lastActive}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         member.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-green-100 text-green-800 shadow-sm' 
+                          : 'bg-yellow-100 text-yellow-800 shadow-sm'
                       }`}>
                         {member.status}
                       </span>
-                      <button className="text-gray-400 hover:text-gray-600">
+                      <button className="text-gray-400 hover:text-gray-200 p-1 rounded hover:bg-gray-700/50 transition-colors">
                         <Settings className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-              <button className="mt-6 w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+              <button className="mt-6 w-full border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 hover:bg-gray-700/30 transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-gray-500/25">
                 <Users className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                <span className="text-sm font-medium text-gray-600">Invite Family Member</span>
+                <span className="text-sm font-medium text-gray-300">Invite Family Member</span>
               </button>
             </div>
           </div>
@@ -360,14 +363,14 @@ export default function FamilyDashboard() {
         {activeTab === 'saints' && (
           <div className="space-y-6">
             {/* Saints AI Overview */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
+            <div className="bg-gray-800 rounded-xl shadow-lg shadow-gray-900/20 border border-gray-700/50 p-6 backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-900/50 to-blue-900/50 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
                   <Sparkles className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Saints AI Engrams</h3>
-                  <p className="text-sm text-gray-500">Autonomous AI profiles that handle responsibilities based on your wishes</p>
+                  <h3 className="text-lg font-medium text-white">Saints AI Engrams</h3>
+                  <p className="text-sm text-gray-400">Autonomous AI profiles that handle responsibilities based on your wishes</p>
                 </div>
               </div>
               {/* Today's Activity Summary */}
@@ -426,21 +429,21 @@ export default function FamilyDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {saints.map((saint) => (
-                  <div key={saint.id} className={`border-2 rounded-xl p-6 transition-all duration-200 ${
+                  <div key={saint.id} className={`border-2 rounded-xl p-6 transition-all duration-200 shadow-lg backdrop-blur-sm ${
                     saint.active 
-                      ? 'border-blue-200 bg-blue-50/30' 
+                      ? 'border-blue-600 bg-blue-900/20 shadow-blue-500/25' 
                       : saint.tier === 'premium' 
-                        ? 'border-amber-200 bg-amber-50/30' 
-                        : 'border-gray-200 bg-gray-50/30'
+                        ? 'border-amber-600 bg-amber-900/20 shadow-amber-500/25' 
+                        : 'border-gray-600 bg-gray-700/30 shadow-gray-900/20'
                   }`}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
                           saint.active 
-                            ? 'bg-blue-100' 
+                            ? 'bg-blue-900/50 shadow-blue-500/25' 
                             : saint.tier === 'premium' 
-                              ? 'bg-amber-100' 
-                              : 'bg-gray-100'
+                              ? 'bg-amber-900/50 shadow-amber-500/25' 
+                              : 'bg-gray-700 shadow-gray-500/25'
                         }`}>
                           <saint.icon className={`w-5 h-5 ${
                             saint.active 
@@ -451,24 +454,24 @@ export default function FamilyDashboard() {
                           }`} />
                         </div>
                         <div>
-                          <h4 className="text-base font-medium text-gray-900">{saint.name}</h4>
-                          <p className="text-sm text-gray-500">{saint.title}</p>
+                          <h4 className="text-base font-medium text-white">{saint.name}</h4>
+                          <p className="text-sm text-gray-400">{saint.title}</p>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-2">
                         {saint.tier === 'premium' && (
-                          <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
+                          <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full shadow-sm">
                             Premium
                           </span>
                         )}
                         {saint.active && (
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50"></div>
                         )}
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">{saint.description}</p>
+                    <p className="text-sm text-gray-300 mb-4 leading-relaxed">{saint.description}</p>
 
                     {/* Today's Activity Stats */}
                     {saint.active && (
@@ -492,10 +495,10 @@ export default function FamilyDashboard() {
                       </div>
                     )}
                     <div className="mb-4">
-                      <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">Responsibilities</h5>
+                      <h5 className="text-xs font-medium text-gray-300 mb-2 uppercase tracking-wide">Responsibilities</h5>
                       <div className="flex flex-wrap gap-1">
                         {saint.responsibilities.map((responsibility, index) => (
-                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                          <span key={index} className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full shadow-sm">
                             {responsibility}
                           </span>
                         ))}
@@ -504,7 +507,7 @@ export default function FamilyDashboard() {
 
                     <div className="flex items-center justify-between">
                       {saint.price && (
-                        <span className="text-lg font-semibold text-gray-900">${saint.price}/month</span>
+                        <span className="text-lg font-semibold text-white">${saint.price}/month</span>
                       )}
                       
                       <div className="flex items-center gap-2">
@@ -518,10 +521,10 @@ export default function FamilyDashboard() {
                         )}
                         <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                           saint.active
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50 shadow-sm hover:shadow-red-500/25'
                             : saint.tier === 'premium'
-                              ? 'bg-amber-600 text-white hover:bg-amber-700'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                              ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-lg shadow-amber-500/25'
+                              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/25'
                         }`}>
                           {saint.active ? 'Deactivate' : saint.tier === 'premium' ? 'Subscribe' : 'Activate'}
                         </button>
@@ -1027,175 +1030,4 @@ export default function FamilyDashboard() {
                     {familyMembers.filter(member => member.status === 'Active').map((member, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-medium text-purple-700">
-                              {member.name.split(' ').map(n => n[0]).join('')}
-                            </span>
-                          </div>
-                          <span className="text-sm text-gray-900">{member.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-xs text-gray-500">Authorized</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Security Settings</label>
-                  <div className="space-y-4">
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-900">Biometric Lock</span>
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      </div>
-                      <p className="text-xs text-gray-500">Fingerprint + facial recognition required</p>
-                    </div>
-                    
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-900">Geofence Radius</span>
-                        <span className="text-xs text-gray-600">50 feet</span>
-                      </div>
-                      <input type="range" min="25" max="100" defaultValue="50" className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-                    </div>
-                    
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-900">Auto-Sleep Timer</span>
-                        <span className="text-xs text-gray-600">30 min</span>
-                      </div>
-                      <p className="text-xs text-gray-500">Projection deactivates when no family present</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Installation Status */}
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-100/50">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <Monitor className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base font-medium text-gray-900">Installation Details</h3>
-                  <p className="text-sm text-gray-600">Secure memorial projection system</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-700 mb-1"><strong>Installation Type:</strong> Integrated Memorial</p>
-                  <p className="text-gray-700 mb-1"><strong>Projection Quality:</strong> 4K Holographic</p>
-                  <p className="text-gray-700"><strong>Audio System:</strong> Directional Speakers</p>
-                </div>
-                <div>
-                  <p className="text-gray-700 mb-1"><strong>Encryption:</strong> AES-256 + Geofencing</p>
-                  <p className="text-gray-700 mb-1"><strong>Power Source:</strong> Solar + 72hr Battery</p>
-                  <p className="text-gray-700"><strong>Weather Rating:</strong> IP67 Waterproof</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Privacy & Security Tab */}
-        {activeTab === 'privacy' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Shield className="w-6 h-6 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Privacy & Security</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">End-to-End Encryption</p>
-                      <p className="text-sm text-gray-500">All memories are encrypted</p>
-                    </div>
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">Access Logging</p>
-                      <p className="text-sm text-gray-500">All access is logged and auditable</p>
-                    </div>
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">Family-Only Access</p>
-                      <p className="text-sm text-gray-500">Only invited family can access</p>
-                    </div>
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <button className="w-full flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Download className="w-4 h-4" />
-                    <span>Export All Data</span>
-                  </button>
-                  <button className="w-full flex items-center justify-center space-x-2 p-4 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete All Data</span>
-                  </button>
-                  <button className="w-full flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Lock className="w-4 h-4" />
-                    <span>View Audit Log</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Settings</h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Daily Question Frequency
-                </label>
-                <select className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option>Once per day</option>
-                  <option>Every other day</option>
-                  <option>Twice per week</option>
-                  <option>Once per week</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Preferred Question Time
-                </label>
-                <input 
-                  type="time" 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  defaultValue="19:00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Memory Categories
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['Stories', 'Values', 'Humor', 'Daily Life', 'Wisdom', 'Family History'].map((category) => (
-                    <label key={category} className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                      <span className="text-sm text-gray-700">{category}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                          <div className="w-6 h-6 bg-purple
