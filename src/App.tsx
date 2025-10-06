@@ -8,7 +8,7 @@ interface Saint {
   title: string;
   description: string;
   responsibilities: string[];
-  tier: string;
+  tier: 'classic' | 'premium';
   price?: number;
   active: boolean;
   icon: React.ComponentType<{ className?: string }>;
