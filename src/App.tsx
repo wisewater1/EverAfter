@@ -1037,12 +1037,7 @@ export default function FamilyDashboard() {
                           </div>
                           <span className="text-sm text-gray-900">{member.name}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">Full Access</span>
-                          <button className="text-gray-400 hover:text-gray-600">
-                            <Settings className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <button className="text-xs text-red-600 hover:text-red-800">Remove</button>
                       </div>
                     ))}
                   </div>
@@ -1054,102 +1049,27 @@ export default function FamilyDashboard() {
                     <div className="p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-900">Memorial Garden</span>
-                        <span className="text-xs text-green-600">Active</span>
+                        <span className="text-xs text-green-600">All Family</span>
                       </div>
-                      <p className="text-xs text-gray-500">All family members can activate projection</p>
+                      <p className="text-xs text-gray-500">Primary memorial location with full access</p>
                     </div>
                     
                     <div className="p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-900">Family Home</span>
-                        <span className="text-xs text-green-600">Active</span>
+                        <span className="text-xs text-blue-600">Immediate Family</span>
                       </div>
-                      <p className="text-xs text-gray-500">Restricted to immediate family only</p>
+                      <p className="text-xs text-gray-500">Private family space with restricted access</p>
                     </div>
                     
                     <div className="p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-900">Sacred Space</span>
-                        <span className="text-xs text-blue-600">Limited</span>
+                        <span className="text-xs text-purple-600">Sarah Only</span>
                       </div>
-                      <p className="text-xs text-gray-500">Primary account holder only</p>
+                      <p className="text-xs text-gray-500">Personal meditation area with individual access</p>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Privacy & Security Tab */}
-        {activeTab === 'privacy' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Privacy & Security Settings</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">End-to-End Encryption</h4>
-                    <p className="text-xs text-gray-500">All memories are encrypted with your personal key</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-green-600" />
-                    <span className="text-xs text-green-600">Enabled</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h4>
-                    <p className="text-xs text-gray-500">Additional security for account access</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Data Backup</h4>
-                    <p className="text-xs text-gray-500">Automatic encrypted backups to secure cloud storage</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Account Settings</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Export Data</h4>
-                    <p className="text-xs text-gray-500">Download all your memories and data</p>
-                  </div>
-                  <button className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                    <Download className="w-4 h-4" />
-                    Export
-                  </button>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50/50">
-                  <div>
-                    <h4 className="text-sm font-medium text-red-900">Delete Account</h4>
-                    <p className="text-xs text-red-600">Permanently delete your account and all data</p>
-                  </div>
-                  <button className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
                 </div>
               </div>
             </div>

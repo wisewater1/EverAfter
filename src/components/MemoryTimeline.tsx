@@ -4,54 +4,6 @@ import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircl
 // Saints AI Engram System
 interface Saint {
   id: string;
-      {selectedMemory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Memory Details</h3>
-              <button
-                onClick={handleCloseDetails}
-                className="text-gray-500 hover:text-gray-700 p-2"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Question:</h4>
-                <p className="text-gray-700">{selectedMemory.question}</p>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Your Response:</h4>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-gray-700 italic">"{selectedMemory.response}"</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span>Date: {new Date(selectedMemory.date).toLocaleDateString()}</span>
-                <span>Time: {selectedMemory.timeOfDay}</span>
-                <span>Category: {selectedMemory.category}</span>
-                {selectedMemory.mood && <span>Mood: {selectedMemory.mood}</span>}
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleCloseDetails}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Close
-                </button>
-                <button className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
-                  Edit Response
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
   name: string;
   title: string;
   description: string;
@@ -63,6 +15,11 @@ interface Saint {
   todayActivities: number;
   weeklyActivities: number;
   lastActive: string;
+}
+
+interface Memory {
+  id: string;
+  date: string;
 }
 
 interface SaintActivity {
@@ -230,6 +187,27 @@ export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
+  const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const handleViewDetails = (memory: Memory) => {
+    setSelectedMemory(memory);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedMemory(null);
+  };
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(filteredMemories, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'my-memories.json';
+    link.click();
+  };
 
   const familyMembers = [
     { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },

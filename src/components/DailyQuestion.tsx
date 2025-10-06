@@ -1,19 +1,11 @@
 import React, { useState } from 'react';
-import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles } from 'lucide-react';
+import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles, Send } from 'lucide-react';
 
 // Saints AI Engram System
 interface Saint {
   id: string;
   name: string;
   title: string;
-              {response.length > 0 && (
-                <button
-                  onClick={handleSaveDraft}
-                  className="ml-4 text-purple-600 hover:text-purple-700 text-sm"
-                >
-                  Save Draft
-                </button>
-              )}
   description: string;
   responsibilities: string[];
   tier: 'classic' | 'premium';
@@ -190,6 +182,20 @@ export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [response, setResponse] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSkip = () => {
+    // Handle skip logic
+  };
+
+  const handleSubmit = () => {
+    // Handle submit logic
+  };
+
+  const handleSaveDraft = () => {
+    // Handle save draft logic
+  };
 
   const familyMembers = [
     { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },
@@ -232,6 +238,14 @@ export default function FamilyDashboard() {
                       : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                   }`}
                 >
+                  <Icon className="w-4 h-4" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+          
+          <div className="p-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={handleSkip}
@@ -257,6 +271,15 @@ export default function FamilyDashboard() {
                   </>
                 )}
               </button>
+              
+              {response.length > 0 && (
+                <button
+                  onClick={handleSaveDraft}
+                  className="ml-4 text-purple-600 hover:text-purple-700 text-sm"
+                >
+                  Save Draft
+                </button>
+              )}
             </div>
           </div>
         </div>

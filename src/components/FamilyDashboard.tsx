@@ -5,10 +5,7 @@ import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircl
 interface Saint {
   id: string;
   name: string;
-                <button 
-                  onClick={() => setShowInviteModal(true)}
-                  className="text-purple-600 hover:text-purple-700 text-sm font-medium transition-colors"
-                >
+  title: string;
   description: string;
   responsibilities: string[];
   tier: 'classic' | 'premium';
@@ -185,6 +182,9 @@ export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const familyMembers = [
     { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },
@@ -197,6 +197,24 @@ export default function FamilyDashboard() {
     { action: 'Privacy settings updated', user: 'Michael', time: '1 day ago', type: 'settings' },
     { action: 'Family member invited', user: 'Sarah', time: '3 days ago', type: 'invite' },
   ];
+
+  const handleInvite = () => {
+    if (inviteEmail) {
+      // Simulate sending invite
+      console.log('Inviting:', inviteEmail);
+      setInviteEmail('');
+      setShowInviteModal(false);
+      // Show success message
+    }
+  };
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+  };
+
+  const handleSettingsToggle = () => {
+    setShowSettings(!showSettings);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50">
