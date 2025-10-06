@@ -1,5 +1,6 @@
 import React from 'react';
-import { Heart, ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles } from 'lucide-react';
+import WheelOfSamsaraIcon from './WheelOfSamsaraIcon';
 
 interface HeaderProps {
   onLogoClick: () => void;
@@ -21,14 +22,14 @@ const Header: React.FC<HeaderProps> = ({ onLogoClick, showBackButton, onBackClic
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            
+
             <button
               onClick={onLogoClick}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
               <div className="relative">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
+                  <WheelOfSamsaraIcon className="w-6 h-6 text-white" size={24} />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
                   <Sparkles className="w-2 h-2 text-white" />

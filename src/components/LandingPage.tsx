@@ -1,5 +1,6 @@
 import React from 'react';
 import { Heart, BookOpen, Users, Shield, Sparkles, ArrowRight, Clock, Globe, Lock } from 'lucide-react';
+import WheelOfSamsaraIcon from './WheelOfSamsaraIcon';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -205,7 +206,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" />
+              <WheelOfSamsaraIcon className="w-6 h-6 text-white" size={24} />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               EverAfter
