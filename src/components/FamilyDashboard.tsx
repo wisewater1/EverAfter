@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles } from 'lucide-react';
+import DailyQuestionCard from './DailyQuestionCard';
+import { useDashboard } from '../hooks/useDashboard';
+import { useAuth } from '../hooks/useAuth';
+import { getCurrentTimeQuestion } from '../data/questions';
 
 // Saints AI Engram System
 interface Saint {
@@ -258,40 +262,50 @@ export default function FamilyDashboard() {
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            {/* Daily Question Card */}
+            <DailyQuestionCard
+              currentDay={stats.daysCompleted || 1}
+              onSubmit={handleSaveMemory}
+              onSkip={() => {
+                console.log('Question skipped');
+              }}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Stats Cards */}
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Memories</p>
-                    <p className="text-2xl font-light text-white mt-1">247</p>
+                    <p className="text-2xl font-light text-white mt-1">{stats.memoriesCount}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
                     <Clock className="w-5 h-5 text-blue-600" />
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">+12 this week</p>
+                <p className="text-xs text-gray-400 mt-2">+{stats.memoriesThisWeek} this week</p>
               </div>
 
               <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Family</p>
-                    <p className="text-2xl font-light text-white mt-1">2</p>
+                    <p className="text-2xl font-light text-white mt-1">{stats.familyMembersCount}</p>
                   </div>
                   <div className="w-10 h-10 bg-green-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/25">
                     <Users className="w-5 h-5 text-green-600" />
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">1 pending invitation</p>
+                <p className="text-xs text-gray-400 mt-2">{stats.pendingInvitationsCount} pending invitation{stats.pendingInvitationsCount !== 1 ? 's' : ''}</p>
               </div>
 
               <div className="bg-gray-800 rounded-lg shadow-lg shadow-gray-900/20 p-5 border border-gray-700/50 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Privacy</p>
-                    <p className="text-2xl font-light text-white mt-1">100%</p>
+                    <p className="text-2xl font-light text-white mt-1">{stats.privacyScore}%</p>
                   </div>
                   <div className="w-10 h-10 bg-green-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/25">
                     <Shield className="w-5 h-5 text-green-600" />
@@ -304,13 +318,13 @@ export default function FamilyDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Days</p>
-                    <p className="text-2xl font-light text-white mt-1">89</p>
+                    <p className="text-2xl font-light text-white mt-1">{stats.daysCompleted}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-900/30 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
                     <CheckCircle className="w-5 h-5 text-blue-600" />
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">276 remaining</p>
+                <p className="text-xs text-gray-400 mt-2">{stats.daysRemaining} remaining</p>
               </div>
             </div>
 
@@ -331,6 +345,7 @@ export default function FamilyDashboard() {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
           </div>
         )}
@@ -372,7 +387,10 @@ export default function FamilyDashboard() {
                   </div>
                 ))}
               </div>
-              <button className="mt-6 w-full border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 hover:bg-gray-700/30 transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-gray-500/25">
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="mt-6 w-full border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 hover:bg-gray-700/30 transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-gray-500/25"
+              >
                 <Users className="w-6 h-6 text-gray-400 mx-auto mb-2" />
                 <span className="text-sm font-medium text-gray-300">Invite Family Member</span>
               </button>
@@ -713,6 +731,295 @@ export default function FamilyDashboard() {
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Privacy & Security Tab */}
+        {activeTab === 'privacy' && (
+          <div className="space-y-6">
+            {/* St. Michael - Security Guardian */}
+            <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl shadow-lg p-8 border border-blue-700/50">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-blue-700/50 rounded-xl flex items-center justify-center shadow-lg">
+                    <Shield className="w-8 h-8 text-blue-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-semibold text-white mb-1">St. Michael</h3>
+                    <p className="text-blue-200">The Protector</p>
+                    <p className="text-sm text-blue-300 mt-2">Guardian AI that manages security, privacy protection, and digital legacy preservation.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-blue-200">Active</span>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 bg-blue-800/30 rounded-lg border border-blue-600/30">
+                <div className="text-sm font-medium text-blue-200 uppercase tracking-wide mb-3">Today's Activity</div>
+                <div className="flex items-center gap-6">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span className="text-2xl font-semibold text-white">12</span>
+                    </div>
+                    <span className="text-sm text-blue-300">today</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      <span className="text-2xl font-semibold text-white">45</span>
+                    </div>
+                    <span className="text-sm text-blue-300">this week</span>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <div className="text-sm text-blue-300">Last Active</div>
+                    <div className="text-base font-medium text-white">3 minutes ago</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-blue-800/30 rounded-lg p-4 border border-blue-600/30">
+                  <div className="text-sm text-blue-300 mb-1">Security monitoring</div>
+                  <div className="text-xs text-blue-200">Real-time protection</div>
+                </div>
+                <div className="bg-blue-800/30 rounded-lg p-4 border border-blue-600/30">
+                  <div className="text-sm text-blue-300 mb-1">Privacy protection</div>
+                  <div className="text-xs text-blue-200">Data encryption</div>
+                </div>
+                <div className="bg-blue-800/30 rounded-lg p-4 border border-blue-600/30">
+                  <div className="text-sm text-blue-300 mb-1">Data integrity</div>
+                  <div className="text-xs text-blue-200">Checksums verified</div>
+                </div>
+                <div className="bg-blue-800/30 rounded-lg p-4 border border-blue-600/30">
+                  <div className="text-sm text-blue-300 mb-1">Access control</div>
+                  <div className="text-xs text-blue-200">Permissions managed</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button className="px-6 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-lg font-medium transition-all">
+                  View Activity
+                </button>
+                <button className="px-6 py-3 bg-red-900/30 hover:bg-red-900/50 text-red-300 rounded-lg font-medium transition-all">
+                  Deactivate
+                </button>
+              </div>
+            </div>
+
+            {/* Security Overview */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Security Overview</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-700/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-300">Two-Factor Auth</span>
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                  </div>
+                  <p className="text-xs text-gray-400">Enabled on all accounts</p>
+                </div>
+                <div className="bg-gray-700/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-300">Data Encryption</span>
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                  </div>
+                  <p className="text-xs text-gray-400">AES-256 encryption active</p>
+                </div>
+                <div className="bg-gray-700/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-300">Backup Status</span>
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                  </div>
+                  <p className="text-xs text-gray-400">Last backup: 2 hours ago</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Privacy Controls */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Privacy Controls</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-white">Profile Visibility</div>
+                    <p className="text-xs text-gray-400">Control who can see your profile</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-white">Memory Sharing</div>
+                    <p className="text-xs text-gray-400">Allow family access to memories</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-white">Activity Tracking</div>
+                    <p className="text-xs text-gray-400">Track usage and engagement</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Data Management */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Data Management</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button className="flex items-center gap-3 p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-all text-left">
+                  <Download className="w-5 h-5 text-blue-400" />
+                  <div>
+                    <div className="text-sm font-medium text-white">Export Data</div>
+                    <p className="text-xs text-gray-400">Download all your data</p>
+                  </div>
+                </button>
+                <button className="flex items-center gap-3 p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-all text-left">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                  <div>
+                    <div className="text-sm font-medium text-white">Delete Account</div>
+                    <p className="text-xs text-gray-400">Permanently remove data</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            {/* Profile Settings */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Profile Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                  <input type="text" defaultValue="Sarah Johnson" className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                  <input type="email" defaultValue="sarah@example.com" className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Timezone</label>
+                  <select className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500">
+                    <option>America/New_York (EST)</option>
+                    <option>America/Chicago (CST)</option>
+                    <option>America/Denver (MST)</option>
+                    <option>America/Los_Angeles (PST)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
+                  <select className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500">
+                    <option>English</option>
+                    <option>Spanish</option>
+                    <option>French</option>
+                    <option>German</option>
+                  </select>
+                </div>
+              </div>
+              <button className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all">
+                Save Changes
+              </button>
+            </div>
+
+            {/* Notification Preferences */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Notification Preferences</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-white">Email Notifications</div>
+                    <p className="text-xs text-gray-400">Receive updates via email</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-white">Push Notifications</div>
+                    <p className="text-xs text-gray-400">Browser notifications</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-white">Daily Digest</div>
+                    <p className="text-xs text-gray-400">Summary of daily activities</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Question Settings */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Daily Question Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Question Frequency</label>
+                  <select className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500">
+                    <option>Once per day</option>
+                    <option>Twice per day</option>
+                    <option>Three times per day</option>
+                    <option>Four times per day</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Preferred Time</label>
+                  <input type="time" defaultValue="19:00" className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* Account Security */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700/50">
+              <h3 className="text-lg font-semibold text-white mb-6">Account Security</h3>
+              <div className="space-y-4">
+                <button className="w-full flex items-center justify-between p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-all text-left">
+                  <div>
+                    <div className="text-sm font-medium text-white">Change Password</div>
+                    <p className="text-xs text-gray-400">Update your account password</p>
+                  </div>
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </button>
+                <button className="w-full flex items-center justify-between p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-all text-left">
+                  <div>
+                    <div className="text-sm font-medium text-white">Two-Factor Authentication</div>
+                    <p className="text-xs text-gray-400">Enabled on all accounts</p>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                </button>
+                <button className="w-full flex items-center justify-between p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-all text-left">
+                  <div>
+                    <div className="text-sm font-medium text-white">Active Sessions</div>
+                    <p className="text-xs text-gray-400">Manage logged in devices</p>
+                  </div>
+                  <Monitor className="w-5 h-5 text-gray-400" />
+                </button>
               </div>
             </div>
           </div>
@@ -1100,3 +1407,53 @@ export default function FamilyDashboard() {
     </div>
   );
 }
+
+        {/* Invite Family Member Modal */}
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-700">
+              <h3 className="text-xl font-semibold text-white mb-4">Invite Family Member</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="john@example.com"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowInviteModal(false);
+                    setInviteEmail('');
+                    setInviteName('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleInviteMember}
+                  disabled={!inviteEmail || !inviteName}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Send Invite
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
