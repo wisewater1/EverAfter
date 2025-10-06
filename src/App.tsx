@@ -1044,30 +1044,30 @@ export default function FamilyDashboard() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Access Permissions</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Zone Permissions</label>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">View Projection</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Memorial Garden</span>
+                        <span className="text-xs text-green-600">All Family</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Primary memorial location with full access</p>
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">Interact with Projection</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Family Home</span>
+                        <span className="text-xs text-blue-600">Immediate Family</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Private family space with restricted access</p>
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">Modify Settings</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Sacred Space</span>
+                        <span className="text-xs text-purple-600">Sarah Only</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Personal meditation area with individual access</p>
                     </div>
                   </div>
                 </div>
