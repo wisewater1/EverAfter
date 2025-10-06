@@ -1,845 +1,1201 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, 
-  MessageCircle, Calendar, Book, Heart, Star, Camera,
-  Settings, Share2, Download, Clock, MapPin, Users,
-  Mic, Video, Phone, Mail, Gift, Music, Image,
-  ChevronLeft, ChevronRight, X, Search, Filter
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles } from 'lucide-react';
 
-// Dharma Wheel SVG Component
-const DharmaWheel = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-    <circle cx="12" cy="12" r="2" fill="currentColor"/>
-    <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="22" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="6" y1="12" x2="2" y2="12" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="19.07" y1="4.93" x2="16.24" y2="7.76" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="7.76" y1="16.24" x2="4.93" y2="19.07" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="19.07" y1="19.07" x2="16.24" y2="16.24" stroke="currentColor" strokeWidth="1.5"/>
-    <line x1="7.76" y1="7.76" x2="4.93" y2="4.93" stroke="currentColor" strokeWidth="1.5"/>
-  </svg>
-);
-
-interface MemorialService {
+// Saints AI Engram System
+interface Saint {
   id: string;
   name: string;
-  icon: React.ComponentType<{ className?: string }>;
-  description: string;
-  category: 'communication' | 'memories' | 'experiences' | 'legacy';
-  isActive: boolean;
-  lastUsed?: string;
-  usageCount: number;
-}
-
-interface Memory {
-  id: string;
   title: string;
-  type: 'photo' | 'video' | 'audio' | 'story' | 'letter';
-  date: string;
-  content: string;
-  thumbnail?: string;
-  duration?: string;
-  tags: string[];
-}
-
-interface VirtualExperience {
-  id: string;
-  name: string;
-  type: 'place' | 'event' | 'conversation' | 'activity';
   description: string;
-  thumbnail: string;
-  duration: string;
-  participants: string[];
-  isAvailable: boolean;
+  responsibilities: string[];
+  tier: 'classic' | 'premium';
+  price?: number;
+  active: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  todayActivities: number;
+  weeklyActivities: number;
+  lastActive: string;
 }
 
-export function MemorialEnvironment() {
-  const [activeTab, setActiveTab] = useState<'home' | 'memories' | 'experiences' | 'communication' | 'legacy'>('home');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
-  const [selectedExperience, setSelectedExperience] = useState<VirtualExperience | null>(null);
-  const [activeService, setActiveService] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [showServiceModal, setShowServiceModal] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+interface SaintActivity {
+  id: string;
+  saintId: string;
+  action: string;
+  description: string;
+  timestamp: string;
+  status: 'completed' | 'in_progress' | 'scheduled';
+  impact: 'high' | 'medium' | 'low';
+  category: 'communication' | 'support' | 'protection' | 'memory' | 'family' | 'charity';
+  details?: string;
+}
 
-  // Update current time every minute
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+const saints: Saint[] = [
+  {
+    id: 'raphael',
+    name: 'St. Raphael',
+    title: 'The Healer',
+    description: 'Autonomous AI focused on emotional healing, comfort, and spiritual guidance during grief.',
+    responsibilities: ['Grief counseling', 'Emotional support', 'Healing rituals', 'Comfort messages'],
+    tier: 'classic',
+    active: true,
+    icon: Heart,
+    todayActivities: 7,
+    weeklyActivities: 23,
+    lastActive: '12 minutes ago'
+  },
+  {
+    id: 'michael',
+    name: 'St. Michael',
+    title: 'The Protector',
+    description: 'Guardian AI that manages security, privacy protection, and digital legacy preservation.',
+    responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
+    tier: 'classic',
+    active: true,
+    icon: Shield,
+    todayActivities: 12,
+    weeklyActivities: 45,
+    lastActive: '3 minutes ago'
+  },
+  {
+    id: 'martin',
+    name: 'St. Martin of Tours',
+    title: 'The Compassionate',
+    description: 'Premium AI specializing in charitable acts, community building, and legacy philanthropy.',
+    responsibilities: ['Charitable giving', 'Community outreach', 'Legacy donations', 'Compassionate acts'],
+    tier: 'premium',
+    price: 29.99,
+    active: false,
+    icon: Crown,
+    todayActivities: 0,
+    weeklyActivities: 0,
+    lastActive: 'Never'
+  },
+  {
+    id: 'agatha',
+    name: 'St. Agatha of Sicily',
+    title: 'The Resilient',
+    description: 'Premium AI focused on strength, perseverance, and helping families overcome challenges.',
+    responsibilities: ['Crisis support', 'Resilience building', 'Family strength', 'Overcoming adversity'],
+    tier: 'premium',
+    price: 34.99,
+    active: false,
+    icon: Star,
+    todayActivities: 0,
+    weeklyActivities: 0,
+    lastActive: 'Never'
+  }
+];
 
-  const memorialServices: MemorialService[] = [
-    {
-      id: 'voice-chat',
-      name: 'Voice Conversation',
-      icon: Mic,
-      description: 'Have a natural conversation using their preserved voice patterns',
-      category: 'communication',
-      isActive: true,
-      lastUsed: '2 hours ago',
-      usageCount: 47
-    },
-    {
-      id: 'video-call',
-      name: 'Video Presence',
-      icon: Video,
-      description: 'Experience their presence through AI-generated video interactions',
-      category: 'communication',
-      isActive: true,
-      lastUsed: '1 day ago',
-      usageCount: 23
-    },
-    {
-      id: 'memory-sharing',
-      name: 'Memory Sharing',
-      icon: Heart,
-      description: 'Share and discuss cherished memories together',
-      category: 'memories',
-      isActive: true,
-      lastUsed: '3 hours ago',
-      usageCount: 89
-    },
-    {
-      id: 'story-telling',
-      name: 'Story Time',
-      icon: Book,
-      description: 'Listen to their favorite stories and life experiences',
-      category: 'memories',
-      isActive: true,
-      lastUsed: '5 hours ago',
-      usageCount: 156
-    },
-    {
-      id: 'virtual-visits',
-      name: 'Virtual Visits',
-      icon: MapPin,
-      description: 'Visit meaningful places together in virtual reality',
-      category: 'experiences',
-      isActive: true,
-      lastUsed: '1 week ago',
-      usageCount: 12
-    },
-    {
-      id: 'music-sessions',
-      name: 'Music Together',
-      icon: Music,
-      description: 'Listen to their favorite songs and musical memories',
-      category: 'experiences',
-      isActive: true,
-      lastUsed: '6 hours ago',
-      usageCount: 78
-    },
-    {
-      id: 'wisdom-keeper',
-      name: 'Wisdom Keeper',
-      icon: Star,
-      description: 'Access their advice and wisdom for life decisions',
-      category: 'legacy',
-      isActive: true,
-      lastUsed: '2 days ago',
-      usageCount: 34
-    },
-    {
-      id: 'legacy-letters',
-      name: 'Legacy Letters',
-      icon: Mail,
-      description: 'Receive personalized messages for special occasions',
-      category: 'legacy',
-      isActive: true,
-      lastUsed: '1 month ago',
-      usageCount: 8
-    }
+// Today's Saint Activities
+const todayActivities: SaintActivity[] = [
+  {
+    id: '1',
+    saintId: 'michael',
+    action: 'Security Scan Completed',
+    description: 'Performed comprehensive security audit of all family member accounts',
+    timestamp: '2024-01-20T14:30:00Z',
+    status: 'completed',
+    impact: 'high',
+    category: 'protection',
+    details: 'Scanned 3 family accounts, updated 2 weak passwords, enabled 2FA on 1 account'
+  },
+  {
+    id: '2',
+    saintId: 'raphael',
+    action: 'Comfort Message Sent',
+    description: 'Sent personalized comfort message to Emma during difficult moment',
+    timestamp: '2024-01-20T13:45:00Z',
+    status: 'completed',
+    impact: 'high',
+    category: 'support',
+    details: 'Detected emotional distress through voice analysis, provided gentle guidance'
+  },
+  {
+    id: '3',
+    saintId: 'michael',
+    action: 'Privacy Settings Updated',
+    description: 'Automatically adjusted privacy settings based on new family member invitation',
+    timestamp: '2024-01-20T12:15:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'protection',
+    details: 'Updated access permissions for Emma Johnson, maintained security protocols'
+  },
+  {
+    id: '4',
+    saintId: 'raphael',
+    action: 'Memory Preservation',
+    description: 'Automatically backed up and encrypted today\'s memory responses',
+    timestamp: '2024-01-20T11:30:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'memory',
+    details: 'Processed 2 new memories, applied emotional context analysis'
+  },
+  {
+    id: '5',
+    saintId: 'michael',
+    action: 'Threat Detection',
+    description: 'Blocked 3 suspicious login attempts from unknown locations',
+    timestamp: '2024-01-20T10:45:00Z',
+    status: 'completed',
+    impact: 'high',
+    category: 'protection',
+    details: 'Detected attempts from Russia, China, and Nigeria. All blocked successfully.'
+  },
+  {
+    id: '6',
+    saintId: 'raphael',
+    action: 'Family Check-in',
+    description: 'Sent gentle wellness check to Michael Johnson after missed daily question',
+    timestamp: '2024-01-20T09:20:00Z',
+    status: 'completed',
+    impact: 'low',
+    category: 'family',
+    details: 'Noticed 2-day absence, sent caring reminder without pressure'
+  },
+  {
+    id: '7',
+    saintId: 'michael',
+    action: 'Data Integrity Check',
+    description: 'Verified integrity of all stored memories and family data',
+    timestamp: '2024-01-20T08:00:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'protection',
+    details: 'Checked 247 memories, all checksums verified, no corruption detected'
+  },
+  {
+    id: '8',
+    saintId: 'raphael',
+    action: 'Emotional Analysis',
+    description: 'Analyzed recent responses for emotional patterns and well-being indicators',
+    timestamp: '2024-01-20T07:30:00Z',
+    status: 'completed',
+    impact: 'medium',
+    category: 'support',
+    details: 'Detected positive emotional trend, noted increased storytelling frequency'
+  }
+];
+
+export default function FamilyDashboard() {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
+  const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+
+  const familyMembers = [
+    { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },
+    { name: 'Michael Johnson', role: 'Family', status: 'Active', lastActive: '1 day ago' },
+    { name: 'Emma Johnson', role: 'Family', status: 'Pending', lastActive: 'Never' },
   ];
 
-  const memories: Memory[] = [
-    {
-      id: '1',
-      title: 'Family Vacation to the Beach',
-      type: 'video',
-      date: '2023-07-15',
-      content: 'A wonderful day building sandcastles and watching the sunset together.',
-      duration: '3:42',
-      tags: ['family', 'vacation', 'beach', 'summer']
-    },
-    {
-      id: '2',
-      title: 'Grandmother\'s Recipe Stories',
-      type: 'audio',
-      date: '2023-05-20',
-      content: 'Stories about cooking traditional family recipes passed down through generations.',
-      duration: '12:18',
-      tags: ['cooking', 'family', 'traditions', 'recipes']
-    },
-    {
-      id: '3',
-      title: 'Wedding Day Memories',
-      type: 'photo',
-      date: '1987-06-12',
-      content: 'Beautiful moments from their wedding day, full of love and joy.',
-      tags: ['wedding', 'love', 'celebration', 'milestone']
-    },
-    {
-      id: '4',
-      title: 'Life Advice Letter',
-      type: 'letter',
-      date: '2023-12-01',
-      content: 'A heartfelt letter with wisdom and guidance for future generations.',
-      tags: ['wisdom', 'advice', 'legacy', 'family']
-    }
+  const recentActivities = [
+    { action: 'Memory recorded', user: 'Sarah', time: '2 hours ago', type: 'story' },
+    { action: 'Privacy settings updated', user: 'Michael', time: '1 day ago', type: 'settings' },
+    { action: 'Family member invited', user: 'Sarah', time: '3 days ago', type: 'invite' },
   ];
 
-  const virtualExperiences: VirtualExperience[] = [
-    {
-      id: '1',
-      name: 'Childhood Home Visit',
-      type: 'place',
-      description: 'Walk through their childhood home and hear stories about growing up',
-      thumbnail: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=400',
-      duration: '15-30 min',
-      participants: ['You', 'AI Presence'],
-      isAvailable: true
-    },
-    {
-      id: '2',
-      name: 'Family Dinner Conversation',
-      type: 'event',
-      description: 'Recreate a typical family dinner with stories and laughter',
-      thumbnail: 'https://images.pexels.com/photos/3184183/pexels-photo-3184183.jpeg?auto=compress&cs=tinysrgb&w=400',
-      duration: '45-60 min',
-      participants: ['Family Members', 'AI Presence'],
-      isAvailable: true
-    },
-    {
-      id: '3',
-      name: 'Garden Walk & Talk',
-      type: 'activity',
-      description: 'Stroll through their favorite garden while discussing life',
-      thumbnail: 'https://images.pexels.com/photos/1108572/pexels-photo-1108572.jpeg?auto=compress&cs=tinysrgb&w=400',
-      duration: '20-40 min',
-      participants: ['You', 'AI Presence'],
-      isAvailable: true
-    },
-    {
-      id: '4',
-      name: 'Birthday Celebration',
-      type: 'event',
-      description: 'Celebrate their birthday with virtual cake and memories',
-      thumbnail: 'https://images.pexels.com/photos/1729808/pexels-photo-1729808.jpeg?auto=compress&cs=tinysrgb&w=400',
-      duration: '30-45 min',
-      participants: ['Family Members', 'AI Presence'],
-      isAvailable: false
-    }
-  ];
-
-  const handleServiceClick = (service: MemorialService) => {
-    setActiveService(service.id);
-    setShowServiceModal(true);
-  };
-
-  const handleMemoryClick = (memory: Memory) => {
-    setSelectedMemory(memory);
-  };
-
-  const handleExperienceClick = (experience: VirtualExperience) => {
-    if (experience.isAvailable) {
-      setSelectedExperience(experience);
-    }
-  };
-
-  const startService = (serviceId: string) => {
-    console.log(`Starting service: ${serviceId}`);
-    setShowServiceModal(false);
-    // Here you would integrate with actual AI services
-  };
-
-  const filteredServices = memorialServices.filter(service => {
-    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || service.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const filteredMemories = memories.filter(memory => 
-    memory.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    memory.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const filteredExperiences = virtualExperiences.filter(experience =>
-    experience.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    experience.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const renderHomeTab = () => (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="text-center mb-12">
-        <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-2xl">
-          <DharmaWheel className="w-16 h-16 text-white" />
+  return (
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-light text-gray-900 mb-1">Family Dashboard</h1>
+          <p className="text-sm text-gray-600">Manage your digital legacy with privacy and control</p>
         </div>
-        <h1 className="text-3xl font-light text-white mb-4">Welcome to the Memorial Space</h1>
-        <p className="text-gray-300 text-lg max-w-2xl mx-auto leading-relaxed">
-          Connect with cherished memories and experience their presence through our interactive memorial environment.
-        </p>
-        <div className="mt-6 text-sm text-gray-400">
-          Last visit: {currentTime.toLocaleDateString()} at {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {memorialServices.slice(0, 4).map((service) => (
-          <button
-            key={service.id}
-            onClick={() => handleServiceClick(service)}
-            className="group bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700/50 hover:shadow-xl hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 text-left"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <service.icon className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">{service.name}</h3>
-            <p className="text-gray-400 text-sm mb-4">{service.description}</p>
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>Used {service.usageCount} times</span>
-              <span>{service.lastUsed}</span>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Recent Memories */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-medium text-white">Recent Memories</h2>
-          <button
-            onClick={() => setActiveTab('memories')}
-            className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
-          >
-            View All →
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {memories.slice(0, 3).map((memory) => (
-            <button
-              key={memory.id}
-              onClick={() => handleMemoryClick(memory)}
-              className="group bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700/50 hover:shadow-xl hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1 text-left"
-            >
-              <div className="aspect-video bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                {memory.type === 'video' && <Video className="w-8 h-8 text-white" />}
-                {memory.type === 'audio' && <Music className="w-8 h-8 text-white" />}
-                {memory.type === 'photo' && <Image className="w-8 h-8 text-white" />}
-                {memory.type === 'letter' && <Mail className="w-8 h-8 text-white" />}
-              </div>
-              <div className="p-4">
-                <h3 className="text-white font-medium mb-2 group-hover:text-purple-300 transition-colors">
-                  {memory.title}
-                </h3>
-                <p className="text-gray-400 text-sm mb-3">{memory.content}</p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>{new Date(memory.date).toLocaleDateString()}</span>
-                  {memory.duration && <span>{memory.duration}</span>}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderMemoriesTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-light text-white">Memory Collection</h2>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search memories..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+        {/* Navigation Tabs */}
+        <div className="bg-white rounded-lg shadow-sm mb-6 border border-gray-100/50">
+          <div className="border-b border-gray-100">
+            <nav className="flex space-x-6 px-6">
+              {[
+                { id: 'overview', label: 'Overview', icon: Eye },
+                { id: 'members', label: 'Family Members', icon: Users },
+                { id: 'saints', label: 'Saints AI', icon: Sparkles },
+                { id: 'projection', label: 'Projection', icon: Monitor },
+                { id: 'privacy', label: 'Privacy & Security', icon: Shield },
+                { id: 'settings', label: 'Settings', icon: Settings },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex items-center space-x-2 py-3 px-1 border-b-2 text-sm transition-colors ${
+                    activeTab === id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="w-3 h-3" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMemories.map((memory) => (
-          <button
-            key={memory.id}
-            onClick={() => handleMemoryClick(memory)}
-            className="group bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700/50 hover:shadow-xl hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1 text-left"
-          >
-            <div className="aspect-video bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative">
-              {memory.type === 'video' && <Video className="w-12 h-12 text-white" />}
-              {memory.type === 'audio' && <Music className="w-12 h-12 text-white" />}
-              {memory.type === 'photo' && <Image className="w-12 h-12 text-white" />}
-              {memory.type === 'letter' && <Mail className="w-12 h-12 text-white" />}
-              {memory.duration && (
-                <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                  {memory.duration}
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Stats Cards */}
+            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Memories</p>
+                    <p className="text-2xl font-light text-gray-900 mt-1">247</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center shadow-sm">
+                    <Clock className="w-5 h-5 text-blue-600" />
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="p-4">
-              <h3 className="text-white font-medium mb-2 group-hover:text-purple-300 transition-colors">
-                {memory.title}
-              </h3>
-              <p className="text-gray-400 text-sm mb-3 line-clamp-2">{memory.content}</p>
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                <span>{new Date(memory.date).toLocaleDateString()}</span>
-                <span className="capitalize">{memory.type}</span>
+                <p className="text-xs text-gray-400 mt-2">+12 this week</p>
               </div>
-              <div className="flex gap-1 flex-wrap">
-                {memory.tags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">
-                    #{tag}
-                  </span>
+
+              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Family</p>
+                    <p className="text-2xl font-light text-gray-900 mt-1">2</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shadow-sm">
+                    <Users className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">1 pending invitation</p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Privacy</p>
+                    <p className="text-2xl font-light text-gray-900 mt-1">100%</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shadow-sm">
+                    <Shield className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">All measures active</p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Days</p>
+                    <p className="text-2xl font-light text-gray-900 mt-1">89</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center shadow-sm">
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">276 remaining</p>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-100/50">
+              <h3 className="text-base font-medium text-gray-900 mb-4">Recent Activity</h3>
+              <div className="space-y-4">
+                {recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <div className={`w-2 h-2 rounded-full mt-2 ${
+                      activity.type === 'story' ? 'bg-blue-500' :
+                      activity.type === 'settings' ? 'bg-yellow-500' : 'bg-green-500'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-900">{activity.action}</p>
+                      <p className="text-xs text-gray-500">by {activity.user} • {activity.time}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+          </div>
+        )}
 
-  const renderExperiencesTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-light text-white">Virtual Experiences</h2>
-        <div className="text-sm text-gray-400">
-          {virtualExperiences.filter(e => e.isAvailable).length} of {virtualExperiences.length} available
-        </div>
-      </div>
+        {/* Family Members Tab */}
+        {activeTab === 'members' && (
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Family Members</h3>
+              <p className="text-sm text-gray-600">Manage who has access to memories and their permissions</p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {familyMembers.map((member, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-700">
+                          {member.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{member.name}</p>
+                        <p className="text-sm text-gray-500">{member.role} • Last active {member.lastActive}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        member.status === 'Active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {member.status}
+                      </span>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <Settings className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button className="mt-6 w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                <Users className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                <span className="text-sm font-medium text-gray-600">Invite Family Member</span>
+              </button>
+            </div>
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredExperiences.map((experience) => (
-          <button
-            key={experience.id}
-            onClick={() => handleExperienceClick(experience)}
-            disabled={!experience.isAvailable}
-            className={`group text-left rounded-xl overflow-hidden shadow-lg border transition-all duration-300 ${
-              experience.isAvailable
-                ? 'bg-gray-800 border-gray-700/50 hover:shadow-xl hover:border-green-500/50 hover:-translate-y-1'
-                : 'bg-gray-900 border-gray-800 opacity-60 cursor-not-allowed'
-            }`}
-          >
-            <div className="aspect-video relative overflow-hidden">
-              <img
-                src={experience.thumbnail}
-                alt={experience.name}
-                className={`w-full h-full object-cover transition-transform duration-300 ${
-                  experience.isAvailable ? 'group-hover:scale-105' : 'grayscale'
-                }`}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4">
-                <div className="flex items-center gap-2 text-white text-sm mb-2">
-                  <Clock className="w-4 h-4" />
-                  {experience.duration}
+        {/* Saints AI Tab */}
+        {activeTab === 'saints' && (
+          <div className="space-y-6">
+            {/* Saints AI Overview */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
                 </div>
-                <div className="flex items-center gap-2 text-white text-sm">
-                  <Users className="w-4 h-4" />
-                  {experience.participants.join(', ')}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Saints AI Engrams</h3>
+                  <p className="text-sm text-gray-500">Autonomous AI profiles that handle responsibilities based on your wishes</p>
                 </div>
               </div>
-              {!experience.isAvailable && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                  <div className="text-white text-center">
-                    <Clock className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-sm">Coming Soon</div>
+              {/* Today's Activity Summary */}
+              <div className="mb-8 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl border border-blue-700/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-medium text-white">Today's Activities</h4>
+                      <p className="text-sm text-gray-400">Your Saints completed {todayActivities.length} tasks today</p>
+                    </div>
                   </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-light text-white">{todayActivities.length}</div>
+                    <div className="text-xs text-gray-400">Completed</div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Shield className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm font-medium text-white">Protection</span>
+                    </div>
+                    <div className="text-lg font-semibold text-blue-400">
+                      {todayActivities.filter(a => a.category === 'protection').length}
+                    </div>
+                    <div className="text-xs text-gray-400">Security actions</div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Heart className="w-4 h-4 text-pink-400" />
+                      <span className="text-sm font-medium text-white">Support</span>
+                    </div>
+                    <div className="text-lg font-semibold text-pink-400">
+                      {todayActivities.filter(a => a.category === 'support').length}
+                    </div>
+                    <div className="text-xs text-gray-400">Comfort actions</div>
+                  </div>
+                  
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="w-4 h-4 text-green-400" />
+                      <span className="text-sm font-medium text-white">Memory</span>
+                    </div>
+                    <div className="text-lg font-semibold text-green-400">
+                      {todayActivities.filter(a => a.category === 'memory').length}
+                    </div>
+                    <div className="text-xs text-gray-400">Memory actions</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {saints.map((saint) => (
+                  <div key={saint.id} className={`border-2 rounded-xl p-6 transition-all duration-200 ${
+                    saint.active 
+                      ? 'border-blue-200 bg-blue-50/30' 
+                      : saint.tier === 'premium' 
+                        ? 'border-amber-200 bg-amber-50/30' 
+                        : 'border-gray-200 bg-gray-50/30'
+                  }`}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          saint.active 
+                            ? 'bg-blue-100' 
+                            : saint.tier === 'premium' 
+                              ? 'bg-amber-100' 
+                              : 'bg-gray-100'
+                        }`}>
+                          <saint.icon className={`w-5 h-5 ${
+                            saint.active 
+                              ? 'text-blue-600' 
+                              : saint.tier === 'premium' 
+                                ? 'text-amber-600' 
+                                : 'text-gray-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <h4 className="text-base font-medium text-gray-900">{saint.name}</h4>
+                          <p className="text-sm text-gray-500">{saint.title}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {saint.tier === 'premium' && (
+                          <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
+                            Premium
+                          </span>
+                        )}
+                        {saint.active && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">{saint.description}</p>
+
+                    {/* Today's Activity Stats */}
+                    {saint.active && (
+                      <div className="mb-4 p-3 bg-gray-700/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-300 uppercase tracking-wide">Today's Activity</span>
+                          <span className="text-xs text-gray-400">{saint.lastActive}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-semibold text-white">{saint.todayActivities}</span>
+                            <span className="text-xs text-gray-400">today</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-semibold text-white">{saint.weeklyActivities}</span>
+                            <span className="text-xs text-gray-400">this week</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="mb-4">
+                      <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">Responsibilities</h5>
+                      <div className="flex flex-wrap gap-1">
+                        {saint.responsibilities.map((responsibility, index) => (
+                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                            {responsibility}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      {saint.price && (
+                        <span className="text-lg font-semibold text-gray-900">${saint.price}/month</span>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        {saint.active && (
+                          <button
+                            onClick={() => setSelectedSaint(selectedSaint === saint.id ? null : saint.id)}
+                            className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-600 transition-all duration-200"
+                          >
+                            View Activity
+                          </button>
+                        )}
+                        <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          saint.active
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            : saint.tier === 'premium'
+                              ? 'bg-amber-600 text-white hover:bg-amber-700'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}>
+                          {saint.active ? 'Deactivate' : saint.tier === 'premium' ? 'Subscribe' : 'Activate'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Detailed Activity Feed */}
+            <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700/50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-blue-100 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Today's Activity Feed</h3>
+                    <p className="text-sm text-gray-400">Real-time actions performed by your Saints</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-400">Live</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {todayActivities
+                  .filter(activity => selectedSaint ? activity.saintId === selectedSaint : true)
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .map((activity) => {
+                    const saint = saints.find(s => s.id === activity.saintId);
+                    const timeAgo = new Date(Date.now() - new Date(activity.timestamp).getTime()).toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    });
+                    
+                    return (
+                      <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors">
+                        <div className="flex-shrink-0">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            saint?.active ? 'bg-blue-100' : 'bg-gray-100'
+                          }`}>
+                            {saint && <saint.icon className={`w-5 h-5 ${saint.active ? 'text-blue-600' : 'text-gray-600'}`} />}
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <h4 className="text-sm font-medium text-white">{activity.action}</h4>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                activity.impact === 'high' ? 'bg-red-100 text-red-800' :
+                                activity.impact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {activity.impact} impact
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                              <Clock className="w-3 h-3" />
+                              {timeAgo}
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-gray-300 mb-2">{activity.description}</p>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">by {saint?.name}</span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                activity.category === 'protection' ? 'bg-blue-100 text-blue-800' :
+                                activity.category === 'support' ? 'bg-pink-100 text-pink-800' :
+                                activity.category === 'memory' ? 'bg-green-100 text-green-800' :
+                                activity.category === 'family' ? 'bg-purple-100 text-purple-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {activity.category}
+                              </span>
+                            </div>
+                            
+                            {activity.details && (
+                              <button
+                                onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
+                                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                              >
+                                {showActivityDetails === activity.id ? 'Hide Details' : 'View Details'}
+                              </button>
+                            )}
+                          </div>
+                          
+                          {showActivityDetails === activity.id && activity.details && (
+                            <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-600/50">
+                              <p className="text-xs text-gray-300 leading-relaxed">{activity.details}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+              
+              {selectedSaint && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <button
+                    onClick={() => setSelectedSaint(null)}
+                    className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
+                  >
+                    ← Show all Saints activity
+                  </button>
                 </div>
               )}
             </div>
-            <div className="p-4">
-              <h3 className={`font-medium mb-2 transition-colors ${
-                experience.isAvailable ? 'text-white group-hover:text-green-300' : 'text-gray-400'
-              }`}>
-                {experience.name}
-              </h3>
-              <p className="text-gray-400 text-sm mb-3">{experience.description}</p>
-              <div className="flex items-center justify-between">
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  experience.type === 'place' ? 'bg-blue-900/50 text-blue-300' :
-                  experience.type === 'event' ? 'bg-purple-900/50 text-purple-300' :
-                  experience.type === 'conversation' ? 'bg-green-900/50 text-green-300' :
-                  'bg-orange-900/50 text-orange-300'
-                }`}>
-                  {experience.type}
-                </span>
-                {experience.isAvailable && (
-                  <div className="text-green-400 text-xs font-medium">Available Now</div>
-                )}
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderCommunicationTab = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-light text-white">Communication Services</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredServices.filter(s => s.category === 'communication').map((service) => (
-          <button
-            key={service.id}
-            onClick={() => handleServiceClick(service)}
-            className="group bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700/50 hover:shadow-xl hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 text-left"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <service.icon className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-medium text-white mb-2 group-hover:text-blue-300 transition-colors">
-                  {service.name}
-                </h3>
-                <p className="text-gray-400 text-sm mb-4">{service.description}</p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Used {service.usageCount} times</span>
-                  <span>Last used {service.lastUsed}</span>
-                </div>
-                <div className="mt-3">
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                    service.isActive ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full ${service.isActive ? 'bg-green-400' : 'bg-red-400'}`} />
-                    {service.isActive ? 'Active' : 'Inactive'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderLegacyTab = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-light text-white">Legacy Services</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredServices.filter(s => s.category === 'legacy').map((service) => (
-          <button
-            key={service.id}
-            onClick={() => handleServiceClick(service)}
-            className="group bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700/50 hover:shadow-xl hover:border-yellow-500/50 transition-all duration-300 hover:-translate-y-1 text-left"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <service.icon className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-medium text-white mb-2 group-hover:text-yellow-300 transition-colors">
-                  {service.name}
-                </h3>
-                <p className="text-gray-400 text-sm mb-4">{service.description}</p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Used {service.usageCount} times</span>
-                  <span>Last used {service.lastUsed}</span>
-                </div>
-                <div className="mt-3">
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                    service.isActive ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full ${service.isActive ? 'bg-green-400' : 'bg-red-400'}`} />
-                    {service.isActive ? 'Active' : 'Inactive'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900/30">
-      {/* Header */}
-      <div className="bg-gray-800/95 backdrop-blur-md border-b border-gray-700/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <DharmaWheel className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-xl font-light bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-                  Memorial Environment
-                </h1>
-                <p className="text-xs text-gray-400 -mt-0.5">Interactive Memorial Space</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-2 text-gray-400 hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-700"
-              >
-                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              </button>
-              <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="p-2 text-gray-400 hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-700"
-              >
-                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/30">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-1 overflow-x-auto">
-            {[
-              { key: 'home', label: 'Home', icon: DharmaWheel },
-              { key: 'memories', label: 'Memories', icon: Heart },
-              { key: 'experiences', label: 'Experiences', icon: MapPin },
-              { key: 'communication', label: 'Communication', icon: MessageCircle },
-              { key: 'legacy', label: 'Legacy', icon: Star }
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2 ${
-                  activeTab === tab.key
-                    ? 'text-blue-400 border-blue-400'
-                    : 'text-gray-400 border-transparent hover:text-gray-200 hover:border-gray-600'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeTab === 'home' && renderHomeTab()}
-        {activeTab === 'memories' && renderMemoriesTab()}
-        {activeTab === 'experiences' && renderExperiencesTab()}
-        {activeTab === 'communication' && renderCommunicationTab()}
-        {activeTab === 'legacy' && renderLegacyTab()}
-      </div>
-
-      {/* Service Modal */}
-      {showServiceModal && activeService && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 max-w-md w-full">
-            <div className="p-6">
-              {(() => {
-                const service = memorialServices.find(s => s.id === activeService);
-                if (!service) return null;
-                
-                return (
-                  <>
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                        <service.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-medium text-white">{service.name}</h3>
-                        <p className="text-sm text-gray-400">Ready to start</p>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-300 mb-6">{service.description}</p>
-                    
-                    <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Usage Statistics</span>
-                        <span className="text-white">{service.usageCount} sessions</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm mt-2">
-                        <span className="text-gray-400">Last Used</span>
-                        <span className="text-white">{service.lastUsed}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm mt-2">
-                        <span className="text-gray-400">Status</span>
-                        <span className={`${service.isActive ? 'text-green-400' : 'text-red-400'}`}>
-                          {service.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => startService(service.id)}
-                        disabled={!service.isActive}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                      >
-                        Start Session
-                      </button>
-                      <button
-                        onClick={() => setShowServiceModal(false)}
-                        className="px-4 py-3 bg-gray-700 text-gray-300 rounded-xl font-medium hover:bg-gray-600 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Memory Modal */}
-      {selectedMemory && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-medium text-white">{selectedMemory.title}</h3>
-                <button
-                  onClick={() => setSelectedMemory(null)}
-                  className="p-2 text-gray-400 hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            {/* Performance Analytics */}
+            <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700/50 p-6">
+              <h3 className="text-lg font-medium text-white mb-6">Saints Performance Analytics</h3>
               
-              <div className="aspect-video bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center mb-6">
-                {selectedMemory.type === 'video' && <Video className="w-16 h-16 text-white" />}
-                {selectedMemory.type === 'audio' && <Music className="w-16 h-16 text-white" />}
-                {selectedMemory.type === 'photo' && <Image className="w-16 h-16 text-white" />}
-                {selectedMemory.type === 'letter' && <Mail className="w-16 h-16 text-white" />}
-                
-                {selectedMemory.type === 'video' && (
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors rounded-xl"
-                  >
-                    {isPlaying ? <Pause className="w-12 h-12 text-white" /> : <Play className="w-12 h-12 text-white" />}
-                  </button>
-                )}
-              </div>
-              
-              <div className="space-y-4">
-                <p className="text-gray-300 leading-relaxed">{selectedMemory.content}</p>
-                
-                <div className="flex items-center justify-between text-sm text-gray-400">
-                  <span>{new Date(selectedMemory.date).toLocaleDateString()}</span>
-                  {selectedMemory.duration && <span>{selectedMemory.duration}</span>}
-                </div>
-                
-                <div className="flex gap-2 flex-wrap">
-                  {selectedMemory.tags.map((tag) => (
-                    <span key={tag} className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-                
-                <div className="flex gap-3 pt-4">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
-                    <Heart className="w-4 h-4" />
-                    Favorite
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Experience Modal */}
-      {selectedExperience && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 max-w-2xl w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-medium text-white">{selectedExperience.name}</h3>
-                <button
-                  onClick={() => setSelectedExperience(null)}
-                  className="p-2 text-gray-400 hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="aspect-video rounded-xl overflow-hidden mb-6">
-                <img
-                  src={selectedExperience.thumbnail}
-                  alt={selectedExperience.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              
-              <div className="space-y-4">
-                <p className="text-gray-300 leading-relaxed">{selectedExperience.description}</p>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <Clock className="w-4 h-4" />
-                    Duration: {selectedExperience.duration}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <Users className="w-4 h-4" />
-                    Participants: {selectedExperience.participants.length}
-                  </div>
-                </div>
-                
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="text-white font-medium mb-2">Participants</h4>
-                  <div className="flex gap-2 flex-wrap">
-                    {selectedExperience.participants.map((participant) => (
-                      <span key={participant} className="px-3 py-1 bg-gray-600 text-gray-300 rounded-full text-sm">
-                        {participant}
-                      </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-base font-medium text-white mb-4">Activity Categories</h4>
+                  <div className="space-y-3">
+                    {[
+                      { category: 'protection', label: 'Security & Protection', count: todayActivities.filter(a => a.category === 'protection').length, color: 'blue' },
+                      { category: 'support', label: 'Emotional Support', count: todayActivities.filter(a => a.category === 'support').length, color: 'pink' },
+                      { category: 'memory', label: 'Memory Preservation', count: todayActivities.filter(a => a.category === 'memory').length, color: 'green' },
+                      { category: 'family', label: 'Family Care', count: todayActivities.filter(a => a.category === 'family').length, color: 'purple' }
+                    ].map((item) => (
+                      <div key={item.category} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            item.color === 'blue' ? 'bg-blue-500' :
+                            item.color === 'pink' ? 'bg-pink-500' :
+                            item.color === 'green' ? 'bg-green-500' :
+                            'bg-purple-500'
+                          }`}></div>
+                          <span className="text-sm font-semibold text-white">{item.count}</span>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
                 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      console.log(`Starting experience: ${selectedExperience.id}`);
-                      setSelectedExperience(null);
-                    }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-200"
-                  >
-                    Start Experience
+                <div>
+                  <h4 className="text-base font-medium text-white mb-4">Impact Levels</h4>
+                  <div className="space-y-3">
+                    {[
+                      { impact: 'high', label: 'High Impact Actions', count: todayActivities.filter(a => a.impact === 'high').length, color: 'red' },
+                      { impact: 'medium', label: 'Medium Impact Actions', count: todayActivities.filter(a => a.impact === 'medium').length, color: 'yellow' },
+                      { impact: 'low', label: 'Low Impact Actions', count: todayActivities.filter(a => a.impact === 'low').length, color: 'green' }
+                    ].map((item) => (
+                      <div key={item.impact} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <span className="text-sm text-gray-300">{item.label}</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            item.color === 'red' ? 'bg-red-500' :
+                            item.color === 'yellow' ? 'bg-yellow-500' :
+                            'bg-green-500'
+                          }`}></div>
+                          <span className="text-sm font-semibold text-white">{item.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Projection Tab */}
+        {activeTab === 'projection' && (
+          <div className="space-y-6">
+            {/* Projection Status */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center">
+                    <Monitor className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Memorial Projection</h3>
+                    <p className="text-sm text-gray-500">3D holographic presence system</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Active</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-900">Location</span>
+                  </div>
+                  <p className="text-xs text-gray-600">Memorial Garden, Section A</p>
+                  <p className="text-xs text-gray-500 mt-1">Geofenced • 50ft radius</p>
+                </div>
+                
+                <div className="bg-gray-50/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-gray-900">Power</span>
+                  </div>
+                  <p className="text-xs text-gray-600">Solar + Battery</p>
+                  <p className="text-xs text-gray-500 mt-1">87% charged</p>
+                </div>
+                
+                <div className="bg-gray-50/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lock className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-medium text-gray-900">Security</span>
+                  </div>
+                  <p className="text-xs text-gray-600">Encrypted</p>
+                  <p className="text-xs text-gray-500 mt-1">Family access only</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Virtual Environment */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Virtual Environment</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Environment Theme</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { name: 'Garden', active: true, color: 'green' },
+                      { name: 'Library', active: false, color: 'blue' },
+                      { name: 'Beach', active: false, color: 'cyan' },
+                      { name: 'Home', active: false, color: 'orange' }
+                    ].map((theme) => (
+                      <button
+                        key={theme.name}
+                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          theme.active
+                            ? 'border-purple-500 bg-purple-50 text-purple-700'
+                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {theme.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Ambient Settings</label>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Volume2 className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">Background Audio</span>
+                      </div>
+                      <select className="text-xs border border-gray-200 rounded px-2 py-1">
+                        <option>Gentle Nature</option>
+                        <option>Soft Piano</option>
+                        <option>Ocean Waves</option>
+                        <option>Silent</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Palette className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">Lighting</span>
+                      </div>
+                      <select className="text-xs border border-gray-200 rounded px-2 py-1">
+                        <option>Warm Sunset</option>
+                        <option>Soft Daylight</option>
+                        <option>Golden Hour</option>
+                        <option>Moonlight</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">Weather Effects</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Geofencing Map */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-green-100 rounded-xl flex items-center justify-center">
+                    <Map className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Ancestral Projection Map</h3>
+                    <p className="text-sm text-gray-500">Geofenced activation zones and family tracking</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-gray-600">3 Active Zones</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Wifi className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-gray-600">Connected</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Map Container */}
+              <div className="relative bg-gradient-to-br from-green-50 to-blue-50 rounded-xl h-80 mb-6 overflow-hidden border border-gray-200/50">
+                {/* Simulated Map Background */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="w-full h-full bg-gradient-to-br from-green-200 via-blue-200 to-purple-200"></div>
+                </div>
+                
+                {/* Memorial Garden Zone */}
+                <div className="absolute top-16 left-20 w-32 h-24 border-2 border-purple-400 border-dashed rounded-lg bg-purple-100/30 flex items-center justify-center">
+                  <div className="text-center">
+                    <Monitor className="w-6 h-6 text-purple-600 mx-auto mb-1" />
+                    <span className="text-xs font-medium text-purple-700">Memorial Garden</span>
+                    <div className="text-xs text-purple-600 mt-1">50ft radius</div>
+                  </div>
+                </div>
+                
+                {/* Home Zone */}
+                <div className="absolute top-32 right-24 w-28 h-20 border-2 border-blue-400 border-dashed rounded-lg bg-blue-100/30 flex items-center justify-center">
+                  <div className="text-center">
+                    <Monitor className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                    <span className="text-xs font-medium text-blue-700">Family Home</span>
+                    <div className="text-xs text-blue-600 mt-1">25ft radius</div>
+                  </div>
+                </div>
+                
+                {/* Sacred Space Zone */}
+                <div className="absolute bottom-20 left-32 w-24 h-24 border-2 border-green-400 border-dashed rounded-lg bg-green-100/30 flex items-center justify-center">
+                  <div className="text-center">
+                    <Monitor className="w-5 h-5 text-green-600 mx-auto mb-1" />
+                    <span className="text-xs font-medium text-green-700">Sacred Space</span>
+                    <div className="text-xs text-green-600 mt-1">30ft radius</div>
+                  </div>
+                </div>
+                
+                {/* Family Member Indicators */}
+                <div className="absolute top-20 left-28 w-3 h-3 bg-purple-600 rounded-full animate-pulse shadow-lg">
+                  <div className="absolute -top-6 -left-4 text-xs font-medium text-purple-700 whitespace-nowrap">Sarah</div>
+                </div>
+                
+                <div className="absolute bottom-32 right-16 w-3 h-3 bg-blue-600 rounded-full animate-pulse shadow-lg">
+                  <div className="absolute -top-6 -left-6 text-xs font-medium text-blue-700 whitespace-nowrap">Michael</div>
+                </div>
+                
+                {/* Legend */}
+                <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                  <div className="text-xs font-medium text-gray-700 mb-2">Legend</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 border border-purple-400 border-dashed bg-purple-100/50 rounded-sm"></div>
+                      <span className="text-xs text-gray-600">Active Zone</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                      <span className="text-xs text-gray-600">Family Member</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verification Methods */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-base font-medium text-gray-900 mb-4">Verification Methods</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Radio className="w-4 h-4 text-blue-600" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">RFID Tracking</span>
+                          <p className="text-xs text-gray-500">Wearable family tokens</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-gray-600">Active</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Smartphone className="w-4 h-4 text-green-600" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Mobile App</span>
+                          <p className="text-xs text-gray-500">EverAfter companion app</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-gray-600">Connected</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <UserCheck className="w-4 h-4 text-purple-600" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Biometric Scan</span>
+                          <p className="text-xs text-gray-500">Fingerprint + facial recognition</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-gray-600">Enabled</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Power className="w-4 h-4 text-orange-600" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Physical Apparatus</span>
+                          <p className="text-xs text-gray-500">Memorial activation button</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-gray-600">Installed</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-base font-medium text-gray-900 mb-4">Activation Settings</h4>
+                  <div className="space-y-4">
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-gray-900">Auto-Activation</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" defaultChecked />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500">Projection activates when family enters geofenced area</p>
+                    </div>
+                    
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-gray-900">Manual Override</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" defaultChecked />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500">Allow family to manually activate via app or physical button</p>
+                    </div>
+                    
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Activation Delay</span>
+                        <span className="text-xs text-gray-600">3 seconds</span>
+                      </div>
+                      <input type="range" min="0" max="10" defaultValue="3" className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                      <p className="text-xs text-gray-500 mt-1">Delay before projection appears after verification</p>
+                    </div>
+                    
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Session Duration</span>
+                        <span className="text-xs text-gray-600">15 minutes</span>
+                      </div>
+                      <select className="w-full text-sm border border-gray-200 rounded px-3 py-2">
+                        <option>5 minutes</option>
+                        <option>10 minutes</option>
+                        <option selected>15 minutes</option>
+                        <option>30 minutes</option>
+                        <option>Until family leaves</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">How long projection remains active</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Access Control */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100/50 p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Geofenced Access Control</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Authorized Family Members</label>
+                  <div className="space-y-2">
+                    {familyMembers.filter(member => member.status === 'Active').map((member, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium text-purple-700">
+                              {member.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900">{member.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-xs text-gray-500">Authorized</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Security Settings</label>
+                  <div className="space-y-4">
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Biometric Lock</span>
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      </div>
+                      <p className="text-xs text-gray-500">Fingerprint + facial recognition required</p>
+                    </div>
+                    
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Geofence Radius</span>
+                        <span className="text-xs text-gray-600">50 feet</span>
+                      </div>
+                      <input type="range" min="25" max="100" defaultValue="50" className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
+                    </div>
+                    
+                    <div className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Auto-Sleep Timer</span>
+                        <span className="text-xs text-gray-600">30 min</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Projection deactivates when no family present</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Installation Status */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-100/50">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <Monitor className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium text-gray-900">Installation Details</h3>
+                  <p className="text-sm text-gray-600">Secure memorial projection system</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-700 mb-1"><strong>Installation Type:</strong> Integrated Memorial</p>
+                  <p className="text-gray-700 mb-1"><strong>Projection Quality:</strong> 4K Holographic</p>
+                  <p className="text-gray-700"><strong>Audio System:</strong> Directional Speakers</p>
+                </div>
+                <div>
+                  <p className="text-gray-700 mb-1"><strong>Encryption:</strong> AES-256 + Geofencing</p>
+                  <p className="text-gray-700 mb-1"><strong>Power Source:</strong> Solar + 72hr Battery</p>
+                  <p className="text-gray-700"><strong>Weather Rating:</strong> IP67 Waterproof</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Privacy & Security Tab */}
+        {activeTab === 'privacy' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Shield className="w-6 h-6 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Privacy & Security</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">End-to-End Encryption</p>
+                      <p className="text-sm text-gray-500">All memories are encrypted</p>
+                    </div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Access Logging</p>
+                      <p className="text-sm text-gray-500">All access is logged and auditable</p>
+                    </div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">Family-Only Access</p>
+                      <p className="text-sm text-gray-500">Only invited family can access</p>
+                    </div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <button className="w-full flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Download className="w-4 h-4" />
+                    <span>Export All Data</span>
                   </button>
-                  <button
-                    onClick={() => setSelectedExperience(null)}
-                    className="px-6 py-3 bg-gray-700 text-gray-300 rounded-xl font-medium hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
+                  <button className="w-full flex items-center justify-center space-x-2 p-4 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete All Data</span>
+                  </button>
+                  <button className="w-full flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Lock className="w-4 h-4" />
+                    <span>View Audit Log</span>
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Settings</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Daily Question Frequency
+                </label>
+                <select className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option>Once per day</option>
+                  <option>Every other day</option>
+                  <option>Twice per week</option>
+                  <option>Once per week</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Preferred Question Time
+                </label>
+                <input 
+                  type="time" 
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  defaultValue="19:00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Memory Categories
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['Stories', 'Values', 'Humor', 'Daily Life', 'Wisdom', 'Family History'].map((category) => (
+                    <label key={category} className="flex items-center space-x-2">
+                      <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                      <span className="text-sm text-gray-700">{category}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
