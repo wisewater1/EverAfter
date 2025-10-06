@@ -5,10 +5,10 @@ import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircl
 interface Saint {
   id: string;
   name: string;
-              <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+  title: string;
   description: string;
   responsibilities: string[];
-  tier: 'classic' | 'premium';
+  tier: string;
   price?: number;
   active: boolean;
   icon: React.ComponentType<{ className?: string }>;
@@ -1030,4 +1030,52 @@ export default function FamilyDashboard() {
                     {familyMembers.filter(member => member.status === 'Active').map((member, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-purple
+                          <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium text-purple-700">
+                              {member.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900">{member.name}</span>
+                        </div>
+                        <button className="text-xs text-red-600 hover:text-red-700">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Zone Permissions</label>
+                  <div className="space-y-3">
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Memorial Garden</span>
+                        <span className="text-xs text-green-600">All Family</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Primary memorial location with full access</p>
+                    </div>
+                    
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Family Home</span>
+                        <span className="text-xs text-blue-600">Immediate Family</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Private family space with restricted access</p>
+                    </div>
+                    
+                    <div className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">Sacred Space</span>
+                        <span className="text-xs text-purple-600">Sarah Only</span>
+                      </div>
+                      <p className="text-xs text-gray-500">Personal meditation area with individual access</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
