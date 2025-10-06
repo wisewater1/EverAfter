@@ -26,7 +26,7 @@ interface HeaderProps {
 
 export function Header({ currentUser }: HeaderProps) {
   return (
-    <header className="bg-white/95 backdrop-blur-md border-b border-gray-100/80 sticky top-0 z-40">
+    <header className="bg-gray-800/95 backdrop-blur-md border-b border-gray-700/80 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -35,28 +35,28 @@ export function Header({ currentUser }: HeaderProps) {
               <h1 className="text-xl font-light bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
                 EverAfter
               </h1>
-              <p className="text-xs text-gray-500 -mt-0.5">Digital Legacy Platform</p>
+              <p className="text-xs text-gray-400 -mt-0.5">Digital Legacy Platform</p>
             </div>
           </div>
           
           {currentUser && (
             <div className="flex items-center gap-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-all duration-200 hover:bg-gray-50 rounded-xl">
+              <button className="relative p-2 text-gray-400 hover:text-gray-200 transition-all duration-200 hover:bg-gray-700 rounded-xl">
                 <Bell className="w-5 h-5" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
               </button>
               
-              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-600">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{currentUser.name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{currentUser.role}</p>
+                  <p className="text-sm font-medium text-white">{currentUser.name}</p>
+                  <p className="text-xs text-gray-400 capitalize">{currentUser.role}</p>
                 </div>
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-teal-100 rounded-xl flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-700">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
                     {currentUser.name.split(' ').map(n => n[0]).join('')}
                   </span>
                 </div>
-                <button className="p-2 text-gray-400 hover:text-gray-600 transition-all duration-200 hover:bg-gray-50 rounded-xl">
+                <button className="p-2 text-gray-400 hover:text-gray-200 transition-all duration-200 hover:bg-gray-700 rounded-xl">
                   <Settings className="w-4 h-4" />
                 </button>
               </div>

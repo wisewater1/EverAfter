@@ -170,13 +170,13 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
   if (hasSubmitted) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50 rounded-2xl p-8 text-center shadow-lg">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-gradient-to-br from-green-900/50 to-emerald-900/50 border border-green-700/50 rounded-2xl p-8 text-center shadow-lg">
+          <div className="w-16 h-16 bg-green-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <DharmaWheel className="w-8 h-8 text-green-600" />
           </div>
-          <h3 className="text-xl font-medium text-green-900 mb-2">Memory Preserved</h3>
-          <p className="text-green-700 mb-4">Your precious memory has been safely recorded and encrypted.</p>
-          <div className="text-sm text-green-600">
+          <h3 className="text-xl font-medium text-green-300 mb-2">Memory Preserved</h3>
+          <p className="text-green-400 mb-4">Your precious memory has been safely recorded and encrypted.</p>
+          <div className="text-sm text-green-400">
             {currentQuestion && (
               <>
                 <div className="mb-2">
@@ -194,7 +194,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
   }
 
   if (!currentQuestion) {
-    return <div className="max-w-2xl mx-auto text-center">Loading question...</div>;
+    return <div className="max-w-2xl mx-auto text-center text-white">Loading question...</div>;
   }
 
   const progressPercentage = (day / totalDays) * 100;
@@ -202,20 +202,20 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100/50 overflow-hidden">
+      <div className="bg-gray-800 rounded-2xl shadow-xl border border-gray-700/50 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-50/80 to-teal-50/80 p-6 border-b border-gray-100/50">
+        <div className="bg-gradient-to-r from-blue-900/30 to-teal-900/30 p-6 border-b border-gray-700/50">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <DharmaWheel className="w-6 h-6 text-blue-600" />
               <div>
-                <span className="text-sm font-medium text-blue-700">Day {day} of {totalDays}</span>
-                <div className="text-xs text-gray-500 mt-0.5">{getTimeGreeting()}</div>
+                <span className="text-sm font-medium text-blue-400">Day {day} of {totalDays}</span>
+                <div className="text-xs text-gray-400 mt-0.5">{getTimeGreeting()}</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-gray-500 mb-1">{progressPercentage.toFixed(1)}% Complete</div>
-              <div className="w-24 bg-gray-200 rounded-full h-2">
+              <div className="text-xs text-gray-400 mb-1">{progressPercentage.toFixed(1)}% Complete</div>
+              <div className="w-24 bg-gray-700 rounded-full h-2">
                 <div 
                   className="bg-gradient-to-r from-blue-600 to-teal-600 h-2 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${progressPercentage}%` }}
@@ -226,14 +226,14 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
 
           {/* Time Slot Selector */}
           <div className="mb-6">
-            <div className="text-xs font-medium text-gray-600 mb-3 uppercase tracking-wide">Question Time</div>
+            <div className="text-xs font-medium text-gray-400 mb-3 uppercase tracking-wide">Question Time</div>
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setSelectedTimeSlot('current')}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${
                   selectedTimeSlot === 'current'
                     ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white/80 text-gray-600 border-gray-200 hover:bg-white hover:text-gray-800'
+                    : 'bg-gray-700/80 text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white'
                 }`}
               >
                 <Clock className="w-3 h-3" />
@@ -250,7 +250,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${
                       selectedTimeSlot === timeSlot
                         ? getTimeColor(q.timeOfDay).replace('text-', 'bg-').replace('bg-', 'bg-').replace('-600', '-600 text-white border-').replace('bg-', '').replace(' text-white border-', ' text-white border-').replace('50 border-', '600 border-').replace('200', '600')
-                        : `bg-white/80 border-gray-200 hover:bg-white hover:text-gray-800 ${getTimeColor(q.timeOfDay).split(' ')[0]}`
+                        : `bg-gray-700/80 border-gray-600 hover:bg-gray-700 hover:text-white ${getTimeColor(q.timeOfDay).split(' ')[0]}`
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -265,7 +265,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={handlePreviousDay}
-              className="flex items-center gap-2 px-3 py-2 bg-white/80 text-gray-600 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-gray-700/80 text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-700 hover:text-white transition-all duration-200 border border-gray-600/50 shadow-sm"
             >
               <ChevronLeft className="w-4 h-4" />
               Previous Day
@@ -274,22 +274,22 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
             <div className="relative">
               <button
                 onClick={() => setShowDayPicker(!showDayPicker)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/80 text-gray-700 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700/80 text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-700 hover:text-white transition-all duration-200 border border-gray-600/50 shadow-sm"
               >
                 <Calendar className="w-4 h-4" />
                 Jump to Day
               </button>
               
               {showDayPicker && (
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200/50 p-4 z-10 w-80">
+                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded-xl shadow-xl border border-gray-700/50 p-4 z-10 w-80">
                   <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-700 mb-2">Select Day (1-{totalDays})</label>
+                    <label className="block text-xs font-medium text-gray-300 mb-2">Select Day (1-{totalDays})</label>
                     <input
                       type="number"
                       min="1"
                       max={totalDays}
                       defaultValue={day}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           const value = parseInt((e.target as HTMLInputElement).value);
@@ -309,7 +309,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                         className={`px-2 py-1 text-xs rounded transition-all duration-200 ${
                           dayNum === day
                             ? 'bg-blue-600 text-white'
-                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                       >
                         {dayNum}
@@ -318,8 +318,8 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                   </div>
                   
                   {totalDays > 50 && (
-                    <div className="mt-2 pt-2 border-t border-gray-100">
-                      <p className="text-xs text-gray-500 text-center">
+                    <div className="mt-2 pt-2 border-t border-gray-700">
+                      <p className="text-xs text-gray-400 text-center">
                         Use the input field above to jump to any day (1-{totalDays})
                       </p>
                     </div>
@@ -327,7 +327,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                   
                   <button
                     onClick={() => setShowDayPicker(false)}
-                    className="w-full mt-3 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                    className="w-full mt-3 px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors"
                   >
                     Close
                   </button>
@@ -337,7 +337,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
             
             <button
               onClick={handleNextDay}
-              className="flex items-center gap-2 px-3 py-2 bg-white/80 text-gray-600 rounded-xl text-sm font-medium hover:bg-white hover:text-gray-800 transition-all duration-200 border border-gray-200/50 shadow-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-gray-700/80 text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-700 hover:text-white transition-all duration-200 border border-gray-600/50 shadow-sm"
             >
               Next Day
               <ChevronRight className="w-4 h-4" />
@@ -350,12 +350,12 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
               <TimeIcon className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-medium text-gray-900 leading-relaxed mb-2">{currentQuestion.question}</h2>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <h2 className="text-xl font-medium text-white leading-relaxed mb-2">{currentQuestion.question}</h2>
+              <div className="flex items-center gap-4 text-xs text-gray-400">
                 <span className={`px-2 py-1 rounded-full border ${getTimeColor(currentQuestion.timeOfDay)}`}>
                   {currentQuestion.timeOfDay.charAt(0).toUpperCase() + currentQuestion.timeOfDay.slice(1)} Reflection
                 </span>
-                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full border border-gray-200">
+                <span className="px-2 py-1 bg-gray-700 text-gray-300 rounded-full border border-gray-600">
                   {currentQuestion.category.charAt(0).toUpperCase() + currentQuestion.category.slice(1)}
                 </span>
                 <span className={`px-2 py-1 rounded-full border ${
@@ -366,7 +366,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                   {currentQuestion.difficulty.charAt(0).toUpperCase() + currentQuestion.difficulty.slice(1)}
                 </span>
               </div>
-              <div className="mt-2 text-xs text-gray-500 italic">
+              <div className="mt-2 text-xs text-gray-400 italic">
                 {getPersonalityAspectDescription(currentQuestion.personalityAspect)}
               </div>
             </div>
@@ -381,7 +381,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                 value={response}
                 onChange={handleResponseChange}
                 placeholder="Share your thoughts, stories, or memories... Take your time and let the words flow naturally."
-                className="w-full h-40 p-4 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-700 leading-relaxed placeholder-gray-400"
+                className="w-full h-40 p-4 border border-gray-600 bg-gray-700 text-white rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 leading-relaxed placeholder-gray-400"
                 disabled={isRecording}
               />
               <div className="absolute bottom-3 right-3 text-xs text-gray-400">
@@ -391,10 +391,10 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
             
             {/* Recording Indicator */}
             {isRecording && (
-              <div className="flex items-center justify-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center justify-center gap-3 p-4 bg-red-900/30 border border-red-700 rounded-xl">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-red-700 font-medium">Recording in progress...</span>
-                <div className="text-red-600 text-sm">00:42</div>
+                <span className="text-red-400 font-medium">Recording in progress...</span>
+                <div className="text-red-400 text-sm">00:42</div>
               </div>
             )}
             
@@ -405,8 +405,8 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
                   onClick={toggleRecording}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isRecording 
-                      ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-200' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                      ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50 border border-red-700' 
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
                   }`}
                 >
                   {isRecording ? <Pause className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -415,7 +415,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
 
                 <button
                   onClick={handleSkip}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 transition-all duration-200 border border-gray-200"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-600 transition-all duration-200 border border-gray-600"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Skip for Now
@@ -446,7 +446,7 @@ export function DailyQuestion({ day, totalDays, onDayChange, onSaveResponse }: D
 
       {/* Privacy Notice */}
       <div className="mt-6 text-center">
-        <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
+        <p className="text-xs text-gray-400 leading-relaxed max-w-lg mx-auto">
           Your responses are encrypted end-to-end and only accessible to approved family members. 
           You maintain full control over your data at all times.
         </p>

@@ -59,7 +59,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/30">
+    <div className="min-h-screen bg-gray-900 dark">
       {currentView !== 'landing' && (
         <Header currentUser={currentUser} />
       )}
@@ -69,14 +69,14 @@ function App() {
       {/* Navigation Menu for Demo */}
       {currentView !== 'landing' && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 px-2 py-2">
+          <div className="bg-gray-800/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700/50 px-2 py-2">
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentView('daily-question')}
                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   currentView === 'daily-question'
                     ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
               >
                 Daily Question
@@ -86,7 +86,7 @@ function App() {
                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   currentView === 'memory-timeline'
                     ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
               >
                 Memory Timeline ({savedResponses.length})
@@ -96,7 +96,7 @@ function App() {
                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   currentView === 'family-dashboard'
                     ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
               >
                 Family Dashboard

@@ -69,7 +69,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900/30">
       {/* Hero Section */}
       <div className="max-w-6xl mx-auto px-8 pt-32 pb-24">
         <div className="text-center max-w-3xl mx-auto mb-24">
@@ -79,15 +79,15 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               <h1 className="text-4xl font-light bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
                 EverAfter
               </h1>
-              <p className="text-sm text-gray-500 mt-1">Digital Legacy Platform</p>
+              <p className="text-sm text-gray-400 mt-1">Digital Legacy Platform</p>
             </div>
           </div>
           
-          <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6 leading-tight">
+          <h2 className="text-3xl md:text-4xl font-light text-white mb-6 leading-tight">
             Preserve the voice, stories, and values of your loved ones
           </h2>
           
-          <p className="text-xl text-gray-600 mb-12 leading-relaxed font-light max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 mb-12 leading-relaxed font-light max-w-2xl mx-auto">
             A privacy-first platform that captures precious memories through gentle daily questions, 
             creating a lasting digital legacy with consent and dignity at its core.
           </p>
@@ -104,41 +104,41 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         {/* How it Works */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
           <div className="text-center group">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:shadow-md transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:shadow-md transition-all duration-300">
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Daily Questions</h3>
-            <p className="text-gray-600 leading-relaxed">Gentle daily questions capture stories and values over time, building a comprehensive portrait of your loved one.</p>
+            <h3 className="text-lg font-medium text-white mb-3">Daily Questions</h3>
+            <p className="text-gray-300 leading-relaxed">Gentle daily questions capture stories and values over time, building a comprehensive portrait of your loved one.</p>
           </div>
           
           <div className="text-center group">
-            <div className="w-16 h-16 bg-gradient-to-br from-teal-50 to-teal-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:shadow-md transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-br from-teal-900 to-teal-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:shadow-md transition-all duration-300">
               <DharmaWheel className="w-8 h-8 text-teal-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Voice Learning</h3>
-            <p className="text-gray-600 leading-relaxed">AI learns their unique voice and personality patterns, preserving their essence for future generations.</p>
+            <h3 className="text-lg font-medium text-white mb-3">Voice Learning</h3>
+            <p className="text-gray-300 leading-relaxed">AI learns their unique voice and personality patterns, preserving their essence for future generations.</p>
           </div>
           
           <div className="text-center group">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:shadow-md transition-all duration-300">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-900 to-purple-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:shadow-md transition-all duration-300">
               <Users className="w-8 h-8 text-purple-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Family Access</h3>
-            <p className="text-gray-600 leading-relaxed">Approved family members access memories in beautiful memorial spaces with full privacy controls.</p>
+            <h3 className="text-lg font-medium text-white mb-3">Family Access</h3>
+            <p className="text-gray-300 leading-relaxed">Approved family members access memories in beautiful memorial spaces with full privacy controls.</p>
           </div>
         </div>
 
         {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
           {features.map((feature, index) => (
-            <div key={index} className="group bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div key={index} className="group bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-700/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="flex items-start gap-6">
                 <div className={`w-12 h-12 bg-gradient-to-br ${getColorClasses(feature.color)} rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
                   <feature.icon className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-medium text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-xl font-medium text-white mb-3">{feature.title}</h3>
+                  <p className="text-gray-300 leading-relaxed">{feature.description}</p>
                 </div>
               </div>
             </div>
@@ -146,24 +146,24 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
 
         {/* Privacy Principles */}
-        <div className="bg-white rounded-3xl p-12 shadow-xl border border-gray-100 mb-24">
+        <div className="bg-gray-800 rounded-3xl p-12 shadow-xl border border-gray-700 mb-24">
           <div className="text-center mb-12">
-            <div className="w-20 h-20 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-900 to-green-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
               <Shield className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Privacy Promise</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <h2 className="text-3xl font-bold text-white mb-6">Our Privacy Promise</h2>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
               Technology should protect memory, not exploit grief. Every choice is consent-first, privacy-first, and audit-logged.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {principles.map((principle, index) => (
-              <div key={index} className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50/50 transition-colors duration-200">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <div key={index} className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-700/50 transition-colors duration-200">
+                <div className="w-8 h-8 bg-green-800 rounded-full flex items-center justify-center flex-shrink-0">
                   <Check className="w-4 h-4 text-green-600" />
                 </div>
-                <span className="text-gray-700 font-medium">{principle}</span>
+                <span className="text-gray-300 font-medium">{principle}</span>
               </div>
             ))}
           </div>
@@ -178,12 +178,12 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               <Sparkles className="w-8 h-8 text-white/80" />
             </div>
             <h2 className="text-3xl font-bold mb-6">Honor Memory with Technology That Cares</h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-blue-200 mb-8 max-w-3xl mx-auto leading-relaxed">
               Start preserving precious memories today with a platform designed for dignity, respect, and lasting legacy.
             </p>
             <button
               onClick={onGetStarted}
-              className="group inline-flex items-center gap-4 px-10 py-5 bg-white text-blue-600 rounded-2xl font-semibold hover:bg-blue-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
+              className="group inline-flex items-center gap-4 px-10 py-5 bg-white text-blue-600 rounded-2xl font-semibold hover:bg-gray-100 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
             >
               Start Preserving Memories
               <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-200" />
