@@ -143,6 +143,10 @@ npm run preview
 npm run lint
 ```
 
+## Additional Documentation
+
+- [Ghost-Cone Volumetric Apparition with AI Personality Integration](./docs/ghost-cone-volumetric-apparition.md): Research synthesis covering volumetric display foundations, subsystem design, and AI personality integration for mid-air memorial projections.
+
 ## Contributing
 
 This is a private project. For inquiries, please contact the project owner.
