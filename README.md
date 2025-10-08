@@ -151,6 +151,10 @@ This is a private project. For inquiries, please contact the project owner.
 
 All rights reserved.
 
+## Guides & Resources
+
+- [Turning Q&A Data into an Interactive AI Hologram](./AI_Hologram_Guide.md) – phased, execution-ready playbook with milestones, RACI, backlog seeds, tooling picks, and validation checkpoints across data, AI, and holographic deployment.
+
 ## Support
 
 For setup help, see [SETUP.md](./SETUP.md)
