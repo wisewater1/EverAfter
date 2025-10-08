@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface DashboardStats {
   memoriesCount: number;
@@ -27,6 +27,51 @@ interface RecentActivity {
   type: string;
 }
 
+const demoStats: DashboardStats = {
+  memoriesCount: 247,
+  familyMembersCount: 2,
+  pendingInvitationsCount: 1,
+  privacyScore: 100,
+  daysCompleted: 89,
+  daysRemaining: 365 - 89,
+  memoriesThisWeek: 12
+};
+
+const demoFamilyMembers: FamilyMember[] = [
+  {
+    id: 'demo-primary',
+    name: 'Sarah Johnson',
+    email: 'sarah@example.com',
+    role: 'Primary',
+    status: 'active',
+    lastActive: '2 hours ago'
+  },
+  {
+    id: 'demo-family',
+    name: 'Michael Johnson',
+    email: 'michael@example.com',
+    role: 'Family',
+    status: 'active',
+    lastActive: '1 day ago'
+  },
+  {
+    id: 'demo-pending',
+    name: 'Emma Johnson',
+    email: 'emma@example.com',
+    role: 'Family',
+    status: 'pending',
+    lastActive: 'Never'
+  }
+];
+
+const demoRecentActivities: RecentActivity[] = [
+  { action: 'Memory recorded', user: 'Sarah', time: '2 hours ago', type: 'story' },
+  { action: 'Privacy settings updated', user: 'Michael', time: '1 day ago', type: 'settings' },
+  { action: 'Family member invited', user: 'Sarah', time: '3 days ago', type: 'invite' }
+];
+
+const supabaseEnabled = isSupabaseConfigured();
+
 export function useDashboard(userId: string | undefined) {
   const [stats, setStats] = useState<DashboardStats>({
     memoriesCount: 0,
@@ -43,16 +88,20 @@ export function useDashboard(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!userId) {
+  const applyDemoState = useCallback(() => {
+    setStats({ ...demoStats });
+    setFamilyMembers([...demoFamilyMembers]);
+    setRecentActivities([...demoRecentActivities]);
+  }, []);
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!userId || !supabaseEnabled) {
+      applyDemoState();
       setLoading(false);
+      setError(null);
       return;
     }
 
-    fetchDashboardData();
-  }, [userId]);
-
-  async function fetchDashboardData() {
     try {
       setLoading(true);
       setError(null);
@@ -144,12 +193,42 @@ export function useDashboard(userId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [userId, applyDemoState]);
 
-  async function saveMemory(questionId: string, questionText: string, response: string) {
-    if (!userId) throw new Error('User not authenticated');
+  useEffect(() => {
+    if (!userId) {
+      if (!supabaseEnabled) {
+        applyDemoState();
+      }
+      setLoading(false);
+      return;
+    }
 
-    const { data, error } = await supabase
+    void fetchDashboardData();
+  }, [userId, fetchDashboardData, applyDemoState]);
+
+  async function saveMemory(questionId: string, questionText: string, response: string): Promise<void> {
+    if (!userId || !supabaseEnabled) {
+      setStats(prev => ({
+        ...prev,
+        memoriesCount: prev.memoriesCount + 1,
+        memoriesThisWeek: prev.memoriesThisWeek + 1
+      }));
+
+      setRecentActivities(prev => [
+        {
+          action: 'Memory recorded',
+          user: 'You',
+          time: 'just now',
+          type: 'story'
+        },
+        ...prev
+      ].slice(0, 5));
+
+      return;
+    }
+
+    const { error } = await supabase
       .from('memories')
       .insert({
         user_id: userId,
@@ -166,14 +245,29 @@ export function useDashboard(userId: string | undefined) {
     if (error) throw error;
 
     await fetchDashboardData();
-
-    return data;
   }
 
-  async function inviteFamilyMember(email: string, name: string, role: string = 'family') {
-    if (!userId) throw new Error('User not authenticated');
+  async function inviteFamilyMember(email: string, name: string, role: string = 'family'): Promise<void> {
+    if (!userId || !supabaseEnabled) {
+      const pendingMember: FamilyMember = {
+        id: `demo-${Date.now()}`,
+        name,
+        email,
+        role,
+        status: 'pending',
+        lastActive: 'Never'
+      };
 
-    const { data, error } = await supabase
+      setFamilyMembers(prev => [...prev, pendingMember]);
+      setStats(prev => ({
+        ...prev,
+        pendingInvitationsCount: prev.pendingInvitationsCount + 1
+      }));
+
+      return;
+    }
+
+    const { error } = await supabase
       .from('family_members')
       .insert({
         user_id: userId,
@@ -189,8 +283,6 @@ export function useDashboard(userId: string | undefined) {
     if (error) throw error;
 
     await fetchDashboardData();
-
-    return data;
   }
 
   return {
