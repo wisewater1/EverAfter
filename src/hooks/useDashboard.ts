@@ -208,7 +208,7 @@ export function useDashboard(userId: string | undefined) {
   }, [userId, fetchDashboardData, applyDemoState]);
 
   async function saveMemory(questionId: string, questionText: string, response: string): Promise<void> {
-    if (!userId || !supabaseEnabled) {
+    if (!supabaseEnabled) {
       setStats(prev => ({
         ...prev,
         memoriesCount: prev.memoriesCount + 1,
@@ -226,6 +226,12 @@ export function useDashboard(userId: string | undefined) {
       ].slice(0, 5));
 
       return;
+    }
+
+    if (!userId) {
+      const errorMessage = 'User not authenticated';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
 
     const { error } = await supabase
@@ -248,7 +254,7 @@ export function useDashboard(userId: string | undefined) {
   }
 
   async function inviteFamilyMember(email: string, name: string, role: string = 'family'): Promise<void> {
-    if (!userId || !supabaseEnabled) {
+    if (!supabaseEnabled) {
       const pendingMember: FamilyMember = {
         id: `demo-${Date.now()}`,
         name,
@@ -265,6 +271,12 @@ export function useDashboard(userId: string | undefined) {
       }));
 
       return;
+    }
+
+    if (!userId) {
+      const errorMessage = 'User not authenticated';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
 
     const { error } = await supabase
