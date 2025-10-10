@@ -1,80 +1,57 @@
 # EverAfter - Setup Instructions
 
 ## Prerequisites
-- Node.js 18+ installed
-- Supabase account (https://supabase.com)
+- Node.js 18+
+- npm 9+
+- Optional: Supabase project for persistent storage
 
-## Supabase Setup
-
-1. Create a new Supabase project at https://supabase.com
-2. Go to SQL Editor in your Supabase dashboard
-3. Run the `supabase_schema.sql` file to create all tables and policies
-4. Copy your project URL and anon key from Settings > API
+## Supabase (Optional)
+1. Create a Supabase project at https://supabase.com
+2. Run the SQL in `supabase_schema.sql` to provision tables for memories, family members, saints activity, and projection settings
+3. Copy your project URL and anon key from **Settings → API**
 
 ## Environment Configuration
-
 1. Create a `.env` file in the project root:
+   ```bash
+   cp .env.example .env
+   ```
+2. Provide your Supabase credentials (or leave blank to use demo mode):
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+## Install & Run
 ```bash
-cp .env.example .env
-```
-
-2. Add your Supabase credentials to `.env`:
-```
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-## Installation
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Start the development server:
-```bash
+npm ci
 npm run dev
 ```
+Visit http://localhost:5173
 
 ## Demo Mode
+- When no Supabase credentials are supplied, the dashboard boots with seeded metrics, members, and recent activity
+- Memory submissions and invitations update in-memory state so flows can be previewed without a backend
 
-The application will run in demo mode if Supabase credentials are not configured.
-In demo mode, all data is stored in local state and will be lost on page refresh.
+## Enabled Features
+- Daily reflection workflow with adaptive prompts and inline encouragement
+- Dashboard analytics summarising journey progress, weekly momentum, and privacy score
+- Guardian management with invitations and status indicators
+- Saints AI overview card deck describing each assistant’s remit
+- Projection readiness workspace combining hardware checks, session configuration console, and hologram blueprint
+- Privacy and automation summaries with simple toggle controls
 
-## Features Implemented
+## Database Entities (Supabase)
+- `profiles`: created automatically by Supabase Auth (tracks user onboarding date)
+- `memories`: responses to daily prompts
+- `family_members`: invitations and guardian metadata
+- `saints_ai`, `saint_activities`, `user_settings`, `projection_settings`: optional tables prepared for future enhancements
 
-- User authentication (Sign up/Sign in/Sign out)
-- Daily question system with time-aware questions
-- Memory storage and timeline
-- Family member management
-- Saints AI system with activity tracking
-- Projection/Memorial environment settings
-- Comprehensive settings panel
-- Privacy and security controls
-- Data export functionality
-
-## Database Structure
-
-- **profiles**: User account information
-- **memories**: Stored question responses
-- **family_members**: Family access control
-- **saints_ai**: AI assistant configurations
-- **saint_activities**: Activity log for AI assistants
-- **user_settings**: User preferences
-- **projection_settings**: Memorial projection configurations
-
-## Security
-
-- Row Level Security (RLS) enabled on all tables
-- End-to-end encryption ready
-- Granular privacy controls
-- Secure authentication via Supabase Auth
+## Security Notes
+- Supabase Row Level Security policies in `supabase_schema.sql` ensure tenants only read/write their own rows
+- Client gracefully falls back to demo mode when credentials are absent or invalid
 
 ## Next Steps
-
-1. Configure Supabase credentials
-2. Customize Saints AI behaviors
-3. Add payment integration for premium features
-4. Implement voice/video recording
-5. Add email notification system
-6. Deploy to production
+- Connect Supabase and replace demo copy with your family’s data
+- Extend `ProjectionControlPanel` callbacks to persist session plans
+- Integrate the saints automation tables once AI backends are ready
+- Configure analytics or monitoring in your deployment platform

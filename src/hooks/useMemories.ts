@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Memory } from '../types';
 
@@ -8,7 +8,7 @@ export function useMemories(userId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [isConfigured] = useState(isSupabaseConfigured());
 
-  useEffect(() => {
+  const fetchMemories = useCallback(async () => {
     if (!userId) {
       setMemories([]);
       setLoading(false);
@@ -16,7 +16,6 @@ export function useMemories(userId: string | undefined) {
     }
 
     if (!isConfigured) {
-      // Demo mode - use mock data
       setMemories([
         {
           id: '1',
@@ -30,7 +29,7 @@ export function useMemories(userId: string | undefined) {
           difficulty: 'light',
           time_of_day: 'morning',
           created_at: new Date(Date.now() - 86400000).toISOString(),
-          updated_at: new Date(Date.now() - 86400000).toISOString(),
+          updated_at: new Date(Date.now() - 86400000).toISOString()
         },
         {
           id: '2',
@@ -44,81 +43,82 @@ export function useMemories(userId: string | undefined) {
           difficulty: 'medium',
           time_of_day: 'morning',
           created_at: new Date(Date.now() - 172800000).toISOString(),
-          updated_at: new Date(Date.now() - 172800000).toISOString(),
-        },
+          updated_at: new Date(Date.now() - 172800000).toISOString()
+        }
       ]);
       setLoading(false);
       return;
     }
 
-    fetchMemories();
-  }, [userId, isConfigured]);
-
-  const fetchMemories = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
         .from('memories')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       setMemories(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch memories');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, isConfigured]);
+
+  useEffect(() => {
+    void fetchMemories();
+  }, [fetchMemories]);
 
   const addMemory = async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
     if (!isConfigured) {
-      // Demo mode - add to local state
       const newMemory: Memory = {
         ...memory,
         id: Date.now().toString(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       setMemories((prev) => [newMemory, ...prev]);
       return { data: newMemory, error: null };
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error: insertError } = await supabase
         .from('memories')
         .insert([memory])
         .select()
         .single();
 
-      if (error) throw error;
-      setMemories((prev) => [data, ...prev]);
-      return { data, error: null };
+      if (insertError) throw insertError;
+      setMemories((prev) => (data ? [data, ...prev] : prev));
+      return { data: data ?? null, error: null };
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to add memory';
-      return { data: null, error };
+      const message = err instanceof Error ? err.message : 'Failed to add memory';
+      return { data: null, error: message };
     }
   };
 
   const deleteMemory = async (memoryId: string) => {
     if (!isConfigured) {
-      // Demo mode - remove from local state
       setMemories((prev) => prev.filter((m) => m.id !== memoryId));
       return { error: null };
     }
 
     try {
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from('memories')
         .delete()
         .eq('id', memoryId);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
       setMemories((prev) => prev.filter((m) => m.id !== memoryId));
       return { error: null };
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to delete memory';
-      return { error };
+      const message = err instanceof Error ? err.message : 'Failed to delete memory';
+      return { error: message };
     }
   };
 
@@ -128,6 +128,6 @@ export function useMemories(userId: string | undefined) {
     error,
     addMemory,
     deleteMemory,
-    refreshMemories: fetchMemories,
+    refreshMemories: fetchMemories
   };
 }

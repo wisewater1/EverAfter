@@ -4,8 +4,8 @@ import { getCurrentTimeQuestion, getTimeGreeting, getPersonalityAspectDescriptio
 import type { Question } from '../data/questions';
 
 interface DailyQuestionCardProps {
-  onSubmit?: (questionId: string, response: string) => Promise<void>;
-  onSkip?: () => void;
+  onSubmit?: (question: Question, response: string) => Promise<void>;
+  onSkip?: (question: Question) => void;
   currentDay: number;
 }
 
@@ -26,9 +26,7 @@ export default function DailyQuestionCard({ onSubmit, onSkip, currentDay }: Dail
 
     setIsSubmitting(true);
     try {
-      if (onSubmit) {
-        await onSubmit(currentQuestion.id, response);
-      }
+      await onSubmit?.(currentQuestion, response);
       setResponse('');
     } catch (error) {
       console.error('Error submitting response:', error);
@@ -39,9 +37,7 @@ export default function DailyQuestionCard({ onSubmit, onSkip, currentDay }: Dail
 
   const handleSkipClick = () => {
     setResponse('');
-    if (onSkip) {
-      onSkip();
-    }
+    onSkip?.(currentQuestion);
   };
 
   if (!currentQuestion) {

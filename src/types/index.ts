@@ -47,7 +47,7 @@ export interface SaintAI {
   tier: 'classic' | 'premium';
   activated_at?: string;
   deactivated_at?: string;
-  settings: Record<string, any>;
+  settings: Record<string, string | number | boolean | null>;
 }
 
 export interface SaintActivity {
