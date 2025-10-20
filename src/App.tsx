@@ -14,6 +14,7 @@ interface Saint {
   responsibilities: string[];
   tier: 'classic' | 'premium';
   price?: number;
+  stripeProductId?: string;
   active: boolean;
   icon: React.ComponentType<{ className?: string }>;
   todayActivities: number;
@@ -53,12 +54,14 @@ const saints: Saint[] = [
     title: 'The Protector',
     description: 'Guardian AI that manages security, privacy protection, and digital legacy preservation.',
     responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
-    tier: 'classic',
-    active: true,
+    tier: 'premium',
+    price: 19.99,
+    stripeProductId: 'prod_TGgf0y2frZTlxo',
+    active: false,
     icon: Shield,
-    todayActivities: 12,
-    weeklyActivities: 45,
-    lastActive: '3 minutes ago'
+    todayActivities: 0,
+    weeklyActivities: 0,
+    lastActive: 'Never'
   },
   {
     id: 'martin',
@@ -355,6 +358,52 @@ export default function FamilyDashboard() {
         content: aiResponse.content
       });
     }, 1000);
+  };
+
+  const handleSaintActivation = async (saint: Saint) => {
+    if (!user) return;
+
+    if (saint.tier === 'premium' && !saint.active && saint.stripeProductId) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          alert('Please sign in to subscribe to premium Saints');
+          return;
+        }
+
+        const checkoutResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              price_id: saint.stripeProductId,
+              success_url: `${window.location.origin}?saint_activated=${saint.id}`,
+              cancel_url: `${window.location.origin}?tab=saints`,
+              mode: 'subscription',
+            }),
+          }
+        );
+
+        if (checkoutResponse.ok) {
+          const { url } = await checkoutResponse.json();
+          if (url) {
+            window.location.href = url;
+          }
+        } else {
+          const errorData = await checkoutResponse.json();
+          alert(`Failed to start checkout: ${errorData.error || 'Unknown error'}`);
+        }
+      } catch (error) {
+        console.error('Error activating saint:', error);
+        alert('Failed to activate Saint. Please try again.');
+      }
+    } else if (saint.tier === 'classic') {
+      alert('Classic Saints activation coming soon!');
+    }
   };
 
   const inviteFamilyMember = async (e: React.FormEvent) => {
@@ -725,7 +774,9 @@ export default function FamilyDashboard() {
                             View Activity
                           </button>
                         )}
-                        <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        <button
+                          onClick={() => handleSaintActivation(saint)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                           saint.active
                             ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50 shadow-sm hover:shadow-red-500/25'
                             : saint.tier === 'premium'
