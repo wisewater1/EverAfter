@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, CheckCircle, Clock, Play, Trash2, Calendar } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
+import { supabase } from '../lib/supabase';
 
 interface Task {
   id: string;
@@ -28,6 +29,7 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadedEngrams, setLoadedEngrams] = useState<Engram[]>([]);
   const [newTask, setNewTask] = useState({
     task_name: '',
     task_description: '',
@@ -35,7 +37,31 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
     frequency: 'on_demand' as any,
   });
 
-  const activeEngrams = engrams.filter(e => e.is_ai_active);
+  useEffect(() => {
+    loadEngrams();
+  }, [userId]);
+
+  const loadEngrams = async () => {
+    try {
+      const { data } = await supabase
+        .from('archetypal_ais')
+        .select('id, name, training_status')
+        .eq('user_id', userId);
+
+      if (data) {
+        const formattedEngrams = data.map(ai => ({
+          id: ai.id,
+          name: ai.name,
+          is_ai_active: ai.training_status === 'ready'
+        }));
+        setLoadedEngrams(formattedEngrams);
+      }
+    } catch (error) {
+      console.error('Error loading engrams:', error);
+    }
+  };
+
+  const activeEngrams = loadedEngrams.length > 0 ? loadedEngrams.filter(e => e.is_ai_active) : engrams.filter(e => e.is_ai_active);
 
   useEffect(() => {
     if (activeEngrams.length > 0 && !selectedEngram) {
@@ -101,9 +127,12 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
     return (
       <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
         <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h3 className="text-2xl font-light text-white mb-3">No Active AI Engrams</h3>
-        <p className="text-gray-400 max-w-md mx-auto">
-          Tasks can only be assigned to activated AI engrams.
+        <h3 className="text-2xl font-light text-white mb-3">No Active AI Engrams Yet</h3>
+        <p className="text-gray-400 max-w-md mx-auto mb-4">
+          Tasks can only be assigned to AIs that have completed their training.
+        </p>
+        <p className="text-gray-500 max-w-md mx-auto text-sm">
+          Go to Custom Engrams, select Dante (or another AI), then answer daily questions to build their personality. Once trained, they'll appear here and can be given custom tasks!
         </p>
       </div>
     );
