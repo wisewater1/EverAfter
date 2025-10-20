@@ -39,14 +39,14 @@ const saints: Saint[] = [
     id: 'raphael',
     name: 'St. Raphael',
     title: 'The Healer',
-    description: 'Autonomous AI focused on emotional healing, comfort, and spiritual guidance during grief.',
-    responsibilities: ['Grief counseling', 'Emotional support', 'Healing rituals', 'Comfort messages'],
+    description: 'Free autonomous AI agent for health management. Schedules appointments, manages prescriptions, tracks wellness, and handles all health-related tasks in the background.',
+    responsibilities: ['Doctor appointments', 'Prescription management', 'Health tracking', 'Wellness coordination'],
     tier: 'classic',
     active: true,
     icon: Heart,
-    todayActivities: 7,
-    weeklyActivities: 23,
-    lastActive: '12 minutes ago'
+    todayActivities: 12,
+    weeklyActivities: 47,
+    lastActive: 'Active now'
   },
   {
     id: 'michael',
@@ -55,7 +55,7 @@ const saints: Saint[] = [
     description: 'Guardian AI that manages security, privacy protection, and digital legacy preservation.',
     responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
     tier: 'premium',
-    price: 19.99,
+    price: 24.99,
     stripeProductId: 'prod_TGgf0y2frZTlxo',
     active: false,
     icon: Shield,
@@ -109,13 +109,13 @@ const todayActivities: SaintActivity[] = [
   {
     id: '2',
     saintId: 'raphael',
-    action: 'Comfort Message Sent',
-    description: 'Sent personalized comfort message to Emma during difficult moment',
+    action: 'Doctor Appointment Scheduled',
+    description: 'Scheduled annual checkup with Dr. Sarah Chen for next Tuesday at 2:00 PM',
     timestamp: '2024-01-20T13:45:00Z',
     status: 'completed',
     impact: 'high',
     category: 'support',
-    details: 'Detected emotional distress through voice analysis, provided gentle guidance'
+    details: 'Found available slot that matches user preferences, sent calendar invite and confirmation'
   },
   {
     id: '3',
@@ -131,13 +131,13 @@ const todayActivities: SaintActivity[] = [
   {
     id: '4',
     saintId: 'raphael',
-    action: 'Memory Preservation',
-    description: 'Automatically backed up and encrypted today\'s memory responses',
+    action: 'Prescription Refill Ordered',
+    description: 'Automatically ordered refill for blood pressure medication at CVS Pharmacy',
     timestamp: '2024-01-20T11:30:00Z',
     status: 'completed',
     impact: 'medium',
     category: 'memory',
-    details: 'Processed 2 new memories, applied emotional context analysis'
+    details: 'Detected low supply (3 days remaining), ordered 90-day refill, ready for pickup tomorrow'
   },
   {
     id: '5',
@@ -153,13 +153,13 @@ const todayActivities: SaintActivity[] = [
   {
     id: '6',
     saintId: 'raphael',
-    action: 'Family Check-in',
-    description: 'Sent gentle wellness check to Michael Johnson after missed daily question',
+    action: 'Lab Results Retrieved',
+    description: 'Retrieved and organized recent blood work results from patient portal',
     timestamp: '2024-01-20T09:20:00Z',
     status: 'completed',
     impact: 'low',
     category: 'family',
-    details: 'Noticed 2-day absence, sent caring reminder without pressure'
+    details: 'All values within normal range, flagged vitamin D level for discussion with doctor'
   },
   {
     id: '7',
@@ -218,6 +218,7 @@ export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [showRaphaelAgentMode, setShowRaphaelAgentMode] = useState(false);
 
   // AI State
   const [archetypalAI, setArchetypalAI] = useState<ArchetypalAI | null>(null);
@@ -685,27 +686,33 @@ export default function FamilyDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {saints.map((saint) => (
                   <div key={saint.id} className={`border-2 rounded-xl p-6 transition-all duration-200 shadow-lg backdrop-blur-sm ${
-                    saint.active 
-                      ? 'border-blue-600 bg-blue-900/20 shadow-blue-500/25' 
-                      : saint.tier === 'premium' 
-                        ? 'border-amber-600 bg-amber-900/20 shadow-amber-500/25' 
-                        : 'border-gray-600 bg-gray-700/30 shadow-gray-900/20'
+                    saint.active && saint.id === 'raphael'
+                      ? 'border-green-600 bg-green-900/20 shadow-green-500/25'
+                      : saint.active
+                        ? 'border-blue-600 bg-blue-900/20 shadow-blue-500/25'
+                        : saint.tier === 'premium'
+                          ? 'border-amber-600 bg-amber-900/20 shadow-amber-500/25'
+                          : 'border-gray-600 bg-gray-700/30 shadow-gray-900/20'
                   }`}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
-                          saint.active 
-                            ? 'bg-blue-900/50 shadow-blue-500/25' 
-                            : saint.tier === 'premium' 
-                              ? 'bg-amber-900/50 shadow-amber-500/25' 
-                              : 'bg-gray-700 shadow-gray-500/25'
+                          saint.active && saint.id === 'raphael'
+                            ? 'bg-green-900/50 shadow-green-500/25'
+                            : saint.active
+                              ? 'bg-blue-900/50 shadow-blue-500/25'
+                              : saint.tier === 'premium'
+                                ? 'bg-amber-900/50 shadow-amber-500/25'
+                                : 'bg-gray-700 shadow-gray-500/25'
                         }`}>
                           <saint.icon className={`w-5 h-5 ${
-                            saint.active 
-                              ? 'text-blue-600' 
-                              : saint.tier === 'premium' 
-                                ? 'text-amber-600' 
-                                : 'text-gray-600'
+                            saint.active && saint.id === 'raphael'
+                              ? 'text-green-400'
+                              : saint.active
+                                ? 'text-blue-600'
+                                : saint.tier === 'premium'
+                                  ? 'text-amber-600'
+                                  : 'text-gray-600'
                           }`} />
                         </div>
                         <div>
@@ -716,7 +723,7 @@ export default function FamilyDashboard() {
                       
                       <div className="flex items-center gap-2">
                         {saint.tier === 'premium' && (
-                          <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full shadow-sm">
+                          <span className="px-2 py-1 bg-amber-900/30 text-amber-400 text-xs font-medium rounded-full border border-amber-700/30 shadow-sm">
                             Premium
                           </span>
                         )}
@@ -761,17 +768,29 @@ export default function FamilyDashboard() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      {saint.price && (
-                        <span className="text-lg font-semibold text-white">${saint.price}/month</span>
-                      )}
-                      
+                      <div>
+                        {saint.price ? (
+                          <span className="text-lg font-semibold text-white">${saint.price}/month</span>
+                        ) : saint.tier === 'classic' && saint.active ? (
+                          <span className="px-3 py-1 bg-green-900/30 text-green-400 text-sm font-medium rounded-full border border-green-700/30">
+                            FREE
+                          </span>
+                        ) : null}
+                      </div>
+
                       <div className="flex items-center gap-2">
                         {saint.active && (
                           <button
-                            onClick={() => setSelectedSaint(selectedSaint === saint.id ? null : saint.id)}
+                            onClick={() => {
+                              if (saint.id === 'raphael') {
+                                setShowRaphaelAgentMode(true);
+                              } else {
+                                setSelectedSaint(selectedSaint === saint.id ? null : saint.id);
+                              }
+                            }}
                             className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-600 transition-all duration-200"
                           >
-                            View Activity
+                            {saint.id === 'raphael' ? 'View Agent Mode' : 'View Activity'}
                           </button>
                         )}
                         <button
@@ -1845,6 +1864,197 @@ export default function FamilyDashboard() {
                 >
                   <Send className="w-5 h-5" />
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* St. Raphael Agent Mode Modal */}
+      {showRaphaelAgentMode && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-green-900/20 rounded-2xl shadow-2xl border border-gray-700/50 max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-700/50 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl blur-lg opacity-50 animate-pulse"></div>
+                  <div className="relative w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Heart className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-light text-white flex items-center gap-2">
+                    St. Raphael Agent Mode
+                    <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded-full border border-green-500/30">
+                      ACTIVE
+                    </span>
+                  </h2>
+                  <p className="text-sm text-gray-400">Real-time health management in progress</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRaphaelAgentMode(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-700/50 transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {/* Current Task Banner */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-xl">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-green-400 uppercase tracking-wide">Currently Processing</span>
+                </div>
+                <p className="text-white font-medium">Scheduling follow-up appointment with cardiologist</p>
+                <p className="text-sm text-gray-400 mt-1">Checking available slots for next week...</p>
+              </div>
+
+              {/* Activity Timeline */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white mb-4">Today's Health Activities</h3>
+
+                {/* Activity Items */}
+                <div className="space-y-3">
+                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">Doctor Appointment Scheduled</h4>
+                          <p className="text-xs text-gray-400">13 minutes ago</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-700/30">
+                        Completed
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-2">
+                      Scheduled annual checkup with Dr. Sarah Chen for Tuesday, Oct 24 at 2:00 PM
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>• Calendar invite sent</span>
+                      <span>• Reminder set for 1 hour before</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">Prescription Refill Ordered</h4>
+                          <p className="text-xs text-gray-400">2 hours ago</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-700/30">
+                        Completed
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-2">
+                      Ordered 90-day refill for blood pressure medication at CVS Pharmacy
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>• Ready for pickup tomorrow</span>
+                      <span>• Auto-refill enabled</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">Lab Results Retrieved</h4>
+                          <p className="text-xs text-gray-400">5 hours ago</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-700/30">
+                        Completed
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-2">
+                      Retrieved recent blood work results from patient portal
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>• All values normal</span>
+                      <span>• Flagged vitamin D for discussion</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-700/30 rounded-lg border border-blue-600/30 hover:border-blue-500/50 transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-900/50 rounded-lg flex items-center justify-center">
+                          <Loader className="w-4 h-4 text-blue-400 animate-spin" />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">Health Insurance Verification</h4>
+                          <p className="text-xs text-gray-400">In progress</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded-full border border-blue-700/30">
+                        Processing
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-2">
+                      Verifying coverage for upcoming cardiology appointment
+                    </p>
+                    <div className="w-full bg-gray-600/30 rounded-full h-2 mt-3">
+                      <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '65%' }}></div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-gray-500/50 transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">Weekly Wellness Summary</h4>
+                          <p className="text-xs text-gray-400">Scheduled for tomorrow 9:00 AM</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded-full border border-gray-600">
+                        Scheduled
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-300">
+                      Compile and send weekly health summary with recommendations
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-6 pt-6 border-t border-gray-700/50">
+                <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
+                    <div className="text-white font-medium text-sm mb-1">Request Appointment</div>
+                    <div className="text-xs text-gray-400">Schedule new visit</div>
+                  </button>
+                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
+                    <div className="text-white font-medium text-sm mb-1">Check Prescriptions</div>
+                    <div className="text-xs text-gray-400">View medication status</div>
+                  </button>
+                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
+                    <div className="text-white font-medium text-sm mb-1">View Lab Results</div>
+                    <div className="text-xs text-gray-400">Recent test results</div>
+                  </button>
+                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
+                    <div className="text-white font-medium text-sm mb-1">Update Preferences</div>
+                    <div className="text-xs text-gray-400">Manage health settings</div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
