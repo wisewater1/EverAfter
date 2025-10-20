@@ -14,20 +14,21 @@ class PersonalityAnalyzer:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def analyze_engram_personality(
+    async def analyze_ai_personality(
         self,
-        engram_id: str,
+        ai_id: str,
+        user_id: str,
         force_reanalysis: bool = False
     ) -> Dict[str, Any]:
         """
         Perform comprehensive personality analysis across all dimensions
         """
-        from app.models.engram import EngramDailyResponse, PersonalityTrait, PersonalityDimension
+        from app.models.engram import DailyQuestionResponse, PersonalityTrait, PersonalityDimension
 
-        # Get all responses for this engram
-        responses_query = select(EngramDailyResponse).where(
-            EngramDailyResponse.engram_id == engram_id
-        ).order_by(EngramDailyResponse.created_at.asc())
+        # Get all responses for this user
+        responses_query = select(DailyQuestionResponse).where(
+            DailyQuestionResponse.user_id == user_id
+        ).order_by(DailyQuestionResponse.created_at.asc())
 
         result = await self.session.execute(responses_query)
         responses = result.scalars().all()
@@ -58,7 +59,7 @@ class PersonalityAnalyzer:
 
             # Extract traits for this dimension
             extracted_traits = await self._extract_dimension_traits(
-                engram_id,
+                ai_id,
                 dimension,
                 dimension_responses
             )
@@ -66,7 +67,7 @@ class PersonalityAnalyzer:
             traits_extracted += len(extracted_traits)
 
         # Calculate overall personality profile
-        profile = await self._build_personality_profile(engram_id)
+        profile = await self._build_personality_profile(ai_id)
 
         return {
             "status": "success",
@@ -78,7 +79,7 @@ class PersonalityAnalyzer:
 
     async def _extract_dimension_traits(
         self,
-        engram_id: str,
+        ai_id: str,
         dimension,
         responses: List
     ) -> List[Dict]:
@@ -128,7 +129,7 @@ class PersonalityAnalyzer:
             saved_traits = []
             for trait_data in traits:
                 trait = PersonalityTrait(
-                    engram_id=engram_id,
+                    ai_id=ai_id,
                     dimension_id=str(dimension.id),
                     trait_name=trait_data["trait_name"],
                     trait_value=trait_data["trait_value"],
@@ -241,7 +242,7 @@ class PersonalityAnalyzer:
             count += combined_text.count(word)
         return count
 
-    async def _build_personality_profile(self, engram_id: str) -> Dict[str, Any]:
+    async def _build_personality_profile(self, ai_id: str) -> Dict[str, Any]:
         """
         Build comprehensive personality profile
         """
@@ -253,9 +254,9 @@ class PersonalityAnalyzer:
             "completeness": {}
         }
 
-        # Get all traits for this engram
+        # Get all traits for this AI
         traits_query = select(PersonalityTrait).where(
-            PersonalityTrait.engram_id == engram_id
+            PersonalityTrait.ai_id == ai_id
         ).order_by(PersonalityTrait.confidence_score.desc())
 
         result = await self.session.execute(traits_query)
@@ -305,16 +306,15 @@ class PersonalityAnalyzer:
 
         return profile
 
-    async def associate_traits_with_tasks(self, engram_id: str) -> Dict[str, Any]:
+    async def associate_traits_with_tasks(self, ai_id: str) -> Dict[str, Any]:
         """
         Create associations between personality traits and task types
         This enables personality-driven task execution
         """
-        from app.models.engram import PersonalityTrait
-        from app.models.agent import TraitTaskAssociation
+        from app.models.engram import PersonalityTrait, TraitTaskAssociation
 
         traits_query = select(PersonalityTrait).where(
-            PersonalityTrait.engram_id == engram_id,
+            PersonalityTrait.ai_id == ai_id,
             PersonalityTrait.confidence_score >= 0.6  # Only confident traits
         )
 
