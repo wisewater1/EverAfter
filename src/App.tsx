@@ -432,48 +432,7 @@ export default function FamilyDashboard() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Daily Question Card */}
-            <DailyQuestionCard
-              currentDay={89}
-              onSubmit={async (questionId, response) => {
-                if (!user) return;
-
-                // Get question details
-                const { data: question } = await supabase
-                  .from('questions')
-                  .select('*')
-                  .eq('id', questionId)
-                  .single();
-
-                if (question) {
-                  // Save memory
-                  await supabase.from('memories').insert({
-                    user_id: user.id,
-                    question_id: questionId,
-                    question_text: question.question_text,
-                    response_text: response,
-                    category: question.category,
-                    time_of_day: question.time_of_day,
-                    is_draft: false
-                  });
-
-                  // Update AI memory count if AI exists
-                  if (archetypalAI) {
-                    await supabase
-                      .from('archetypal_ais')
-                      .update({
-                        total_memories: archetypalAI.total_memories + 1,
-                        training_status: 'training'
-                      })
-                      .eq('id', archetypalAI.id);
-
-                    await loadArchetypalAI();
-                  }
-                }
-              }}
-              onSkip={() => {
-                console.log('Question skipped');
-              }}
-            />
+            {user && <DailyQuestionCard userId={user.id} />}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Stats Cards */}
