@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles, MessageCircle, X, Send, Plus } from 'lucide-react';
 import DailyQuestionCard from './components/DailyQuestionCard';
+import { useAuth } from './hooks/useAuth';
+import { supabase } from './lib/supabase';
 
 // Saints AI Engram System
 interface Saint {
@@ -179,43 +181,210 @@ const todayActivities: SaintActivity[] = [
   }
 ];
 
+interface ArchetypalAI {
+  id: string;
+  name: string;
+  description: string;
+  personality_traits: any;
+  total_memories: number;
+  training_status: 'untrained' | 'training' | 'ready';
+  avatar_url?: string;
+}
+
+interface AIMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+interface FamilyMember {
+  id?: string;
+  name: string;
+  email: string;
+  relationship: string;
+  role?: string;
+  status: string;
+  lastActive?: string;
+  access_level?: string;
+}
+
 export default function FamilyDashboard() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
 
-  const familyMembers = [
-    { name: 'Sarah Johnson', role: 'Primary', status: 'Active', lastActive: '2 hours ago' },
-    { name: 'Michael Johnson', role: 'Family', status: 'Active', lastActive: '1 day ago' },
-    { name: 'Emma Johnson', role: 'Family', status: 'Pending', lastActive: 'Never' },
-  ];
+  // AI State
+  const [archetypalAI, setArchetypalAI] = useState<ArchetypalAI | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [showCreateAI, setShowCreateAI] = useState(false);
+  const [aiMessages, setAIMessages] = useState<AIMessage[]>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [aiName, setAiName] = useState('');
+
+  // Family State
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    name: '',
+    email: '',
+    relationship: ''
+  });
+
+  // Load user's Archetypal AI
+  useEffect(() => {
+    if (user) {
+      loadArchetypalAI();
+      loadFamilyMembers();
+    }
+  }, [user]);
+
+  const loadArchetypalAI = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('archetypal_ais')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (data) {
+      setArchetypalAI(data);
+    }
+  };
+
+  const loadFamilyMembers = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('family_members')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (data) {
+      setFamilyMembers(data.map(member => ({
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        relationship: member.relationship,
+        role: 'Family',
+        status: member.status,
+        lastActive: member.accepted_at ? 'Recently' : 'Never',
+        access_level: member.access_level
+      })));
+    }
+  };
+
+  const createArchetypalAI = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !aiName) return;
+
+    const { data } = await supabase
+      .from('archetypal_ais')
+      .insert({
+        user_id: user.id,
+        name: aiName,
+        training_status: 'training'
+      })
+      .select()
+      .single();
+
+    if (data) {
+      setArchetypalAI(data);
+      setShowCreateAI(false);
+      setAiName('');
+    }
+  };
+
+  const startConversation = async () => {
+    if (!user || !archetypalAI) return;
+
+    const { data } = await supabase
+      .from('ai_conversations')
+      .insert({
+        ai_id: archetypalAI.id,
+        user_id: user.id,
+        title: 'New Conversation'
+      })
+      .select()
+      .single();
+
+    if (data) {
+      setConversationId(data.id);
+      setShowAIChat(true);
+      setAIMessages([]);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!currentMessage.trim() || !conversationId) return;
+
+    const userMessage: AIMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: currentMessage,
+      created_at: new Date().toISOString()
+    };
+
+    setAIMessages(prev => [...prev, userMessage]);
+    const messageContent = currentMessage;
+    setCurrentMessage('');
+
+    await supabase.from('ai_messages').insert({
+      conversation_id: conversationId,
+      role: 'user',
+      content: messageContent
+    });
+
+    setTimeout(async () => {
+      const aiResponse: AIMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `As ${archetypalAI?.name}, I understand you're saying: "${messageContent}". Based on your memories and personality traits I've learned from your daily responses, I can share my perspective on this...`,
+        created_at: new Date().toISOString()
+      };
+
+      setAIMessages(prev => [...prev, aiResponse]);
+
+      await supabase.from('ai_messages').insert({
+        conversation_id: conversationId,
+        role: 'assistant',
+        content: aiResponse.content
+      });
+    }, 1000);
+  };
+
+  const inviteFamilyMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('family_members')
+      .insert({
+        user_id: user.id,
+        name: inviteForm.name,
+        email: inviteForm.email,
+        relationship: inviteForm.relationship,
+        status: 'Pending',
+        access_level: 'View'
+      })
+      .select()
+      .single();
+
+    if (data) {
+      await loadFamilyMembers();
+      setShowInviteModal(false);
+      setInviteForm({ name: '', email: '', relationship: '' });
+    }
+  };
 
   const recentActivities = [
     { action: 'Memory recorded', user: 'Sarah', time: '2 hours ago', type: 'story' },
     { action: 'Privacy settings updated', user: 'Michael', time: '1 day ago', type: 'settings' },
     { action: 'Family member invited', user: 'Sarah', time: '3 days ago', type: 'invite' },
   ];
-
-  const handleInvite = () => {
-    if (inviteEmail) {
-      // Simulate sending invite
-      console.log('Inviting:', inviteEmail);
-      setInviteEmail('');
-      setShowInviteModal(false);
-      // Show success message
-    }
-  };
-
-  const handleTabClick = (tabId: string) => {
-    setActiveTab(tabId);
-  };
-
-  const handleSettingsToggle = () => {
-    setShowSettings(!showSettings);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -264,7 +433,40 @@ export default function FamilyDashboard() {
             <DailyQuestionCard
               currentDay={89}
               onSubmit={async (questionId, response) => {
-                console.log('Saving memory:', { questionId, response });
+                if (!user) return;
+
+                // Get question details
+                const { data: question } = await supabase
+                  .from('questions')
+                  .select('*')
+                  .eq('id', questionId)
+                  .single();
+
+                if (question) {
+                  // Save memory
+                  await supabase.from('memories').insert({
+                    user_id: user.id,
+                    question_id: questionId,
+                    question_text: question.question_text,
+                    response_text: response,
+                    category: question.category,
+                    time_of_day: question.time_of_day,
+                    is_draft: false
+                  });
+
+                  // Update AI memory count if AI exists
+                  if (archetypalAI) {
+                    await supabase
+                      .from('archetypal_ais')
+                      .update({
+                        total_memories: archetypalAI.total_memories + 1,
+                        training_status: 'training'
+                      })
+                      .eq('id', archetypalAI.id);
+
+                    await loadArchetypalAI();
+                  }
+                }
               }}
               onSkip={() => {
                 console.log('Question skipped');
@@ -386,7 +588,10 @@ export default function FamilyDashboard() {
                   </div>
                 ))}
               </div>
-              <button className="mt-6 w-full border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 hover:bg-gray-700/30 transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-gray-500/25">
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="mt-6 w-full border-2 border-dashed border-gray-600 rounded-lg p-4 text-center hover:border-gray-500 hover:bg-gray-700/30 transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-gray-500/25"
+              >
                 <Users className="w-6 h-6 text-gray-400 mx-auto mb-2" />
                 <span className="text-sm font-medium text-gray-300">Invite Family Member</span>
               </button>
@@ -1399,7 +1604,235 @@ export default function FamilyDashboard() {
             </div>
           </div>
         )}
+
+        {/* Floating AI Chat Button */}
+        {archetypalAI && (
+          <button
+            onClick={startConversation}
+            className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center group"
+          >
+            <MessageCircle className="w-7 h-7 text-white" />
+            <span className="absolute -top-10 right-0 bg-gray-900 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              Chat with {archetypalAI.name}
+            </span>
+          </button>
+        )}
+
+        {/* Create AI Button if no AI exists */}
+        {!archetypalAI && user && (
+          <button
+            onClick={() => setShowCreateAI(true)}
+            className="fixed bottom-8 right-8 bg-gradient-to-br from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Create Your AI
+          </button>
+        )}
       </div>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Invite Family Member</h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={inviteFamilyMember} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                <input
+                  type="text"
+                  value={inviteForm.name}
+                  onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={inviteForm.email}
+                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Relationship</label>
+                <select
+                  value={inviteForm.relationship}
+                  onChange={(e) => setInviteForm({ ...inviteForm, relationship: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  required
+                >
+                  <option value="">Select relationship</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Child">Child</option>
+                  <option value="Parent">Parent</option>
+                  <option value="Sibling">Sibling</option>
+                  <option value="Friend">Friend</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                >
+                  Send Invite
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create AI Modal */}
+      {showCreateAI && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Create Your Archetypal AI</h3>
+              <button
+                onClick={() => setShowCreateAI(false)}
+                className="text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <p className="text-gray-300 text-sm mb-6">
+              Your AI will learn from your daily question responses to create a digital representation
+              of your personality, wisdom, and experiences. Give it a name!
+            </p>
+
+            <form onSubmit={createArchetypalAI} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">AI Name</label>
+                <input
+                  type="text"
+                  value={aiName}
+                  onChange={(e) => setAiName(e.target.value)}
+                  placeholder="e.g., My Digital Twin, GrandmaBot, Future Me"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAI(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all"
+                >
+                  Create AI
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* AI Chat Modal */}
+      {showAIChat && archetypalAI && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full h-[600px] flex flex-col border border-gray-700">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{archetypalAI.name}</h3>
+                  <p className="text-xs text-gray-400">
+                    {archetypalAI.training_status === 'ready' ? 'Ready to chat' : 'Learning from your memories...'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAIChat(false)}
+                className="text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {aiMessages.length === 0 && (
+                <div className="text-center text-gray-400 mt-8">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Start a conversation with {archetypalAI.name}</p>
+                  <p className="text-sm mt-2">Your AI has learned from {archetypalAI.total_memories} memories</p>
+                </div>
+              )}
+
+              {aiMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === 'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-gray-100'
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className="text-xs mt-1 opacity-70">
+                      {new Date(message.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!currentMessage.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
