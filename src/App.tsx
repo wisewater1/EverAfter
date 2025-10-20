@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles, MessageCircle, X, Send, Plus, Brain } from 'lucide-react';
+import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles, MessageCircle, X, Send, Plus, Brain, Calendar, Bot } from 'lucide-react';
 import DailyQuestionCard from './components/DailyQuestionCard';
 import CustomEngramsDashboard from './components/CustomEngramsDashboard';
+import EngramChat from './components/EngramChat';
+import EngramTaskManager from './components/EngramTaskManager';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './lib/supabase';
 
@@ -235,6 +237,7 @@ export default function FamilyDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [engrams, setEngrams] = useState<any[]>([]);
   const [showRaphaelAgentMode, setShowRaphaelAgentMode] = useState(false);
 
   // Agent Task State
@@ -271,8 +274,23 @@ export default function FamilyDashboard() {
       loadArchetypalAI();
       loadFamilyMembers();
       loadAgentTasks();
+      loadEngrams();
     }
   }, [user]);
+
+  const loadEngrams = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('engrams')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setEngrams(data);
+    }
+  };
 
   // Reload agent tasks when modal opens
   useEffect(() => {
@@ -798,6 +816,16 @@ export default function FamilyDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {/* AI Chat Tab */}
+        {activeTab === 'ai-chat' && user && (
+          <EngramChat engrams={engrams} userId={user.id} />
+        )}
+
+        {/* AI Tasks Tab */}
+        {activeTab === 'ai-tasks' && user && (
+          <EngramTaskManager engrams={engrams} userId={user.id} />
         )}
 
         {/* Saints AI Tab */}
@@ -2280,11 +2308,24 @@ export default function FamilyDashboard() {
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-t border-gray-700/50 shadow-2xl backdrop-blur-md z-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center justify-center gap-4 py-4">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-center gap-2 py-3 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'overview'
+                  ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-teal-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                <span>Overview</span>
+              </div>
+            </button>
             <button
               onClick={() => setActiveTab('daily-question')}
-              className={`px-8 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
                 activeTab === 'daily-question'
                   ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-blue-500/25 scale-105'
                   : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
@@ -2292,29 +2333,85 @@ export default function FamilyDashboard() {
             >
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4" />
-                <span>Daily Question</span>
+                <span>Daily Q</span>
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-8 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg ${
-                activeTab === 'overview'
-                  ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-teal-500/25 scale-105'
+              onClick={() => setActiveTab('custom-engrams')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'custom-engrams'
+                  ? 'bg-gradient-to-r from-blue-500 to-teal-600 text-white shadow-blue-500/25 scale-105'
                   : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
               }`}
             >
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span>Memory Timeline (0)</span>
+                <Brain className="w-4 h-4" />
+                <span>Engrams</span>
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('overview')}
-              className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-500/25 hover:scale-105"
+              onClick={() => setActiveTab('ai-chat')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'ai-chat'
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-700 text-white shadow-green-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Bot className="w-4 h-4" />
+                <span>AI Chat</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('ai-tasks')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'ai-tasks'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-purple-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>AI Tasks</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('family')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'family'
+                  ? 'bg-gradient-to-r from-pink-600 to-rose-700 text-white shadow-pink-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
+              }`}
             >
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span>Family Dashboard</span>
+                <span>Family</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('saints')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'saints'
+                  ? 'bg-gradient-to-r from-yellow-600 to-orange-700 text-white shadow-yellow-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                <span>Saints AI</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 shadow-lg whitespace-nowrap ${
+                activeTab === 'settings'
+                  ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-gray-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
               </div>
             </button>
           </div>
