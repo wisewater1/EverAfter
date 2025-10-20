@@ -213,12 +213,39 @@ interface FamilyMember {
   access_level?: string;
 }
 
+interface AgentTask {
+  id: string;
+  user_id: string;
+  saint_id: string;
+  task_type: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'scheduled';
+  priority: 'low' | 'medium' | 'high';
+  details: any;
+  result: any;
+  scheduled_for?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function FamilyDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
   const [showRaphaelAgentMode, setShowRaphaelAgentMode] = useState(false);
+
+  // Agent Task State
+  const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [newTask, setNewTask] = useState({
+    task_type: 'appointment',
+    title: '',
+    description: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+  });
 
   // AI State
   const [archetypalAI, setArchetypalAI] = useState<ArchetypalAI | null>(null);
@@ -238,13 +265,23 @@ export default function FamilyDashboard() {
     relationship: ''
   });
 
-  // Load user's Archetypal AI
+  // Load user's Archetypal AI and agent tasks
   useEffect(() => {
     if (user) {
       loadArchetypalAI();
       loadFamilyMembers();
+      loadAgentTasks();
     }
   }, [user]);
+
+  // Reload agent tasks when modal opens
+  useEffect(() => {
+    if (showRaphaelAgentMode && user) {
+      loadAgentTasks();
+      const interval = setInterval(loadAgentTasks, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [showRaphaelAgentMode, user]);
 
   const loadArchetypalAI = async () => {
     if (!user) return;
@@ -279,6 +316,100 @@ export default function FamilyDashboard() {
         lastActive: member.accepted_at ? 'Recently' : 'Never',
         access_level: member.access_level
       })));
+    }
+  };
+
+  const loadAgentTasks = async () => {
+    if (!user) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent-tasks?saint_id=raphael`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setAgentTasks(data.tasks || []);
+      }
+    } catch (error) {
+      console.error('Error loading agent tasks:', error);
+    }
+  };
+
+  const createAgentTask = async () => {
+    if (!user || !newTask.title) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent-tasks`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...newTask,
+            saint_id: 'raphael',
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setNewTask({
+          task_type: 'appointment',
+          title: '',
+          description: '',
+          priority: 'medium',
+        });
+        setShowCreateTask(false);
+        await loadAgentTasks();
+      }
+    } catch (error) {
+      console.error('Error creating agent task:', error);
+    }
+  };
+
+  const updateTaskStatus = async (taskId: string, status: string) => {
+    if (!user) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-agent-tasks`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            task_id: taskId,
+            status,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        await loadAgentTasks();
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
     }
   };
 
@@ -1901,161 +2032,193 @@ export default function FamilyDashboard() {
             </div>
 
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {/* Current Task Banner */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-xl">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-green-400 uppercase tracking-wide">Currently Processing</span>
-                </div>
-                <p className="text-white font-medium">Scheduling follow-up appointment with cardiologist</p>
-                <p className="text-sm text-gray-400 mt-1">Checking available slots for next week...</p>
+              {/* Create Task Button */}
+              <div className="mb-6">
+                <button
+                  onClick={() => setShowCreateTask(!showCreateTask)}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-green-500/25"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="font-medium">Create New Health Task</span>
+                </button>
               </div>
+
+              {/* Create Task Form */}
+              {showCreateTask && (
+                <div className="mb-6 p-4 bg-gray-700/30 border border-gray-600 rounded-lg space-y-4">
+                  <h3 className="text-lg font-medium text-white">New Health Task</h3>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Task Type</label>
+                    <select
+                      value={newTask.task_type}
+                      onChange={(e) => setNewTask({...newTask, task_type: e.target.value})}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+                    >
+                      <option value="appointment">Doctor Appointment</option>
+                      <option value="prescription">Prescription Refill</option>
+                      <option value="lab_results">Lab Results</option>
+                      <option value="insurance">Insurance Verification</option>
+                      <option value="wellness">Wellness Check</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
+                    <input
+                      type="text"
+                      value={newTask.title}
+                      onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                      placeholder="e.g., Schedule annual checkup"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                    <textarea
+                      value={newTask.description}
+                      onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                      placeholder="Additional details..."
+                      rows={3}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                    <select
+                      value={newTask.priority}
+                      onChange={(e) => setNewTask({...newTask, priority: e.target.value as 'low' | 'medium' | 'high'})}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={createAgentTask}
+                      disabled={!newTask.title}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Create Task
+                    </button>
+                    <button
+                      onClick={() => setShowCreateTask(false)}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Tasks Banner */}
+              {agentTasks.filter(t => t.status === 'in_progress').map(task => (
+                <div key={task.id} className="mb-6 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-medium text-green-400 uppercase tracking-wide">Currently Processing</span>
+                  </div>
+                  <p className="text-white font-medium">{task.title}</p>
+                  {task.description && <p className="text-sm text-gray-400 mt-1">{task.description}</p>}
+                </div>
+              ))}
 
               {/* Activity Timeline */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white mb-4">Today's Health Activities</h3>
-
-                {/* Activity Items */}
-                <div className="space-y-3">
-                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-medium">Doctor Appointment Scheduled</h4>
-                          <p className="text-xs text-gray-400">13 minutes ago</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-700/30">
-                        Completed
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-300 mb-2">
-                      Scheduled annual checkup with Dr. Sarah Chen for Tuesday, Oct 24 at 2:00 PM
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span>• Calendar invite sent</span>
-                      <span>• Reminder set for 1 hour before</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-medium">Prescription Refill Ordered</h4>
-                          <p className="text-xs text-gray-400">2 hours ago</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-700/30">
-                        Completed
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-300 mb-2">
-                      Ordered 90-day refill for blood pressure medication at CVS Pharmacy
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span>• Ready for pickup tomorrow</span>
-                      <span>• Auto-refill enabled</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-900/50 rounded-lg flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-medium">Lab Results Retrieved</h4>
-                          <p className="text-xs text-gray-400">5 hours ago</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-700/30">
-                        Completed
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-300 mb-2">
-                      Retrieved recent blood work results from patient portal
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span>• All values normal</span>
-                      <span>• Flagged vitamin D for discussion</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-gray-700/30 rounded-lg border border-blue-600/30 hover:border-blue-500/50 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-900/50 rounded-lg flex items-center justify-center">
-                          <Loader className="w-4 h-4 text-blue-400 animate-spin" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-medium">Health Insurance Verification</h4>
-                          <p className="text-xs text-gray-400">In progress</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded-full border border-blue-700/30">
-                        Processing
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-300 mb-2">
-                      Verifying coverage for upcoming cardiology appointment
-                    </p>
-                    <div className="w-full bg-gray-600/30 rounded-full h-2 mt-3">
-                      <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '65%' }}></div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-gray-500/50 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-medium">Weekly Wellness Summary</h4>
-                          <p className="text-xs text-gray-400">Scheduled for tomorrow 9:00 AM</p>
-                        </div>
-                      </div>
-                      <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded-full border border-gray-600">
-                        Scheduled
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-300">
-                      Compile and send weekly health summary with recommendations
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-white">Health Tasks</h3>
+                  <span className="text-sm text-gray-400">{agentTasks.length} total tasks</span>
                 </div>
+
+                {/* Task Items */}
+                {agentTasks.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>No tasks yet. Create your first health task above!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {agentTasks.map((task) => {
+                      const statusConfig = {
+                        completed: { color: 'green', icon: CheckCircle, text: 'Completed' },
+                        in_progress: { color: 'blue', icon: Loader, text: 'In Progress' },
+                        pending: { color: 'yellow', icon: Clock, text: 'Pending' },
+                        scheduled: { color: 'gray', icon: Clock, text: 'Scheduled' },
+                        failed: { color: 'red', icon: X, text: 'Failed' }
+                      };
+                      const config = statusConfig[task.status];
+                      const StatusIcon = config.icon;
+
+                      return (
+                        <div key={task.id} className={`p-4 bg-gray-700/30 rounded-lg border border-gray-600/30 hover:border-${config.color}-500/30 transition-all`}>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className={`w-8 h-8 bg-${config.color}-900/50 rounded-lg flex items-center justify-center`}>
+                                <StatusIcon className={`w-4 h-4 text-${config.color}-400 ${task.status === 'in_progress' ? 'animate-spin' : ''}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-white font-medium truncate">{task.title}</h4>
+                                <p className="text-xs text-gray-400">
+                                  {new Date(task.created_at).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 bg-${config.color}-900/30 text-${config.color}-400 text-xs rounded-full border border-${config.color}-700/30`}>
+                                {config.text}
+                              </span>
+                              {task.status === 'pending' && (
+                                <button
+                                  onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-all"
+                                >
+                                  Start
+                                </button>
+                              )}
+                              {task.status === 'in_progress' && (
+                                <button
+                                  onClick={() => updateTaskStatus(task.id, 'completed')}
+                                  className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-all"
+                                >
+                                  Complete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {task.description && (
+                            <p className="text-sm text-gray-300 mb-2 ml-11">
+                              {task.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 ml-11 text-xs text-gray-500">
+                            <span className={`px-2 py-1 bg-gray-800 rounded capitalize`}>
+                              {task.task_type.replace('_', ' ')}
+                            </span>
+                            <span className={`px-2 py-1 rounded ${
+                              task.priority === 'high' ? 'bg-red-900/30 text-red-400' :
+                              task.priority === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                              'bg-gray-700 text-gray-400'
+                            }`}>
+                              {task.priority} priority
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* Quick Actions */}
-              <div className="mt-6 pt-6 border-t border-gray-700/50">
-                <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
-                    <div className="text-white font-medium text-sm mb-1">Request Appointment</div>
-                    <div className="text-xs text-gray-400">Schedule new visit</div>
-                  </button>
-                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
-                    <div className="text-white font-medium text-sm mb-1">Check Prescriptions</div>
-                    <div className="text-xs text-gray-400">View medication status</div>
-                  </button>
-                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
-                    <div className="text-white font-medium text-sm mb-1">View Lab Results</div>
-                    <div className="text-xs text-gray-400">Recent test results</div>
-                  </button>
-                  <button className="p-4 bg-gray-700/30 hover:bg-gray-700/50 rounded-lg border border-gray-600/30 hover:border-green-500/30 transition-all text-left">
-                    <div className="text-white font-medium text-sm mb-1">Update Preferences</div>
-                    <div className="text-xs text-gray-400">Manage health settings</div>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
