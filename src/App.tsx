@@ -569,7 +569,7 @@ export default function FamilyDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 pb-24">
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-light text-white mb-1">Family Dashboard</h1>
@@ -695,9 +695,31 @@ export default function FamilyDashboard() {
         )}
 
         {/* Daily Question Tab */}
-        {activeTab === 'daily-question' && user && (
+        {activeTab === 'daily-question' && (
           <div className="space-y-6">
-            <DailyQuestionCard userId={user.id} />
+            {user ? (
+              <DailyQuestionCard userId={user.id} />
+            ) : (
+              <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
+                <MessageCircle className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                <h3 className="text-2xl font-light text-white mb-3">Daily Question</h3>
+                <p className="text-gray-400 mb-6">Sign in to answer your daily question and build your digital legacy.</p>
+                <button
+                  onClick={async () => {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                      email: 'demo@example.com',
+                      password: 'demo123456'
+                    });
+                    if (error) {
+                      alert('Demo login: Sign up feature coming soon!');
+                    }
+                  }}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium"
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -2231,6 +2253,40 @@ export default function FamilyDashboard() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 shadow-lg">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between py-4">
+            <button
+              onClick={() => setActiveTab('daily-question')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'daily-question'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Daily Question
+            </button>
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'overview'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Memory Timeline (0)
+            </button>
+            <button
+              onClick={() => setActiveTab('overview')}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Family Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
