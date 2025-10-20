@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, LogOut, CreditCard, Settings } from 'lucide-react';
+import { Brain, LogOut, CreditCard, Settings, MessageCircle, Users, Calendar, Bot, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
@@ -12,9 +12,9 @@ import SaintsDashboard from '../components/SaintsDashboard';
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'ais' | 'questions' | 'chat' | 'tasks' | 'agent'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'ais' | 'questions' | 'chat' | 'tasks'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
-  const [showAgentMode, setShowAgentMode] = useState(false);
+  const [showRaphaelAgent, setShowRaphaelAgent] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -47,13 +47,6 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/settings')}
-                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all flex items-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                Settings
-              </button>
-              <button
                 onClick={() => navigate('/pricing')}
                 className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all flex items-center gap-2"
               >
@@ -75,27 +68,62 @@ export default function Dashboard() {
       {/* Navigation */}
       <nav className="bg-gray-900/30 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1">
-            {[
-              { id: 'saints', label: 'Saints AI' },
-              { id: 'ais', label: 'My AIs' },
-              { id: 'questions', label: 'Daily Questions' },
-              { id: 'chat', label: 'Chat' },
-              { id: 'tasks', label: 'Tasks' },
-              { id: 'agent', label: 'Health Agent' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedView(tab.id as any)}
-                className={`px-6 py-3 text-sm font-medium transition-all ${
-                  selectedView === tab.id
-                    ? 'text-white border-b-2 border-blue-500'
-                    : 'text-gray-400 hover:text-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex gap-1 overflow-x-auto">
+            <button
+              onClick={() => setSelectedView('saints')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'saints'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Saints AI
+            </button>
+            <button
+              onClick={() => setSelectedView('ais')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'ais'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <Bot className="w-4 h-4" />
+              My AIs
+            </button>
+            <button
+              onClick={() => setSelectedView('questions')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'questions'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              Daily Questions
+            </button>
+            <button
+              onClick={() => setSelectedView('chat')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'chat'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat
+            </button>
+            <button
+              onClick={() => setSelectedView('tasks')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'tasks'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Tasks
+            </button>
           </div>
         </div>
       </nav>
@@ -103,7 +131,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {selectedView === 'saints' && (
-          <SaintsDashboard onOpenRaphaelAgent={() => setShowAgentMode(true)} />
+          <SaintsDashboard onOpenRaphaelAgent={() => setShowRaphaelAgent(true)} />
         )}
         {selectedView === 'ais' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
@@ -117,24 +145,14 @@ export default function Dashboard() {
         {selectedView === 'tasks' && (
           <EngramTaskManager engrams={[]} userId={user.id} />
         )}
-        {selectedView === 'agent' && (
-          <div>
-            <button
-              onClick={() => setShowAgentMode(true)}
-              className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg font-medium"
-            >
-              Open Health Agent
-            </button>
-          </div>
-        )}
       </main>
 
-      {/* Agent Mode Modal */}
-      {showAgentMode && (
+      {/* Raphael Agent Mode Modal */}
+      {showRaphaelAgent && (
         <RaphaelAgentMode
           userId={user.id}
           engramId={selectedAIId || ''}
-          onClose={() => setShowAgentMode(false)}
+          onClose={() => setShowRaphaelAgent(false)}
         />
       )}
     </div>
