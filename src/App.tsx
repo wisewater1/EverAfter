@@ -569,11 +569,11 @@ export default function FamilyDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-gray-900">
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-light text-gray-900 mb-1">Family Dashboard</h1>
-          <p className="text-sm text-gray-600">Manage your digital legacy with privacy and control</p>
+          <h1 className="text-2xl font-light text-white mb-1">Family Dashboard</h1>
+          <p className="text-sm text-gray-400">Manage your digital legacy with privacy and control</p>
         </div>
 
         {/* Navigation Tabs */}
@@ -582,6 +582,7 @@ export default function FamilyDashboard() {
             <nav className="flex space-x-6 px-6">
               {[
                 { id: 'overview', label: 'Overview', icon: Eye },
+                { id: 'daily-question', label: 'Daily Question', icon: MessageCircle },
                 { id: 'members', label: 'Family Members', icon: Users },
                 { id: 'custom-engrams', label: 'Custom Engrams', icon: Brain },
                 { id: 'saints', label: 'Saints AI', icon: Sparkles },
@@ -690,6 +691,13 @@ export default function FamilyDashboard() {
               </div>
             </div>
             </div>
+          </div>
+        )}
+
+        {/* Daily Question Tab */}
+        {activeTab === 'daily-question' && user && (
+          <div className="space-y-6">
+            <DailyQuestionCard userId={user.id} />
           </div>
         )}
 
