@@ -2,12 +2,34 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
-from app.api import engrams, chat, tasks
+from app.api import engrams, chat, tasks, autonomous_tasks
+from contextlib import asynccontextmanager
+import asyncio
+
+
+# Background task worker
+background_task = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global background_task
+    from app.workers.task_worker import start_worker
+
+    # Start background worker
+    background_task = asyncio.create_task(start_worker())
+    yield
+    # Shutdown
+    if background_task:
+        background_task.cancel()
+
 
 app = FastAPI(
     title="EverAfter Autonomous AI API",
     description="API for creating and managing Custom Engrams and Family Member Engrams with Autonomous AI",
-    version="1.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -23,6 +45,7 @@ app.add_middleware(JWTAuthMiddleware)
 app.include_router(engrams.router)
 app.include_router(chat.router)
 app.include_router(tasks.router)
+app.include_router(autonomous_tasks.router)
 
 
 @app.get("/health")
