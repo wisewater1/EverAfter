@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
-from app.api import engrams, chat, tasks, autonomous_tasks
+from app.api import engrams, chat, tasks, autonomous_tasks, personality
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -26,9 +26,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="EverAfter Autonomous AI API",
-    description="API for creating and managing Custom Engrams and Family Member Engrams with Autonomous AI",
-    version="2.0.0",
+    title="EverAfter Multi-Layer Personality AI",
+    description="API for creating multi-dimensional personality engrams with family invitations and autonomous AI",
+    version="3.0.0",
     lifespan=lifespan
 )
 
@@ -46,6 +46,7 @@ app.include_router(engrams.router)
 app.include_router(chat.router)
 app.include_router(tasks.router)
 app.include_router(autonomous_tasks.router)
+app.include_router(personality.router)
 
 
 @app.get("/health")
