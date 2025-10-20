@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User, ChevronRight, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-interface Engram {
+interface ArchetypalAI {
   id: string;
   name: string;
-  relationship: string;
-  engram_type: 'family_member' | 'custom';
-  total_questions_answered: number;
-  ai_readiness_score: number;
+  description: string;
+  total_memories: number;
+  training_status: string;
   avatar_url?: string;
 }
 
@@ -19,7 +18,7 @@ interface DailyQuestion {
   already_answered_today: boolean;
 }
 
-interface EngramProgress {
+interface UserProgress {
   current_day: number;
   total_responses: number;
   streak_days: number;
@@ -27,13 +26,13 @@ interface EngramProgress {
 
 interface DailyQuestionCardProps {
   userId: string;
-  preselectedEngramId?: string;
+  preselectedAIId?: string;
 }
 
-export default function DailyQuestionCard({ userId, preselectedEngramId }: DailyQuestionCardProps) {
-  const [engrams, setEngrams] = useState<Engram[]>([]);
-  const [selectedEngram, setSelectedEngram] = useState<Engram | null>(null);
-  const [engramProgress, setEngramProgress] = useState<EngramProgress | null>(null);
+export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQuestionCardProps) {
+  const [ais, setAIs] = useState<ArchetypalAI[]>([]);
+  const [selectedAI, setSelectedAI] = useState<ArchetypalAI | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [question, setQuestion] = useState<DailyQuestion | null>(null);
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,60 +40,68 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    loadEngrams();
+    loadAIs();
   }, [userId]);
 
   useEffect(() => {
-    if (preselectedEngramId && engrams.length > 0) {
-      const engram = engrams.find(e => e.id === preselectedEngramId);
-      if (engram) {
-        setSelectedEngram(engram);
-        loadQuestionForEngram(preselectedEngramId);
+    if (preselectedAIId && ais.length > 0) {
+      const ai = ais.find(a => a.id === preselectedAIId);
+      if (ai) {
+        setSelectedAI(ai);
+        loadQuestion();
       }
     }
-  }, [preselectedEngramId, engrams]);
+  }, [preselectedAIId, ais]);
 
-  const loadEngrams = async () => {
+  const loadAIs = async () => {
     try {
       const { data, error } = await supabase
-        .from('engrams')
+        .from('archetypal_ais')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEngrams(data || []);
+      setAIs(data || []);
 
-      if (data && data.length > 0 && !preselectedEngramId) {
-        const firstEngram = data[0];
-        setSelectedEngram(firstEngram);
-        loadQuestionForEngram(firstEngram.id);
+      if (data && data.length > 0 && !preselectedAIId) {
+        const firstAI = data[0];
+        setSelectedAI(firstAI);
+        loadQuestion();
       }
     } catch (error) {
-      console.error('Error loading engrams:', error);
+      console.error('Error loading AIs:', error);
     }
   };
 
-  const loadQuestionForEngram = async (engramId: string) => {
+  const loadQuestion = async () => {
     setLoading(true);
     try {
       const { data: progressData } = await supabase
-        .from('engram_progress')
+        .from('user_daily_progress')
         .select('*')
-        .eq('engram_id', engramId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (progressData) {
-        setEngramProgress(progressData);
+        setUserProgress(progressData);
       }
 
-      const { data, error } = await supabase
-        .rpc('get_daily_question_for_engram', { target_engram_id: engramId });
+      const { data: questionData, error } = await supabase
+        .from('questions')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        setQuestion(data[0]);
+      if (questionData) {
+        setQuestion({
+          question_text: questionData.question_text,
+          question_category: questionData.category,
+          day_number: progressData?.current_day || 1,
+          already_answered_today: false
+        });
       }
     } catch (error) {
       console.error('Error loading question:', error);
@@ -103,27 +110,25 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
     }
   };
 
-  const handleEngramSelect = (engram: Engram) => {
-    setSelectedEngram(engram);
+  const handleAISelect = (ai: ArchetypalAI) => {
+    setSelectedAI(ai);
     setResponse('');
     setQuestion(null);
     setShowSuccess(false);
-    loadQuestionForEngram(engram.id);
+    loadQuestion();
   };
 
   const handleSubmit = async () => {
-    if (!selectedEngram || !question || !response.trim()) return;
+    if (!selectedAI || !question || !response.trim()) return;
 
     setSubmitting(true);
     try {
       const { error } = await supabase
-        .from('engram_daily_responses')
+        .from('daily_question_responses')
         .insert([{
-          engram_id: selectedEngram.id,
           user_id: userId,
           question_text: question.question_text,
           response_text: response,
-          question_category: question.question_category,
           day_number: question.day_number,
         }]);
 
@@ -133,11 +138,11 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
       setResponse('');
 
       setTimeout(() => {
-        loadQuestionForEngram(selectedEngram.id);
+        loadQuestion();
         setShowSuccess(false);
       }, 2000);
 
-      loadEngrams();
+      loadAIs();
     } catch (error) {
       console.error('Error submitting response:', error);
       alert('Failed to save your response. Please try again.');
@@ -162,13 +167,13 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
     return colors[category] || 'bg-gray-900/30 text-gray-400 border-gray-500/30';
   };
 
-  if (engrams.length === 0) {
+  if (ais.length === 0) {
     return (
       <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
         <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h3 className="text-2xl font-light text-white mb-3">No Engrams Yet</h3>
+        <h3 className="text-2xl font-light text-white mb-3">No AI Created Yet</h3>
         <p className="text-gray-400 mb-6 max-w-md mx-auto">
-          Create your first engram to start answering daily questions and building a digital personality.
+          Create your first archetypal AI to start answering daily questions and building a digital personality.
         </p>
       </div>
     );
@@ -182,7 +187,7 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
         </div>
         <h3 className="text-3xl font-light text-white mb-3">Memory Saved!</h3>
         <p className="text-gray-300 text-lg">
-          Your response has been added to <span className="text-green-400 font-medium">{selectedEngram?.name}</span>'s personality
+          Your response has been added to <span className="text-green-400 font-medium">{selectedAI?.name}</span>'s personality
         </p>
       </div>
     );
@@ -190,7 +195,7 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
 
   return (
     <div className="space-y-6">
-      {/* Engram Selector */}
+      {/* AI Selector */}
       <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl border border-gray-700/50 p-6 backdrop-blur-sm">
         <div className="flex items-center gap-3 mb-4">
           <User className="w-5 h-5 text-blue-400" />
@@ -198,12 +203,12 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {engrams.map((engram) => (
+          {ais.map((ai) => (
             <button
-              key={engram.id}
-              onClick={() => handleEngramSelect(engram)}
+              key={ai.id}
+              onClick={() => handleAISelect(ai)}
               className={`p-4 rounded-xl border-2 transition-all text-left ${
-                selectedEngram?.id === engram.id
+                selectedAI?.id === ai.id
                   ? 'bg-blue-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
                   : 'bg-gray-900/50 border-gray-700 hover:border-gray-600'
               }`}
@@ -213,17 +218,17 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-white truncate">{engram.name}</div>
-                  <div className="text-xs text-gray-400">{engram.relationship}</div>
+                  <div className="font-medium text-white truncate">{ai.name}</div>
+                  <div className="text-xs text-gray-400">{ai.description}</div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">{engram.total_questions_answered} answers</span>
+                <span className="text-gray-400">{ai.total_memories} memories</span>
                 <span className={`font-medium ${
-                  engram.ai_readiness_score >= 80 ? 'text-green-400' :
-                  engram.ai_readiness_score >= 50 ? 'text-yellow-400' : 'text-gray-400'
+                  ai.training_status === 'ready' ? 'text-green-400' :
+                  ai.training_status === 'training' ? 'text-yellow-400' : 'text-gray-400'
                 }`}>
-                  {engram.ai_readiness_score}% ready
+                  {ai.training_status}
                 </span>
               </div>
             </button>
@@ -232,23 +237,23 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
       </div>
 
       {/* Progress Bar */}
-      {engramProgress && (
+      {userProgress && (
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl border border-gray-700/50 p-6 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-teal-400" />
               <div>
                 <div className="text-lg font-medium text-white">
-                  Day {engramProgress.current_day} of 365
+                  Day {userProgress.current_day} of 365
                 </div>
                 <div className="text-sm text-gray-400">
-                  {engramProgress.streak_days} day streak • {engramProgress.total_responses} total responses
+                  {userProgress.streak_days} day streak • {userProgress.total_responses} total responses
                 </div>
               </div>
             </div>
             <div className="text-right">
               <div className="text-2xl font-light text-white">
-                {Math.round((engramProgress.current_day / 365) * 100)}%
+                {Math.round((userProgress.current_day / 365) * 100)}%
               </div>
               <div className="text-xs text-gray-400">Complete</div>
             </div>
@@ -256,7 +261,7 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
           <div className="w-full bg-gray-900 rounded-full h-3 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-600 via-teal-500 to-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${(engramProgress.current_day / 365) * 100}%` }}
+              style={{ width: `${(userProgress.current_day / 365) * 100}%` }}
             />
           </div>
         </div>
@@ -276,9 +281,9 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
                 <Sparkles className="w-4 h-4" />
                 {question.question_category.replace('_', ' ')}
               </span>
-              {engramProgress && (
+              {userProgress && (
                 <div className="text-sm text-gray-400">
-                  Question {engramProgress.total_responses + 1}
+                  Question {userProgress.total_responses + 1}
                 </div>
               )}
             </div>
@@ -292,7 +297,7 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
                   {question.question_text}
                 </h3>
                 <p className="text-sm text-gray-400 mt-2">
-                  Share your thoughts about <span className="text-blue-400 font-medium">{selectedEngram?.name}</span>
+                  Share your thoughts and memories
                 </p>
               </div>
             </div>
@@ -320,7 +325,7 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => loadQuestionForEngram(selectedEngram!.id)}
+                  onClick={() => loadQuestion()}
                   className="px-5 py-3 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all font-medium flex items-center gap-2"
                 >
                   <SkipForward className="w-4 h-4" />
@@ -354,7 +359,7 @@ export default function DailyQuestionCard({ userId, preselectedEngramId }: Daily
           <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-2xl font-light text-white mb-3">All Caught Up!</h3>
           <p className="text-gray-400">
-            You've answered today's question for {selectedEngram?.name}. Come back tomorrow for more!
+            You've answered today's question. Come back tomorrow for more!
           </p>
         </div>
       )}
