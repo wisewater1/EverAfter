@@ -772,8 +772,32 @@ export default function FamilyDashboard() {
         )}
 
         {/* Custom Engrams Tab */}
-        {activeTab === 'custom-engrams' && user && (
-          <CustomEngramsDashboard userId={user.id} />
+        {activeTab === 'custom-engrams' && (
+          <>
+            {user ? (
+              <CustomEngramsDashboard userId={user.id} />
+            ) : (
+              <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
+                <Brain className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                <h3 className="text-2xl font-light text-white mb-3">Custom Engrams</h3>
+                <p className="text-gray-400 mb-6">Sign in to create and manage your custom engrams.</p>
+                <button
+                  onClick={async () => {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                      email: 'demo@example.com',
+                      password: 'demo123456'
+                    });
+                    if (error) {
+                      alert('Demo login: Sign up feature coming soon!');
+                    }
+                  }}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium"
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Saints AI Tab */}
@@ -2255,34 +2279,43 @@ export default function FamilyDashboard() {
       )}
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-t border-gray-700/50 shadow-2xl backdrop-blur-md z-50">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-center gap-4 py-4">
             <button
               onClick={() => setActiveTab('daily-question')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-8 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg ${
                 activeTab === 'daily-question'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-blue-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
               }`}
             >
-              Daily Question
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                <span>Daily Question</span>
+              </div>
             </button>
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-8 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg ${
                 activeTab === 'overview'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-teal-500/25 scale-105'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:scale-105'
               }`}
             >
-              Memory Timeline (0)
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                <span>Memory Timeline (0)</span>
+              </div>
             </button>
             <button
               onClick={() => setActiveTab('overview')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl text-sm font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-500/25 hover:scale-105"
             >
-              Family Dashboard
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span>Family Dashboard</span>
+              </div>
             </button>
           </div>
         </div>
