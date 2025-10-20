@@ -205,7 +205,40 @@ export default function EngramChat({ engramId, engramName, userId, onBack }: Eng
 
       setMessages(prev => [...prev, userMessageData]);
 
-      const engramResponse = generateEngramResponse(userMessage);
+      let engramResponse: string;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        try {
+          const chatResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/engram-chat`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                engramId,
+                message: userMessage,
+                conversationId,
+              }),
+            }
+          );
+
+          if (chatResponse.ok) {
+            const chatData = await chatResponse.json();
+            engramResponse = chatData.response;
+          } else {
+            engramResponse = generateEngramResponse(userMessage);
+          }
+        } catch (error) {
+          console.error('Error calling engram chat function:', error);
+          engramResponse = generateEngramResponse(userMessage);
+        }
+      } else {
+        engramResponse = generateEngramResponse(userMessage);
+      }
 
       const { data: engramMessageData, error: engramError } = await supabase
         .from('ai_messages')

@@ -101,6 +101,42 @@ export default function CustomEngramCreator({ userId, onComplete, onCancel }: Cu
 
       if (engramError) throw engramError;
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const embedPromises = responses.map(async (response) => {
+          try {
+            const embeddingText = `Question: ${response.question}\nAnswer: ${response.answer}`;
+            const embeddingResponse = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-embeddings`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  text: embeddingText,
+                  engramId: engramData.id,
+                  type: 'engram_memory',
+                  metadata: {
+                    category: response.category,
+                    question: response.question,
+                  },
+                }),
+              }
+            );
+
+            if (!embeddingResponse.ok) {
+              console.error('Failed to generate embedding for response');
+            }
+          } catch (error) {
+            console.error('Error generating embedding:', error);
+          }
+        });
+
+        await Promise.allSettled(embedPromises);
+      }
+
       onComplete(engramData.id);
     } catch (error) {
       console.error('Error creating engram:', error);
