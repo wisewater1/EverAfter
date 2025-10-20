@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, Settings, Download, Trash2, Eye, Lock, Clock, CheckCircle, Monitor, MapPin, Zap, Volume2, Palette, Globe, Map, Wifi, Smartphone, Radio, UserCheck, Power, Crown, Star, Heart, Sparkles, MessageCircle, X, Send, Plus, Brain } from 'lucide-react';
 import DailyQuestionCard from './components/DailyQuestionCard';
-import AIPersonalityDashboard from './components/AIPersonalityDashboard';
+import CustomEngramsDashboard from './components/CustomEngramsDashboard';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './lib/supabase';
 
@@ -402,7 +402,7 @@ export default function FamilyDashboard() {
               {[
                 { id: 'overview', label: 'Overview', icon: Eye },
                 { id: 'members', label: 'Family Members', icon: Users },
-                { id: 'ai-personalities', label: 'AI Personalities', icon: Brain },
+                { id: 'custom-engrams', label: 'Custom Engrams', icon: Brain },
                 { id: 'saints', label: 'Saints AI', icon: Sparkles },
                 { id: 'projection', label: 'Projection', icon: Monitor },
                 { id: 'privacy', label: 'Privacy & Security', icon: Shield },
@@ -601,9 +601,9 @@ export default function FamilyDashboard() {
           </div>
         )}
 
-        {/* AI Personalities Tab */}
-        {activeTab === 'ai-personalities' && user && (
-          <AIPersonalityDashboard userId={user.id} />
+        {/* Custom Engrams Tab */}
+        {activeTab === 'custom-engrams' && user && (
+          <CustomEngramsDashboard userId={user.id} />
         )}
 
         {/* Saints AI Tab */}
