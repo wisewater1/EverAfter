@@ -7,11 +7,12 @@ import DailyQuestionCard from '../components/DailyQuestionCard';
 import EngramChat from '../components/EngramChat';
 import RaphaelAgentMode from '../components/RaphaelAgentMode';
 import EngramTaskManager from '../components/EngramTaskManager';
+import SaintsDashboard from '../components/SaintsDashboard';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'ais' | 'questions' | 'chat' | 'tasks' | 'agent'>('ais');
+  const [selectedView, setSelectedView] = useState<'saints' | 'ais' | 'questions' | 'chat' | 'tasks' | 'agent'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [showAgentMode, setShowAgentMode] = useState(false);
 
@@ -76,6 +77,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-1">
             {[
+              { id: 'saints', label: 'Saints AI' },
               { id: 'ais', label: 'My AIs' },
               { id: 'questions', label: 'Daily Questions' },
               { id: 'chat', label: 'Chat' },
@@ -100,6 +102,9 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {selectedView === 'saints' && (
+          <SaintsDashboard onOpenRaphaelAgent={() => setShowAgentMode(true)} />
+        )}
         {selectedView === 'ais' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
         )}
