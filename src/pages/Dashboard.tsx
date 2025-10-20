@@ -8,11 +8,12 @@ import EngramChat from '../components/EngramChat';
 import RaphaelAgentMode from '../components/RaphaelAgentMode';
 import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
+import FamilyMembers from '../components/FamilyMembers';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'ais' | 'questions' | 'chat' | 'tasks'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [showRaphaelAgent, setShowRaphaelAgent] = useState(false);
 
@@ -81,15 +82,15 @@ export default function Dashboard() {
               Saints AI
             </button>
             <button
-              onClick={() => setSelectedView('ais')}
+              onClick={() => setSelectedView('engrams')}
               className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
-                selectedView === 'ais'
+                selectedView === 'engrams'
                   ? 'text-white border-b-2 border-blue-500'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
               <Bot className="w-4 h-4" />
-              My AIs
+              Custom Engrams
             </button>
             <button
               onClick={() => setSelectedView('questions')}
@@ -124,6 +125,17 @@ export default function Dashboard() {
               <Settings className="w-4 h-4" />
               Tasks
             </button>
+            <button
+              onClick={() => setSelectedView('family')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'family'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Family Members
+            </button>
           </div>
         </div>
       </nav>
@@ -133,7 +145,7 @@ export default function Dashboard() {
         {selectedView === 'saints' && (
           <SaintsDashboard onOpenRaphaelAgent={() => setShowRaphaelAgent(true)} />
         )}
-        {selectedView === 'ais' && (
+        {selectedView === 'engrams' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
         )}
         {selectedView === 'questions' && (
@@ -144,6 +156,9 @@ export default function Dashboard() {
         )}
         {selectedView === 'tasks' && (
           <EngramTaskManager engrams={[]} userId={user.id} />
+        )}
+        {selectedView === 'family' && (
+          <FamilyMembers userId={user.id} />
         )}
       </main>
 

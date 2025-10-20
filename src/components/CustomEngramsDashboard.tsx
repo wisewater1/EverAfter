@@ -39,11 +39,39 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAIs(data || []);
+
+      const aiList = data || [];
+
+      if (aiList.length === 0) {
+        await createDanteAI();
+        const { data: newData } = await supabase
+          .from('archetypal_ais')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        setAIs(newData || []);
+      } else {
+        setAIs(aiList);
+      }
     } catch (error) {
       console.error('Error loading AIs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createDanteAI = async () => {
+    try {
+      await supabase
+        .from('archetypal_ais')
+        .insert([{
+          user_id: userId,
+          name: 'Dante',
+          description: 'A curious and philosophical AI that learns about you through thoughtful questions and conversations. Dante seeks to understand the depths of human experience.',
+          training_status: 'training'
+        }]);
+    } catch (error) {
+      console.error('Error creating Dante AI:', error);
     }
   };
 
