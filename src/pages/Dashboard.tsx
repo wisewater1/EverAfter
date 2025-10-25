@@ -150,7 +150,10 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {selectedView === 'saints' && (
-          <SaintsDashboard onOpenRaphaelAgent={() => setSelectedView('health')} />
+          <SaintsDashboard
+            onOpenRaphaelAgent={() => setSelectedView('health')}
+            onOpenHealthMonitor={() => setSelectedView('health')}
+          />
         )}
         {selectedView === 'engrams' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,6 +33,7 @@ interface SaintActivity {
 
 interface SaintsDashboardProps {
   onOpenRaphaelAgent: () => void;
+  onOpenHealthMonitor: () => void;
 }
 
 const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivities' | 'lastActive'>[] = [
@@ -77,7 +78,7 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
   }
 ];
 
-export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardProps) {
+export default function SaintsDashboard({ onOpenRaphaelAgent, onOpenHealthMonitor }: SaintsDashboardProps) {
   const { user } = useAuth();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
@@ -402,13 +403,22 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
 
                 <div className="flex items-center gap-2">
                   {saint.active && saint.id === 'raphael' && (
-                    <button
-                      onClick={onOpenRaphaelAgent}
-                      className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-600 transition-all duration-200 flex items-center gap-2"
-                    >
-                      <Zap className="w-4 h-4" />
-                      View Agent Mode
-                    </button>
+                    <>
+                      <button
+                        onClick={onOpenHealthMonitor}
+                        className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg text-sm font-medium hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+                      >
+                        <Activity className="w-4 h-4" />
+                        Health Monitor
+                      </button>
+                      <button
+                        onClick={onOpenRaphaelAgent}
+                        className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-600 transition-all duration-200 flex items-center gap-2"
+                      >
+                        <Zap className="w-4 h-4" />
+                        View Agent Mode
+                      </button>
+                    </>
                   )}
                   {!saint.active && saint.tier === 'premium' && (
                     <button
