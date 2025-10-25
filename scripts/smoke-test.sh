@@ -101,28 +101,67 @@ test_endpoint() {
   echo ""
 }
 
-# Test 1: Daily Progress
+# Test 1: Test Key Diagnostics (no auth required)
+echo -n "Testing test-key (diagnostics)... "
+response=$(curl -s -w "\n%{http_code}" \
+  -X GET \
+  "$FUNCTIONS_URL/test-key")
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | head -n-1)
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo -e "${GREEN}✓ PASS${NC} (HTTP $http_code)"
+  echo "   Response: $(echo "$body" | jq -c .)"
+  PASSED=$((PASSED + 1))
+else
+  echo -e "${RED}✗ FAIL${NC} (HTTP $http_code)"
+  echo "   Response: $(echo "$body" | jq -c . 2>/dev/null || echo "$body")"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
+# Test 2: Daily Progress
 test_endpoint \
   "daily-progress" \
   "daily-progress" \
   '{}' \
   "progress_id"
 
-# Test 2: Raphael Chat
+# Test 3: AI Agent Chat (new true AI endpoint)
 test_endpoint \
-  "raphael-chat" \
+  "agent (AI with memory & tools)" \
+  "agent" \
+  '{"input": "Hello, can you remember that my name is John?"}' \
+  "reply"
+
+# Test 4: Agent Chat with Tool Usage
+test_endpoint \
+  "agent (with tool calling)" \
+  "agent" \
+  '{"input": "Can you create a reminder for me to take my medication tomorrow?"}' \
+  "reply"
+
+# Test 5: Agent Chat - Memory Retrieval
+test_endpoint \
+  "agent (memory retrieval)" \
+  "agent" \
+  '{"input": "What is my name?"}' \
+  "reply"
+
+# Test 6: Legacy Raphael Chat (for backward compatibility)
+test_endpoint \
+  "raphael-chat (legacy)" \
   "raphael-chat" \
   '{"input": "Hello, how are you?"}' \
   "reply"
 
-# Test 3: Raphael Chat with Safety Check
+# Test 7: Agent Chat with Safety Check
 test_endpoint \
-  "raphael-chat (safety check)" \
-  "raphael-chat" \
-  '{"input": "I have a headache, what medication should I take?"}' \
+  "agent (safety check)" \
+  "agent" \
+  '{"input": "I have chest pain, what should I do?"}' \
   "reply"
 
-# Note: task-create requires an existing engram_id, so we skip it in basic smoke test
+# Note: task-create and agent-cron require specific setup, tested separately
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "📊 Results: ${GREEN}$PASSED passed${NC}, ${RED}$FAILED failed${NC}"

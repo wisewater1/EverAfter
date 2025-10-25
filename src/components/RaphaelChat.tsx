@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { chatWithRaphael, EdgeFunctionException } from '../lib/edge-functions';
-import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle } from 'lucide-react';
+import { chatWithAgent, EdgeFunctionException } from '../lib/edge-functions';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle, Sparkles } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -13,6 +13,12 @@ interface Message {
     healthData?: boolean;
     suggestions?: string[];
   };
+  toolsUsed?: boolean;
+  toolExecutionLog?: Array<{
+    tool: string;
+    args: any;
+    result: any;
+  }>;
 }
 
 interface HealthContext {
@@ -27,7 +33,7 @@ export default function RaphaelChat() {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m Raphael, your health companion. I can help you manage appointments, track medications, understand your health data, and provide wellness guidance. How can I assist you today?',
+      content: 'Hello! I\'m St. Raphael, your AI health companion with memory and autonomous capabilities. I can remember our conversations, create health tasks in the background, and provide personalized assistance. How can I help you today?',
       timestamp: new Date()
     }
   ]);
@@ -111,9 +117,16 @@ export default function RaphaelChat() {
     setLoading(true);
 
     try {
-      // Call the production raphael-chat Edge Function
-      const response = await chatWithRaphael({
-        input: userInput
+      // Build conversation history from recent messages (last 5 exchanges)
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
+      // Call the new AI agent with memory and tool calling
+      const response = await chatWithAgent({
+        input: userInput,
+        conversation_history: conversationHistory
       });
 
       const assistantMessage: Message = {
@@ -121,6 +134,8 @@ export default function RaphaelChat() {
         role: 'assistant',
         content: response.reply,
         timestamp: new Date(),
+        toolsUsed: response.tools_used,
+        toolExecutionLog: response.tool_execution_log,
         context: {
           healthData: true,
           suggestions: ['View health dashboard', 'Schedule appointment', 'Track medication']
@@ -217,6 +232,21 @@ export default function RaphaelChat() {
                   : 'bg-emerald-500/20 border border-emerald-500/30'
               }`}>
                 <p className="text-white text-sm leading-relaxed">{message.content}</p>
+                {message.toolsUsed && message.toolExecutionLog && (
+                  <div className="mt-2 pt-2 border-t border-emerald-500/20">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Used {message.toolExecutionLog.length} tool{message.toolExecutionLog.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="mt-1 space-y-0.5">
+                      {message.toolExecutionLog.map((log, idx) => (
+                        <div key={idx} className="text-xs text-gray-400">
+                          • {log.tool.replace(/_/g, ' ')}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="text-gray-400 text-xs mt-2">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>

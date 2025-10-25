@@ -85,7 +85,30 @@ export async function callEdgeFunction<T = any>(
 }
 
 /**
- * Chat with St. Raphael (or any engram)
+ * Chat with St. Raphael using the new AI Agent with memory and tool calling
+ */
+export interface AgentChatRequest {
+  input: string;
+  conversation_history?: Array<{ role: string; content: string }>;
+}
+
+export interface AgentChatResponse {
+  reply: string;
+  user_id: string;
+  tools_used: boolean;
+  tool_execution_log?: Array<{
+    tool: string;
+    args: any;
+    result: any;
+  }>;
+}
+
+export async function chatWithAgent(request: AgentChatRequest): Promise<AgentChatResponse> {
+  return callEdgeFunction<AgentChatResponse>('agent', request);
+}
+
+/**
+ * Legacy Raphael chat (keeping for backward compatibility)
  */
 export interface RaphaelChatRequest {
   input: string;
