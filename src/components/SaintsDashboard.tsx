@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -83,11 +83,63 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
   const [activities, setActivities] = useState<SaintActivity[]>([]);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+
+  const restoreSaintsData = async () => {
+    if (!user) return;
+
+    setRestoring(true);
+    setError(null);
+
+    try {
+      // Create St. Raphael subscription if missing
+      const { error: insertError } = await supabase
+        .from('saints_subscriptions')
+        .insert([{
+          user_id: user.id,
+          saint_id: 'raphael',
+          is_active: true,
+          activated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      // Ignore duplicate key errors
+      if (insertError && !insertError.message.includes('duplicate')) {
+        throw insertError;
+      }
+
+      // Create welcome activity
+      await supabase
+        .from('saint_activities')
+        .insert([{
+          user_id: user.id,
+          saint_id: 'raphael',
+          action: 'Welcome to EverAfter AI',
+          description: 'St. Raphael has been activated and is ready to assist you with health management.',
+          category: 'support',
+          impact: 'high',
+          status: 'completed'
+        }]);
+
+      // Reload data
+      await loadSaintsData();
+      await loadActivities();
+    } catch (err) {
+      console.error('Error restoring saints:', err);
+      setError('Failed to restore Saints data. Please try again.');
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   const loadSaintsData = useCallback(async () => {
     if (!user) return;
 
     try {
+      setError(null);
+
       // Load user's active saints from database
       const { data: activeSaints, error: saintsError } = await supabase
         .from('saints_subscriptions')
@@ -95,7 +147,11 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
         .eq('user_id', user.id)
         .eq('is_active', true);
 
-      if (saintsError) throw saintsError;
+      if (saintsError) {
+        console.error('Error loading saints subscriptions:', saintsError);
+        setError('Unable to load Saints data from database.');
+        throw saintsError;
+      }
 
       // Get activity counts for each saint
       const saintsWithData = await Promise.all(
@@ -159,8 +215,14 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
       );
 
       setSaints(saintsWithData);
+
+      // If no active saints found, show error
+      if (!activeSaints || activeSaints.length === 0) {
+        setError('No Saints found. Click "Restore Saints" to initialize your AI agents.');
+      }
     } catch (error) {
       console.error('Error loading saints data:', error);
+      setError('Failed to load Saints. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -238,7 +300,34 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
               Autonomous AI agents working in the background to manage your life, protect your legacy, and support your family.
             </p>
           </div>
+          <button
+            onClick={() => { loadSaintsData(); loadActivities(); }}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all flex items-center gap-2 text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-red-400 mb-1">Error Loading Saints</h4>
+                <p className="text-sm text-red-300/80 mb-3">{error}</p>
+                <button
+                  onClick={restoreSaintsData}
+                  disabled={restoring}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
+                  {restoring ? 'Restoring...' : 'Restore Saints Data'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Activity Summary */}
         <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700/50">
