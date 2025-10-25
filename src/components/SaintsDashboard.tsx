@@ -93,7 +93,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
     setError(null);
 
     try {
-      // Create St. Raphael subscription if missing
       const { error: insertError } = await supabase
         .from('saints_subscriptions')
         .insert([{
@@ -105,12 +104,10 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
         .select()
         .single();
 
-      // Ignore duplicate key errors
       if (insertError && !insertError.message.includes('duplicate')) {
         throw insertError;
       }
 
-      // Create welcome activity
       await supabase
         .from('saint_activities')
         .insert([{
@@ -123,7 +120,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
           status: 'completed'
         }]);
 
-      // Reload data
       await loadSaintsData();
       await loadActivities();
     } catch (err) {
@@ -140,7 +136,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
     try {
       setError(null);
 
-      // Load user's active saints from database
       const { data: activeSaints, error: saintsError } = await supabase
         .from('saints_subscriptions')
         .select('*')
@@ -153,7 +148,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
         throw saintsError;
       }
 
-      // Get activity counts for each saint
       const saintsWithData = await Promise.all(
         saintDefinitions.map(async (saintDef) => {
           const isActive = activeSaints?.some(s => s.saint_id === saintDef.id) || saintDef.id === 'raphael';
@@ -168,7 +162,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
             };
           }
 
-          // Get today's activity count
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
@@ -179,7 +172,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
             .eq('saint_id', saintDef.id)
             .gte('created_at', today.toISOString());
 
-          // Get this week's activity count
           const weekAgo = new Date();
           weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -190,7 +182,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
             .eq('saint_id', saintDef.id)
             .gte('created_at', weekAgo.toISOString());
 
-          // Get last activity
           const { data: lastActivity } = await supabase
             .from('saint_activities')
             .select('created_at')
@@ -216,7 +207,6 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
 
       setSaints(saintsWithData);
 
-      // If no active saints found, show error
       if (!activeSaints || activeSaints.length === 0) {
         setError('No Saints found. Click "Restore Saints" to initialize your AI agents.');
       }
@@ -265,10 +255,10 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'high': return 'text-red-400 bg-red-900/20 border-red-500/30';
-      case 'medium': return 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30';
-      case 'low': return 'text-blue-400 bg-blue-900/20 border-blue-500/30';
-      default: return 'text-gray-400 bg-gray-900/20 border-gray-500/30';
+      case 'high': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+      case 'medium': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+      case 'low': return 'bg-sky-500/10 text-sky-400 border-sky-500/20';
+      default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     }
   };
 
@@ -283,231 +273,242 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-gray-400">Loading Saints AI...</div>
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-slate-700 border-t-slate-400 rounded-full animate-spin"></div>
+          <p className="text-sm text-slate-500">Loading Saints AI...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-8 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-3xl font-light text-white mb-2">Saints AI Agents</h2>
-            <p className="text-gray-400 leading-relaxed max-w-2xl">
-              Autonomous AI agents working in the background to manage your life, protect your legacy, and support your family.
-            </p>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-light tracking-tight text-white">Saints AI Agents</h1>
+          <p className="text-slate-400 max-w-2xl leading-relaxed">
+            Autonomous AI agents working in the background to manage your life, protect your legacy, and support your family.
+          </p>
+        </div>
+        <button
+          onClick={() => { loadSaintsData(); loadActivities(); }}
+          className="px-4 py-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
+      </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-5 h-5 text-rose-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium text-rose-300 mb-1">Error Loading Saints</h4>
+              <p className="text-sm text-slate-400 mb-3">{error}</p>
+              <button
+                onClick={restoreSaintsData}
+                disabled={restoring}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
+                {restoring ? 'Restoring...' : 'Restore Saints Data'}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => { loadSaintsData(); loadActivities(); }}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all flex items-center gap-2 text-sm"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
+        </div>
+      )}
+
+      {/* Activity Summary Card */}
+      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-medium text-white">Today's Activities</h3>
+              <p className="text-sm text-slate-400">Your Saints completed {activities.length} tasks today</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-light text-white">{activities.length}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Completed</div>
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-red-400 mb-1">Error Loading Saints</h4>
-                <p className="text-sm text-red-300/80 mb-3">{error}</p>
-                <button
-                  onClick={restoreSaintsData}
-                  disabled={restoring}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${restoring ? 'animate-spin' : ''}`} />
-                  {restoring ? 'Restoring...' : 'Restore Saints Data'}
-                </button>
-              </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-sky-400" />
+              <span className="text-xs font-medium text-slate-300 uppercase tracking-wide">Protection</span>
             </div>
-          </div>
-        )}
-
-        {/* Activity Summary */}
-        <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700/50">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h4 className="text-base font-medium text-white">Today's Activities</h4>
-                <p className="text-sm text-gray-400">Your Saints completed {activities.length} tasks today</p>
-              </div>
+            <div className="text-2xl font-light text-white mb-0.5">
+              {activities.filter(a => a.category === 'protection').length}
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-light text-white">{activities.length}</div>
-              <div className="text-xs text-gray-400">Completed</div>
-            </div>
+            <div className="text-xs text-slate-500">Security actions</div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-medium text-white">Protection</span>
-              </div>
-              <div className="text-lg font-semibold text-blue-400">
-                {activities.filter(a => a.category === 'protection').length}
-              </div>
-              <div className="text-xs text-gray-400">Security actions</div>
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Heart className="w-4 h-4 text-rose-400" />
+              <span className="text-xs font-medium text-slate-300 uppercase tracking-wide">Support</span>
             </div>
+            <div className="text-2xl font-light text-white mb-0.5">
+              {activities.filter(a => a.category === 'support').length}
+            </div>
+            <div className="text-xs text-slate-500">Comfort actions</div>
+          </div>
 
-            <div className="bg-gray-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Heart className="w-4 h-4 text-pink-400" />
-                <span className="text-sm font-medium text-white">Support</span>
-              </div>
-              <div className="text-lg font-semibold text-pink-400">
-                {activities.filter(a => a.category === 'support').length}
-              </div>
-              <div className="text-xs text-gray-400">Comfort actions</div>
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-medium text-slate-300 uppercase tracking-wide">Memory</span>
             </div>
-
-            <div className="bg-gray-800/50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className="w-4 h-4 text-green-400" />
-                <span className="text-sm font-medium text-white">Memory</span>
-              </div>
-              <div className="text-lg font-semibold text-green-400">
-                {activities.filter(a => a.category === 'memory').length}
-              </div>
-              <div className="text-xs text-gray-400">Memory actions</div>
+            <div className="text-2xl font-light text-white mb-0.5">
+              {activities.filter(a => a.category === 'memory').length}
             </div>
+            <div className="text-xs text-slate-500">Memory actions</div>
           </div>
         </div>
       </div>
 
       {/* Saints Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {saints.map((saint) => {
           const Icon = saint.icon;
+          const isRaphael = saint.id === 'raphael';
+
           return (
             <div
               key={saint.id}
-              className={`border-2 rounded-xl p-6 transition-all duration-200 shadow-lg backdrop-blur-sm ${
-                saint.active && saint.id === 'raphael'
-                  ? 'border-green-600 bg-green-900/20 shadow-green-500/25'
+              className={`group relative bg-gradient-to-br rounded-2xl p-6 transition-all duration-300 ${
+                saint.active && isRaphael
+                  ? 'from-emerald-500/10 to-teal-500/5 border-2 border-emerald-500/30 shadow-xl shadow-emerald-500/5'
                   : saint.active
-                    ? 'border-blue-600 bg-blue-900/20 shadow-blue-500/25'
+                    ? 'from-sky-500/10 to-blue-500/5 border-2 border-sky-500/30 shadow-xl shadow-sky-500/5'
                     : saint.tier === 'premium'
-                      ? 'border-amber-600 bg-amber-900/20 shadow-amber-500/25'
-                      : 'border-gray-600 bg-gray-700/30 shadow-gray-900/20'
+                      ? 'from-amber-500/10 to-orange-500/5 border-2 border-amber-500/20 shadow-xl shadow-amber-500/5'
+                      : 'from-slate-800/50 to-slate-900/50 border-2 border-slate-700/30'
               }`}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
+              {/* Saint Header */}
+              <div className="flex items-start justify-between mb-5">
+                <div className="flex items-center gap-4">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
-                      saint.active && saint.id === 'raphael'
-                        ? 'bg-green-900/50 shadow-green-500/25'
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                      saint.active && isRaphael
+                        ? 'bg-emerald-500/15 shadow-lg shadow-emerald-500/20'
                         : saint.active
-                          ? 'bg-blue-900/50 shadow-blue-500/25'
+                          ? 'bg-sky-500/15 shadow-lg shadow-sky-500/20'
                           : saint.tier === 'premium'
-                            ? 'bg-amber-900/50 shadow-amber-500/25'
-                            : 'bg-gray-700 shadow-gray-500/25'
+                            ? 'bg-amber-500/15 shadow-lg shadow-amber-500/20'
+                            : 'bg-slate-700/30'
                     }`}
                   >
                     <Icon
-                      className={`w-5 h-5 ${
-                        saint.active && saint.id === 'raphael'
-                          ? 'text-green-400'
+                      className={`w-6 h-6 ${
+                        saint.active && isRaphael
+                          ? 'text-emerald-400'
                           : saint.active
-                            ? 'text-blue-600'
+                            ? 'text-sky-400'
                             : saint.tier === 'premium'
-                              ? 'text-amber-600'
-                              : 'text-gray-600'
+                              ? 'text-amber-400'
+                              : 'text-slate-500'
                       }`}
                     />
                   </div>
                   <div>
-                    <h4 className="text-base font-medium text-white">{saint.name}</h4>
-                    <p className="text-sm text-gray-400">{saint.title}</p>
+                    <h3 className="text-lg font-medium text-white mb-0.5">{saint.name}</h3>
+                    <p className="text-sm text-slate-400">{saint.title}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {saint.tier === 'premium' && (
-                    <span className="px-2 py-1 bg-amber-900/30 text-amber-400 text-xs font-medium rounded-full border border-amber-700/30 shadow-sm">
+                    <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs font-medium rounded-full border border-amber-500/20">
                       Premium
                     </span>
                   )}
                   {saint.active && (
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50"></div>
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-sm shadow-emerald-400/50"></div>
                   )}
                 </div>
               </div>
 
-              <p className="text-sm text-gray-300 mb-4 leading-relaxed">{saint.description}</p>
+              {/* Description */}
+              <p className="text-sm text-slate-300 mb-5 leading-relaxed">{saint.description}</p>
 
+              {/* Activity Stats */}
               {saint.active && (
-                <div className="mb-4 p-3 bg-gray-700/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-gray-300 uppercase tracking-wide">Today's Activity</span>
-                    <span className="text-xs text-gray-400">{saint.lastActive}</span>
+                <div className="mb-5 p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Today's Activity</span>
+                    <span className="text-xs text-slate-500">{saint.lastActive}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-semibold text-white">{saint.todayActivities}</span>
-                      <span className="text-xs text-gray-400">today</span>
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-light text-white">{saint.todayActivities}</span>
+                      <span className="text-xs text-slate-500">today</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm font-semibold text-white">{saint.weeklyActivities}</span>
-                      <span className="text-xs text-gray-400">this week</span>
+                    <div className="w-px h-6 bg-slate-700"></div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-light text-white">{saint.weeklyActivities}</span>
+                      <span className="text-xs text-slate-500">this week</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="mb-4">
-                <h5 className="text-xs font-medium text-gray-300 mb-2 uppercase tracking-wide">Responsibilities</h5>
-                <div className="flex flex-wrap gap-1">
+              {/* Responsibilities */}
+              <div className="mb-5">
+                <h5 className="text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Responsibilities</h5>
+                <div className="flex flex-wrap gap-2">
                   {saint.responsibilities.map((responsibility, index) => (
-                    <span key={index} className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full shadow-sm">
+                    <span
+                      key={index}
+                      className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-lg"
+                    >
                       {responsibility}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
+              {/* Footer Action */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-700/30">
                 <div>
                   {saint.price ? (
-                    <span className="text-lg font-semibold text-white">${saint.price}/month</span>
+                    <span className="text-xl font-light text-white">${saint.price}<span className="text-sm text-slate-500">/month</span></span>
                   ) : saint.tier === 'classic' && saint.active ? (
-                    <span className="px-3 py-1 bg-green-900/30 text-green-400 text-sm font-medium rounded-full border border-green-700/30">
+                    <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-medium rounded-lg border border-emerald-500/20">
                       FREE
                     </span>
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {saint.active && saint.id === 'raphael' && (
-                    <button
-                      onClick={onOpenHealthMonitor}
-                      className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
-                    >
-                      <Activity className="w-4 h-4" />
-                      <span className="whitespace-nowrap">Open Health Monitor</span>
-                    </button>
-                  )}
-                  {!saint.active && saint.tier === 'premium' && (
-                    <button
-                      onClick={() => handleSaintActivation(saint)}
-                      className="w-full sm:w-auto px-4 py-2 bg-amber-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-amber-700 shadow-lg shadow-amber-500/25 transition-all duration-200"
-                    >
-                      Subscribe
-                    </button>
-                  )}
-                </div>
+                {saint.active && isRaphael && (
+                  <button
+                    onClick={onOpenHealthMonitor}
+                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                  >
+                    <Activity className="w-4 h-4" />
+                    <span>Open Health Monitor</span>
+                  </button>
+                )}
+                {!saint.active && saint.tier === 'premium' && (
+                  <button
+                    onClick={() => handleSaintActivation(saint)}
+                    className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/20 transition-all duration-200"
+                  >
+                    Subscribe
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -515,72 +516,73 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
       </div>
 
       {/* Activity Feed */}
-      <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700/50 p-6">
+      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <h3 className="text-lg font-medium text-white">Today's Activity Feed</h3>
-              <p className="text-sm text-gray-400">Real-time actions performed by your Saints</p>
+              <p className="text-sm text-slate-400">Real-time actions performed by your Saints</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm text-gray-400">Live</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+            <span className="text-xs font-medium text-emerald-400">Live</span>
           </div>
         </div>
 
-        <div className="space-y-4 max-h-96 overflow-y-auto">
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
           {activities.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-              <p>No activities yet today. Your Saints will start working soon!</p>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-sm text-slate-500">No activities yet today. Your Saints will start working soon!</p>
             </div>
           ) : (
-            activities
-              .map((activity) => {
-                const CategoryIcon = getCategoryIcon(activity.category);
-                return (
-                  <div
-                    key={activity.id}
-                    className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all cursor-pointer"
-                    onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <CategoryIcon className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h4 className="text-sm font-medium text-white mb-1">{activity.action}</h4>
-                            <p className="text-xs text-gray-400 line-clamp-2">{activity.description}</p>
-                          </div>
-                          <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium border ${getImpactColor(activity.impact)}`}>
-                            {activity.impact}
-                          </span>
+            activities.map((activity) => {
+              const CategoryIcon = getCategoryIcon(activity.category);
+              return (
+                <div
+                  key={activity.id}
+                  className="group bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/50 hover:border-slate-700/50 transition-all cursor-pointer"
+                  onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-slate-800/50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-slate-800 transition-colors">
+                      <CategoryIcon className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-white mb-1">{activity.action}</h4>
+                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{activity.description}</p>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>{new Date(activity.created_at).toLocaleTimeString()}</span>
-                          <span>•</span>
-                          <span className="capitalize">{activity.category}</span>
-                          <span>•</span>
-                          <span className="text-green-400">{activity.status}</span>
-                        </div>
-                        {showActivityDetails === activity.id && activity.details && (
-                          <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700/50">
-                            <p className="text-xs text-gray-300 leading-relaxed">
-                              {typeof activity.details === 'string' ? activity.details : JSON.stringify(activity.details, null, 2)}
-                            </p>
-                          </div>
-                        )}
+                        <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border ${getImpactColor(activity.impact)}`}>
+                          {activity.impact}
+                        </span>
                       </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>{new Date(activity.created_at).toLocaleTimeString()}</span>
+                        <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
+                        <span className="capitalize">{activity.category}</span>
+                        <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
+                        <span className="text-emerald-400 capitalize">{activity.status}</span>
+                      </div>
+                      {showActivityDetails === activity.id && activity.details && (
+                        <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                          <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                            {typeof activity.details === 'string' ? activity.details : JSON.stringify(activity.details, null, 2)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                );
-              })
+                </div>
+              );
+            })
           )}
         </div>
       </div>

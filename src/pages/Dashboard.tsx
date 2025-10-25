@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, LogOut, LogIn, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity } from 'lucide-react';
+import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
@@ -26,161 +26,93 @@ export default function Dashboard() {
     setSelectedView('questions');
   };
 
-  // Show loading state while auth is initializing
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
   if (!user) {
     navigate('/login');
     return null;
   }
 
+  const navItems = [
+    { id: 'saints', label: 'Saints AI', icon: Heart },
+    { id: 'engrams', label: 'Engrams', icon: Bot },
+    { id: 'questions', label: 'Questions', icon: Calendar },
+    { id: 'chat', label: 'Chat', icon: MessageCircle },
+    { id: 'tasks', label: 'Tasks', icon: Settings },
+    { id: 'family', label: 'Family', icon: Users },
+    { id: 'health', label: 'Health', icon: Activity },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <header className="bg-gray-950/80 backdrop-blur-xl border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 py-5">
+      <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-slate-800/50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-11 h-11 bg-gradient-to-br from-blue-500 via-teal-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Brain className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Brain className="w-5 h-5 text-white" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-gray-950"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950"></div>
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-white tracking-tight">EverAfter AI</h1>
-                <p className="text-sm text-gray-400 mt-0.5">{user?.email || 'Loading...'}</p>
+                <h1 className="text-lg font-medium text-white tracking-tight">EverAfter AI</h1>
+                <p className="text-xs text-slate-500">{user?.email || 'Loading...'}</p>
               </div>
             </div>
             <button
               onClick={handleSignOut}
-              className="px-5 py-2.5 bg-gray-800/50 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700/50 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium group"
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
             >
-              <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>Sign Out</span>
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Navigation */}
-      <nav className="bg-gray-950/50 backdrop-blur-xl border-b border-gray-800/30">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8">
+      <nav className="sticky top-[73px] z-40 bg-slate-950/60 backdrop-blur-2xl border-b border-slate-800/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => setSelectedView('saints')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'saints'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Heart className="w-4 h-4" />
-              <span>Saints AI</span>
-              {selectedView === 'saints' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedView('engrams')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'engrams'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Bot className="w-4 h-4" />
-              <span>Engrams</span>
-              {selectedView === 'engrams' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedView('questions')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'questions'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Questions</span>
-              {selectedView === 'questions' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedView('chat')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'chat'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Chat</span>
-              {selectedView === 'chat' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedView('tasks')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'tasks'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>Tasks</span>
-              {selectedView === 'tasks' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedView('family')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'family'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Family</span>
-              {selectedView === 'family' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedView('health')}
-              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
-                selectedView === 'health'
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Activity className="w-4 h-4" />
-              <span>Health</span>
-              {selectedView === 'health' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-              )}
-            </button>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = selectedView === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedView(item.id as any)}
+                  className={`group relative px-4 py-3.5 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                    isActive
+                      ? 'text-white'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'}`} />
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"></div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {selectedView === 'saints' && (
           <SaintsDashboard
             onOpenHealthMonitor={() => setSelectedView('health')}
