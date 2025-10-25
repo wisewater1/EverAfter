@@ -124,68 +124,109 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
-// based on the excellent https://github.com/t3dotgg/stripe-recommendations
+// Map price IDs to plan names (replace with your actual Stripe price IDs)
+const PRICE_TO_PLAN_MAP: Record<string, string> = {
+  'price_1234567890': 'pro', // Replace with your actual Pro plan price ID
+  'price_0987654321': 'enterprise', // Replace with your actual Enterprise plan price ID
+};
+
 async function syncCustomerFromStripe(customerId: string) {
   try {
-    // fetch latest subscription data from Stripe
+    // Get user_id from existing subscription record
+    const { data: existingSub } = await supabase
+      .from('subscriptions')
+      .select('user_id')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle();
+
+    if (!existingSub) {
+      console.error(`No subscription record found for customer: ${customerId}`);
+      return;
+    }
+
+    // Fetch latest subscription data from Stripe
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       limit: 1,
       status: 'all',
-      expand: ['data.default_payment_method'],
     });
 
-    // TODO verify if needed
     if (subscriptions.data.length === 0) {
       console.info(`No active subscriptions found for customer: ${customerId}`);
-      const { error: noSubError } = await supabase.from('stripe_subscriptions').upsert(
-        {
-          customer_id: customerId,
-          subscription_status: 'not_started',
-        },
-        {
-          onConflict: 'customer_id',
-        },
-      );
+      // Update to free plan if subscription cancelled
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          plan_name: 'free',
+          status: 'canceled',
+          stripe_subscription_id: null,
+        })
+        .eq('stripe_customer_id', customerId);
 
-      if (noSubError) {
-        console.error('Error updating subscription status:', noSubError);
-        throw new Error('Failed to update subscription status in database');
+      if (updateError) {
+        console.error('Error updating subscription to free:', updateError);
       }
+      return;
     }
 
-    // assumes that a customer can only have a single subscription
+    // Get the most recent subscription
     const subscription = subscriptions.data[0];
+    const priceId = subscription.items.data[0].price.id;
+    const planName = PRICE_TO_PLAN_MAP[priceId] || 'pro'; // Default to pro if price not mapped
 
-    // store subscription state
-    const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
-      {
-        customer_id: customerId,
-        subscription_id: subscription.id,
-        price_id: subscription.items.data[0].price.id,
-        current_period_start: subscription.current_period_start,
-        current_period_end: subscription.current_period_end,
+    // Update subscription in database
+    const { error: subError } = await supabase
+      .from('subscriptions')
+      .update({
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: priceId,
+        plan_name: planName,
+        status: subscription.status as any,
+        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         cancel_at_period_end: subscription.cancel_at_period_end,
-        ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
-          ? {
-              payment_method_brand: subscription.default_payment_method.card?.brand ?? null,
-              payment_method_last4: subscription.default_payment_method.card?.last4 ?? null,
-            }
-          : {}),
-        status: subscription.status,
-      },
-      {
-        onConflict: 'customer_id',
-      },
-    );
+        trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+      })
+      .eq('stripe_customer_id', customerId);
 
     if (subError) {
       console.error('Error syncing subscription:', subError);
       throw new Error('Failed to sync subscription in database');
     }
-    console.info(`Successfully synced subscription for customer: ${customerId}`);
+
+    console.info(`Successfully synced subscription for customer: ${customerId}, plan: ${planName}`);
+
+    // Activate premium Saints based on plan
+    if (planName === 'pro' || planName === 'enterprise') {
+      // Activate St. Michael for Pro and Enterprise
+      await activateSaint(existingSub.user_id, 'michael');
+    }
+    if (planName === 'enterprise') {
+      // Activate St. Martin and St. Agatha for Enterprise
+      await activateSaint(existingSub.user_id, 'martin');
+      await activateSaint(existingSub.user_id, 'agatha');
+    }
   } catch (error) {
     console.error(`Failed to sync subscription for customer ${customerId}:`, error);
     throw error;
+  }
+}
+
+async function activateSaint(userId: string, saintId: string) {
+  const { error } = await supabase
+    .from('saints_subscriptions')
+    .upsert({
+      user_id: userId,
+      saint_id: saintId,
+      is_active: true,
+      activated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id,saint_id',
+    });
+
+  if (error) {
+    console.error(`Failed to activate saint ${saintId} for user ${userId}:`, error);
+  } else {
+    console.info(`Activated saint ${saintId} for user ${userId}`);
   }
 }

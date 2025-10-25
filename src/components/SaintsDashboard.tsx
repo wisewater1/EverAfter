@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Saint {
   id: string;
@@ -19,17 +22,21 @@ interface Saint {
 
 interface SaintActivity {
   id: string;
-  saintId: string;
+  saint_id: string;
   action: string;
   description: string;
-  timestamp: string;
+  created_at: string;
   status: 'completed' | 'in_progress' | 'scheduled';
   impact: 'high' | 'medium' | 'low';
   category: 'communication' | 'support' | 'protection' | 'memory' | 'family' | 'charity';
-  details?: string;
+  details?: any;
 }
 
-const saints: Saint[] = [
+interface SaintsDashboardProps {
+  onOpenRaphaelAgent: () => void;
+}
+
+const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivities' | 'lastActive'>[] = [
   {
     id: 'raphael',
     name: 'St. Raphael',
@@ -37,11 +44,7 @@ const saints: Saint[] = [
     description: 'Free autonomous AI agent for health management. Schedules appointments, manages prescriptions, tracks wellness, and handles all health-related tasks in the background.',
     responsibilities: ['Doctor appointments', 'Prescription management', 'Health tracking', 'Wellness coordination'],
     tier: 'classic',
-    active: true,
     icon: Heart,
-    todayActivities: 12,
-    weeklyActivities: 47,
-    lastActive: 'Active now'
   },
   {
     id: 'michael',
@@ -51,11 +54,7 @@ const saints: Saint[] = [
     responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
     tier: 'premium',
     price: 24.99,
-    active: false,
     icon: Shield,
-    todayActivities: 0,
-    weeklyActivities: 0,
-    lastActive: 'Never'
   },
   {
     id: 'martin',
@@ -65,11 +64,7 @@ const saints: Saint[] = [
     responsibilities: ['Charitable giving', 'Community outreach', 'Legacy donations', 'Compassionate acts'],
     tier: 'premium',
     price: 29.99,
-    active: false,
     icon: Crown,
-    todayActivities: 0,
-    weeklyActivities: 0,
-    lastActive: 'Never'
   },
   {
     id: 'agatha',
@@ -79,72 +74,130 @@ const saints: Saint[] = [
     responsibilities: ['Crisis support', 'Resilience building', 'Family strength', 'Overcoming adversity'],
     tier: 'premium',
     price: 34.99,
-    active: false,
     icon: Star,
-    todayActivities: 0,
-    weeklyActivities: 0,
-    lastActive: 'Never'
   }
 ];
-
-const todayActivities: SaintActivity[] = [
-  {
-    id: '1',
-    saintId: 'raphael',
-    action: 'Security Scan Completed',
-    description: 'Performed comprehensive security audit of all family member accounts',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    status: 'completed',
-    impact: 'high',
-    category: 'protection',
-    details: 'Scanned 3 family accounts, updated 2 weak passwords, enabled 2FA on 1 account'
-  },
-  {
-    id: '2',
-    saintId: 'raphael',
-    action: 'Doctor Appointment Scheduled',
-    description: 'Scheduled annual checkup with Dr. Sarah Chen for next Tuesday at 2:00 PM',
-    timestamp: new Date(Date.now() - 5400000).toISOString(),
-    status: 'completed',
-    impact: 'high',
-    category: 'support',
-    details: 'Found available slot that matches user preferences, sent calendar invite and confirmation'
-  },
-  {
-    id: '3',
-    saintId: 'raphael',
-    action: 'Prescription Refill Ordered',
-    description: 'Automatically ordered refill for blood pressure medication at CVS Pharmacy',
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
-    status: 'completed',
-    impact: 'medium',
-    category: 'memory',
-    details: 'Detected low supply (3 days remaining), ordered 90-day refill, ready for pickup tomorrow'
-  },
-  {
-    id: '4',
-    saintId: 'raphael',
-    action: 'Lab Results Retrieved',
-    description: 'Retrieved and organized recent blood work results from patient portal',
-    timestamp: new Date(Date.now() - 10800000).toISOString(),
-    status: 'completed',
-    impact: 'low',
-    category: 'family',
-    details: 'All values within normal range, flagged vitamin D level for discussion with doctor'
-  }
-];
-
-interface SaintsDashboardProps {
-  onOpenRaphaelAgent: () => void;
-}
 
 export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardProps) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [saints, setSaints] = useState<Saint[]>([]);
+  const [activities, setActivities] = useState<SaintActivity[]>([]);
   const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadSaintsData();
+      loadActivities();
+    }
+  }, [user]);
+
+  const loadSaintsData = async () => {
+    try {
+      // Load user's active saints from database
+      const { data: activeSaints, error: saintsError } = await supabase
+        .from('saints_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (saintsError) throw saintsError;
+
+      // Get activity counts for each saint
+      const saintsWithData = await Promise.all(
+        saintDefinitions.map(async (saintDef) => {
+          const isActive = activeSaints?.some(s => s.saint_id === saintDef.id) || saintDef.id === 'raphael';
+
+          if (!isActive) {
+            return {
+              ...saintDef,
+              active: false,
+              todayActivities: 0,
+              weeklyActivities: 0,
+              lastActive: 'Never',
+            };
+          }
+
+          // Get today's activity count
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const { count: todayCount } = await supabase
+            .from('saint_activities')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('saint_id', saintDef.id)
+            .gte('created_at', today.toISOString());
+
+          // Get this week's activity count
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+
+          const { count: weekCount } = await supabase
+            .from('saint_activities')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('saint_id', saintDef.id)
+            .gte('created_at', weekAgo.toISOString());
+
+          // Get last activity
+          const { data: lastActivity } = await supabase
+            .from('saint_activities')
+            .select('created_at')
+            .eq('user_id', user.id)
+            .eq('saint_id', saintDef.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const lastActive = lastActivity
+            ? new Date(lastActivity.created_at).toLocaleDateString()
+            : 'Active now';
+
+          return {
+            ...saintDef,
+            active: isActive,
+            todayActivities: todayCount || 0,
+            weeklyActivities: weekCount || 0,
+            lastActive,
+          };
+        })
+      );
+
+      setSaints(saintsWithData);
+    } catch (error) {
+      console.error('Error loading saints data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadActivities = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('saint_activities')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setActivities(data || []);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+    }
+  };
 
   const handleSaintActivation = (saint: Saint) => {
     if (saint.tier === 'premium' && !saint.active) {
       alert(`${saint.name} is a premium feature. Visit the Pricing page to subscribe for $${saint.price}/month`);
+      navigate('/pricing');
     }
   };
 
@@ -165,6 +218,14 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
       default: return CheckCircle;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-gray-400">Loading Saints AI...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -188,11 +249,11 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
               </div>
               <div>
                 <h4 className="text-base font-medium text-white">Today's Activities</h4>
-                <p className="text-sm text-gray-400">Your Saints completed {todayActivities.length} tasks today</p>
+                <p className="text-sm text-gray-400">Your Saints completed {activities.length} tasks today</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-light text-white">{todayActivities.length}</div>
+              <div className="text-2xl font-light text-white">{activities.length}</div>
               <div className="text-xs text-gray-400">Completed</div>
             </div>
           </div>
@@ -204,7 +265,7 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
                 <span className="text-sm font-medium text-white">Protection</span>
               </div>
               <div className="text-lg font-semibold text-blue-400">
-                {todayActivities.filter(a => a.category === 'protection').length}
+                {activities.filter(a => a.category === 'protection').length}
               </div>
               <div className="text-xs text-gray-400">Security actions</div>
             </div>
@@ -215,7 +276,7 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
                 <span className="text-sm font-medium text-white">Support</span>
               </div>
               <div className="text-lg font-semibold text-pink-400">
-                {todayActivities.filter(a => a.category === 'support').length}
+                {activities.filter(a => a.category === 'support').length}
               </div>
               <div className="text-xs text-gray-400">Comfort actions</div>
             </div>
@@ -226,7 +287,7 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
                 <span className="text-sm font-medium text-white">Memory</span>
               </div>
               <div className="text-lg font-semibold text-green-400">
-                {todayActivities.filter(a => a.category === 'memory').length}
+                {activities.filter(a => a.category === 'memory').length}
               </div>
               <div className="text-xs text-gray-400">Memory actions</div>
             </div>
@@ -383,48 +444,56 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
         </div>
 
         <div className="space-y-4 max-h-96 overflow-y-auto">
-          {todayActivities
-            .filter(activity => selectedSaint ? activity.saintId === selectedSaint : true)
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .map((activity) => {
-              const CategoryIcon = getCategoryIcon(activity.category);
-              return (
-                <div
-                  key={activity.id}
-                  className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all cursor-pointer"
-                  onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CategoryIcon className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="text-sm font-medium text-white mb-1">{activity.action}</h4>
-                          <p className="text-xs text-gray-400 line-clamp-2">{activity.description}</p>
-                        </div>
-                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium border ${getImpactColor(activity.impact)}`}>
-                          {activity.impact}
-                        </span>
+          {activities.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+              <p>No activities yet today. Your Saints will start working soon!</p>
+            </div>
+          ) : (
+            activities
+              .filter(activity => selectedSaint ? activity.saint_id === selectedSaint : true)
+              .map((activity) => {
+                const CategoryIcon = getCategoryIcon(activity.category);
+                return (
+                  <div
+                    key={activity.id}
+                    className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all cursor-pointer"
+                    onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <CategoryIcon className="w-5 h-5 text-blue-400" />
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>{new Date(activity.timestamp).toLocaleTimeString()}</span>
-                        <span>•</span>
-                        <span className="capitalize">{activity.category}</span>
-                        <span>•</span>
-                        <span className="text-green-400">{activity.status}</span>
-                      </div>
-                      {showActivityDetails === activity.id && activity.details && (
-                        <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700/50">
-                          <p className="text-xs text-gray-300 leading-relaxed">{activity.details}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="text-sm font-medium text-white mb-1">{activity.action}</h4>
+                            <p className="text-xs text-gray-400 line-clamp-2">{activity.description}</p>
+                          </div>
+                          <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium border ${getImpactColor(activity.impact)}`}>
+                            {activity.impact}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span>{new Date(activity.created_at).toLocaleTimeString()}</span>
+                          <span>•</span>
+                          <span className="capitalize">{activity.category}</span>
+                          <span>•</span>
+                          <span className="text-green-400">{activity.status}</span>
+                        </div>
+                        {showActivityDetails === activity.id && activity.details && (
+                          <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700/50">
+                            <p className="text-xs text-gray-300 leading-relaxed">
+                              {typeof activity.details === 'string' ? activity.details : JSON.stringify(activity.details, null, 2)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+          )}
         </div>
       </div>
     </div>
