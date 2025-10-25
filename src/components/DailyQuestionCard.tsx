@@ -59,8 +59,9 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       }
 
       const { data: questionData, error } = await supabase
-        .from('daily_questions')
+        .from('daily_question_pool')
         .select('*')
+        .eq('is_active', true)
         .limit(1)
         .maybeSingle();
 
@@ -69,9 +70,15 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       }
 
       if (questionData) {
+        const { data: categoryData } = await supabase
+          .from('question_categories')
+          .select('category_name')
+          .eq('id', questionData.category_id)
+          .maybeSingle();
+
         setQuestion({
           question_text: questionData.question_text,
-          question_category: questionData.category || 'general',
+          question_category: categoryData?.category_name || 'general',
           day_number: progressData?.current_day || 1,
           already_answered_today: false
         });
