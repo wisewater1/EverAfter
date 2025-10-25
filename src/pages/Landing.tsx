@@ -102,12 +102,6 @@ export default function Landing() {
               {user ? 'Go to Dashboard' : 'Start Free'}
               <ArrowRight className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => navigate('/pricing')}
-              className="px-8 py-4 bg-gray-800 text-white border border-gray-700 rounded-xl hover:bg-gray-700 transition-all font-medium text-lg"
-            >
-              View Pricing
-            </button>
           </div>
         </div>
 
