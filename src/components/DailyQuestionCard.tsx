@@ -186,14 +186,6 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       if (error) throw error;
 
-      await supabase
-        .from('archetypal_ais')
-        .update({
-          total_memories: selectedAI.total_memories + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedAI.id);
-
       setUploadProgress(100);
       setShowSuccess(true);
       setResponse('');
