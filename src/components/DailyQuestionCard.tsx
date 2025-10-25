@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User } from 'lucide-react';
+import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User, Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { uploadFile, formatFileSize, getFileIcon } from '../lib/file-storage';
 
 interface ArchetypalAI {
   id: string;
@@ -35,11 +36,15 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [question, setQuestion] = useState<DailyQuestion | null>(null);
   const [response, setResponse] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const loadQuestion = useCallback(async () => {
+    if (!selectedAI) return;
+
     setLoading(true);
     try {
       const { data: progressData } = await supabase
@@ -53,17 +58,26 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       }
 
       const { data: questionData, error } = await supabase
-        .from('questions')
+        .from('daily_questions')
         .select('*')
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading question:', error);
+      }
 
       if (questionData) {
         setQuestion({
           question_text: questionData.question_text,
-          question_category: questionData.category,
+          question_category: questionData.category || 'general',
+          day_number: progressData?.current_day || 1,
+          already_answered_today: false
+        });
+      } else {
+        setQuestion({
+          question_text: "What's the first thing that brings you joy when you wake up?",
+          question_category: 'values',
           day_number: progressData?.current_day || 1,
           already_answered_today: false
         });
@@ -73,7 +87,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, selectedAI]);
 
   const loadAIs = useCallback(async () => {
     try {
@@ -86,60 +100,109 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       if (error) throw error;
       setAIs(data || []);
 
-      if (data && data.length > 0 && !preselectedAIId) {
-        const firstAI = data[0];
-        setSelectedAI(firstAI);
-        loadQuestion();
+      if (data && data.length > 0) {
+        if (preselectedAIId) {
+          const selectedFromProps = data.find(ai => ai.id === preselectedAIId);
+          if (selectedFromProps) {
+            setSelectedAI(selectedFromProps);
+          } else {
+            setSelectedAI(data[0]);
+          }
+        } else if (!selectedAI) {
+          setSelectedAI(data[0]);
+        }
       }
     } catch (error) {
       console.error('Error loading AIs:', error);
     }
-  }, [userId, preselectedAIId, loadQuestion]);
+  }, [userId, preselectedAIId, selectedAI]);
 
   useEffect(() => {
     loadAIs();
   }, [loadAIs]);
 
   useEffect(() => {
-    if (preselectedAIId && ais.length > 0) {
-      const ai = ais.find(a => a.id === preselectedAIId);
-      if (ai) {
-        setSelectedAI(ai);
-        loadQuestion();
-      }
+    if (selectedAI) {
+      loadQuestion();
     }
-  }, [preselectedAIId, ais, loadQuestion]);
+  }, [selectedAI, loadQuestion]);
 
   const handleAISelect = (ai: ArchetypalAI) => {
     setSelectedAI(ai);
     setResponse('');
+    setAttachedFiles([]);
     setQuestion(null);
     setShowSuccess(false);
-    loadQuestion();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
     if (!selectedAI || !question || !response.trim()) return;
 
     setSubmitting(true);
+    setUploadProgress(0);
+
     try {
+      const uploadedFileIds: string[] = [];
+
+      if (attachedFiles.length > 0) {
+        for (let i = 0; i < attachedFiles.length; i++) {
+          const file = attachedFiles[i];
+          const { file: uploadedFile } = await uploadFile(file, {
+            category: 'document',
+            description: `Attachment for question response on day ${question.day_number}`,
+            metadata: {
+              ai_id: selectedAI.id,
+              question_text: question.question_text,
+              day_number: question.day_number
+            }
+          });
+          uploadedFileIds.push(uploadedFile.id);
+          setUploadProgress(((i + 1) / attachedFiles.length) * 50);
+        }
+      }
+
       const { error } = await supabase
         .from('daily_question_responses')
         .insert([{
           user_id: userId,
+          ai_id: selectedAI.id,
           question_text: question.question_text,
           response_text: response,
           day_number: question.day_number,
+          question_category: question.question_category,
+          attachment_file_ids: uploadedFileIds.length > 0 ? uploadedFileIds : null,
         }]);
 
       if (error) throw error;
 
+      await supabase
+        .from('archetypal_ais')
+        .update({
+          total_memories: selectedAI.total_memories + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedAI.id);
+
+      setUploadProgress(100);
       setShowSuccess(true);
       setResponse('');
+      setAttachedFiles([]);
 
       setTimeout(() => {
         loadQuestion();
         setShowSuccess(false);
+        setUploadProgress(0);
       }, 2000);
 
       loadAIs();
@@ -153,26 +216,29 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      values: 'bg-blue-900/30 text-blue-400 border-blue-500/30',
-      memories: 'bg-purple-900/30 text-purple-400 border-purple-500/30',
-      habits: 'bg-green-900/30 text-green-400 border-green-500/30',
-      preferences: 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30',
-      beliefs: 'bg-indigo-900/30 text-indigo-400 border-indigo-500/30',
-      communication_style: 'bg-pink-900/30 text-pink-400 border-pink-500/30',
-      humor: 'bg-orange-900/30 text-orange-400 border-orange-500/30',
-      relationships: 'bg-teal-900/30 text-teal-400 border-teal-500/30',
-      goals: 'bg-cyan-900/30 text-cyan-400 border-cyan-500/30',
-      experiences: 'bg-red-900/30 text-red-400 border-red-500/30',
+      values: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+      memories: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+      habits: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      preferences: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      beliefs: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      communication_style: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+      humor: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+      relationships: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+      goals: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+      experiences: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+      general: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
     };
-    return colors[category] || 'bg-gray-900/30 text-gray-400 border-gray-500/30';
+    return colors[category] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   };
 
   if (ais.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
-        <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h3 className="text-2xl font-light text-white mb-3">No AI Created Yet</h3>
-        <p className="text-gray-400 mb-6 max-w-md mx-auto">
+      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+        <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <MessageCircle className="w-10 h-10 text-slate-600" />
+        </div>
+        <h3 className="text-2xl font-medium text-white mb-3">No AI Created Yet</h3>
+        <p className="text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
           Create your first archetypal AI to start answering daily questions and building a digital personality.
         </p>
       </div>
@@ -181,13 +247,13 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
   if (showSuccess) {
     return (
-      <div className="bg-gradient-to-br from-green-900/20 via-gray-800 to-gray-800 rounded-2xl shadow-2xl border border-green-500/50 p-12 backdrop-blur-sm text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+      <div className="bg-gradient-to-br from-emerald-900/20 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-16 text-center">
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
           <Sparkles className="w-10 h-10 text-white animate-pulse" />
         </div>
         <h3 className="text-3xl font-light text-white mb-3">Memory Saved!</h3>
-        <p className="text-gray-300 text-lg">
-          Your response has been added to <span className="text-green-400 font-medium">{selectedAI?.name}</span>'s personality
+        <p className="text-slate-300 text-lg">
+          Your response has been added to <span className="text-emerald-400 font-medium">{selectedAI?.name}</span>'s personality
         </p>
       </div>
     );
@@ -196,37 +262,37 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
   return (
     <div className="space-y-6">
       {/* AI Selector */}
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl border border-gray-700/50 p-6 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <User className="w-5 h-5 text-blue-400" />
+      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <User className="w-5 h-5 text-sky-400" />
           <h3 className="text-lg font-medium text-white">Building Personality For:</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {ais.map((ai) => (
             <button
               key={ai.id}
               onClick={() => handleAISelect(ai)}
-              className={`p-4 rounded-xl border-2 transition-all text-left ${
+              className={`p-5 rounded-xl border-2 transition-all text-left ${
                 selectedAI?.id === ai.id
-                  ? 'bg-blue-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
-                  : 'bg-gray-900/50 border-gray-700 hover:border-gray-600'
+                  ? 'bg-sky-500/10 border-sky-500 shadow-lg shadow-sky-500/10'
+                  : 'bg-slate-900/50 border-slate-700/50 hover:border-slate-600'
               }`}
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
-                  <User className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
+                  <User className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-white truncate">{ai.name}</div>
-                  <div className="text-xs text-gray-400">{ai.description}</div>
+                  <div className="font-medium text-white mb-0.5">{ai.name}</div>
+                  <div className="text-xs text-slate-400 line-clamp-1">{ai.description}</div>
                 </div>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">{ai.total_memories} memories</span>
-                <span className={`font-medium ${
-                  ai.training_status === 'ready' ? 'text-green-400' :
-                  ai.training_status === 'training' ? 'text-yellow-400' : 'text-gray-400'
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-700/50">
+                <span className="text-slate-400">{ai.total_memories} memories</span>
+                <span className={`font-medium px-2 py-0.5 rounded ${
+                  ai.training_status === 'ready' ? 'bg-emerald-500/10 text-emerald-400' :
+                  ai.training_status === 'training' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-500/10 text-slate-400'
                 }`}>
                   {ai.training_status}
                 </span>
@@ -238,7 +304,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       {/* Progress Bar */}
       {userProgress && (
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl border border-gray-700/50 p-6 backdrop-blur-sm">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-teal-400" />
@@ -246,7 +312,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
                 <div className="text-lg font-medium text-white">
                   Day {userProgress.current_day} of 365
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-slate-400">
                   {userProgress.streak_days} day streak • {userProgress.total_responses} total responses
                 </div>
               </div>
@@ -255,12 +321,12 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
               <div className="text-2xl font-light text-white">
                 {Math.round((userProgress.current_day / 365) * 100)}%
               </div>
-              <div className="text-xs text-gray-400">Complete</div>
+              <div className="text-xs text-slate-400">Complete</div>
             </div>
           </div>
-          <div className="w-full bg-gray-900 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-600 via-teal-500 to-green-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-sky-500 via-teal-500 to-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${(userProgress.current_day / 365) * 100}%` }}
             />
           </div>
@@ -269,34 +335,35 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       {/* Question Card */}
       {loading ? (
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
-          <div className="text-gray-400">Loading today's question...</div>
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+          <div className="w-8 h-8 border-2 border-slate-700 border-t-sky-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading today's question...</p>
         </div>
       ) : question ? (
-        <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 backdrop-blur-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-800/40 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
           {/* Question Header */}
           <div className="p-8 pb-6">
             <div className="flex items-center justify-between mb-6">
-              <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getCategoryColor(question.question_category)}`}>
+              <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium border ${getCategoryColor(question.question_category)}`}>
                 <Sparkles className="w-4 h-4" />
                 {question.question_category.replace('_', ' ')}
               </span>
               {userProgress && (
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-slate-400">
                   Question {userProgress.total_responses + 1}
                 </div>
               )}
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <MessageCircle className="w-6 h-6 text-white" />
+              <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
+                <MessageCircle className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-light text-white leading-relaxed">
+                <h3 className="text-2xl font-light text-white leading-relaxed mb-2">
                   {question.question_text}
                 </h3>
-                <p className="text-sm text-gray-400 mt-2">
+                <p className="text-sm text-slate-400">
                   Share your thoughts and memories
                 </p>
               </div>
@@ -310,23 +377,71 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
               onChange={(e) => setResponse(e.target.value)}
               placeholder="Share your thoughts, stories, or memories... Take your time and let the words flow naturally."
               rows={6}
-              className="w-full bg-gray-900/70 border border-gray-700 rounded-xl px-6 py-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none leading-relaxed"
+              className="w-full bg-slate-900/70 border border-slate-700 hover:border-slate-600 focus:border-sky-500 rounded-xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all resize-none leading-relaxed"
             />
+
+            {/* Attached Files */}
+            {attachedFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {attachedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                    <div className="text-2xl">{file.type.startsWith('image/') ? '🖼️' : '📎'}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white truncate">{file.name}</div>
+                      <div className="text-xs text-slate-400">{formatFileSize(file.size)}</div>
+                    </div>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload Progress */}
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                  <span>Uploading files...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full bg-sky-500 transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-3">
-                <button className="p-3 bg-gray-900/70 border border-gray-700 rounded-lg hover:bg-gray-800 transition-all text-gray-400 hover:text-white">
-                  <Mic className="w-5 h-5" />
-                </button>
-                <span className="text-sm text-gray-500">
+                <label className="p-3 bg-slate-900/70 border border-slate-700 hover:border-slate-600 rounded-lg transition-all text-slate-400 hover:text-white cursor-pointer">
+                  <Upload className="w-5 h-5" />
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                  />
+                </label>
+                <span className="text-sm text-slate-500">
                   {response.length} characters
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => loadQuestion()}
-                  className="px-5 py-3 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all font-medium flex items-center gap-2"
+                  onClick={() => {
+                    setResponse('');
+                    setAttachedFiles([]);
+                    loadQuestion();
+                  }}
+                  className="px-5 py-3 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all font-medium flex items-center gap-2"
                 >
                   <SkipForward className="w-4 h-4" />
                   Skip for Now
@@ -334,9 +449,14 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
                 <button
                   onClick={handleSubmit}
                   disabled={!response.trim() || submitting}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all shadow-lg shadow-sky-500/20 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Saving...' : (
+                  {submitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
                     <>
                       <Send className="w-4 h-4" />
                       Save Memory
@@ -348,17 +468,19 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           </div>
 
           {/* Info Footer */}
-          <div className="px-8 py-4 bg-gray-900/50 border-t border-gray-700/50">
-            <p className="text-xs text-gray-500 text-center leading-relaxed">
+          <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-700/50">
+            <p className="text-xs text-slate-500 text-center leading-relaxed">
               Your responses are encrypted and secure. You maintain full control over your data at all times.
             </p>
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
-          <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-2xl font-light text-white mb-3">All Caught Up!</h3>
-          <p className="text-gray-400">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+          <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-10 h-10 text-slate-600" />
+          </div>
+          <h3 className="text-2xl font-medium text-white mb-3">All Caught Up!</h3>
+          <p className="text-slate-400 leading-relaxed">
             You've answered today's question. Come back tomorrow for more!
           </p>
         </div>
