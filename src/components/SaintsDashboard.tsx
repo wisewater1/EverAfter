@@ -324,56 +324,129 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
         </div>
       )}
 
-      {/* Activity Summary Card */}
-      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="text-base font-medium text-white">Today's Activities</h3>
-              <p className="text-sm text-slate-400">Your Saints completed {activities.length} tasks today</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-light text-white">{activities.length}</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider">Completed</div>
-          </div>
-        </div>
+      {/* Activity Summary Card - Enhanced Real-time Look */}
+      <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
+        {/* Animated Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-sky-500/5 animate-pulse"></div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-sky-400" />
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wide">Protection</span>
-            </div>
-            <div className="text-2xl font-light text-white mb-0.5">
-              {activities.filter(a => a.category === 'protection').length}
-            </div>
-            <div className="text-xs text-slate-500">Security actions</div>
-          </div>
+        {/* Scanning Line Effect */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent animate-scan"></div>
 
-          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Heart className="w-4 h-4 text-rose-400" />
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wide">Support</span>
+        <div className="relative p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center ring-2 ring-emerald-500/30">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full"></div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="text-base font-medium text-white">Today's Activities</h3>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Analyzing</span>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-400">Your Saints completed <span className="text-emerald-400 font-medium">{activities.length}</span> tasks today</p>
+              </div>
             </div>
-            <div className="text-2xl font-light text-white mb-0.5">
-              {activities.filter(a => a.category === 'support').length}
+            <div className="text-right">
+              <div className="text-4xl font-extralight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 tabular-nums">{activities.length}</div>
+              <div className="text-xs text-slate-500 uppercase tracking-wider font-medium">Completed</div>
             </div>
-            <div className="text-xs text-slate-500">Comfort actions</div>
           </div>
 
-          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wide">Memory</span>
+          <div className="grid grid-cols-3 gap-4">
+            {/* Protection Card */}
+            <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-sky-500/30 transition-all duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-sky-500/0 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center ring-1 ring-sky-500/20">
+                    <Shield className="w-4 h-4 text-sky-400" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Protection</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <div className="text-3xl font-extralight text-white tabular-nums">
+                    {activities.filter(a => a.category === 'protection').length}
+                  </div>
+                  <div className="flex items-center gap-1 text-sky-400">
+                    <Zap className="w-3 h-3 animate-pulse" />
+                    <span className="text-[10px] font-medium">ACTIVE</span>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500 font-medium">Security actions</div>
+                {/* Progress Bar */}
+                <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((activities.filter(a => a.category === 'protection').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
-            <div className="text-2xl font-light text-white mb-0.5">
-              {activities.filter(a => a.category === 'memory').length}
+
+            {/* Support Card */}
+            <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-rose-500/30 transition-all duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center ring-1 ring-rose-500/20">
+                    <Heart className="w-4 h-4 text-rose-400" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Support</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <div className="text-3xl font-extralight text-white tabular-nums">
+                    {activities.filter(a => a.category === 'support').length}
+                  </div>
+                  <div className="flex items-center gap-1 text-rose-400">
+                    <Zap className="w-3 h-3 animate-pulse" />
+                    <span className="text-[10px] font-medium">ACTIVE</span>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500 font-medium">Comfort actions</div>
+                {/* Progress Bar */}
+                <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((activities.filter(a => a.category === 'support').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-slate-500">Memory actions</div>
+
+            {/* Memory Card */}
+            <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-emerald-500/30 transition-all duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20">
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Memory</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <div className="text-3xl font-extralight text-white tabular-nums">
+                    {activities.filter(a => a.category === 'memory').length}
+                  </div>
+                  <div className="flex items-center gap-1 text-emerald-400">
+                    <Zap className="w-3 h-3 animate-pulse" />
+                    <span className="text-[10px] font-medium">ACTIVE</span>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500 font-medium">Memory actions</div>
+                {/* Progress Bar */}
+                <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((activities.filter(a => a.category === 'memory').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
