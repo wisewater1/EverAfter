@@ -134,9 +134,9 @@ export const config = {
 
   ui: {
     theme: {
-      primary: 'purple',
-      secondary: 'pink',
-      accent: 'blue'
+      primary: 'blue',
+      secondary: 'teal',
+      accent: 'cyan'
     },
     animations: {
       enabled: true,

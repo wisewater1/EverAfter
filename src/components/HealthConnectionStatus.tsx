@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
 
 interface HealthConnection {

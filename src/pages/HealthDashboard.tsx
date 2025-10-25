@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { Activity, Heart, Moon, Footprints, Calendar, Pill, Plus, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface HealthMetric {

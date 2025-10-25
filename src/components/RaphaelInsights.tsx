@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { TrendingUp, TrendingDown, Activity, Heart, Moon, Footprints, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 
 interface HealthInsight {
