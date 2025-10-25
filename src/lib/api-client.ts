@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 class APIClient {
   private async getAuthToken(): Promise<string | null> {
@@ -8,55 +9,99 @@ class APIClient {
     return session?.access_token || null;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async callEdgeFunction<T>(functionName: string, body: Record<string, unknown>): Promise<T> {
     const token = await this.getAuthToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
-    }
-
-    if (response.status === 204) {
-      return {} as T;
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
     }
 
     return response.json();
   }
 
-  async sendChatMessage(engramId: string, content: string) {
-    return this.request(`/api/v1/chat/${engramId}/message`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
+  async sendChatMessage(engramId: string, content: string, conversationId?: string) {
+    return this.callEdgeFunction('engram-chat', {
+      engramId,
+      message: content,
+      conversationId: conversationId || `conv_${Date.now()}_${engramId}`,
     });
   }
 
   async listTasks(engramId: string) {
-    return this.request(`/api/v1/tasks/${engramId}`, { method: 'GET' });
+    const { data, error } = await supabase
+      .from('agent_task_queue')
+      .select('*')
+      .eq('engram_id', engramId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   }
 
-  async createTask(engramId: string, data: Record<string, unknown>) {
-    return this.request(`/api/v1/tasks/${engramId}/create`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  async createTask(engramId: string, taskData: Record<string, unknown>) {
+    const { data, error } = await supabase
+      .from('agent_task_queue')
+      .insert({
+        engram_id: engramId,
+        task_type: taskData.task_type || 'general',
+        task_description: taskData.task_description || '',
+        priority: taskData.priority || 'medium',
+        status: 'pending',
+        scheduled_for: taskData.scheduled_for || new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   async executeTask(taskId: string) {
-    return this.request(`/api/v1/tasks/${taskId}/execute`, { method: 'POST' });
+    return this.callEdgeFunction('manage-agent-tasks', {
+      action: 'execute',
+      taskId,
+    });
   }
 
   async deleteTask(taskId: string) {
-    return this.request(`/api/v1/tasks/${taskId}`, { method: 'DELETE' });
+    const { error } = await supabase
+      .from('agent_task_queue')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) throw error;
+    return { success: true };
+  }
+
+  async getDailyQuestion(userId: string, engramId?: string) {
+    return this.callEdgeFunction('get-daily-question', {
+      userId,
+      engramId,
+    });
+  }
+
+  async submitDailyResponse(userId: string, questionId: string, response: string, engramId?: string) {
+    return this.callEdgeFunction('submit-daily-response', {
+      userId,
+      questionId,
+      response,
+      engramId,
+    });
   }
 }
 

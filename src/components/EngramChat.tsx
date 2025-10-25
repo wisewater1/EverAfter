@@ -50,9 +50,22 @@ export default function EngramChat({ engrams }: EngramChatProps) {
 
     try {
       const response = await apiClient.sendChatMessage(selectedEngram.id, userMessage);
-      setMessages(prev => [...prev, response]);
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: response.response || 'I apologize, but I encountered an issue generating a response.',
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, aiMessage]);
     } catch (err) {
       console.error('Error:', err);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.',
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }

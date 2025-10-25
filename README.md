@@ -49,6 +49,17 @@ The application will be available at `http://localhost:5173`
 - **Routing**: React Router v6
 - **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
 - **State Management**: React Hooks + Context API
+- **Optional**: Python FastAPI backend (for advanced ML features)
+
+## Architecture
+
+EverAfter uses a **Supabase-First Architecture**:
+- All authentication via Supabase Auth
+- All database operations via Supabase PostgreSQL
+- All API endpoints via Supabase Edge Functions (8 serverless functions)
+- Python FastAPI backend available but optional (only for advanced ML/NLP)
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system design.
 
 ## Project Structure
 
@@ -80,7 +91,11 @@ src/
 
 supabase/
 ├── migrations/        # Database schema migrations (17 files)
-└── functions/         # Edge functions (7 serverless functions)
+└── functions/         # Edge functions (8 serverless functions)
+
+backend/               # Optional Python FastAPI backend
+├── app/              # FastAPI application
+└── requirements.txt  # Python dependencies
 ```
 
 ## Environment Variables
