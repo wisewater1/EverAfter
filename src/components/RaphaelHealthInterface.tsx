@@ -11,6 +11,7 @@ import RaphaelInsights from './RaphaelInsights';
 import RaphaelInsightsPanel from './RaphaelInsightsPanel';
 import HealthReportGenerator from './HealthReportGenerator';
 import AppointmentManager from './AppointmentManager';
+import RaphaelConnectors from './RaphaelConnectors';
 
 type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
@@ -170,7 +171,7 @@ export default function RaphaelHealthInterface() {
         {activeTab === 'medications' && <MedicationTracker />}
         {activeTab === 'appointments' && <AppointmentManager />}
         {activeTab === 'goals' && <HealthGoals />}
-        {activeTab === 'connections' && <HealthConnectionManager />}
+        {activeTab === 'connections' && <RaphaelConnectors />}
         {activeTab === 'emergency' && <EmergencyContacts />}
       </div>
     </div>

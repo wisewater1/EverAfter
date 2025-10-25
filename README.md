@@ -82,7 +82,18 @@ USER_JWT='your-jwt-here' ./scripts/smoke-test.sh
 - Appointment scheduling and reminders
 - Health goal setting and progress
 - Emergency contact management
-- OAuth integration (Apple Health, Google Fit, Fitbit, Garmin)
+- Health Connectors with OAuth integration (see below)
+
+**Health Connectors**:
+- OAuth-based integration with health data providers
+- Aggregators: Terra (multi-device), Human API, Validic, Metriport
+- Wearables: Fitbit, Oura Ring, WHOOP, Garmin, Withings, Polar
+- Glucose/CGM: Dexcom, Abbott Libre (via aggregators)
+- Clinical/EHR: SMART on FHIR (Epic, Oracle Health/Cerner)
+- Webhook ingestion with signature verification
+- Background sync with idempotent processing
+- Normalized metrics storage (steps, heart rate, sleep, glucose, etc.)
+- See [Health Connectors Setup](#health-connectors-setup) for configuration
 
 ### Security & Compliance
 
@@ -256,6 +267,154 @@ vercel --prod
 npm install -g netlify-cli
 netlify deploy --prod
 ```
+
+## Health Connectors Setup
+
+The Health Connectors system allows Raphael to integrate with external health data providers through OAuth and webhooks.
+
+### Architecture
+
+1. **OAuth Flow**: User initiates connection → Edge Function redirects to provider → Callback stores tokens
+2. **Webhook Ingestion**: Provider sends data → Signature verified → Metrics normalized → Stored in `health_metrics`
+3. **Manual Sync**: User triggers backfill → Edge Function fetches historical data → Stored with idempotency
+
+### Database Tables
+
+- `provider_accounts`: OAuth tokens and connection status
+- `health_metrics`: Normalized health data (steps, heart rate, sleep, glucose, etc.)
+- `webhook_events`: Webhook audit log with deduplication
+
+### Supported Providers
+
+#### Aggregators (One OAuth, Multiple Devices)
+- **Terra**: https://tryterra.co/ - Supports Fitbit, Garmin, Apple Health, Google Fit, Oura, WHOOP, and more
+- **Human API**: https://humanapi.co/ - Wellness + Medical records
+- **Validic**: https://validic.com/ - Broad device catalog with streaming
+- **Metriport**: https://metriport.com/ - Open-source, FHIR-native
+
+#### Direct Wearables
+- **Fitbit**: https://dev.fitbit.com/ - Steps, heart rate, sleep
+- **Oura Ring**: https://cloud.ouraring.com/docs/ - Sleep, HRV, readiness
+- **WHOOP**: https://developer.whoop.com/ - Strain, recovery (coming soon)
+- **Garmin**: https://developer.garmin.com/ - Fitness, VO2 max (coming soon)
+- **Withings**: https://developer.withings.com/ - Weight, BP (coming soon)
+- **Polar**: https://www.polar.com/accesslink-api/ - Training load (coming soon)
+
+#### Glucose Monitoring (CGM)
+- **Dexcom**: https://developer.dexcom.com/ - Real-time glucose via OAuth
+- **Abbott Libre**: Via aggregator partners (no public API)
+
+#### Clinical/EHR
+- **SMART on FHIR**: https://docs.smarthealthit.org/ - Epic, Oracle Health/Cerner, etc.
+- Requires per-institution registration
+
+### Provider Configuration
+
+#### 1. Set Environment Variables
+
+Add to Supabase Dashboard → Functions → Secrets:
+
+```bash
+APP_BASE_URL=https://your-app.com
+
+# Terra
+TERRA_CLIENT_ID=your_terra_client_id
+TERRA_CLIENT_SECRET=your_terra_secret
+TERRA_WEBHOOK_SECRET=your_terra_webhook_secret
+
+# Fitbit
+FITBIT_CLIENT_ID=your_fitbit_client_id
+FITBIT_CLIENT_SECRET=your_fitbit_secret
+FITBIT_SUBSCRIBER_VERIFICATION_CODE=your_verification_code
+
+# Oura
+OURA_CLIENT_ID=your_oura_client_id
+OURA_CLIENT_SECRET=your_oura_secret
+
+# Dexcom
+DEXCOM_CLIENT_ID=your_dexcom_client_id
+DEXCOM_CLIENT_SECRET=your_dexcom_secret
+```
+
+#### 2. Register OAuth Applications
+
+**Terra**:
+1. Sign up at https://dashboard.tryterra.co/
+2. Create new integration
+3. Set redirect URL: `https://your-app.com/api/connect-callback`
+4. Set webhook URL: `https://YOUR_PROJECT.supabase.co/functions/v1/webhook-terra`
+
+**Fitbit**:
+1. Register app at https://dev.fitbit.com/apps/new
+2. OAuth 2.0 Application Type: Server
+3. Redirect URL: `https://your-app.com/api/connect-callback`
+4. Webhook subscription URL: `https://YOUR_PROJECT.supabase.co/functions/v1/webhook-fitbit`
+
+**Oura**:
+1. Request API access at https://cloud.ouraring.com/oauth/applications
+2. Set redirect URI: `https://your-app.com/api/connect-callback`
+
+**Dexcom**:
+1. Register at https://developer.dexcom.com/
+2. Use sandbox for testing: https://sandbox-api.dexcom.com
+3. Set redirect URI: `https://your-app.com/api/connect-callback`
+
+#### 3. Deploy Edge Functions
+
+```bash
+# Deploy OAuth handlers
+supabase functions deploy connect-start
+supabase functions deploy connect-callback
+
+# Deploy webhook handlers
+supabase functions deploy webhook-terra
+supabase functions deploy webhook-fitbit
+supabase functions deploy webhook-oura
+supabase functions deploy webhook-dexcom
+
+# Deploy sync function
+supabase functions deploy sync-health-now
+```
+
+#### 4. Configure Webhooks
+
+For providers that support webhooks, register the webhook URLs in their developer dashboards:
+
+- Terra: `https://YOUR_PROJECT.supabase.co/functions/v1/webhook-terra`
+- Fitbit: `https://YOUR_PROJECT.supabase.co/functions/v1/webhook-fitbit`
+- Oura: `https://YOUR_PROJECT.supabase.co/functions/v1/webhook-oura`
+- Dexcom: `https://YOUR_PROJECT.supabase.co/functions/v1/webhook-dexcom`
+
+### Security Notes
+
+- All OAuth tokens encrypted at rest in Supabase
+- Webhook signatures verified on every request
+- Idempotent processing prevents duplicate data
+- Row Level Security enforces user data isolation
+- No PHI/credentials logged
+- Rate limiting on sync endpoints
+
+### Known Constraints
+
+- **Apple HealthKit**: Requires native iOS app companion
+- **Android Health Connect**: Requires native Android app
+- **Strava**: Workout data only; training/AI uses violate ToS
+- **Abbott Libre**: Must use aggregator programs (no public API)
+
+### Metric Normalization
+
+All providers map to standardized metrics:
+
+- `steps` (count)
+- `resting_hr` (bpm)
+- `hrv` (ms)
+- `sleep_efficiency` (%)
+- `glucose` (mg/dL)
+- `tir` (% time in range for glucose)
+- `vo2_max` (ml/kg/min)
+- `calories` (kcal)
+
+See Edge Function handlers for complete mapping tables.
 
 ## Support & Documentation
 
