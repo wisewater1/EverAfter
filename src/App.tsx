@@ -5,6 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import HealthDashboard from './pages/HealthDashboard';
 import OAuthCallback from './pages/OAuthCallback';
@@ -19,6 +21,8 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin/create-user" element={<AdminUserCreation />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard" element={
