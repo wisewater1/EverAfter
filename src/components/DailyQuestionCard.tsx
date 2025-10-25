@@ -41,6 +41,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadQuestion = useCallback(async () => {
     if (!selectedAI) return;
@@ -151,6 +152,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
     setSubmitting(true);
     setUploadProgress(0);
+    setErrorMessage(null);
 
     try {
       const uploadedFileIds: string[] = [];
@@ -158,21 +160,34 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       if (attachedFiles.length > 0) {
         for (let i = 0; i < attachedFiles.length; i++) {
           const file = attachedFiles[i];
-          const { file: uploadedFile } = await uploadFile(file, {
-            category: 'document',
-            description: `Attachment for question response on day ${question.day_number}`,
-            metadata: {
-              ai_id: selectedAI.id,
-              question_text: question.question_text,
-              day_number: question.day_number
-            }
-          });
-          uploadedFileIds.push(uploadedFile.id);
-          setUploadProgress(((i + 1) / attachedFiles.length) * 50);
+          try {
+            const { file: uploadedFile } = await uploadFile(file, {
+              category: 'document',
+              description: `Attachment for question response on day ${question.day_number}`,
+              metadata: {
+                ai_id: selectedAI.id,
+                question_text: question.question_text,
+                day_number: question.day_number
+              }
+            });
+            uploadedFileIds.push(uploadedFile.id);
+            setUploadProgress(((i + 1) / attachedFiles.length) * 50);
+          } catch (uploadError) {
+            console.error('File upload error:', uploadError);
+            throw new Error(`Failed to upload file "${file.name}". Please try again.`);
+          }
         }
       }
 
-      const { error } = await supabase
+      console.log('Submitting response with data:', {
+        user_id: userId,
+        ai_id: selectedAI.id,
+        day_number: question.day_number,
+        response_length: response.length,
+        file_count: uploadedFileIds.length
+      });
+
+      const { data, error } = await supabase
         .from('daily_question_responses')
         .insert([{
           user_id: userId,
@@ -182,14 +197,35 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           day_number: question.day_number,
           question_category: question.question_category,
           attachment_file_ids: uploadedFileIds.length > 0 ? uploadedFileIds : null,
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+
+        let userMessage = 'Failed to save your response. ';
+        if (error.code === '23505') {
+          userMessage += 'You may have already answered this question today.';
+        } else if (error.code === '23503') {
+          userMessage += 'There was a problem linking to your AI profile.';
+        } else if (error.message.includes('permission')) {
+          userMessage += 'Permission denied. Please try logging out and back in.';
+        } else if (error.message.includes('RLS')) {
+          userMessage += 'Security policy error. Please contact support.';
+        } else {
+          userMessage += `Error: ${error.message}`;
+        }
+
+        throw new Error(userMessage);
+      }
+
+      console.log('Response saved successfully:', data);
 
       setUploadProgress(100);
       setShowSuccess(true);
       setResponse('');
       setAttachedFiles([]);
+      setErrorMessage(null);
 
       setTimeout(() => {
         loadQuestion();
@@ -200,7 +236,9 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       loadAIs();
     } catch (error) {
       console.error('Error submitting response:', error);
-      alert('Failed to save your response. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to save your response. Please try again.';
+      setErrorMessage(message);
+      setUploadProgress(0);
     } finally {
       setSubmitting(false);
     }
@@ -390,6 +428,28 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-200">{errorMessage}</p>
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage(null)}
+                    className="flex-shrink-0 text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
 
