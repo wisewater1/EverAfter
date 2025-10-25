@@ -5,7 +5,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
-import Pricing from './pages/Pricing';
 import HealthDashboard from './pages/HealthDashboard';
 import OAuthCallback from './pages/OAuthCallback';
 
@@ -16,7 +15,6 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />

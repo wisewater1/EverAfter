@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, LogOut, CreditCard, Settings, MessageCircle, Users, Calendar, Bot, Heart } from 'lucide-react';
+import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
@@ -51,13 +51,6 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/pricing')}
-                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all flex items-center gap-2"
-              >
-                <CreditCard className="w-4 h-4" />
-                Billing
-              </button>
               <button
                 onClick={handleSignOut}
                 className="px-4 py-2 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600/30 transition-all flex items-center gap-2"

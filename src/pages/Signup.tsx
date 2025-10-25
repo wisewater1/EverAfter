@@ -54,7 +54,7 @@ export default function Signup() {
       setError(error.message);
       setLoading(false);
     } else {
-      navigate('/pricing');
+      navigate('/dashboard');
     }
   };
 
@@ -200,7 +200,7 @@ export default function Signup() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>14-day free trial • No credit card required</p>
+          <p>Free access • No credit card required</p>
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 interface Saint {
   id: string;
@@ -80,7 +79,6 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
 
 export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
@@ -199,8 +197,7 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
 
   const handleSaintActivation = (saint: Saint) => {
     if (saint.tier === 'premium' && !saint.active) {
-      alert(`${saint.name} is a premium feature. Visit the Pricing page to subscribe for $${saint.price}/month`);
-      navigate('/pricing');
+      alert(`${saint.name} is a premium feature. Coming soon!`);
     }
   };
 
