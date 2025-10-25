@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
 import EngramChat from '../components/EngramChat';
-import RaphaelChat from '../components/RaphaelChat';
+import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
@@ -141,7 +141,7 @@ export default function Dashboard() {
               }`}
             >
               <Activity className="w-4 h-4" />
-              Raphael Chat
+              Health Monitor
             </button>
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function Dashboard() {
           <FamilyMembers userId={user.id} />
         )}
         {selectedView === 'health' && (
-          <RaphaelChat />
+          <RaphaelHealthInterface />
         )}
       </main>
     </div>

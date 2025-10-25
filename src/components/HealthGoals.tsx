@@ -142,11 +142,11 @@ export default function HealthGoals() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+      <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-white mb-1">Health Goals</h2>
-            <p className="text-purple-300 text-sm">Set and track your health objectives</p>
+            <p className="text-gray-400 text-sm">Set and track your health objectives</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -178,7 +178,7 @@ export default function HealthGoals() {
                         <h3 className="text-white font-semibold text-lg">{goal.goal_title}</h3>
                       </div>
                       {goal.goal_description && (
-                        <p className="text-purple-300 text-sm mb-2">{goal.goal_description}</p>
+                        <p className="text-gray-400 text-sm mb-2">{goal.goal_description}</p>
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-400">
                         <span>Start: {new Date(goal.start_date).toLocaleDateString()}</span>

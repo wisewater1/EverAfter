@@ -164,15 +164,15 @@ export default function RaphaelChat() {
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 flex flex-col h-[600px]">
-      <div className="p-6 border-b border-white/10">
+    <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-700/50 flex flex-col h-[600px]">
+      <div className="p-6 border-b border-gray-700/50">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+          <div className="p-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg">
             <Heart className="w-6 h-6 text-white" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Raphael Health Assistant</h2>
-            <p className="text-purple-300 text-sm">Your personal health companion</p>
+            <p className="text-gray-400 text-sm">Your personal health companion</p>
           </div>
         </div>
 
@@ -180,17 +180,17 @@ export default function RaphaelChat() {
           <div className="p-3 bg-white/5 rounded-lg">
             <Activity className="w-4 h-4 text-green-400 mb-1" />
             <p className="text-white text-sm font-medium">{healthContext.recentMetrics}</p>
-            <p className="text-purple-300 text-xs">Metrics</p>
+            <p className="text-gray-400 text-xs">Metrics</p>
           </div>
           <div className="p-3 bg-white/5 rounded-lg">
             <Moon className="w-4 h-4 text-blue-400 mb-1" />
             <p className="text-white text-sm font-medium">{healthContext.upcomingAppointments}</p>
-            <p className="text-purple-300 text-xs">Appointments</p>
+            <p className="text-gray-400 text-xs">Appointments</p>
           </div>
           <div className="p-3 bg-white/5 rounded-lg">
             <Pill className="w-4 h-4 text-pink-400 mb-1" />
             <p className="text-white text-sm font-medium">{healthContext.activePrescriptions}</p>
-            <p className="text-purple-300 text-xs">Prescriptions</p>
+            <p className="text-gray-400 text-xs">Prescriptions</p>
           </div>
         </div>
       </div>
@@ -203,21 +203,21 @@ export default function RaphaelChat() {
           >
             <div className={`flex space-x-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
               <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === 'user' ? 'bg-blue-500/20' : 'bg-purple-500/20'
+                message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
               }`}>
                 {message.role === 'user' ? (
                   <User className="w-4 h-4 text-blue-300" />
                 ) : (
-                  <Bot className="w-4 h-4 text-purple-300" />
+                  <Bot className="w-4 h-4 text-emerald-300" />
                 )}
               </div>
               <div className={`rounded-2xl p-4 ${
                 message.role === 'user'
                   ? 'bg-blue-500/20 border border-blue-500/30'
-                  : 'bg-purple-500/20 border border-purple-500/30'
+                  : 'bg-emerald-500/20 border border-emerald-500/30'
               }`}>
                 <p className="text-white text-sm leading-relaxed">{message.content}</p>
-                <p className="text-purple-300 text-xs mt-2">
+                <p className="text-gray-400 text-xs mt-2">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -227,14 +227,14 @@ export default function RaphaelChat() {
         {loading && (
           <div className="flex justify-start">
             <div className="flex space-x-3 max-w-[80%]">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/20">
-                <Bot className="w-4 h-4 text-purple-300" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/20">
+                <Bot className="w-4 h-4 text-emerald-300" />
               </div>
-              <div className="rounded-2xl p-4 bg-purple-500/20 border border-purple-500/30">
+              <div className="rounded-2xl p-4 bg-emerald-500/20 border border-emerald-500/30">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function RaphaelChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-6 border-t border-white/10">
+      <div className="p-6 border-t border-gray-700/50">
         <div className="flex space-x-3">
           <input
             type="text"
@@ -251,12 +251,12 @@ export default function RaphaelChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask Raphael about your health..."
-            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-purple-300 focus:outline-none focus:border-purple-500/50"
+            className="flex-1 px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium flex items-center space-x-2"
+            className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium flex items-center space-x-2"
           >
             <Send className="w-4 h-4" />
             <span>Send</span>

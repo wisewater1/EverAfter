@@ -40,7 +40,49 @@ const HEALTH_SERVICES = [
     name: 'Garmin',
     icon: Watch,
     description: 'Connect Garmin devices',
-    color: 'from-indigo-600 to-purple-600'
+    color: 'from-orange-600 to-amber-600'
+  },
+  {
+    id: 'oura_ring',
+    name: 'Oura Ring',
+    icon: Activity,
+    description: 'Track sleep and recovery data',
+    color: 'from-slate-600 to-gray-600'
+  },
+  {
+    id: 'whoop',
+    name: 'Whoop',
+    icon: Activity,
+    description: 'Connect Whoop strap data',
+    color: 'from-gray-700 to-slate-700'
+  },
+  {
+    id: 'strava',
+    name: 'Strava',
+    icon: Activity,
+    description: 'Sync running and cycling activities',
+    color: 'from-orange-500 to-red-500'
+  },
+  {
+    id: 'myfitnesspal',
+    name: 'MyFitnessPal',
+    icon: Activity,
+    description: 'Track nutrition and calories',
+    color: 'from-blue-700 to-cyan-700'
+  },
+  {
+    id: 'withings',
+    name: 'Withings',
+    icon: Watch,
+    description: 'Connect Withings health devices',
+    color: 'from-teal-600 to-emerald-600'
+  },
+  {
+    id: 'samsung_health',
+    name: 'Samsung Health',
+    icon: Smartphone,
+    description: 'Sync Samsung Health data',
+    color: 'from-blue-600 to-indigo-600'
   }
 ];
 
@@ -196,13 +238,13 @@ export default function HealthConnectionManager() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+      <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-white mb-2">Health Service Connections</h2>
-          <p className="text-purple-300 text-sm">Connect your health devices and apps to automatically sync data</p>
+          <p className="text-gray-400 text-sm">Connect your health devices and apps to automatically sync data</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {HEALTH_SERVICES.map((service) => {
             const Icon = service.icon;
             const existingConnection = connections.find(c => c.service_type === service.id && c.status !== 'disconnected');
@@ -220,7 +262,7 @@ export default function HealthConnectionManager() {
                     </div>
                     <div>
                       <h3 className="text-white font-semibold">{service.name}</h3>
-                      <p className="text-purple-300 text-xs">{service.description}</p>
+                      <p className="text-gray-400 text-xs">{service.description}</p>
                     </div>
                   </div>
                   {existingConnection && getStatusBadge(existingConnection.status)}
@@ -229,7 +271,7 @@ export default function HealthConnectionManager() {
                 {existingConnection ? (
                   <div className="space-y-2">
                     {existingConnection.last_sync_at && (
-                      <p className="text-purple-200 text-xs">
+                      <p className="text-gray-300 text-xs">
                         Last synced: {new Date(existingConnection.last_sync_at).toLocaleString()}
                       </p>
                     )}
@@ -282,7 +324,7 @@ export default function HealthConnectionManager() {
       </div>
 
       {connections.filter(c => c.status === 'connected').length > 0 && (
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
           <h3 className="text-xl font-semibold text-white mb-4">Active Connections</h3>
           <div className="space-y-3">
             {connections.filter(c => c.status === 'connected').map((connection) => {
@@ -298,7 +340,7 @@ export default function HealthConnectionManager() {
                     </div>
                     <div>
                       <p className="text-white font-medium">{connection.service_name}</p>
-                      <p className="text-purple-300 text-xs">
+                      <p className="text-gray-400 text-xs">
                         Syncs {connection.sync_frequency} • Last: {new Date(connection.last_sync_at).toLocaleString()}
                       </p>
                     </div>
