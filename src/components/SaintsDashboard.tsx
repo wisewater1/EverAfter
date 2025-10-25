@@ -32,7 +32,6 @@ interface SaintActivity {
 }
 
 interface SaintsDashboardProps {
-  onOpenRaphaelAgent: () => void;
   onOpenHealthMonitor: () => void;
 }
 
@@ -78,7 +77,7 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
   }
 ];
 
-export default function SaintsDashboard({ onOpenRaphaelAgent, onOpenHealthMonitor }: SaintsDashboardProps) {
+export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboardProps) {
   const { user } = useAuth();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
@@ -401,24 +400,15 @@ export default function SaintsDashboard({ onOpenRaphaelAgent, onOpenHealthMonito
                   ) : null}
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="flex items-center gap-2">
                   {saint.active && saint.id === 'raphael' && (
-                    <>
-                      <button
-                        onClick={onOpenHealthMonitor}
-                        className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg"
-                      >
-                        <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="whitespace-nowrap">Health Monitor</span>
-                      </button>
-                      <button
-                        onClick={onOpenRaphaelAgent}
-                        className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-600 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
-                      >
-                        <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="whitespace-nowrap">View Agent Mode</span>
-                      </button>
-                    </>
+                    <button
+                      onClick={onOpenHealthMonitor}
+                      className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <Activity className="w-4 h-4" />
+                      <span className="whitespace-nowrap">Open Health Monitor</span>
+                    </button>
                   )}
                   {!saint.active && saint.tier === 'premium' && (
                     <button
