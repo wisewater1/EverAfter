@@ -12,6 +12,7 @@ import RaphaelInsightsPanel from './RaphaelInsightsPanel';
 import HealthReportGenerator from './HealthReportGenerator';
 import AppointmentManager from './AppointmentManager';
 import RaphaelConnectors from './RaphaelConnectors';
+import QuickActions from './QuickActions';
 
 type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
@@ -90,51 +91,7 @@ export default function RaphaelHealthInterface() {
           <div className="space-y-6">
             <RaphaelInsights />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-                <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setActiveTab('medications')}
-                    className="w-full px-4 py-3 bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 rounded-lg transition-all flex items-center gap-3 text-left"
-                  >
-                    <Pill className="w-5 h-5" />
-                    <div>
-                      <p className="font-medium">Track Medication</p>
-                      <p className="text-xs text-pink-400/70">Log your daily medications</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('appointments')}
-                    className="w-full px-4 py-3 bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 rounded-lg transition-all flex items-center gap-3 text-left"
-                  >
-                    <Calendar className="w-5 h-5" />
-                    <div>
-                      <p className="font-medium">Schedule Appointment</p>
-                      <p className="text-xs text-orange-400/70">Book a medical appointment</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('goals')}
-                    className="w-full px-4 py-3 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 rounded-lg transition-all flex items-center gap-3 text-left"
-                  >
-                    <Target className="w-5 h-5" />
-                    <div>
-                      <p className="font-medium">Set Health Goal</p>
-                      <p className="text-xs text-cyan-400/70">Create a new health objective</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('connections')}
-                    className="w-full px-4 py-3 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-lg transition-all flex items-center gap-3 text-left"
-                  >
-                    <Link2 className="w-5 h-5" />
-                    <div>
-                      <p className="font-medium">Connect Health Service</p>
-                      <p className="text-xs text-teal-400/70">Sync your health devices</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
+              <QuickActions onNavigate={(tab) => setActiveTab(tab as HealthTab)} />
 
               <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
                 <h2 className="text-xl font-semibold text-white mb-4">Health Tips</h2>
