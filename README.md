@@ -416,6 +416,274 @@ All providers map to standardized metrics:
 
 See Edge Function handlers for complete mapping tables.
 
+## Glucose & Metabolic Health Connectors
+
+**CRITICAL SAFETY**: This system provides informational data only. It does NOT diagnose, prescribe, or provide medical advice. All alerts use conservative clinical thresholds.
+
+### Overview
+
+The Glucose & Metabolic Health system integrates continuous glucose monitors (CGM), lab results, and contextual events into a unified, normalized data store that powers Raphael's health insights.
+
+### Supported Sources
+
+#### CGM Devices
+- **Dexcom G6/G7**: OAuth + Webhooks + Poll (Sandbox & Production)
+- **Libre**: Via aggregator partners (Terra, Validic, Metriport)
+- **Manual Upload**: CSV/JSON from Dexcom/Libre exports
+
+#### Lab Results
+- **SMART on FHIR**: HbA1c (LOINC 4548-4), lipid panels
+- **Manual Entry**: Support for any lab with structured format
+
+#### Context Events
+- Meals (carb counting)
+- Insulin dosing
+- Exercise (intensity tracking)
+- Illness/notes
+
+### Database Schema
+
+#### Core Tables
+
+**`glucose_readings`**: High-frequency CGM data (~5 min intervals)
+- Normalized to mg/dL (original unit preserved)
+- Sources: dexcom, libre-agg, terra, manual, fhir
+- Includes trend (rising/falling) and quality indicators
+- Unique constraint: (user_id, engram_id, ts, src)
+
+**`lab_results`**: Laboratory test results
+- LOINC codes for standardization
+- HbA1c, lipids, metabolic panels
+- FHIR integration ready
+
+**`metabolic_events`**: User-logged context
+- meal, insulin, exercise, illness, note
+- Carb counting, insulin dosing, free-text notes
+
+**`glucose_daily_agg`**: Pre-computed daily statistics
+- Time-in-Range (TIR) 70-180 mg/dL
+- Hypo/hyper event counts
+- Mean, SD, GMI (Glucose Management Indicator)
+- Computed by nightly cron job
+
+**`connector_tokens`**: Secure OAuth token vault
+- Encrypted at rest
+- Refresh token support
+- Expiration tracking
+
+**`connector_consent_ledger`**: Compliance audit trail
+- Grant/revoke/refresh events
+- Scope tracking
+- IP and user agent logging
+
+### Setup Instructions
+
+#### 1. Environment Variables (Supabase Functions → Secrets)
+
+```bash
+# Dexcom CGM
+DEXCOM_CLIENT_ID=your_dexcom_client_id
+DEXCOM_CLIENT_SECRET=your_dexcom_secret
+DEXCOM_REDIRECT_URL=https://your-app.com/api/cgm-callback
+DEXCOM_ENVIRONMENT=sandbox  # or 'production'
+DEXCOM_WEBHOOK_SECRET=your_webhook_secret
+
+# Aggregators (choose one to start)
+TERRA_API_KEY=your_terra_key
+TERRA_WEBHOOK_SECRET=your_terra_webhook_secret
+
+# FHIR (for lab results)
+FHIR_CLIENT_ID=your_fhir_client
+FHIR_CLIENT_SECRET=your_fhir_secret
+FHIR_REDIRECT_URL=https://your-app.com/api/fhir-callback
+
+# General
+APP_BASE_URL=https://your-app.com
+```
+
+#### 2. Register Applications
+
+**Dexcom**:
+1. Apply for Dexcom Developer account: https://developer.dexcom.com/
+2. Start with Sandbox environment for testing
+3. Production requires partnership agreement
+4. Redirect URI: `https://your-app.com/api/cgm-callback`
+5. Webhook URL: `https://YOUR_PROJECT.supabase.co/functions/v1/cgm-dexcom-webhook`
+
+**Terra (for Libre + multi-device)**:
+1. Sign up: https://dashboard.tryterra.co/
+2. Get API key and webhook secret
+3. Configure webhook: `https://YOUR_PROJECT.supabase.co/functions/v1/cgm-agg-webhook`
+
+**SMART on FHIR**:
+1. Register with EHR provider (Epic, Cerner/Oracle Health, etc.)
+2. Request scopes: `patient/Observation.read`, `launch`, `offline_access`
+3. Redirect URI: `https://your-app.com/api/fhir-callback`
+
+#### 3. Deploy Edge Functions
+
+```bash
+# OAuth flows
+supabase functions deploy cgm-dexcom-oauth
+supabase functions deploy cgm-fhir-oauth
+
+# Webhooks
+supabase functions deploy cgm-dexcom-webhook
+supabase functions deploy cgm-agg-webhook
+
+# Manual upload
+supabase functions deploy cgm-manual-upload
+
+# Daily aggregation (schedule this)
+supabase functions deploy glucose-aggregate-cron
+```
+
+#### 4. Schedule Cron Job
+
+In Supabase Dashboard → Database → Cron Jobs:
+
+```sql
+-- Run daily aggregation at 2 AM UTC
+SELECT cron.schedule(
+  'glucose-daily-aggregation',
+  '0 2 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://YOUR_PROJECT.supabase.co/functions/v1/glucose-aggregate-cron',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
+  );
+  $$
+);
+```
+
+### Alert Thresholds (Conservative Clinical Standards)
+
+**Urgent Low**: <55 mg/dL → Immediate notification (bypasses quiet hours)
+
+**Low**: <70 mg/dL sustained 20+ min → Notify user
+
+**High**: >180 mg/dL sustained 60+ min → Notify user
+
+**Weekly TIR**: <70% over 7 days → Insight + non-diagnostic suggestion
+
+**Connection Alerts**:
+- Webhook silence >6 hours
+- Token expiration within 24 hours
+- Signature verification failures
+
+### Data Flow
+
+1. **OAuth Connection**: User authorizes → Tokens stored in vault → Initial backfill queued
+2. **Webhook Ingestion**: Provider sends data → Signature verified → Normalized to mg/dL → Upserted into `glucose_readings`
+3. **Daily Aggregation**: Cron job computes TIR, mean, SD, GMI → Stores in `glucose_daily_agg`
+4. **Alert Engine**: Evaluates thresholds → Sends notifications via existing system
+5. **Agent Access**: Raphael queries via RLS-protected functions for context-aware responses
+
+### Unit Handling
+
+**Primary Storage**: mg/dL
+
+**Conversion**: mmol/L × 18.0182 = mg/dL
+
+**Preservation**: Original unit stored in `unit` field; raw payload in `raw` jsonb
+
+### Security & Compliance
+
+- **Encryption**: OAuth tokens encrypted at rest in Supabase
+- **Signatures**: All webhooks verify HMAC signatures
+- **Idempotency**: Unique constraints prevent duplicate ingestion
+- **RLS**: Users can only access their own data
+- **Audit**: All consent actions logged with timestamp, IP, user agent
+- **PHI Protection**: Device serials redacted from logs
+- **Export/Delete**: User-initiated data export and deletion flows
+
+### Manual Upload Format
+
+**Dexcom CSV** (from Clarity export):
+```csv
+Timestamp,Glucose Value (mg/dL),Unit
+2024-10-25 08:00:00,120,mg/dL
+2024-10-25 08:05:00,125,mg/dL
+```
+
+**JSON Format**:
+```json
+{
+  "readings": [
+    {
+      "ts": "2024-10-25T08:00:00Z",
+      "value": 120,
+      "unit": "mg/dL"
+    }
+  ],
+  "events": [
+    {
+      "ts": "2024-10-25T07:30:00Z",
+      "type": "meal",
+      "carbs_g": 45,
+      "text": "Breakfast - oatmeal"
+    }
+  ]
+}
+```
+
+### Raphael Agent Tools
+
+Raphael can access these functions (server-side only):
+
+- `get_glucose_window({ start, end })`: Fetch readings with stats
+- `get_last_hypo_event({ window })`: Find recent hypoglycemic events
+- `compute_tir({ window })`: Calculate time-in-range
+- `add_meal_event({ ts, carbs_g, text })`: Log meals
+- `add_insulin_event({ ts, insulin_units, text })`: Log insulin
+- `set_glucose_alerts({ low, high, durationMin, quietHours })`: Configure alerts
+
+All functions respect RLS and validate ownership.
+
+### Metrics Computed
+
+- **TIR (Time-in-Range)**: % readings 70-180 mg/dL
+- **GMI (Glucose Management Indicator)**: Estimated HbA1c from mean glucose
+  - Formula: GMI = 3.31 + (0.02392 × mean_glucose)
+- **CV (Coefficient of Variation)**: SD / mean × 100
+- **Hypoglycemia**: <70 mg/dL and <54 mg/dL bands
+- **Hyperglycemia**: >180 mg/dL and >250 mg/dL bands
+
+### Testing
+
+**Smoke Test** (`scripts/smoke-glucose.sh`):
+```bash
+#!/bin/bash
+# Upload fixture CSV
+curl -X POST \
+  -H "Authorization: Bearer $USER_JWT" \
+  -F "file=@fixtures/dexcom-sample.csv" \
+  $SUPABASE_URL/functions/v1/cgm-manual-upload
+
+# Trigger aggregation
+curl -X POST \
+  -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+  $SUPABASE_URL/functions/v1/glucose-aggregate-cron
+
+# Verify data
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM glucose_readings;"
+psql $DATABASE_URL -c "SELECT * FROM glucose_daily_agg ORDER BY day DESC LIMIT 5;"
+```
+
+### Known Constraints
+
+- **Dexcom Production**: Requires partnership agreement; use Sandbox for development
+- **Libre Direct**: No public API; use aggregator partnerships (Terra, Validic)
+- **Rate Limits**: Backfill operations respect provider rate limits with exponential backoff
+- **Data Retention**: Follow provider ToS for data retention periods
+
+### Support & Documentation
+
+- **Dexcom API Docs**: https://developer.dexcom.com/
+- **Terra Docs**: https://docs.tryterra.co/
+- **SMART on FHIR**: https://docs.smarthealthit.org/
+- **Clinical Guidelines**: ADA Standards of Care (https://diabetesjournals.org/care/issue/47/Supplement_1)
+
 ## Support & Documentation
 
 - **Setup Guide**: [SETUP.md](./SETUP.md)
