@@ -132,7 +132,7 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
           Tasks can only be assigned to AIs that have completed their training.
         </p>
         <p className="text-gray-500 max-w-md mx-auto text-sm">
-          Go to Custom Engrams, select Dante (or another AI), then answer daily questions to build their personality. Once trained, they'll appear here and can be given custom tasks!
+          Go to Custom Engrams, select an AI (like Dante or Jamal), then answer daily questions to build their personality. Once trained, they'll appear here and can be given custom tasks!
         </p>
       </div>
     );

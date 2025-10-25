@@ -26,18 +26,26 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     description: '',
   });
 
-  const createDanteAI = useCallback(async () => {
+  const createDefaultAIs = useCallback(async () => {
     try {
       await supabase
         .from('archetypal_ais')
-        .insert([{
-          user_id: userId,
-          name: 'Dante',
-          description: 'A curious and philosophical AI that learns about you through thoughtful questions and conversations. Dante seeks to understand the depths of human experience.',
-          training_status: 'training'
-        }]);
+        .insert([
+          {
+            user_id: userId,
+            name: 'Dante',
+            description: 'A curious and philosophical AI that learns about you through thoughtful questions and conversations. Dante seeks to understand the depths of human experience.',
+            training_status: 'training'
+          },
+          {
+            user_id: userId,
+            name: 'Jamal',
+            description: 'An investment attorney AI specializing in financial strategy, legal compliance, and investment planning. Jamal provides expert guidance on wealth management and legal matters.',
+            training_status: 'training'
+          }
+        ]);
     } catch (error) {
-      console.error('Error creating Dante AI:', error);
+      console.error('Error creating default AIs:', error);
     }
   }, [userId]);
 
@@ -54,7 +62,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
       const aiList = data || [];
 
       if (aiList.length === 0) {
-        await createDanteAI();
+        await createDefaultAIs();
         const { data: newData } = await supabase
           .from('archetypal_ais')
           .select('*')
@@ -69,7 +77,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     } finally {
       setLoading(false);
     }
-  }, [userId, createDanteAI]);
+  }, [userId, createDefaultAIs]);
 
   useEffect(() => {
     loadAIs();
