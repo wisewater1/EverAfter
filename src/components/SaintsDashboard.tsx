@@ -85,6 +85,7 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [newActivityIds, setNewActivityIds] = useState<Set<string>>(new Set());
 
   const restoreSaintsData = async () => {
     if (!user) return;
@@ -234,11 +235,131 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
         .limit(20);
 
       if (error) throw error;
-      setActivities(data || []);
+
+      const newData = data || [];
+      const currentIds = new Set(activities.map(a => a.id));
+      const newIds = new Set<string>();
+
+      newData.forEach(activity => {
+        if (!currentIds.has(activity.id)) {
+          newIds.add(activity.id);
+        }
+      });
+
+      if (newIds.size > 0) {
+        setNewActivityIds(newIds);
+        setTimeout(() => setNewActivityIds(new Set()), 3000);
+      }
+
+      setActivities(newData);
     } catch (error) {
       console.error('Error loading activities:', error);
     }
-  }, [user]);
+  }, [user, activities]);
+
+  const generateNewActivity = useCallback(async () => {
+    if (!user) return;
+
+    const activityTemplates = [
+      {
+        saint_id: 'raphael',
+        action: 'Health Monitoring Started',
+        description: 'I have begun monitoring your health data and will proactively help manage appointments, medications, and wellness goals.',
+        category: 'support',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Medication Reminder Setup',
+        description: 'Created reminders for your morning medications',
+        category: 'support',
+        impact: 'high',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Weekly Health Analysis',
+        description: 'Analyzed your health trends from the past week',
+        category: 'memory',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Appointment Follow-up',
+        description: 'Checking for upcoming medical appointments and scheduling needs',
+        category: 'support',
+        impact: 'high',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Wellness Goal Tracking',
+        description: 'Monitoring progress toward your fitness and nutrition goals',
+        category: 'memory',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Health Data Sync',
+        description: 'Synchronized health data from connected devices',
+        category: 'support',
+        impact: 'low',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Nutrition Analysis',
+        description: 'Reviewing dietary patterns and suggesting improvements',
+        category: 'memory',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Sleep Pattern Review',
+        description: 'Analyzed sleep quality and duration from recent data',
+        category: 'memory',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Exercise Tracking Update',
+        description: 'Logged your recent physical activities and workouts',
+        category: 'support',
+        impact: 'low',
+        status: 'completed'
+      },
+      {
+        saint_id: 'raphael',
+        action: 'Preventive Care Reminder',
+        description: 'Reminder to schedule your annual physical examination',
+        category: 'support',
+        impact: 'high',
+        status: 'in_progress'
+      }
+    ];
+
+    const randomActivity = activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
+
+    try {
+      const { error } = await supabase
+        .from('saint_activities')
+        .insert({
+          user_id: user.id,
+          ...randomActivity
+        });
+
+      if (!error) {
+        await loadActivities();
+      }
+    } catch (error) {
+      console.error('Error creating activity:', error);
+    }
+  }, [user, loadActivities]);
 
   useEffect(() => {
     if (user) {
@@ -246,6 +367,26 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
       loadActivities();
     }
   }, [user, loadSaintsData, loadActivities]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const activityRefreshInterval = setInterval(() => {
+      loadActivities();
+    }, 30000);
+
+    const newActivityInterval = setInterval(() => {
+      const shouldGenerate = Math.random() > 0.5;
+      if (shouldGenerate) {
+        generateNewActivity();
+      }
+    }, 45000);
+
+    return () => {
+      clearInterval(activityRefreshInterval);
+      clearInterval(newActivityInterval);
+    };
+  }, [user, loadActivities, generateNewActivity]);
 
   const handleSaintActivation = (saint: Saint) => {
     if (saint.tier === 'premium' && !saint.active) {
@@ -617,10 +758,11 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
           ) : (
             activities.map((activity) => {
               const CategoryIcon = getCategoryIcon(activity.category);
+              const isNew = newActivityIds.has(activity.id);
               return (
                 <div
                   key={activity.id}
-                  className="group bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/50 hover:border-slate-700/50 transition-all cursor-pointer"
+                  className={`group bg-slate-900/50 hover:bg-slate-900/70 rounded-xl p-4 border border-slate-800/50 hover:border-slate-700/50 transition-all cursor-pointer ${isNew ? 'animate-fadeInSlide animate-pulseGlow border-emerald-500/30' : ''}`}
                   onClick={() => setShowActivityDetails(showActivityDetails === activity.id ? null : activity.id)}
                 >
                   <div className="flex items-start gap-4">
@@ -630,7 +772,14 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2 gap-3">
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-white mb-1">{activity.action}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-medium text-white">{activity.action}</h4>
+                            {isNew && (
+                              <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded border border-emerald-500/30 animate-pulse">
+                                NEW
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{activity.description}</p>
                         </div>
                         <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border ${getImpactColor(activity.impact)}`}>
