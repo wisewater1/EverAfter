@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, User, Brain, Sparkles, TrendingUp, Calendar, Target, Zap } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, User, Brain, TrendingUp, Calendar, Target, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ArchetypalAI {
@@ -26,11 +26,22 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     description: '',
   });
 
-  useEffect(() => {
-    loadAIs();
+  const createDanteAI = useCallback(async () => {
+    try {
+      await supabase
+        .from('archetypal_ais')
+        .insert([{
+          user_id: userId,
+          name: 'Dante',
+          description: 'A curious and philosophical AI that learns about you through thoughtful questions and conversations. Dante seeks to understand the depths of human experience.',
+          training_status: 'training'
+        }]);
+    } catch (error) {
+      console.error('Error creating Dante AI:', error);
+    }
   }, [userId]);
 
-  const loadAIs = async () => {
+  const loadAIs = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('archetypal_ais')
@@ -58,22 +69,12 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, createDanteAI]);
 
-  const createDanteAI = async () => {
-    try {
-      await supabase
-        .from('archetypal_ais')
-        .insert([{
-          user_id: userId,
-          name: 'Dante',
-          description: 'A curious and philosophical AI that learns about you through thoughtful questions and conversations. Dante seeks to understand the depths of human experience.',
-          training_status: 'training'
-        }]);
-    } catch (error) {
-      console.error('Error creating Dante AI:', error);
-    }
-  };
+  useEffect(() => {
+    loadAIs();
+  }, [loadAIs]);
+
 
   const createAI = async () => {
     if (!newAI.name) {

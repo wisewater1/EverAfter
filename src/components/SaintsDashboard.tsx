@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,7 +29,7 @@ interface SaintActivity {
   status: 'completed' | 'in_progress' | 'scheduled';
   impact: 'high' | 'medium' | 'low';
   category: 'communication' | 'support' | 'protection' | 'memory' | 'family' | 'charity';
-  details?: any;
+  details?: string | Record<string, unknown>;
 }
 
 interface SaintsDashboardProps {
@@ -83,18 +83,10 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
   const navigate = useNavigate();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
-  const [selectedSaint, setSelectedSaint] = useState<string | null>(null);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadSaintsData();
-      loadActivities();
-    }
-  }, [user]);
-
-  const loadSaintsData = async () => {
+  const loadSaintsData = useCallback(async () => {
     try {
       // Load user's active saints from database
       const { data: activeSaints, error: saintsError } = await supabase
@@ -172,9 +164,9 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -192,7 +184,14 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
     } catch (error) {
       console.error('Error loading activities:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadSaintsData();
+      loadActivities();
+    }
+  }, [user, loadSaintsData, loadActivities]);
 
   const handleSaintActivation = (saint: Saint) => {
     if (saint.tier === 'premium' && !saint.active) {
@@ -451,7 +450,6 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
             </div>
           ) : (
             activities
-              .filter(activity => selectedSaint ? activity.saint_id === selectedSaint : true)
               .map((activity) => {
                 const CategoryIcon = getCategoryIcon(activity.category);
                 return (

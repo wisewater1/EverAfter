@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Heart, Calendar, Pill, FileText, Activity, CheckCircle, Clock, AlertCircle, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -12,7 +12,7 @@ interface HealthTask {
   completion_percentage: number;
   scheduled_for: string;
   created_at: string;
-  result?: any;
+  result?: Record<string, unknown>;
 }
 
 interface RaphaelAgentModeProps {
@@ -46,13 +46,7 @@ export default function RaphaelAgentMode({ userId, engramId, onClose }: RaphaelA
     priority: 'medium',
   });
 
-  useEffect(() => {
-    loadTasks();
-    const interval = setInterval(loadTasks, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('agent_task_queue')
@@ -68,7 +62,13 @@ export default function RaphaelAgentMode({ userId, engramId, onClose }: RaphaelA
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, engramId]);
+
+  useEffect(() => {
+    loadTasks();
+    const interval = setInterval(loadTasks, 5000);
+    return () => clearInterval(interval);
+  }, [loadTasks]);
 
   const createTask = async () => {
     if (!newTask.task_title || !newTask.task_description) {

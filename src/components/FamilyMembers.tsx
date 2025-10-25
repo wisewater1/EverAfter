@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -32,12 +32,8 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
   const [questionText, setQuestionText] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadFamilyMembers();
-  }, [userId]);
-
-  const loadFamilyMembers = async () => {
-    const { data, error } = await supabase
+  const loadFamilyMembers = useCallback(async () => {
+    const { data } = await supabase
       .from('family_members')
       .select('*')
       .eq('user_id', userId)
@@ -57,7 +53,11 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
         personality_questions_answered: 0
       })));
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadFamilyMembers();
+  }, [loadFamilyMembers]);
 
   const inviteFamilyMember = async () => {
     if (!inviteForm.name || !inviteForm.email || !inviteForm.relationship) {

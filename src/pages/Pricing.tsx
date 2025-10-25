@@ -97,9 +97,9 @@ export default function Pricing() {
       } else {
         throw new Error('No checkout URL received');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Checkout error:', err);
-      setError(err.message || 'Failed to start checkout');
+      setError(err instanceof Error ? err.message : 'Failed to start checkout');
       setLoading(null);
     }
   };

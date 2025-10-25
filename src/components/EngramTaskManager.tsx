@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle, Clock, Play, Trash2, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Clock, Play, Trash2, Calendar } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
 import { supabase } from '../lib/supabase';
 
@@ -33,15 +33,11 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
   const [newTask, setNewTask] = useState({
     task_name: '',
     task_description: '',
-    task_type: 'reminder' as any,
-    frequency: 'on_demand' as any,
+    task_type: 'reminder' as 'reminder' | 'notification' | 'action',
+    frequency: 'on_demand' as 'on_demand' | 'daily' | 'weekly' | 'monthly',
   });
 
-  useEffect(() => {
-    loadEngrams();
-  }, [userId]);
-
-  const loadEngrams = async () => {
+  const loadEngrams = useCallback(async () => {
     try {
       const { data } = await supabase
         .from('archetypal_ais')
@@ -59,7 +55,11 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
     } catch (error) {
       console.error('Error loading engrams:', error);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadEngrams();
+  }, [loadEngrams]);
 
   const activeEngrams = loadedEngrams.length > 0 ? loadedEngrams.filter(e => e.is_ai_active) : engrams.filter(e => e.is_ai_active);
 
@@ -67,15 +67,9 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
     if (activeEngrams.length > 0 && !selectedEngram) {
       setSelectedEngram(activeEngrams[0]);
     }
-  }, [activeEngrams]);
+  }, [activeEngrams, selectedEngram]);
 
-  useEffect(() => {
-    if (selectedEngram) {
-      loadTasks();
-    }
-  }, [selectedEngram]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     if (!selectedEngram) return;
     setLoading(true);
     try {
@@ -86,7 +80,13 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedEngram]);
+
+  useEffect(() => {
+    if (selectedEngram) {
+      loadTasks();
+    }
+  }, [selectedEngram, loadTasks]);
 
   const createTask = async () => {
     if (!selectedEngram || !newTask.task_name) {

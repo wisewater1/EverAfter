@@ -20,7 +20,7 @@ interface EngramChatProps {
   userId: string;
 }
 
-export default function EngramChat({ engrams, userId }: EngramChatProps) {
+export default function EngramChat({ engrams }: EngramChatProps) {
   const [selectedEngram, setSelectedEngram] = useState<Engram | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -32,7 +32,7 @@ export default function EngramChat({ engrams, userId }: EngramChatProps) {
     if (activeEngrams.length > 0 && !selectedEngram) {
       setSelectedEngram(activeEngrams[0]);
     }
-  }, [activeEngrams]);
+  }, [activeEngrams, selectedEngram]);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || !selectedEngram || loading) return;

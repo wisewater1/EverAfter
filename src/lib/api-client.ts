@@ -44,7 +44,7 @@ class APIClient {
     return this.request(`/api/v1/tasks/${engramId}`, { method: 'GET' });
   }
 
-  async createTask(engramId: string, data: any) {
+  async createTask(engramId: string, data: Record<string, unknown>) {
     return this.request(`/api/v1/tasks/${engramId}/create`, {
       method: 'POST',
       body: JSON.stringify(data),

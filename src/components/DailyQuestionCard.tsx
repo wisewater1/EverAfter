@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User, ChevronRight, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ArchetypalAI {
@@ -39,42 +39,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  useEffect(() => {
-    loadAIs();
-  }, [userId]);
-
-  useEffect(() => {
-    if (preselectedAIId && ais.length > 0) {
-      const ai = ais.find(a => a.id === preselectedAIId);
-      if (ai) {
-        setSelectedAI(ai);
-        loadQuestion();
-      }
-    }
-  }, [preselectedAIId, ais]);
-
-  const loadAIs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('archetypal_ais')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setAIs(data || []);
-
-      if (data && data.length > 0 && !preselectedAIId) {
-        const firstAI = data[0];
-        setSelectedAI(firstAI);
-        loadQuestion();
-      }
-    } catch (error) {
-      console.error('Error loading AIs:', error);
-    }
-  };
-
-  const loadQuestion = async () => {
+  const loadQuestion = useCallback(async () => {
     setLoading(true);
     try {
       const { data: progressData } = await supabase
@@ -108,7 +73,42 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  const loadAIs = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('archetypal_ais')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAIs(data || []);
+
+      if (data && data.length > 0 && !preselectedAIId) {
+        const firstAI = data[0];
+        setSelectedAI(firstAI);
+        loadQuestion();
+      }
+    } catch (error) {
+      console.error('Error loading AIs:', error);
+    }
+  }, [userId, preselectedAIId, loadQuestion]);
+
+  useEffect(() => {
+    loadAIs();
+  }, [loadAIs]);
+
+  useEffect(() => {
+    if (preselectedAIId && ais.length > 0) {
+      const ai = ais.find(a => a.id === preselectedAIId);
+      if (ai) {
+        setSelectedAI(ai);
+        loadQuestion();
+      }
+    }
+  }, [preselectedAIId, ais, loadQuestion]);
 
   const handleAISelect = (ai: ArchetypalAI) => {
     setSelectedAI(ai);
