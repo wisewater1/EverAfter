@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { callEdgeFunction } from '../lib/edge-functions';
-import { TrendingUp, Calendar, CheckCircle, AlertCircle, Sparkles, Loader } from 'lucide-react';
+import { TrendingUp, Calendar, CheckCircle, AlertCircle, Sparkles, Loader, User } from 'lucide-react';
 
 interface Report {
   id: string;
@@ -14,19 +14,56 @@ interface Report {
   created_at: string;
 }
 
-interface RaphaelInsightsPanelProps {
-  engramId: string;
+interface Engram {
+  id: string;
+  name: string;
 }
 
-export default function RaphaelInsightsPanel({ engramId }: RaphaelInsightsPanelProps) {
+interface RaphaelInsightsPanelProps {
+  engramId?: string;
+}
+
+export default function RaphaelInsightsPanel({ engramId: initialEngramId }: RaphaelInsightsPanelProps) {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
   const [period, setPeriod] = useState<'7d' | '30d'>('7d');
   const [error, setError] = useState<string | null>(null);
+  const [engrams, setEngrams] = useState<Engram[]>([]);
+  const [selectedEngramId, setSelectedEngramId] = useState<string>(initialEngramId || '');
+  const [engramsLoading, setEngramsLoading] = useState(true);
+
+  async function loadEngrams() {
+    setEngramsLoading(true);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('engrams')
+        .select('id, name')
+        .order('name');
+
+      if (fetchError) throw fetchError;
+      if (data) {
+        setEngrams(data as Engram[]);
+
+        // Auto-select St. Raphael if not already selected
+        if (!selectedEngramId) {
+          const raphael = data.find(e => e.name === 'St. Raphael');
+          if (raphael) {
+            setSelectedEngramId(raphael.id);
+          } else if (data.length > 0) {
+            setSelectedEngramId(data[0].id);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Error loading engrams:', err);
+    } finally {
+      setEngramsLoading(false);
+    }
+  }
 
   async function loadReports() {
-    if (!engramId) return;
+    if (!selectedEngramId) return;
 
     setLoading(true);
     setError(null);
@@ -35,7 +72,7 @@ export default function RaphaelInsightsPanel({ engramId }: RaphaelInsightsPanelP
       const { data, error: fetchError } = await supabase
         .from('insight_reports')
         .select('*')
-        .eq('engram_id', engramId)
+        .eq('engram_id', selectedEngramId)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -50,12 +87,17 @@ export default function RaphaelInsightsPanel({ engramId }: RaphaelInsightsPanelP
   }
 
   async function generateReport() {
+    if (!selectedEngramId) {
+      setError('Please select an engram first');
+      return;
+    }
+
     setGenLoading(true);
     setError(null);
 
     try {
       const response = await callEdgeFunction<{ report: Report }>('insights-report', {
-        engramId,
+        engramId: selectedEngramId,
         period
       });
 
@@ -71,10 +113,20 @@ export default function RaphaelInsightsPanel({ engramId }: RaphaelInsightsPanelP
   }
 
   useEffect(() => {
-    if (engramId) {
+    loadEngrams();
+  }, []);
+
+  useEffect(() => {
+    if (initialEngramId && initialEngramId !== selectedEngramId) {
+      setSelectedEngramId(initialEngramId);
+    }
+  }, [initialEngramId]);
+
+  useEffect(() => {
+    if (selectedEngramId) {
       loadReports();
     }
-  }, [engramId]);
+  }, [selectedEngramId]);
 
   const getFindingIcon = (type: string) => {
     switch (type.toLowerCase()) {
@@ -107,17 +159,40 @@ export default function RaphaelInsightsPanel({ engramId }: RaphaelInsightsPanelP
     return String(value);
   };
 
-  if (!engramId) {
+  if (engramsLoading) {
     return (
       <div className="text-center py-12 text-gray-400">
-        <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-        <p>No engram selected. Please select St. Raphael to view insights.</p>
+        <Loader className="w-8 h-8 animate-spin mx-auto mb-3" />
+        <p className="text-sm">Loading engrams...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* Engram Selector */}
+      <div className="p-4 bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-xl border border-purple-500/20">
+        <label className="flex items-center gap-2 text-sm font-medium text-purple-300 mb-2">
+          <User className="w-4 h-4" />
+          Select Agent
+        </label>
+        <select
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+          value={selectedEngramId}
+          onChange={(e) => setSelectedEngramId(e.target.value)}
+        >
+          {engrams.length === 0 ? (
+            <option value="">No engrams found</option>
+          ) : (
+            engrams.map((engram) => (
+              <option key={engram.id} value={engram.id}>
+                {engram.name}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
+
       {/* Generation Controls */}
       <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-gray-700/50">
         <select
