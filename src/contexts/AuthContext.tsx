@@ -42,6 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            display_name: email.split('@')[0]
+          }
         }
       });
 
@@ -49,27 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
       }
 
-      if (data?.user) {
-        if (data.user.email_confirmed_at) {
-          return { error: null };
-        }
-
-        const userId = data.user.id;
-        await supabase.rpc('confirm_user_email', { user_id: userId }).catch(() => {
-          console.log('Auto-confirm failed, manual confirmation needed');
-        });
-
-        if (data?.session) {
-          return { error: null };
-        }
-
-        return {
-          error: {
-            message: 'Account created! You can now login with your credentials.',
-            name: 'SignupSuccess',
-            status: 200
-          } as AuthError
-        };
+      if (data?.user && data?.session) {
+        return { error: null };
       }
 
       return { error: null };
