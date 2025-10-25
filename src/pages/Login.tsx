@@ -12,7 +12,9 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('[Login] User state changed:', { hasUser: !!user, userId: user?.id });
     if (user) {
+      console.log('[Login] Navigating to dashboard');
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -22,19 +24,25 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    try {
+      const { error } = await signIn(email, password);
 
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
-      } else if (error.message.includes('Email not confirmed')) {
-        setError('Please confirm your email address before logging in.');
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Please confirm your email address before logging in.');
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
       } else {
-        setError(error.message);
+        // Success - navigation will happen via useEffect when user state updates
+        // Don't set loading to false here to avoid flicker
       }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
-    } else {
-      navigate('/dashboard');
     }
   };
 

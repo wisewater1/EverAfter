@@ -13,7 +13,9 @@ export default function Signup() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('[Signup] User state changed:', { hasUser: !!user, userId: user?.id });
     if (user) {
+      console.log('[Signup] Navigating to dashboard');
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -48,17 +50,23 @@ export default function Signup() {
 
     setLoading(true);
 
-    const { error } = await signUp(email, password);
+    try {
+      const { error } = await signUp(email, password);
 
-    if (error) {
-      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
-        setError('This email is already registered. Please login instead.');
+      if (error) {
+        if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+          setError('This email is already registered. Please login instead.');
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
       } else {
-        setError(error.message);
+        // Success - navigation will happen via useEffect when user state updates
+        // Don't set loading to false here to avoid flicker
       }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
-    } else {
-      navigate('/dashboard');
     }
   };
 

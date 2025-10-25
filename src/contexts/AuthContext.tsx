@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log('[AuthContext] Starting signup for:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -49,15 +50,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        console.error('[AuthContext] Signup error:', error);
         return { error };
       }
 
+      console.log('[AuthContext] Signup successful:', {
+        hasUser: !!data?.user,
+        hasSession: !!data?.session,
+        userId: data?.user?.id
+      });
+
+      // Supabase now auto-confirms emails in some configurations
+      // If we have both user and session, auth is complete
       if (data?.user && data?.session) {
-        return { error: null };
+        setSession(data.session);
+        setUser(data.user);
       }
 
       return { error: null };
     } catch (err) {
+      console.error('[AuthContext] Signup exception:', err);
       return {
         error: {
           message: err instanceof Error ? err.message : 'Signup failed',
@@ -69,12 +81,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      console.log('[AuthContext] Starting sign in for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    return { error };
+      if (error) {
+        console.error('[AuthContext] Sign in error:', error);
+        return { error };
+      }
+
+      console.log('[AuthContext] Sign in successful:', {
+        hasUser: !!data?.user,
+        hasSession: !!data?.session,
+        userId: data?.user?.id
+      });
+
+      // Manually update state to ensure immediate update
+      if (data?.user && data?.session) {
+        setSession(data.session);
+        setUser(data.user);
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('[AuthContext] Sign in exception:', err);
+      return {
+        error: {
+          message: err instanceof Error ? err.message : 'Sign in failed',
+          name: 'SignInError',
+          status: 500
+        } as AuthError
+      };
+    }
   };
 
   const signOut = async () => {
