@@ -38,8 +38,9 @@ export default function Login() {
         }
         setSubmitting(false);
       } else {
-        // Success - wait for useEffect to navigate
-        console.log('[Login] Sign in successful, waiting for redirect');
+        // Success - navigate immediately
+        console.log('[Login] Sign in successful, navigating to dashboard');
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');

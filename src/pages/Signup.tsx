@@ -62,8 +62,9 @@ export default function Signup() {
         }
         setSubmitting(false);
       } else {
-        // Success - wait for useEffect to navigate
-        console.log('[Signup] Sign up successful, waiting for redirect');
+        // Success - navigate immediately
+        console.log('[Signup] Sign up successful, navigating to dashboard');
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
