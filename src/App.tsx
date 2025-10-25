@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import HealthDashboard from './pages/HealthDashboard';
 import OAuthCallback from './pages/OAuthCallback';
 import Pricing from './pages/Pricing';
+import AdminUserCreation from './pages/AdminUserCreation';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/admin/create-user" element={<AdminUserCreation />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
