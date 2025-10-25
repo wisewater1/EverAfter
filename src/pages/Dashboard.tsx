@@ -11,7 +11,7 @@ import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family' | 'health'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
@@ -26,8 +26,21 @@ export default function Dashboard() {
     setSelectedView('questions');
   };
 
+  // Show loading state while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
   if (!user) {
-    navigate('/');
+    navigate('/login');
     return null;
   }
 

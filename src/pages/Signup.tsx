@@ -8,17 +8,18 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signUp, user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const { signUp, user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect to dashboard if already logged in
   useEffect(() => {
-    console.log('[Signup] User state changed:', { hasUser: !!user, userId: user?.id });
-    if (user) {
-      console.log('[Signup] Navigating to dashboard');
-      navigate('/dashboard');
+    console.log('[Signup] User state changed:', { hasUser: !!user, userId: user?.id, loading });
+    if (user && !loading) {
+      console.log('[Signup] User signed up, navigating to dashboard');
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const passwordStrength = (pwd: string) => {
     let strength = 0;
@@ -48,7 +49,7 @@ export default function Signup() {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const { error } = await signUp(email, password);
@@ -59,14 +60,14 @@ export default function Signup() {
         } else {
           setError(error.message);
         }
-        setLoading(false);
+        setSubmitting(false);
       } else {
-        // Success - navigation will happen via useEffect when user state updates
-        // Don't set loading to false here to avoid flicker
+        // Success - wait for useEffect to navigate
+        console.log('[Signup] Sign up successful, waiting for redirect');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -186,10 +187,10 @@ export default function Signup() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting || loading}
               className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
+              {(submitting || loading) ? (
                 <>
                   <Loader className="w-5 h-5 animate-spin" />
                   Creating Account...

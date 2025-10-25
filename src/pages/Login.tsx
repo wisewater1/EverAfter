@@ -7,22 +7,23 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn, user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect to dashboard if already logged in
   useEffect(() => {
-    console.log('[Login] User state changed:', { hasUser: !!user, userId: user?.id });
-    if (user) {
-      console.log('[Login] Navigating to dashboard');
-      navigate('/dashboard');
+    console.log('[Login] User state changed:', { hasUser: !!user, userId: user?.id, loading });
+    if (user && !loading) {
+      console.log('[Login] User logged in, navigating to dashboard');
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const { error } = await signIn(email, password);
@@ -35,14 +36,14 @@ export default function Login() {
         } else {
           setError(error.message);
         }
-        setLoading(false);
+        setSubmitting(false);
       } else {
-        // Success - navigation will happen via useEffect when user state updates
-        // Don't set loading to false here to avoid flicker
+        // Success - wait for useEffect to navigate
+        console.log('[Login] Sign in successful, waiting for redirect');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -123,10 +124,10 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting || loading}
               className="w-full px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm sm:text-base rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
+              {(submitting || loading) ? (
                 <>
                   <Loader className="w-5 h-5 animate-spin" />
                   Signing In...
