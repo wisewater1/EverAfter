@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, Target, Zap } from 'lucide-react';
+import { Plus, User, Brain, TrendingUp, Calendar, Target, Zap, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ArchetypalAI {
@@ -34,13 +34,13 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
           {
             user_id: userId,
             name: 'Dante',
-            description: 'A curious and philosophical AI that learns about you through thoughtful questions and conversations. Dante seeks to understand the depths of human experience.',
+            description: 'A curious and philosophical AI that learns about you through thoughtful questions',
             training_status: 'training'
           },
           {
             user_id: userId,
             name: 'Jamal',
-            description: 'An investment attorney AI specializing in financial strategy, legal compliance, and investment planning. Jamal provides expert guidance on wealth management and legal matters.',
+            description: 'An investment attorney AI specializing in financial strategy, legal compliance, and investment planning',
             training_status: 'training'
           }
         ]);
@@ -83,7 +83,6 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     loadAIs();
   }, [loadAIs]);
 
-
   const createAI = async () => {
     if (!newAI.name) {
       alert('Please fill in all required fields');
@@ -113,41 +112,49 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
   };
 
   const getStatusColor = (status: string) => {
-    if (status === 'ready') return 'text-green-400';
-    if (status === 'training') return 'text-yellow-400';
-    return 'text-gray-400';
+    if (status === 'ready') return 'text-emerald-400';
+    if (status === 'training') return 'text-amber-400';
+    return 'text-slate-400';
+  };
+
+  const getStatusBgColor = (status: string) => {
+    if (status === 'ready') return 'bg-emerald-500/10 border-emerald-500/20';
+    if (status === 'training') return 'bg-amber-500/10 border-amber-500/20';
+    return 'bg-slate-500/10 border-slate-500/20';
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-gray-400">Loading AIs...</div>
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin"></div>
+          <p className="text-sm text-slate-500">Loading Archetypal AIs...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-8 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-3xl font-light text-white">Archetypal AIs</h2>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 shadow-2xl">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-sky-500 via-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+              <Brain className="w-7 h-7 text-white" />
             </div>
-            <p className="text-gray-400 leading-relaxed max-w-2xl">
-              Create AI personalities by answering daily questions.
-              Build their memories and essence to power autonomous AI agents.
-            </p>
+            <div>
+              <h1 className="text-3xl font-light tracking-tight text-white mb-2">Archetypal AIs</h1>
+              <p className="text-slate-400 max-w-2xl leading-relaxed">
+                Create AI personalities by answering daily questions. Build their memories and essence to power autonomous AI agents.
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center gap-2"
+            className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all shadow-lg shadow-sky-500/20 font-medium flex items-center gap-2 whitespace-nowrap"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Create AI
           </button>
         </div>
@@ -155,31 +162,33 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
       {/* AIs Grid */}
       {ais.length === 0 ? (
-        <div className="bg-gray-800 rounded-2xl shadow-lg border border-gray-700/50 p-12 text-center">
-          <Brain className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-light text-white mb-2">No AIs Yet</h3>
-          <p className="text-gray-400 mb-6 max-w-md mx-auto">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-16 text-center shadow-2xl">
+          <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Brain className="w-10 h-10 text-slate-600" />
+          </div>
+          <h3 className="text-xl font-medium text-white mb-2">No AIs Yet</h3>
+          <p className="text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
             Start building a digital personality by creating your first AI. Answer daily questions to capture memories and essence.
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg font-medium inline-flex items-center gap-2"
+            className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all shadow-lg shadow-sky-500/20 font-medium inline-flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
             Create Your First AI
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {ais.map((ai) => (
             <div
               key={ai.id}
-              className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl border border-gray-700/50 p-6 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300 cursor-pointer group"
+              className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300 cursor-pointer"
               onClick={() => onSelectAI?.(ai.id)}
             >
-              {/* Avatar and Header */}
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
                   {ai.avatar_url ? (
                     <img src={ai.avatar_url} alt={ai.name} className="w-full h-full object-cover rounded-xl" />
                   ) : (
@@ -187,43 +196,44 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-medium text-white truncate">{ai.name}</h3>
-                  <p className="text-sm text-gray-400 line-clamp-2">{ai.description}</p>
+                  <h3 className="text-xl font-medium text-white mb-1">{ai.name}</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">{ai.description}</p>
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700/30">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="w-4 h-4 text-blue-400" />
-                    <span className="text-xs text-gray-400">Memories</span>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-sky-400" />
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Memories</span>
                   </div>
-                  <div className="text-xl font-light text-white">{ai.total_memories}</div>
+                  <div className="text-2xl font-light text-white">{ai.total_memories}</div>
                 </div>
-                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700/30">
-                  <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="w-4 h-4 text-teal-400" />
-                    <span className="text-xs text-gray-400">Status</span>
+
+                <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Status</span>
                   </div>
-                  <div className={`text-xl font-light capitalize ${getStatusColor(ai.training_status)}`}>
+                  <div className={`text-2xl font-light capitalize ${getStatusColor(ai.training_status)}`}>
                     {ai.training_status}
                   </div>
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700/30">
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
                 <div className="flex items-center gap-2">
                   {ai.training_status === 'ready' ? (
                     <>
-                      <Zap className="w-4 h-4 text-green-400" />
-                      <span className="text-sm text-green-400 font-medium">Ready</span>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-emerald-400 font-medium">Ready</span>
                     </>
                   ) : (
                     <>
-                      <Target className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-400 capitalize">{ai.training_status}</span>
+                      <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-slate-400 capitalize">{ai.training_status}</span>
                     </>
                   )}
                 </div>
@@ -232,9 +242,10 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                     e.stopPropagation();
                     onSelectAI?.(ai.id);
                   }}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                  className="text-sm text-sky-400 hover:text-sky-300 font-medium transition-colors flex items-center gap-1 group-hover:gap-2 duration-200"
                 >
-                  Answer Questions →
+                  Answer Questions
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -244,35 +255,35 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-8 max-w-lg w-full">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl flex items-center justify-center">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 max-w-lg w-full">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
                 <Plus className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-2xl font-light text-white">Create New AI</h3>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Name *</label>
+                <label className="block text-sm font-medium text-slate-300 mb-3">Name *</label>
                 <input
                   type="text"
                   value={newAI.name}
                   onChange={(e) => setNewAI({ ...newAI, name: e.target.value })}
                   placeholder="e.g., My Digital Self, Personal Assistant"
-                  className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                  className="w-full bg-slate-900/50 border border-slate-700 hover:border-slate-600 focus:border-sky-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description (Optional)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-3">Description (Optional)</label>
                 <textarea
                   value={newAI.description}
                   onChange={(e) => setNewAI({ ...newAI, description: e.target.value })}
                   placeholder="Brief description of this AI personality..."
-                  rows={3}
-                  className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
+                  rows={4}
+                  className="w-full bg-slate-900/50 border border-slate-700 hover:border-slate-600 focus:border-sky-500 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all resize-none"
                 />
               </div>
             </div>
@@ -280,13 +291,13 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 px-6 py-3 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all font-medium"
+                className="flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={createAI}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg font-medium"
+                className="flex-1 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all shadow-lg shadow-sky-500/20 font-medium"
               >
                 Create AI
               </button>
