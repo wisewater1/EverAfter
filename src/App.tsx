@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Pricing from './pages/Pricing';
+import HealthDashboard from './pages/HealthDashboard';
+import OAuthCallback from './pages/OAuthCallback';
 
 function App() {
   return (
@@ -18,6 +20,16 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/health-dashboard" element={
+            <ProtectedRoute>
+              <HealthDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/oauth/callback" element={
+            <ProtectedRoute>
+              <OAuthCallback />
             </ProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
