@@ -1,45 +1,110 @@
-# EverAfter - Digital Legacy Platform
+# EverAfter - Digital Legacy & Health Companion
 
-A compassionate platform for preserving memories, stories, and wisdom through daily reflections. Built with React, TypeScript, Tailwind CSS, and Supabase.
+A production-grade ChatGPT-class assistant with health intelligence. Features St. Raphael (health companion), autonomous task execution, and daily progress tracking. Built with React, TypeScript, Tailwind CSS, and Supabase.
 
-## Quick Start
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Supabase account (https://supabase.com)
+- OpenAI API key (https://platform.openai.com/api-keys)
+
+### Installation
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# 2. Copy environment template
+cp .env.example .env
 
-# Build for production
-npm run build
+# 3. Add your Supabase credentials to .env
+# Get these from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# 4. Start development server
+npm run dev
 ```
 
 The application will be available at `http://localhost:5173`
 
+### Deploy Edge Functions
+
+**CRITICAL**: Edge Functions require additional setup. See [EDGE_FUNCTIONS_SETUP.md](./EDGE_FUNCTIONS_SETUP.md) for complete instructions.
+
+Quick version:
+```bash
+# 1. Set OpenAI API key in Supabase Dashboard → Functions → Secrets
+#    Name: OPENAI_API_KEY
+#    Value: sk-your-actual-key-here
+
+# 2. Link your project
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+
+# 3. Deploy functions
+supabase functions deploy raphael-chat
+supabase functions deploy task-create
+supabase functions deploy daily-progress
+
+# 4. Test deployment
+USER_JWT='your-jwt-here' ./scripts/smoke-test.sh
+```
+
 ## Features
 
-### Core Functionality
-- **Saints AI Dashboard**: Autonomous AI assistants (St. Raphael free, premium Saints available)
-- **Custom Engrams**: Create archetypal AI personalities through daily questions
-- **Daily Questions System**: 365-day journey to build complete AI personalities
-- **Family Members**: Invite family to contribute memories and insights
-- **AI Chat**: Converse with your trained AI personalities
-- **Autonomous Tasks**: Let AI agents handle tasks in the background
-- **Raphael Agent Mode**: Specialized health management assistant
+### Production Features
 
-### Authentication & Security
-- Secure Supabase authentication with email/password
-- Protected routes with automatic redirects
-- Row Level Security (RLS) on all database tables
-- Automatic user initialization on signup
+**Unified Task System** (engram_ai_tasks):
+- Single source of truth for all health and personal tasks
+- St. Raphael operates through engrams schema
+- Full audit trail with execution logs
+- Status tracking: pending → in_progress → done/failed
+
+**St. Raphael Health Companion**:
+- ChatGPT-class conversational AI
+- Health information and emotional support
+- Never diagnoses or prescribes (safety-first design)
+- Automatic daily progress tracking
+- Emergency escalation patterns
+
+**Edge Functions** (Production-Grade):
+- `raphael-chat`: AI chat with safety guardrails
+- `task-create`: Create health/personal tasks
+- `daily-progress`: Track user engagement
+- Structured error responses (code/message/hint)
+- JWT forwarding with RLS enforcement
+
+**Health Monitoring**:
+- Medication tracking with adherence rates
+- Appointment scheduling and reminders
+- Health goal setting and progress
+- Emergency contact management
+- OAuth integration (Apple Health, Google Fit, Fitbit, Garmin)
+
+### Security & Compliance
+
+- ✅ Row Level Security (RLS) on all 30+ tables
+- ✅ All policies use `(select auth.uid())` for performance
+- ✅ JWT authentication enforced in Edge Functions
+- ✅ OpenAI API keys stored in Supabase Secrets (never in code)
+- ✅ Function security with `search_path` hardening
+- ✅ PHI protection (no logging of sensitive health data)
+- ✅ CORS headers configured
+- ✅ Rate limiting available
+
+See [SECURITY.md](./SECURITY.md) for complete threat model and mitigations.
 
 ### User Experience
-- Beautiful gradient-based dark theme
-- Fully responsive design for all devices
-- Smooth transitions and animations
+
+- iPhone-optimized (320-430px, safe areas, no horizontal scroll)
+- Responsive design for all devices
+- Dark theme with accessible contrast
 - Loading states and error handling
 - Production-ready interface
+- Smooth animations and transitions
 
 ## Tech Stack
 
