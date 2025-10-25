@@ -15,6 +15,9 @@ import {
   AlertCircle,
   ExternalLink,
   Upload,
+  Plus,
+  LayoutDashboard,
+  Sparkles,
 } from 'lucide-react';
 
 interface ProviderAccount {
@@ -161,6 +164,7 @@ export default function RaphaelConnectors() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCustomDashboard, setShowCustomDashboard] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -387,7 +391,7 @@ export default function RaphaelConnectors() {
                     return (
                       <div
                         key={provider.id}
-                        className={`rounded-xl border p-5 transition-all ${
+                        className={`rounded-xl border p-5 transition-all hover:scale-[1.01] ${
                           connected
                             ? 'bg-gradient-to-br from-gray-800/70 to-gray-900/70 border-teal-500/30'
                             : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600/50'
@@ -517,6 +521,260 @@ export default function RaphaelConnectors() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      <div className="bg-gradient-to-br from-violet-900/20 via-fuchsia-900/20 to-pink-900/20 border border-violet-500/30 rounded-2xl p-6 relative overflow-hidden group hover:scale-[1.01] transition-all cursor-pointer"
+        onClick={() => setShowCustomDashboard(true)}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        <div className="relative">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <LayoutDashboard className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                  Create Your Own Health Plugin
+                  <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
+                </h3>
+                <p className="text-violet-200 text-sm">
+                  Build custom dashboards combining multiple data sources
+                </p>
+              </div>
+            </div>
+
+            <div className="w-10 h-10 bg-violet-600/30 rounded-lg flex items-center justify-center group-hover:bg-violet-600/50 transition-all">
+              <Plus className="w-5 h-5 text-violet-300" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Connected Sources</div>
+              <div className="text-2xl font-bold text-white">{accounts.filter(a => a.status === 'active').length}</div>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Data Points</div>
+              <div className="text-2xl font-bold text-violet-300">All</div>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Views</div>
+              <div className="text-2xl font-bold text-fuchsia-300">Custom</div>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+              <div className="text-xs text-gray-400 mb-1">Insights</div>
+              <div className="text-2xl font-bold text-pink-300">AI</div>
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-4">
+            <h4 className="text-sm font-semibold text-violet-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Features You Can Build:
+            </h4>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-300">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
+                Unified health timeline across all devices
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-fuchsia-400 rounded-full" />
+                Custom correlation charts (glucose vs activity)
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
+                Personalized health score algorithms
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full" />
+                Multi-metric comparison dashboards
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-fuchsia-400 rounded-full" />
+                Automated health reports
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
+                Real-time alert systems
+              </li>
+            </ul>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCustomDashboard(true);
+            }}
+            className="w-full px-6 py-3 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 hover:from-violet-500 hover:via-fuchsia-500 hover:to-pink-500 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg group-hover:shadow-xl"
+          >
+            <Plus className="w-5 h-5" />
+            Start Building Your Custom Plugin
+            <Sparkles className="w-4 h-4 ml-1" />
+          </button>
+
+          <div className="mt-3 text-xs text-center text-gray-400">
+            {accounts.filter(a => a.status === 'active').length > 0 ? (
+              <span>Ready to integrate {accounts.filter(a => a.status === 'active').length} connected source{accounts.filter(a => a.status === 'active').length > 1 ? 's' : ''}</span>
+            ) : (
+              <span>Connect health sources above to get started</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showCustomDashboard && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowCustomDashboard(false)}>
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl border border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-auto p-6 relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowCustomDashboard(false)}
+              className="absolute top-4 right-4 w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center text-gray-400 hover:text-white transition-all"
+            >
+              ×
+            </button>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                <LayoutDashboard className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                  Custom Health Plugin Builder
+                  <Sparkles className="w-5 h-5 text-violet-400" />
+                </h2>
+                <p className="text-gray-400">Consolidate multiple data sources into one unified view</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-violet-900/20 to-fuchsia-900/20 rounded-xl p-5 border border-violet-500/20">
+                <h3 className="text-lg font-semibold text-white mb-3">Your Connected Sources</h3>
+                {accounts.filter(a => a.status === 'active').length === 0 ? (
+                  <p className="text-gray-400 text-sm">No sources connected yet. Connect health devices above to start building custom dashboards.</p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {accounts.filter(a => a.status === 'active').map(account => {
+                      const provider = providers.find(p => p.id === account.provider);
+                      if (!provider) return null;
+                      const Icon = provider.icon;
+                      return (
+                        <div key={account.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 flex items-center gap-3">
+                          <div className={`w-10 h-10 bg-gradient-to-br ${provider.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <Icon className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-white truncate">{provider.name}</div>
+                            <div className="text-xs text-gray-400">{provider.category}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50">
+                <h3 className="text-lg font-semibold text-white mb-4">Dashboard Templates</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 rounded-lg p-4 border border-blue-500/20 hover:border-blue-500/40 transition-all cursor-pointer group">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-white">Metabolic Health</h4>
+                      <div className="w-8 h-8 bg-blue-600/30 rounded-lg flex items-center justify-center group-hover:bg-blue-600/50 transition-all">
+                        <Droplet className="w-4 h-4 text-blue-300" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">Glucose, exercise, nutrition, and sleep in one view</p>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded">CGM</span>
+                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded">Activity</span>
+                      <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded">Sleep</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-red-900/20 to-pink-900/20 rounded-lg p-4 border border-red-500/20 hover:border-red-500/40 transition-all cursor-pointer group">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-white">Cardiovascular</h4>
+                      <div className="w-8 h-8 bg-red-600/30 rounded-lg flex items-center justify-center group-hover:bg-red-600/50 transition-all">
+                        <Heart className="w-4 h-4 text-red-300" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">Heart rate, HRV, blood pressure, and recovery metrics</p>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs px-2 py-1 bg-red-500/20 text-red-300 rounded">HR</span>
+                      <span className="text-xs px-2 py-1 bg-red-500/20 text-red-300 rounded">HRV</span>
+                      <span className="text-xs px-2 py-1 bg-red-500/20 text-red-300 rounded">Recovery</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 rounded-lg p-4 border border-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer group">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-white">Sleep Analysis</h4>
+                      <div className="w-8 h-8 bg-purple-600/30 rounded-lg flex items-center justify-center group-hover:bg-purple-600/50 transition-all">
+                        <Moon className="w-4 h-4 text-purple-300" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">Sleep stages, quality, readiness, and recovery</p>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-300 rounded">Sleep</span>
+                      <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-300 rounded">Readiness</span>
+                      <span className="text-xs px-2 py-1 bg-purple-500/20 text-purple-300 rounded">REM</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 rounded-lg p-4 border border-green-500/20 hover:border-green-500/40 transition-all cursor-pointer group">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-white">Performance</h4>
+                      <div className="w-8 h-8 bg-green-600/30 rounded-lg flex items-center justify-center group-hover:bg-green-600/50 transition-all">
+                        <TrendingUp className="w-4 h-4 text-green-300" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">Training load, VO2 max, strain, and progress tracking</p>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded">Load</span>
+                      <span className="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded">VO2</span>
+                      <span className="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded">Strain</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-amber-900/20 to-orange-900/20 rounded-xl p-5 border border-amber-500/20">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-amber-300 font-medium mb-2">Coming Soon</h4>
+                    <p className="text-amber-200/80 text-sm mb-3">
+                      The Custom Health Plugin Builder is under active development. You'll soon be able to:
+                    </p>
+                    <ul className="text-sm text-amber-200/70 space-y-1">
+                      <li>• Drag-and-drop dashboard designer</li>
+                      <li>• Custom data correlation algorithms</li>
+                      <li>• AI-powered insight generation</li>
+                      <li>• Export and share your dashboards</li>
+                      <li>• Automated health reports</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowCustomDashboard(false)}
+                className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-medium transition-all"
+              >
+                Close
+              </button>
+              <button
+                disabled
+                className="flex-1 px-6 py-3 bg-gray-700/50 text-gray-500 rounded-xl font-medium cursor-not-allowed"
+              >
+                Create Dashboard (Coming Soon)
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
