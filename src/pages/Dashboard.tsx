@@ -27,10 +27,6 @@ export default function Dashboard() {
     setSelectedView('questions');
   };
 
-  if (!user) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
       {/* Header */}
