@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Sparkles, User, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface FamilyMember {
@@ -15,6 +15,13 @@ interface FamilyMember {
   personality_questions_answered: number;
 }
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 interface FamilyMembersProps {
   userId: string;
 }
@@ -23,6 +30,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [inviteForm, setInviteForm] = useState({
     name: '',
@@ -30,7 +38,10 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
     relationship: ''
   });
   const [questionText, setQuestionText] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [aiTyping, setAiTyping] = useState(false);
 
   const loadFamilyMembers = useCallback(async () => {
     const { data } = await supabase
@@ -130,6 +141,67 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
     }
   };
 
+  const openChat = (member: FamilyMember) => {
+    setSelectedMember(member);
+    setChatMessages([
+      {
+        id: '1',
+        role: 'assistant',
+        content: `Hello! I'm the AI assistant helping manage ${member.name}'s profile. I can help you understand their personality, draft questions to send them, or provide insights based on their responses. How can I assist you today?`,
+        timestamp: new Date()
+      }
+    ]);
+    setShowChatModal(true);
+  };
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || !selectedMember) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: chatInput,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setAiTyping(true);
+
+    setTimeout(() => {
+      const aiResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: generateAIResponse(chatInput, selectedMember),
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, aiResponse]);
+      setAiTyping(false);
+    }, 1500);
+  };
+
+  const generateAIResponse = (input: string, member: FamilyMember): string => {
+    const lowerInput = input.toLowerCase();
+
+    if (lowerInput.includes('question') || lowerInput.includes('ask')) {
+      return `Great idea! Here are some meaningful questions you could ask ${member.name}:\n\n1. "What is your earliest childhood memory that still brings you joy?"\n2. "What values do you hope to pass on to future generations?"\n3. "Can you share a story about a time when you overcame a significant challenge?"\n\nWould you like me to help you craft a personalized question based on their ${member.relationship} relationship?`;
+    }
+
+    if (lowerInput.includes('personality') || lowerInput.includes('profile')) {
+      return `${member.name}'s personality profile is currently being built. They have answered ${member.personality_questions_answered} out of ${member.personality_questions_sent} questions sent.\n\nTo get deeper insights, I recommend asking questions about:\n• Their core values and beliefs\n• Meaningful life experiences\n• Family traditions and memories\n• Future hopes and dreams\n\nWould you like me to suggest specific questions?`;
+    }
+
+    if (lowerInput.includes('status') || lowerInput.includes('active')) {
+      return `${member.name} is currently ${member.status}. They were invited on ${new Date(member.invited_at).toLocaleDateString()}. ${member.status === 'active' ? 'They have been actively engaged with the platform!' : 'Consider sending them a reminder or reaching out directly to encourage participation.'}`;
+    }
+
+    if (lowerInput.includes('help') || lowerInput.includes('what can you')) {
+      return `I can help you with:\n\n📝 Drafting personalized questions for ${member.name}\n🎯 Understanding their personality profile progress\n💡 Suggesting conversation topics\n📊 Tracking their engagement\n✉️ Crafting reminder messages\n\nJust ask me anything about ${member.name} or how to engage with them better!`;
+    }
+
+    return `I understand you're asking about ${member.name}. As their ${member.relationship}, you have a unique perspective on their life story. I can help you:\n\n• Create meaningful questions that capture their essence\n• Track their responses and build their personality profile\n• Suggest ways to deepen your understanding of them\n\nWhat specific aspect would you like to explore?`;
+  };
+
   const getStatusColor = (status: string) => {
     const normalizedStatus = status?.toLowerCase();
     switch (normalizedStatus) {
@@ -206,64 +278,105 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
         {familyMembers.map((member) => (
           <div
             key={member.id}
-            className="bg-gray-800 rounded-xl shadow-lg border border-gray-700/50 p-6 hover:border-gray-600/50 transition-all"
+            className="group relative bg-gradient-to-br from-slate-800/80 via-slate-800/50 to-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 overflow-hidden"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-medium text-lg">
-                    {member.name.charAt(0).toUpperCase()}
-                  </span>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-teal-500/0 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+            <div className="relative p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-5">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg ring-2 ring-slate-700/50 group-hover:ring-slate-600/50 transition-all">
+                      <span className="text-white font-semibold text-xl">
+                        {member.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    {member.status?.toLowerCase() === 'active' && (
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse"></div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-0.5">{member.name}</h3>
+                    <p className="text-sm text-slate-400 font-medium">{member.relationship}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium text-white">{member.name}</h3>
-                  <p className="text-sm text-gray-400">{member.relationship}</p>
+                <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold border backdrop-blur-sm ${getStatusColor(member.status)} capitalize`}>
+                  {member.status}
+                </span>
+              </div>
+
+              {/* Contact Info */}
+              <div className="space-y-2.5 mb-5">
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <span className="truncate">{member.email}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <span>Invited {new Date(member.invited_at).toLocaleDateString()}</span>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(member.status)}`}>
-                {member.status}
-              </span>
-            </div>
 
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <Mail className="w-4 h-4 text-gray-400" />
-                {member.email}
+              {/* Stats Card */}
+              <div className="bg-slate-900/70 backdrop-blur-sm rounded-xl p-4 mb-5 border border-slate-700/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Engagement</span>
+                  </div>
+                  <div className="px-2 py-0.5 bg-emerald-500/10 rounded-full">
+                    <span className="text-xs font-bold text-emerald-400">
+                      {member.personality_questions_sent > 0
+                        ? Math.round((member.personality_questions_answered / member.personality_questions_sent) * 100)
+                        : 0}%
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs text-slate-500 mb-1 font-medium">Sent</div>
+                    <div className="text-xl font-light text-white tabular-nums">{member.personality_questions_sent}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 mb-1 font-medium">Answered</div>
+                    <div className="text-xl font-light text-white tabular-nums">{member.personality_questions_answered}</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <Clock className="w-4 h-4 text-gray-400" />
-                Invited {new Date(member.invited_at).toLocaleDateString()}
-              </div>
-            </div>
 
-            <div className="bg-gray-900/50 rounded-lg p-3 mb-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Questions sent</span>
-                <span className="text-white font-medium">{member.personality_questions_sent}</span>
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openChat(member)}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 rounded-xl hover:from-emerald-600/30 hover:to-teal-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
+                >
+                  <MessageCircle className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                  AI Chat
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedMember(member);
+                    setShowQuestionModal(true);
+                  }}
+                  className="flex-1 px-4 py-3 bg-sky-600/20 text-sky-400 border border-sky-500/30 hover:border-sky-500/50 rounded-xl hover:bg-sky-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
+                >
+                  <Send className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                  Send Question
+                </button>
+                <button
+                  onClick={() => deleteFamilyMember(member.id)}
+                  className="px-4 py-3 bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:border-rose-500/50 rounded-xl hover:bg-rose-600/30 transition-all group/btn"
+                  title="Remove member"
+                >
+                  <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                </button>
               </div>
-              <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-gray-400">Questions answered</span>
-                <span className="text-white font-medium">{member.personality_questions_answered}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setSelectedMember(member);
-                  setShowQuestionModal(true);
-                }}
-                className="flex-1 px-4 py-2 bg-purple-600/20 text-purple-400 border border-purple-500/30 rounded-lg hover:bg-purple-600/30 transition-all text-sm font-medium flex items-center justify-center gap-2"
-              >
-                <Send className="w-4 h-4" />
-                Send Question
-              </button>
-              <button
-                onClick={() => deleteFamilyMember(member.id)}
-                className="px-4 py-2 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600/30 transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
             </div>
           </div>
         ))}
@@ -405,6 +518,122 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Chat Modal */}
+      {showChatModal && selectedMember && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 max-w-2xl w-full h-[600px] flex flex-col overflow-hidden">
+            {/* Chat Header */}
+            <div className="relative bg-gradient-to-r from-emerald-600/20 via-teal-600/20 to-sky-600/20 backdrop-blur-xl border-b border-slate-700/50 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">AI Assistant</h3>
+                    <p className="text-sm text-slate-400">Helping with {selectedMember.name}'s profile</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowChatModal(false);
+                    setSelectedMember(null);
+                    setChatMessages([]);
+                  }}
+                  className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700/50 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+              {chatMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`flex gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                      message.role === 'user'
+                        ? 'bg-sky-600/20 ring-2 ring-sky-500/30'
+                        : 'bg-emerald-600/20 ring-2 ring-emerald-500/30'
+                    }`}>
+                      {message.role === 'user' ? (
+                        <User className="w-4 h-4 text-sky-400" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                      )}
+                    </div>
+                    <div
+                      className={`rounded-2xl px-4 py-3 ${
+                        message.role === 'user'
+                          ? 'bg-gradient-to-br from-sky-600/30 to-sky-600/20 border border-sky-500/30 text-white'
+                          : 'bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 text-slate-200'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      <span className="text-xs text-slate-500 mt-2 block">
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {aiTyping && (
+                <div className="flex justify-start">
+                  <div className="flex gap-3 max-w-[80%]">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-600/20 ring-2 ring-emerald-500/30">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl px-4 py-3">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="border-t border-slate-700/50 p-4 bg-slate-900/50 backdrop-blur-xl">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                  placeholder={`Ask about ${selectedMember.name}...`}
+                  className="flex-1 px-4 py-3 bg-slate-800/80 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  disabled={aiTyping}
+                />
+                <button
+                  onClick={sendChatMessage}
+                  disabled={!chatInput.trim() || aiTyping}
+                  className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:from-slate-700 disabled:to-slate-700 text-white rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold"
+                >
+                  <Send className="w-4 h-4" />
+                  Send
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-2 text-center">
+                AI can help draft questions, understand progress, and provide insights
+              </p>
             </div>
           </div>
         </div>
