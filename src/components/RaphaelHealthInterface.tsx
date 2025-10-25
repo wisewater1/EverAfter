@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import RaphaelChat from './RaphaelChat';
 import HealthConnectionManager from './HealthConnectionManager';
 import HealthAnalytics from './HealthAnalytics';
@@ -7,17 +8,36 @@ import MedicationTracker from './MedicationTracker';
 import HealthGoals from './HealthGoals';
 import EmergencyContacts from './EmergencyContacts';
 import RaphaelInsights from './RaphaelInsights';
+import RaphaelInsightsPanel from './RaphaelInsightsPanel';
 import HealthReportGenerator from './HealthReportGenerator';
 import AppointmentManager from './AppointmentManager';
 
-type HealthTab = 'chat' | 'overview' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
+type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
 export default function RaphaelHealthInterface() {
   const [activeTab, setActiveTab] = useState<HealthTab>('chat');
+  const [raphaelEngramId, setRaphaelEngramId] = useState<string>('');
+
+  useEffect(() => {
+    async function fetchRaphaelEngram() {
+      const { data } = await supabase
+        .from('engrams')
+        .select('id')
+        .eq('name', 'St. Raphael')
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setRaphaelEngramId(data.id);
+      }
+    }
+    fetchRaphaelEngram();
+  }, []);
 
   const tabs = [
     { id: 'chat' as HealthTab, label: 'Chat with Raphael', icon: MessageCircle, color: 'from-emerald-600 to-teal-600' },
     { id: 'overview' as HealthTab, label: 'Overview', icon: Activity, color: 'from-blue-600 to-cyan-600' },
+    { id: 'insights' as HealthTab, label: 'Insights', icon: TrendingUp, color: 'from-purple-600 to-pink-600' },
     { id: 'analytics' as HealthTab, label: 'Analytics', icon: BarChart3, color: 'from-green-600 to-emerald-600' },
     { id: 'medications' as HealthTab, label: 'Medications', icon: Pill, color: 'from-pink-600 to-rose-600' },
     { id: 'appointments' as HealthTab, label: 'Appointments', icon: Calendar, color: 'from-orange-600 to-amber-600' },
@@ -141,6 +161,11 @@ export default function RaphaelHealthInterface() {
           </div>
         )}
 
+        {activeTab === 'insights' && (
+          <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+            <RaphaelInsightsPanel engramId={raphaelEngramId} />
+          </div>
+        )}
         {activeTab === 'analytics' && <HealthAnalytics />}
         {activeTab === 'medications' && <MedicationTracker />}
         {activeTab === 'appointments' && <AppointmentManager />}
