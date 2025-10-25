@@ -27,42 +27,42 @@ export default function RaphaelHealthInterface() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 rounded-2xl p-6 border border-emerald-500/20">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Heart className="w-8 h-8 text-white" />
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-emerald-500/20">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+            <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">St. Raphael Health Monitor</h1>
-            <p className="text-emerald-200">Your comprehensive health companion powered by AI</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-0.5 sm:mb-1">St. Raphael Health Monitor</h1>
+            <p className="text-xs sm:text-sm lg:text-base text-emerald-200">Your comprehensive health companion powered by AI</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-700/50 p-2">
-        <div className="flex flex-wrap gap-2">
+      <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-gray-700/50 p-1 sm:p-2 overflow-x-auto">
+        <div className="flex sm:flex-wrap gap-1 sm:gap-2 min-w-max sm:min-w-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-[140px] px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                className={`flex-shrink-0 sm:flex-1 sm:min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                   activeTab === tab.id
                     ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
                     : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm">{tab.label}</span>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">{tab.label.split(' ').pop()}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="min-h-[600px]">
+      <div className="min-h-[300px] sm:min-h-[400px] lg:min-h-[600px]">
         {activeTab === 'chat' && <RaphaelChat />}
 
         {activeTab === 'overview' && (

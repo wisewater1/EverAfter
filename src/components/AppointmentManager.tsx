@@ -198,12 +198,12 @@ export default function AppointmentManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-        <div className="flex items-center justify-between mb-6">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-700/50">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">Appointments</h2>
-            <p className="text-gray-400 text-sm">Manage your medical appointments and reminders</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Appointments</h2>
+            <p className="text-gray-400 text-xs sm:text-sm">Manage your medical appointments and reminders</p>
           </div>
           <button
             onClick={() => {
@@ -220,7 +220,7 @@ export default function AppointmentManager() {
               });
               setShowCreateModal(true);
             }}
-            className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all flex items-center gap-2 shadow-lg"
+            className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
           >
             <Plus className="w-4 h-4" />
             New Appointment
@@ -228,58 +228,58 @@ export default function AppointmentManager() {
         </div>
 
         {upcomingAppointments.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Upcoming Appointments</h3>
-            <div className="space-y-3">
+          <div className="mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Upcoming Appointments</h3>
+            <div className="space-y-2 sm:space-y-3">
               {upcomingAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="bg-gray-900/50 rounded-xl p-5 border border-gray-700/50 hover:border-orange-500/30 transition-all"
+                  className="bg-gray-900/50 rounded-lg sm:rounded-xl p-3 sm:p-5 border border-gray-700/50 hover:border-orange-500/30 transition-all"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-6 h-6 text-white" />
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3 flex-1">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-600 to-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-white font-semibold">{appointment.title}</h4>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                          <h4 className="text-white font-semibold text-sm sm:text-base">{appointment.title}</h4>
                           {getStatusBadge(appointment.status)}
                         </div>
                         {appointment.description && (
-                          <p className="text-gray-400 text-sm mb-2">{appointment.description}</p>
+                          <p className="text-gray-400 text-xs sm:text-sm mb-2">{appointment.description}</p>
                         )}
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
                           <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {new Date(appointment.scheduled_at).toLocaleString()}
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="truncate">{new Date(appointment.scheduled_at).toLocaleString()}</span>
                           </div>
                           {appointment.provider_name && (
                             <div className="flex items-center gap-1">
-                              <User className="w-4 h-4" />
-                              {appointment.provider_name}
+                              <User className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="truncate">{appointment.provider_name}</span>
                             </div>
                           )}
                           {appointment.provider_location && (
                             <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {appointment.provider_location}
+                              <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="truncate">{appointment.provider_location}</span>
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex sm:flex-col items-center gap-2 sm:ml-4">
                       <button
                         onClick={() => handleEdit(appointment)}
-                        className="p-2 hover:bg-gray-700/50 rounded-lg transition-all"
+                        className="flex-1 sm:flex-none p-2 hover:bg-gray-700/50 rounded-lg transition-all"
                         title="Edit"
                       >
                         <Edit className="w-4 h-4 text-gray-400" />
                       </button>
                       <button
                         onClick={() => handleDelete(appointment.id)}
-                        className="p-2 hover:bg-red-600/20 rounded-lg transition-all"
+                        className="flex-1 sm:flex-none p-2 hover:bg-red-600/20 rounded-lg transition-all"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4 text-red-400" />
@@ -287,16 +287,16 @@ export default function AppointmentManager() {
                     </div>
                   </div>
                   {appointment.status === 'scheduled' && (
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-700/50">
                       <button
                         onClick={() => updateStatus(appointment.id, 'completed')}
-                        className="px-3 py-1 bg-green-600/20 hover:bg-green-600/30 text-green-400 rounded text-xs transition-all"
+                        className="flex-1 sm:flex-none px-3 py-1.5 sm:py-1 bg-green-600/20 hover:bg-green-600/30 text-green-400 rounded text-xs transition-all"
                       >
                         Mark Complete
                       </button>
                       <button
                         onClick={() => updateStatus(appointment.id, 'cancelled')}
-                        className="px-3 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded text-xs transition-all"
+                        className="flex-1 sm:flex-none px-3 py-1.5 sm:py-1 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded text-xs transition-all"
                       >
                         Cancel
                       </button>

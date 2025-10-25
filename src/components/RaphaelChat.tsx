@@ -164,38 +164,38 @@ export default function RaphaelChat() {
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-700/50 flex flex-col h-[600px]">
-      <div className="p-6 border-b border-gray-700/50">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg">
-            <Heart className="w-6 h-6 text-white" />
+    <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-gray-700/50 flex flex-col h-[500px] sm:h-[600px]">
+      <div className="p-4 sm:p-6 border-b border-gray-700/50">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex-shrink-0">
+            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">Raphael Health Assistant</h2>
-            <p className="text-gray-400 text-sm">Your personal health companion</p>
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-xl font-bold text-white truncate">Raphael Health Assistant</h2>
+            <p className="text-gray-400 text-xs sm:text-sm">Your personal health companion</p>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <div className="p-3 bg-white/5 rounded-lg">
-            <Activity className="w-4 h-4 text-green-400 mb-1" />
-            <p className="text-white text-sm font-medium">{healthContext.recentMetrics}</p>
-            <p className="text-gray-400 text-xs">Metrics</p>
+        <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-white/5 rounded-lg">
+            <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 mb-1" />
+            <p className="text-white text-xs sm:text-sm font-medium">{healthContext.recentMetrics}</p>
+            <p className="text-gray-400 text-[10px] sm:text-xs">Metrics</p>
           </div>
-          <div className="p-3 bg-white/5 rounded-lg">
-            <Moon className="w-4 h-4 text-blue-400 mb-1" />
-            <p className="text-white text-sm font-medium">{healthContext.upcomingAppointments}</p>
-            <p className="text-gray-400 text-xs">Appointments</p>
+          <div className="p-2 sm:p-3 bg-white/5 rounded-lg">
+            <Moon className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 mb-1" />
+            <p className="text-white text-xs sm:text-sm font-medium">{healthContext.upcomingAppointments}</p>
+            <p className="text-gray-400 text-[10px] sm:text-xs">Appointments</p>
           </div>
-          <div className="p-3 bg-white/5 rounded-lg">
-            <Pill className="w-4 h-4 text-pink-400 mb-1" />
-            <p className="text-white text-sm font-medium">{healthContext.activePrescriptions}</p>
-            <p className="text-gray-400 text-xs">Prescriptions</p>
+          <div className="p-2 sm:p-3 bg-white/5 rounded-lg">
+            <Pill className="w-3 h-3 sm:w-4 sm:h-4 text-pink-400 mb-1" />
+            <p className="text-white text-xs sm:text-sm font-medium">{healthContext.activePrescriptions}</p>
+            <p className="text-gray-400 text-[10px] sm:text-xs">Prescriptions</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -243,23 +243,23 @@ export default function RaphaelChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-6 border-t border-gray-700/50">
-        <div className="flex space-x-3">
+      <div className="p-3 sm:p-6 border-t border-gray-700/50">
+        <div className="flex space-x-2 sm:space-x-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask Raphael about your health..."
-            className="flex-1 px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500/50"
+            placeholder="Ask Raphael..."
+            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-400 focus:outline-none focus:border-emerald-500/50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium flex items-center space-x-2"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium flex items-center space-x-1 sm:space-x-2 text-sm sm:text-base"
           >
             <Send className="w-4 h-4" />
-            <span>Send</span>
+            <span className="hidden sm:inline">Send</span>
           </button>
         </div>
       </div>
