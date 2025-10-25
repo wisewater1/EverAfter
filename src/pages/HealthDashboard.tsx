@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft } from 'lucide-react';
+import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import RaphaelInsights from '../components/RaphaelInsights';
+import RaphaelInsightsPanel from '../components/RaphaelInsightsPanel';
 import RaphaelChat from '../components/RaphaelChat';
 import HealthAnalytics from '../components/HealthAnalytics';
 import MedicationTracker from '../components/MedicationTracker';
@@ -10,14 +12,33 @@ import EmergencyContacts from '../components/EmergencyContacts';
 import HealthReportGenerator from '../components/HealthReportGenerator';
 import HealthConnectionManager from '../components/HealthConnectionManager';
 
-type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections';
+type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabView>('overview');
+  const [raphaelEngramId, setRaphaelEngramId] = useState<string>('');
+
+  useEffect(() => {
+    // Fetch St. Raphael engram ID
+    async function fetchRaphaelEngram() {
+      const { data } = await supabase
+        .from('engrams')
+        .select('id')
+        .eq('name', 'St. Raphael')
+        .limit(1)
+        .single();
+
+      if (data) {
+        setRaphaelEngramId(data.id);
+      }
+    }
+    fetchRaphaelEngram();
+  }, []);
 
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
+    { id: 'insights' as TabView, label: 'Insights', icon: TrendingUp },
     { id: 'analytics' as TabView, label: 'Analytics', icon: BarChart3 },
     { id: 'medications' as TabView, label: 'Medications', icon: Heart },
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
@@ -128,6 +149,11 @@ export default function HealthDashboard() {
             </div>
           )}
 
+          {activeTab === 'insights' && (
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <RaphaelInsightsPanel engramId={raphaelEngramId} />
+            </div>
+          )}
           {activeTab === 'analytics' && <HealthAnalytics />}
           {activeTab === 'medications' && <MedicationTracker />}
           {activeTab === 'goals' && <HealthGoals />}
