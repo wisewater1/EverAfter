@@ -47,111 +47,133 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
       {/* Header */}
-      <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+      <header className="bg-gray-950/80 backdrop-blur-xl border-b border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-11 h-11 bg-gradient-to-br from-blue-500 via-teal-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-gray-950"></div>
               </div>
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-medium text-white truncate">EverAfter AI</h1>
-                <p className="text-[10px] sm:text-xs text-gray-400 truncate">{user?.email || 'Loading...'}</p>
+              <div>
+                <h1 className="text-xl font-semibold text-white tracking-tight">EverAfter AI</h1>
+                <p className="text-sm text-gray-400 mt-0.5">{user?.email || 'Loading...'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                onClick={handleSignOut}
-                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600/30 transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-              >
-                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </button>
-            </div>
+            <button
+              onClick={handleSignOut}
+              className="px-5 py-2.5 bg-gray-800/50 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700/50 rounded-xl transition-all duration-200 flex items-center gap-2 text-sm font-medium group"
+            >
+              <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Navigation */}
-      <nav className="bg-gray-900/30 backdrop-blur-sm border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div className="flex gap-0.5 sm:gap-1 overflow-x-auto scrollbar-hide">
+      <nav className="bg-gray-950/50 backdrop-blur-xl border-b border-gray-800/30">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setSelectedView('saints')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'saints'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Saints AI</span>
+              <Heart className="w-4 h-4" />
+              <span>Saints AI</span>
+              {selectedView === 'saints' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
             <button
               onClick={() => setSelectedView('engrams')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'engrams'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Engrams</span>
+              <Bot className="w-4 h-4" />
+              <span>Engrams</span>
+              {selectedView === 'engrams' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
             <button
               onClick={() => setSelectedView('questions')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'questions'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Questions</span>
+              <Calendar className="w-4 h-4" />
+              <span>Questions</span>
+              {selectedView === 'questions' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
             <button
               onClick={() => setSelectedView('chat')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'chat'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Chat</span>
+              <MessageCircle className="w-4 h-4" />
+              <span>Chat</span>
+              {selectedView === 'chat' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
             <button
               onClick={() => setSelectedView('tasks')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'tasks'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Tasks</span>
+              <Settings className="w-4 h-4" />
+              <span>Tasks</span>
+              {selectedView === 'tasks' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
             <button
               onClick={() => setSelectedView('family')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'family'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Family</span>
+              <Users className="w-4 h-4" />
+              <span>Family</span>
+              {selectedView === 'family' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
             <button
               onClick={() => setSelectedView('health')}
-              className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
+              className={`px-5 py-4 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 relative ${
                 selectedView === 'health'
-                  ? 'text-white border-b-2 border-blue-500'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'text-white'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Health</span>
+              <Activity className="w-4 h-4" />
+              <span>Health</span>
+              {selectedView === 'health' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+              )}
             </button>
           </div>
         </div>
