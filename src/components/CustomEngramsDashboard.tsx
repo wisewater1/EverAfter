@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, Target, Zap, ArrowRight } from 'lucide-react';
+import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ArchetypalAI {

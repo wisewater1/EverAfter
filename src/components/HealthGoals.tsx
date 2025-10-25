@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Target, Plus, TrendingUp, CheckCircle, Clock, X } from 'lucide-react';
+import { Target, Plus, TrendingUp, CheckCircle } from 'lucide-react';
 
 interface HealthGoal {
   id: string;
