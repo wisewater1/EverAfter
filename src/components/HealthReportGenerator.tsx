@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Download, Calendar, Activity, Heart, Moon, Pill, Users } from 'lucide-react';
+import { FileText, Download, Calendar, Activity, Heart, Moon, Pill, Save, Loader } from 'lucide-react';
+import { uploadFile } from '../lib/file-storage';
 
 export default function HealthReportGenerator() {
   const { user } = useAuth();
@@ -9,6 +10,7 @@ export default function HealthReportGenerator() {
   const [reportType, setReportType] = useState<'weekly' | 'monthly' | 'custom'>('weekly');
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saveToCloud, setSaveToCloud] = useState(true);
 
   const generateReport = async () => {
     if (!user) return;
@@ -56,15 +58,35 @@ export default function HealthReportGenerator() {
         endDate: end
       });
 
+      const fileName = `health-report-${start.toISOString().split('T')[0]}-to-${end.toISOString().split('T')[0]}.html`;
       const blob = new Blob([report], { type: 'text/html' });
+
+      // Save to cloud storage if enabled
+      if (saveToCloud) {
+        const file = new File([blob], fileName, { type: 'text/html' });
+        await uploadFile(file, {
+          category: 'health_report',
+          description: `Health report from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
+          metadata: {
+            reportType,
+            startDate: start.toISOString(),
+            endDate: end.toISOString(),
+            generatedAt: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Download to device
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `health-report-${start.toISOString().split('T')[0]}-to-${end.toISOString().split('T')[0]}.html`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      alert(saveToCloud ? 'Report generated and saved to cloud!' : 'Report downloaded successfully!');
     } catch (error) {
       console.error('Error generating report:', error);
       alert('Failed to generate report');
@@ -268,28 +290,41 @@ export default function HealthReportGenerator() {
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-      <div className="flex items-center gap-3 mb-6">
-        <FileText className="w-6 h-6 text-blue-400" />
-        <h2 className="text-2xl font-bold text-white">Health Report Generator</h2>
+    <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50 shadow-2xl">
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-white">Health Report Generator</h2>
+          </div>
+          <p className="text-gray-400 ml-15">Generate comprehensive health reports with all your data</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <button
           onClick={() => {
             setReportType('weekly');
             setStartDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
             setEndDate(new Date().toISOString().split('T')[0]);
           }}
-          className={`p-4 rounded-lg border transition-all ${
+          className={`p-6 rounded-xl border-2 transition-all group hover:scale-[1.02] ${
             reportType === 'weekly'
-              ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-              : 'bg-white/5 border-white/10 text-purple-300 hover:border-blue-500/50'
+              ? 'bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
+              : 'bg-gray-800/30 border-gray-700 hover:border-blue-500/50'
           }`}
         >
-          <Calendar className="w-6 h-6 mx-auto mb-2" />
-          <p className="font-medium text-center">Weekly Report</p>
-          <p className="text-xs text-center opacity-70 mt-1">Last 7 days</p>
+          <div className={`w-12 h-12 rounded-lg mx-auto mb-3 flex items-center justify-center transition-all ${
+            reportType === 'weekly' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400 group-hover:bg-gray-600'
+          }`}>
+            <Calendar className="w-6 h-6" />
+          </div>
+          <p className={`font-semibold text-center text-lg ${
+            reportType === 'weekly' ? 'text-white' : 'text-gray-300'
+          }`}>Weekly Report</p>
+          <p className="text-sm text-center text-gray-400 mt-1">Last 7 days</p>
         </button>
 
         <button
@@ -298,28 +333,40 @@ export default function HealthReportGenerator() {
             setStartDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
             setEndDate(new Date().toISOString().split('T')[0]);
           }}
-          className={`p-4 rounded-lg border transition-all ${
+          className={`p-6 rounded-xl border-2 transition-all group hover:scale-[1.02] ${
             reportType === 'monthly'
-              ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-              : 'bg-white/5 border-white/10 text-purple-300 hover:border-blue-500/50'
+              ? 'bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
+              : 'bg-gray-800/30 border-gray-700 hover:border-blue-500/50'
           }`}
         >
-          <Calendar className="w-6 h-6 mx-auto mb-2" />
-          <p className="font-medium text-center">Monthly Report</p>
-          <p className="text-xs text-center opacity-70 mt-1">Last 30 days</p>
+          <div className={`w-12 h-12 rounded-lg mx-auto mb-3 flex items-center justify-center transition-all ${
+            reportType === 'monthly' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400 group-hover:bg-gray-600'
+          }`}>
+            <Calendar className="w-6 h-6" />
+          </div>
+          <p className={`font-semibold text-center text-lg ${
+            reportType === 'monthly' ? 'text-white' : 'text-gray-300'
+          }`}>Monthly Report</p>
+          <p className="text-sm text-center text-gray-400 mt-1">Last 30 days</p>
         </button>
 
         <button
           onClick={() => setReportType('custom')}
-          className={`p-4 rounded-lg border transition-all ${
+          className={`p-6 rounded-xl border-2 transition-all group hover:scale-[1.02] ${
             reportType === 'custom'
-              ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-              : 'bg-white/5 border-white/10 text-purple-300 hover:border-blue-500/50'
+              ? 'bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
+              : 'bg-gray-800/30 border-gray-700 hover:border-blue-500/50'
           }`}
         >
-          <Calendar className="w-6 h-6 mx-auto mb-2" />
-          <p className="font-medium text-center">Custom Range</p>
-          <p className="text-xs text-center opacity-70 mt-1">Select dates</p>
+          <div className={`w-12 h-12 rounded-lg mx-auto mb-3 flex items-center justify-center transition-all ${
+            reportType === 'custom' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400 group-hover:bg-gray-600'
+          }`}>
+            <Calendar className="w-6 h-6" />
+          </div>
+          <p className={`font-semibold text-center text-lg ${
+            reportType === 'custom' ? 'text-white' : 'text-gray-300'
+          }`}>Custom Range</p>
+          <p className="text-sm text-center text-gray-400 mt-1">Select dates</p>
         </button>
       </div>
 
@@ -347,35 +394,82 @@ export default function HealthReportGenerator() {
         </div>
       )}
 
-      <div className="bg-white/5 rounded-lg p-4 mb-6">
-        <p className="text-purple-300 text-sm mb-2">Your report will include:</p>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2 text-purple-200 text-xs">
-            <Activity className="w-4 h-4 text-green-400" />
-            Health Metrics & Analytics
+      <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-xl p-6 mb-6 border border-gray-700/50">
+        <p className="text-white font-semibold mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-blue-400" />
+          Your report will include:
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-3 text-gray-200">
+            <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+              <Activity className="w-5 h-5 text-green-400" />
+            </div>
+            <span className="text-sm font-medium">Health Metrics & Analytics</span>
           </div>
-          <div className="flex items-center gap-2 text-purple-200 text-xs">
-            <Pill className="w-4 h-4 text-pink-400" />
-            Medication Adherence
+          <div className="flex items-center gap-3 text-gray-200">
+            <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
+              <Pill className="w-5 h-5 text-pink-400" />
+            </div>
+            <span className="text-sm font-medium">Medication Adherence</span>
           </div>
-          <div className="flex items-center gap-2 text-purple-200 text-xs">
-            <Heart className="w-4 h-4 text-red-400" />
-            Appointments Summary
+          <div className="flex items-center gap-3 text-gray-200">
+            <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <Heart className="w-5 h-5 text-red-400" />
+            </div>
+            <span className="text-sm font-medium">Appointments Summary</span>
           </div>
-          <div className="flex items-center gap-2 text-purple-200 text-xs">
-            <Moon className="w-4 h-4 text-blue-400" />
-            Health Goals Progress
+          <div className="flex items-center gap-3 text-gray-200">
+            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <Moon className="w-5 h-5 text-blue-400" />
+            </div>
+            <span className="text-sm font-medium">Health Goals Progress</span>
           </div>
         </div>
+      </div>
+
+      {/* Save to Cloud Toggle */}
+      <div className="bg-gray-800/30 rounded-xl p-4 mb-6 border border-gray-700/50">
+        <label className="flex items-center justify-between cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <Save className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-white font-medium">Save to Cloud Storage</p>
+              <p className="text-sm text-gray-400">Automatically save report to your account</p>
+            </div>
+          </div>
+          <div
+            onClick={() => setSaveToCloud(!saveToCloud)}
+            className={`relative w-14 h-7 rounded-full transition-all ${
+              saveToCloud ? 'bg-blue-600' : 'bg-gray-700'
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${
+                saveToCloud ? 'translate-x-7' : 'translate-x-0'
+              }`}
+            />
+          </div>
+        </label>
       </div>
 
       <button
         onClick={generateReport}
         disabled={generating}
-        className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full px-8 py-5 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 text-white rounded-xl hover:shadow-xl hover:shadow-blue-500/30 transition-all font-semibold text-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
       >
-        <Download className="w-5 h-5" />
-        {generating ? 'Generating Report...' : 'Generate & Download Report'}
+        {generating ? (
+          <>
+            <Loader className="w-6 h-6 animate-spin" />
+            Generating Report...
+          </>
+        ) : (
+          <>
+            <Download className="w-6 h-6 group-hover:animate-bounce" />
+            Generate & {saveToCloud ? 'Save' : 'Download'} Report
+          </>
+        )}
       </button>
     </div>
   );

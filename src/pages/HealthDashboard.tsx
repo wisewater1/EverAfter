@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp } from 'lucide-react';
+import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import RaphaelInsights from '../components/RaphaelInsights';
 import RaphaelInsightsPanel from '../components/RaphaelInsightsPanel';
@@ -11,8 +11,9 @@ import HealthGoals from '../components/HealthGoals';
 import EmergencyContacts from '../components/EmergencyContacts';
 import HealthReportGenerator from '../components/HealthReportGenerator';
 import HealthConnectionManager from '../components/HealthConnectionManager';
+import FileManager from '../components/FileManager';
 
-type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights';
+type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export default function HealthDashboard() {
     { id: 'analytics' as TabView, label: 'Analytics', icon: BarChart3 },
     { id: 'medications' as TabView, label: 'Medications', icon: Heart },
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
+    { id: 'files' as TabView, label: 'My Files', icon: FolderOpen },
     { id: 'connections' as TabView, label: 'Connections', icon: Activity },
     { id: 'contacts' as TabView, label: 'Emergency', icon: Users },
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
@@ -157,6 +159,7 @@ export default function HealthDashboard() {
           {activeTab === 'analytics' && <HealthAnalytics />}
           {activeTab === 'medications' && <MedicationTracker />}
           {activeTab === 'goals' && <HealthGoals />}
+          {activeTab === 'files' && <FileManager />}
           {activeTab === 'connections' && <HealthConnectionManager />}
           {activeTab === 'contacts' && <EmergencyContacts />}
           {activeTab === 'chat' && <RaphaelChat />}
