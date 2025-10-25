@@ -14,6 +14,7 @@ import {
   TrendingUp,
   AlertCircle,
   ExternalLink,
+  Upload,
 } from 'lucide-react';
 
 interface ProviderAccount {
@@ -71,14 +72,35 @@ const providers: Provider[] = [
   },
   {
     id: 'dexcom',
-    name: 'Dexcom',
+    name: 'Dexcom CGM',
     category: 'cgm',
     icon: Droplet,
     color: 'from-orange-600 to-red-600',
-    description: 'Continuous glucose monitoring',
-    features: ['Glucose', 'Trends', 'Alerts'],
+    description: 'Continuous glucose monitoring with real-time data',
+    features: ['Glucose', 'Trends', 'Alerts', 'TIR'],
     status: 'available',
     setupUrl: 'https://developer.dexcom.com/',
+  },
+  {
+    id: 'libre-agg',
+    name: 'Abbott Libre',
+    category: 'cgm',
+    icon: Droplet,
+    color: 'from-red-600 to-orange-600',
+    description: 'FreeStyle Libre via aggregator partners',
+    features: ['Glucose', 'TIR', 'Reports'],
+    status: 'available',
+    setupUrl: 'https://www.freestyle.abbott/',
+  },
+  {
+    id: 'manual',
+    name: 'Manual Upload',
+    category: 'cgm',
+    icon: Upload,
+    color: 'from-blue-600 to-indigo-600',
+    description: 'Upload CSV/JSON files from any CGM device',
+    features: ['CSV Import', 'JSON Import', 'Bulk Upload'],
+    status: 'available',
   },
   {
     id: 'whoop',
@@ -99,6 +121,37 @@ const providers: Provider[] = [
     description: 'Fitness and outdoor GPS watches',
     features: ['Activity', 'Heart Rate', 'VO2 Max'],
     status: 'coming_soon',
+  },
+  {
+    id: 'withings',
+    name: 'Withings',
+    category: 'wearable',
+    icon: Activity,
+    color: 'from-slate-600 to-gray-600',
+    description: 'Connected scales and health monitors',
+    features: ['Weight', 'BP', 'Heart Rate'],
+    status: 'coming_soon',
+  },
+  {
+    id: 'polar',
+    name: 'Polar',
+    category: 'wearable',
+    icon: Heart,
+    color: 'from-red-500 to-orange-500',
+    description: 'Training load and performance tracking',
+    features: ['Training Load', 'Recovery', 'HRV'],
+    status: 'coming_soon',
+  },
+  {
+    id: 'fhir',
+    name: 'SMART on FHIR',
+    category: 'ehr',
+    icon: Activity,
+    color: 'from-indigo-600 to-purple-600',
+    description: 'Electronic Health Records (Epic, Cerner)',
+    features: ['Lab Results', 'HbA1c', 'Medications'],
+    status: 'coming_soon',
+    setupUrl: 'https://docs.smarthealthit.org/',
   },
 ];
 
@@ -144,6 +197,17 @@ export default function RaphaelConnectors() {
   }
 
   async function handleConnect(providerId: string) {
+    if (providerId === 'manual') {
+      handleManualUpload();
+      return;
+    }
+
+    if (providerId === 'dexcom') {
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cgm-dexcom-oauth?action=init`;
+      window.location.href = functionUrl;
+      return;
+    }
+
     const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-start?provider=${providerId}`;
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -153,6 +217,54 @@ export default function RaphaelConnectors() {
     }
 
     window.location.href = functionUrl;
+  }
+
+  async function handleManualUpload() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.json';
+    input.onchange = async (e: any) => {
+      const file = e.target?.files?.[0];
+      if (!file) return;
+
+      setSyncing('manual');
+      setError(null);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cgm-manual-upload`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        alert(`Successfully uploaded ${result.readings_inserted} glucose readings from ${file.name}`);
+
+        await loadConnections();
+      } catch (err: any) {
+        console.error('Upload error:', err);
+        setError(err.message);
+      } finally {
+        setSyncing(null);
+      }
+    };
+    input.click();
   }
 
   async function handleDisconnect(providerId: string) {
@@ -361,10 +473,20 @@ export default function RaphaelConnectors() {
                             ) : (
                               <button
                                 onClick={() => handleConnect(provider.id)}
-                                className={`flex-1 px-4 py-2 bg-gradient-to-r ${provider.color} hover:opacity-90 text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2`}
+                                disabled={isSyncing && provider.id === 'manual'}
+                                className={`flex-1 px-4 py-2 bg-gradient-to-r ${provider.color} hover:opacity-90 disabled:opacity-50 text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2`}
                               >
-                                <Link2 className="w-4 h-4" />
-                                Connect {provider.name}
+                                {isSyncing && provider.id === 'manual' ? (
+                                  <>
+                                    <Loader className="w-4 h-4 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Link2 className="w-4 h-4" />
+                                    {provider.id === 'manual' ? 'Upload File' : `Connect ${provider.name}`}
+                                  </>
+                                )}
                               </button>
                             )
                           ) : (
