@@ -73,8 +73,8 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
         name: inviteForm.name,
         email: inviteForm.email,
         relationship: inviteForm.relationship,
-        status: 'pending',
-        access_level: 'view',
+        status: 'Pending',
+        access_level: 'View',
         invited_at: new Date().toISOString()
       });
 
@@ -131,7 +131,8 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
       case 'active': return 'bg-green-900/30 text-green-400 border-green-500/30';
       case 'pending': return 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30';
       case 'inactive': return 'bg-gray-900/30 text-gray-400 border-gray-500/30';
@@ -180,7 +181,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
               <div>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">Active</p>
                 <p className="text-2xl font-light text-white mt-1">
-                  {familyMembers.filter(m => m.status === 'active').length}
+                  {familyMembers.filter(m => m.status?.toLowerCase() === 'active').length}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-400" />
@@ -191,7 +192,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
               <div>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">Pending</p>
                 <p className="text-2xl font-light text-white mt-1">
-                  {familyMembers.filter(m => m.status === 'pending').length}
+                  {familyMembers.filter(m => m.status?.toLowerCase() === 'pending').length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-yellow-400" />
