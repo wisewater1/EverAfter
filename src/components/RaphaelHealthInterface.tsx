@@ -13,6 +13,7 @@ import HealthReportGenerator from './HealthReportGenerator';
 import AppointmentManager from './AppointmentManager';
 import RaphaelConnectors from './RaphaelConnectors';
 import QuickActions from './QuickActions';
+import HealthTips from './HealthTips';
 
 type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
@@ -92,28 +93,7 @@ export default function RaphaelHealthInterface() {
             <RaphaelInsights />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <QuickActions onNavigate={(tab) => setActiveTab(tab as HealthTab)} />
-
-              <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-                <h2 className="text-xl font-semibold text-white mb-4">Health Tips</h2>
-                <div className="space-y-4">
-                  <div className="p-3 bg-green-900/20 rounded-lg border border-green-500/20">
-                    <p className="text-green-300 text-sm font-medium mb-1">Stay Hydrated</p>
-                    <p className="text-green-200/70 text-xs">Drink at least 8 glasses of water daily for optimal health.</p>
-                  </div>
-                  <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-500/20">
-                    <p className="text-blue-300 text-sm font-medium mb-1">Regular Exercise</p>
-                    <p className="text-blue-200/70 text-xs">Aim for 150 minutes of moderate activity per week.</p>
-                  </div>
-                  <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-500/20">
-                    <p className="text-purple-300 text-sm font-medium mb-1">Quality Sleep</p>
-                    <p className="text-purple-200/70 text-xs">Get 7-9 hours of sleep each night for recovery.</p>
-                  </div>
-                  <div className="p-3 bg-orange-900/20 rounded-lg border border-orange-500/20">
-                    <p className="text-orange-300 text-sm font-medium mb-1">Stress Management</p>
-                    <p className="text-orange-200/70 text-xs">Practice mindfulness and take breaks throughout the day.</p>
-                  </div>
-                </div>
-              </div>
+              <HealthTips />
             </div>
             <HealthReportGenerator />
           </div>
