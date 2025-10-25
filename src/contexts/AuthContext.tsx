@@ -36,36 +36,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: {
-          email_confirmed: true
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         }
+      });
+
+      if (error) {
+        return { error };
       }
-    });
 
-    if (error) {
-      return { error };
-    }
+      if (data?.user) {
+        if (data.user.email_confirmed_at) {
+          return { error: null };
+        }
 
-    if (data?.user && data?.session) {
+        const userId = data.user.id;
+        await supabase.rpc('confirm_user_email', { user_id: userId }).catch(() => {
+          console.log('Auto-confirm failed, manual confirmation needed');
+        });
+
+        if (data?.session) {
+          return { error: null };
+        }
+
+        return {
+          error: {
+            message: 'Account created! You can now login with your credentials.',
+            name: 'SignupSuccess',
+            status: 200
+          } as AuthError
+        };
+      }
+
       return { error: null };
-    }
-
-    if (data?.user && !data.session) {
+    } catch (err) {
       return {
         error: {
-          message: 'Account created successfully! Please sign in with your credentials.',
-          name: 'SignupSuccess',
-          status: 200
+          message: err instanceof Error ? err.message : 'Signup failed',
+          name: 'SignupError',
+          status: 500
         } as AuthError
       };
     }
-
-    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
