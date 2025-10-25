@@ -27,6 +27,14 @@ export default function Dashboard() {
     setSelectedView('questions');
   };
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
       {/* Header */}
@@ -39,7 +47,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-xl font-medium text-white">EverAfter AI</h1>
-                <p className="text-xs text-gray-400">{user.email}</p>
+                <p className="text-xs text-gray-400">{user?.email || 'Loading...'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

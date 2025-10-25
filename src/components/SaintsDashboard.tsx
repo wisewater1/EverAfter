@@ -87,6 +87,8 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
   const [loading, setLoading] = useState(true);
 
   const loadSaintsData = useCallback(async () => {
+    if (!user) return;
+
     try {
       // Load user's active saints from database
       const { data: activeSaints, error: saintsError } = await supabase
@@ -167,6 +169,8 @@ export default function SaintsDashboard({ onOpenRaphaelAgent }: SaintsDashboardP
   }, [user]);
 
   const loadActivities = useCallback(async () => {
+    if (!user) return;
+
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
