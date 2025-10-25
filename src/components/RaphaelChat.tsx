@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, Bot, User, Heart, Activity, Moon, Pill } from 'lucide-react';
+import { chatWithRaphael, EdgeFunctionException } from '../lib/edge-functions';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -105,14 +106,20 @@ export default function RaphaelChat() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userInput = input.trim();
     setInput('');
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Call the production raphael-chat Edge Function
+      const response = await chatWithRaphael({
+        input: userInput
+      });
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: generateRaphaelResponse(input.trim()),
+        content: response.reply,
         timestamp: new Date(),
         context: {
           healthData: true,
@@ -121,8 +128,32 @@ export default function RaphaelChat() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+
+      let errorMessage = 'I apologize, but I encountered an error. Please try again.';
+
+      if (error instanceof EdgeFunctionException) {
+        if (error.code === 'AUTH_MISSING' || error.code === 'AUTH_FAILED') {
+          errorMessage = 'Your session has expired. Please refresh the page and log in again.';
+        } else if (error.code === 'CONFIG_MISSING') {
+          errorMessage = 'The AI service is not configured. Please contact support.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: errorMessage,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

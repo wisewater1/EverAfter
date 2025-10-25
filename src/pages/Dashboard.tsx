@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart } from 'lucide-react';
+import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
 import EngramChat from '../components/EngramChat';
-import RaphaelAgentMode from '../components/RaphaelAgentMode';
+import RaphaelChat from '../components/RaphaelChat';
 import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
@@ -13,9 +13,8 @@ import FamilyMembers from '../components/FamilyMembers';
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family' | 'health'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
-  const [showRaphaelAgent, setShowRaphaelAgent] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -133,6 +132,17 @@ export default function Dashboard() {
               <Users className="w-4 h-4" />
               Family Members
             </button>
+            <button
+              onClick={() => setSelectedView('health')}
+              className={`px-6 py-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                selectedView === 'health'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <Activity className="w-4 h-4" />
+              Raphael Chat
+            </button>
           </div>
         </div>
       </nav>
@@ -140,7 +150,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {selectedView === 'saints' && (
-          <SaintsDashboard onOpenRaphaelAgent={() => setShowRaphaelAgent(true)} />
+          <SaintsDashboard onOpenRaphaelAgent={() => setSelectedView('health')} />
         )}
         {selectedView === 'engrams' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
@@ -157,16 +167,10 @@ export default function Dashboard() {
         {selectedView === 'family' && (
           <FamilyMembers userId={user.id} />
         )}
+        {selectedView === 'health' && (
+          <RaphaelChat />
+        )}
       </main>
-
-      {/* Raphael Agent Mode Modal */}
-      {showRaphaelAgent && (
-        <RaphaelAgentMode
-          userId={user.id}
-          engramId={selectedAIId || ''}
-          onClose={() => setShowRaphaelAgent(false)}
-        />
-      )}
     </div>
   );
 }
