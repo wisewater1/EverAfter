@@ -51,8 +51,16 @@ export default function Signup() {
     const { error } = await signUp(email, password);
 
     if (error) {
-      setError(error.message);
-      setLoading(false);
+      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+        setError('This email is already registered. Please login instead.');
+        setLoading(false);
+      } else if (error.message.includes('SignupSuccess') || error.message.includes('sign in with your credentials')) {
+        setError('Account created successfully! Redirecting to login...');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setError(error.message);
+        setLoading(false);
+      }
     } else {
       navigate('/dashboard');
     }

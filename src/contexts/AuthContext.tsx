@@ -36,12 +36,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          email_confirmed: true
+        }
+      }
     });
 
-    return { error };
+    if (error) {
+      return { error };
+    }
+
+    if (data?.user && data?.session) {
+      return { error: null };
+    }
+
+    if (data?.user && !data.session) {
+      return {
+        error: {
+          message: 'Account created successfully! Please sign in with your credentials.',
+          name: 'SignupSuccess',
+          status: 200
+        } as AuthError
+      };
+    }
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
