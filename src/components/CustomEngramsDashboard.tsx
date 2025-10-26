@@ -8,6 +8,8 @@ interface ArchetypalAI {
   description: string;
   total_memories: number;
   training_status: string;
+  is_ai_active: boolean;
+  ai_readiness_score: number;
   avatar_url?: string;
   created_at: string;
 }
@@ -53,7 +55,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     try {
       const { data, error } = await supabase
         .from('archetypal_ais')
-        .select('*')
+        .select('id, name, description, total_memories, training_status, is_ai_active, ai_readiness_score, avatar_url, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -214,26 +216,49 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                 <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Status</span>
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Readiness</span>
                   </div>
-                  <div className={`text-2xl font-light capitalize ${getStatusColor(ai.training_status)}`}>
-                    {ai.training_status}
+                  <div className={`text-2xl font-light ${ai.ai_readiness_score >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {ai.ai_readiness_score}%
                   </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-slate-400">Training Progress</span>
+                  <span className="text-xs text-slate-500">{ai.ai_readiness_score >= 80 ? 'Ready!' : `${50 - ai.total_memories} more memories to activate`}</span>
+                </div>
+                <div className="w-full bg-slate-800/50 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      ai.ai_readiness_score >= 80
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    }`}
+                    style={{ width: `${ai.ai_readiness_score}%` }}
+                  ></div>
                 </div>
               </div>
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
                 <div className="flex items-center gap-2">
-                  {ai.training_status === 'ready' ? (
+                  {ai.is_ai_active ? (
                     <>
                       <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-emerald-400 font-medium">Ready</span>
+                      <span className="text-sm text-emerald-400 font-medium">Active & Ready</span>
+                    </>
+                  ) : ai.ai_readiness_score >= 80 ? (
+                    <>
+                      <div className="w-2 h-2 bg-sky-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-sky-400 font-medium">Ready to Activate</span>
                     </>
                   ) : (
                     <>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-slate-400 capitalize">{ai.training_status}</span>
+                      <span className="text-sm text-slate-400">Training: {ai.ai_readiness_score}%</span>
                     </>
                   )}
                 </div>

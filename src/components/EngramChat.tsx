@@ -76,9 +76,38 @@ export default function EngramChat({ engrams }: EngramChatProps) {
       <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-blue-900/20 rounded-2xl shadow-2xl border border-gray-700/50 p-12 backdrop-blur-sm text-center">
         <Bot className="w-16 h-16 text-gray-600 mx-auto mb-4" />
         <h3 className="text-2xl font-light text-white mb-3">No Active AI Engrams</h3>
-        <p className="text-gray-400 max-w-md mx-auto">
-          To chat with an engram AI, first build their personality and activate the AI when readiness reaches 80%.
+        <p className="text-gray-400 max-w-md mx-auto mb-6">
+          To chat with an engram AI, build their personality by answering daily questions. Once you've answered 50+ questions, the AI will automatically activate.
         </p>
+        <div className="flex flex-col gap-3 max-w-sm mx-auto">
+          <div className="bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-left">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">1</span>
+              </div>
+              <span className="text-sm text-white font-medium">Go to Engrams tab</span>
+            </div>
+            <p className="text-xs text-gray-400 pl-11">Create or select an AI personality</p>
+          </div>
+          <div className="bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-left">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">2</span>
+              </div>
+              <span className="text-sm text-white font-medium">Answer daily questions</span>
+            </div>
+            <p className="text-xs text-gray-400 pl-11">Build their personality and memories</p>
+          </div>
+          <div className="bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-left">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">3</span>
+              </div>
+              <span className="text-sm text-white font-medium">AI auto-activates at 80%</span>
+            </div>
+            <p className="text-xs text-gray-400 pl-11">Return here to start chatting!</p>
+          </div>
+        </div>
       </div>
     );
   }

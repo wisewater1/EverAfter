@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
 import EngramChat from '../components/EngramChat';
@@ -10,11 +11,18 @@ import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
 
+interface ArchetypalAI {
+  id: string;
+  name: string;
+  is_ai_active: boolean;
+}
+
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family' | 'health'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
+  const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -25,6 +33,31 @@ export default function Dashboard() {
     setSelectedAIId(aiId);
     setSelectedView('questions');
   };
+
+  const loadArchetypalAIs = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('archetypal_ais')
+        .select('id, name, is_ai_active')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading archetypal AIs:', error);
+        return;
+      }
+
+      setArchetypalAIs(data || []);
+    } catch (error) {
+      console.error('Error loading archetypal AIs:', error);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadArchetypalAIs();
+  }, [loadArchetypalAIs]);
 
   if (loading) {
     return (
@@ -125,10 +158,10 @@ export default function Dashboard() {
           <DailyQuestionCard userId={user.id} preselectedAIId={selectedAIId || undefined} />
         )}
         {selectedView === 'chat' && (
-          <EngramChat engrams={[]} userId={user.id} />
+          <EngramChat engrams={archetypalAIs} userId={user.id} />
         )}
         {selectedView === 'tasks' && (
-          <EngramTaskManager engrams={[]} userId={user.id} />
+          <EngramTaskManager engrams={archetypalAIs} userId={user.id} />
         )}
         {selectedView === 'family' && (
           <FamilyMembers userId={user.id} />
