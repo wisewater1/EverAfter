@@ -6,8 +6,6 @@ import {
   Battery,
   Signal,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
   RefreshCw,
   TrendingUp,
   TrendingDown,
