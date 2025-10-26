@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User, Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User, Upload, X, FileText, Image as ImageIcon, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, formatFileSize, getFileIcon } from '../lib/file-storage';
 
@@ -300,10 +300,25 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
     <div className="space-y-6">
       {/* AI Selector */}
       <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <User className="w-5 h-5 text-sky-400" />
-          <h3 className="text-lg font-medium text-white">Building Personality For:</h3>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <User className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-lg font-semibold text-white">Choose Your AI to Train Today</h3>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <Clock className="w-4 h-4" />
+            <span>~5 min</span>
+          </div>
         </div>
+
+        {ais.length > 1 && (
+          <div className="mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-300 leading-relaxed">
+              <strong className="text-white">Tip:</strong> Choose based on your interests today.
+              You can train both AIs - just pick one to begin with.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {ais.map((ai) => (
@@ -312,24 +327,26 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
               onClick={() => handleAISelect(ai)}
               className={`p-5 rounded-xl border-2 transition-all text-left ${
                 selectedAI?.id === ai.id
-                  ? 'bg-sky-500/10 border-sky-500 shadow-lg shadow-sky-500/10'
-                  : 'bg-slate-900/50 border-slate-700/50 hover:border-slate-600'
+                  ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20'
+                  : 'bg-slate-900/50 border-slate-700/50 hover:border-slate-600 hover:bg-slate-900/70'
               }`}
+              aria-pressed={selectedAI?.id === ai.id}
+              aria-label={`Select ${ai.name} to train`}
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
                   <User className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-white mb-0.5">{ai.name}</div>
-                  <div className="text-xs text-slate-400 line-clamp-1">{ai.description}</div>
+                  <div className="font-semibold text-white mb-0.5">{ai.name}</div>
+                  <div className="text-xs text-slate-200 line-clamp-2 leading-relaxed">{ai.description}</div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-700/50">
                 <span className="text-slate-400">{ai.total_memories} memories</span>
-                <span className={`font-medium px-2 py-0.5 rounded ${
-                  ai.training_status === 'ready' ? 'bg-emerald-500/10 text-emerald-400' :
-                  ai.training_status === 'training' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-500/10 text-slate-400'
+                <span className={`font-medium px-2.5 py-1 rounded-lg text-xs ${
+                  ai.training_status === 'ready' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                  ai.training_status === 'training' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
                 }`}>
                   {ai.training_status}
                 </span>
@@ -372,9 +389,36 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       {/* Question Card */}
       {loading ? (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
-          <div className="w-8 h-8 border-2 border-slate-700 border-t-sky-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading today's question...</p>
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+          {/* Enhanced skeleton loading state */}
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-8 w-32 bg-slate-700/50 rounded-lg animate-pulse"></div>
+              <div className="h-6 w-24 bg-slate-700/50 rounded-lg animate-pulse"></div>
+            </div>
+            <div className="flex items-start gap-4 mb-8">
+              <div className="w-14 h-14 bg-slate-700/50 rounded-xl animate-pulse flex-shrink-0"></div>
+              <div className="flex-1 space-y-3">
+                <div className="h-6 w-3/4 bg-slate-700/50 rounded animate-pulse"></div>
+                <div className="h-6 w-full bg-slate-700/50 rounded animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-slate-700/50 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-slate-700/50 rounded animate-pulse"></div>
+              <div className="h-4 w-full bg-slate-700/50 rounded animate-pulse"></div>
+              <div className="h-4 w-3/4 bg-slate-700/50 rounded animate-pulse"></div>
+            </div>
+          </div>
+          <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-700/50">
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              <div>
+                <div className="text-emerald-400 font-medium mb-1">Preparing your personalized question...</div>
+                <div className="text-xs text-slate-500">This usually takes 2-3 seconds</div>
+              </div>
+            </div>
+          </div>
         </div>
       ) : question ? (
         <div className="bg-gradient-to-br from-slate-800/40 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
@@ -397,10 +441,10 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-light text-white leading-relaxed mb-2">
+                <h3 className="text-2xl font-medium text-white leading-relaxed mb-2">
                   {question.question_text}
                 </h3>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-300">
                   Share your thoughts and memories
                 </p>
               </div>
