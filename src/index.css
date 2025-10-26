@@ -4,18 +4,74 @@
 
 @layer base {
   :root {
-    --color-primary: #10b981;
-    --color-primary-hover: #059669;
-    --color-bg-primary: #020617;
-    --color-bg-secondary: #1e293b;
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #94a3b8;
-    --color-border: #334155;
+    /* Minimalist Neon Design System - Color Tokens */
+    /* Near-black backgrounds */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #141414;
+    --bg-card: #1a1a1a;
+    --bg-elevated: #1f1f1f;
+
+    /* Neon accent - Cyan theme */
+    --neon-accent: #00ffff;
+    --neon-accent-dim: #00cccc;
+    --neon-accent-bright: #66ffff;
+    --neon-glow: rgba(0, 255, 255, 0.5);
+    --neon-glow-sm: rgba(0, 255, 255, 0.3);
+    --neon-glow-lg: rgba(0, 255, 255, 0.7);
+
+    /* Low-contrast neutrals */
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
+    --text-muted: #606060;
+    --text-disabled: #404040;
+
+    /* Border colors */
+    --border-subtle: #2a2a2a;
+    --border-default: #333333;
+    --border-emphasis: #4d4d4d;
+    --border-neon: var(--neon-accent);
+
+    /* Semantic colors with neon variants */
+    --success: #00ff88;
+    --success-glow: rgba(0, 255, 136, 0.4);
+    --warning: #ffbb00;
+    --warning-glow: rgba(255, 187, 0, 0.4);
+    --error: #ff0055;
+    --error-glow: rgba(255, 0, 85, 0.4);
+    --info: #0088ff;
+    --info-glow: rgba(0, 136, 255, 0.4);
+
+    /* Border radius */
     --radius-sm: 0.5rem;
     --radius-md: 0.75rem;
     --radius-lg: 1rem;
-    --spacing-unit: 0.5rem;
-    --transition-fast: 200ms;
+    --radius-xl: 1.5rem;
+    --radius-full: 9999px;
+
+    /* Spacing scale (8px base) */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+
+    /* Animation durations */
+    --transition-fast: 150ms;
+    --transition-normal: 200ms;
+    --transition-smooth: 300ms;
+    --transition-slow: 500ms;
+
+    /* Shadows with neon glow */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    --shadow-neon-sm: 0 0 10px var(--neon-glow-sm);
+    --shadow-neon-md: 0 0 20px var(--neon-glow);
+    --shadow-neon-lg: 0 0 30px var(--neon-glow-lg);
   }
 
   html {
@@ -264,5 +320,151 @@
   .focus-within-ring:focus-within {
     ring: 2px;
     ring-color: rgba(52, 211, 153, 0.5);
+  }
+
+  /* ========================================
+     MINIMALIST NEON UTILITIES
+     ======================================== */
+
+  /* Neon glow effects */
+  .neon-glow-sm {
+    box-shadow: var(--shadow-neon-sm);
+  }
+
+  .neon-glow-md {
+    box-shadow: var(--shadow-neon-md);
+  }
+
+  .neon-glow-lg {
+    box-shadow: var(--shadow-neon-lg);
+  }
+
+  /* Neon text */
+  .neon-text {
+    color: var(--neon-accent);
+    text-shadow: 0 0 10px var(--neon-glow);
+  }
+
+  /* Neon border */
+  .neon-border {
+    border: 1px solid var(--neon-accent);
+    box-shadow: 0 0 5px var(--neon-glow-sm), inset 0 0 5px var(--neon-glow-sm);
+  }
+
+  /* Neon button hover effect */
+  .neon-hover:hover {
+    box-shadow: var(--shadow-neon-md);
+    transform: translateY(-1px);
+    transition: all var(--transition-fast) ease-out;
+  }
+
+  /* Neon pulse animation */
+  @keyframes neonPulse {
+    0%, 100% {
+      box-shadow: 0 0 10px var(--neon-glow-sm);
+    }
+    50% {
+      box-shadow: 0 0 25px var(--neon-glow-lg);
+    }
+  }
+
+  .animate-neon-pulse {
+    animation: neonPulse 2s ease-in-out infinite;
+  }
+
+  /* Neon focus states (replaces emerald) */
+  :focus-visible {
+    outline: 2px solid var(--neon-accent);
+    outline-offset: 2px;
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--neon-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--neon-glow-sm);
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    border-color: var(--neon-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--neon-glow-sm);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--neon-accent);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  .card-interactive:focus-visible {
+    outline: 2px solid var(--neon-accent);
+    outline-offset: -2px;
+    box-shadow: 0 0 0 4px var(--neon-glow-sm);
+  }
+
+  nav button:focus-visible {
+    background-color: rgba(0, 255, 255, 0.1);
+  }
+
+  /* Glass morphism with neon edge */
+  .glass-neon {
+    background: rgba(26, 26, 26, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.1);
+  }
+
+  /* Card with subtle neon accent */
+  .card-neon {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-normal) ease;
+  }
+
+  .card-neon:hover {
+    border-color: var(--border-neon);
+    box-shadow: var(--shadow-neon-sm);
+  }
+
+  /* Smooth fade-in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn var(--transition-smooth) ease-out;
+  }
+
+  /* Smooth scrollbar neon variant */
+  .scrollbar-neon {
+    scrollbar-width: thin;
+    scrollbar-color: var(--neon-accent-dim) transparent;
+  }
+
+  .scrollbar-neon::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-neon::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-neon::-webkit-scrollbar-thumb {
+    background-color: var(--neon-accent-dim);
+    border-radius: 3px;
+  }
+
+  .scrollbar-neon::-webkit-scrollbar-thumb:hover {
+    background-color: var(--neon-accent);
+    box-shadow: 0 0 5px var(--neon-glow-sm);
   }
 }
