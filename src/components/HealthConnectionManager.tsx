@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings } from 'lucide-react';
+import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench } from 'lucide-react';
+import TroubleshootingWizard from './TroubleshootingWizard';
 
 interface HealthConnection {
   id: string;
@@ -91,6 +92,12 @@ export default function HealthConnectionManager() {
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<{
+    type: string;
+    name: string;
+    connectionId?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -276,11 +283,25 @@ export default function HealthConnectionManager() {
                       </p>
                     )}
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedDevice({
+                            type: service.id,
+                            name: service.name,
+                            connectionId: existingConnection.id
+                          });
+                          setTroubleshootingOpen(true);
+                        }}
+                        className="px-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 rounded-lg transition-all text-sm flex items-center gap-2 min-h-[44px]"
+                        title="Troubleshoot connection issues"
+                      >
+                        <Wrench className="w-4 h-4" />
+                      </button>
                       {isConnected && (
                         <button
                           onClick={() => syncConnection(existingConnection.id, service.name)}
                           disabled={syncing === existingConnection.id}
-                          className="flex-1 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                          className="flex-1 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
                         >
                           <RefreshCw className={`w-4 h-4 ${syncing === existingConnection.id ? 'animate-spin' : ''}`} />
                           {syncing === existingConnection.id ? 'Syncing...' : 'Sync Now'}
@@ -288,7 +309,7 @@ export default function HealthConnectionManager() {
                       )}
                       <button
                         onClick={() => disconnectService(existingConnection.id)}
-                        className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-all text-sm"
+                        className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-all text-sm min-h-[44px]"
                       >
                         Disconnect
                       </button>
@@ -357,6 +378,19 @@ export default function HealthConnectionManager() {
             })}
           </div>
         </div>
+      )}
+
+      {selectedDevice && (
+        <TroubleshootingWizard
+          isOpen={troubleshootingOpen}
+          onClose={() => {
+            setTroubleshootingOpen(false);
+            setSelectedDevice(null);
+          }}
+          deviceType={selectedDevice.type}
+          deviceName={selectedDevice.name}
+          deviceConnectionId={selectedDevice.connectionId}
+        />
       )}
     </div>
   );

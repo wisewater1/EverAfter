@@ -15,7 +15,9 @@ import {
   Zap,
   Heart,
   Droplet,
+  Wrench,
 } from 'lucide-react';
+import TroubleshootingWizard from './TroubleshootingWizard';
 
 interface DeviceConnection {
   id: string;
@@ -57,6 +59,12 @@ export default function DeviceMonitorDashboard() {
   const [qualityMetrics, setQualityMetrics] = useState<DataQualityMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusSummary, setStatusSummary] = useState<any>(null);
+  const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<{
+    id: string;
+    name: string;
+    type: string;
+  } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -354,6 +362,23 @@ export default function DeviceMonitorDashboard() {
                         Last data: {getTimeSince(device.last_data_received_at)}
                       </div>
                     )}
+
+                    {(device.connection_status === 'error' || device.error_count > 0) && (
+                      <button
+                        onClick={() => {
+                          setSelectedDevice({
+                            id: device.id,
+                            name: device.friendly_name || device.device_registry?.model_name || 'Device',
+                            type: device.device_registry?.device_type || 'general'
+                          });
+                          setTroubleshootingOpen(true);
+                        }}
+                        className="mt-3 w-full px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 rounded-lg transition-all text-sm flex items-center justify-center gap-2 min-h-[44px]"
+                      >
+                        <Wrench className="w-4 h-4" />
+                        Troubleshoot Issues
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -430,6 +455,19 @@ export default function DeviceMonitorDashboard() {
           </div>
         </div>
       </div>
+
+      {selectedDevice && (
+        <TroubleshootingWizard
+          isOpen={troubleshootingOpen}
+          onClose={() => {
+            setTroubleshootingOpen(false);
+            setSelectedDevice(null);
+          }}
+          deviceType={selectedDevice.type}
+          deviceName={selectedDevice.name}
+          deviceConnectionId={selectedDevice.id}
+        />
+      )}
     </div>
   );
 }
