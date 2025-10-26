@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Bot, Heart, Activity, Clock, Star, Search, Plus, Settings, X } from 'lucide-react';
+import { MessageCircle, Bot, Heart, Activity, Clock, Star, Search, Plus, Settings, X, CheckSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import ArchetypalAIChat from './ArchetypalAIChat';
 import EngramChat from './EngramChat';
 import RaphaelChat from './RaphaelChat';
+import EngramTaskManager from './EngramTaskManager';
 
 interface ChatSession {
   id: string;
@@ -17,14 +18,23 @@ interface ChatSession {
   archetype?: string;
 }
 
+interface ArchetypalAI {
+  id: string;
+  name: string;
+  is_ai_active: boolean;
+}
+
 type ViewMode = 'list' | 'chat';
 type FilterType = 'all' | 'archetypal' | 'engram' | 'raphael' | 'favorites';
+type TabMode = 'conversations' | 'tasks';
 
 export default function UnifiedChatInterface() {
   const { user } = useAuth();
+  const [tabMode, setTabMode] = useState<TabMode>('conversations');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
@@ -41,13 +51,15 @@ export default function UnifiedChatInterface() {
     if (!user?.id) return;
 
     try {
-      const { data: archetypalAIs, error: archetypalError } = await supabase
+      const { data: archetypalAIsData, error: archetypalError } = await supabase
         .from('archetypal_ais')
         .select('id, name, archetype, is_ai_active')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (archetypalError) throw archetypalError;
+
+      setArchetypalAIs(archetypalAIsData || []);
 
       const sessions: ChatSession[] = [
         {
@@ -59,7 +71,7 @@ export default function UnifiedChatInterface() {
           isActive: true,
           archetype: 'Health Guardian',
         },
-        ...(archetypalAIs || []).map(ai => ({
+        ...(archetypalAIsData || []).map(ai => ({
           id: ai.id,
           type: 'archetypal' as const,
           name: ai.name,
@@ -195,9 +207,11 @@ export default function UnifiedChatInterface() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">Chat Hub</h2>
+          <h2 className="text-2xl font-bold text-white mb-1">Chat & Tasks Hub</h2>
           <p className="text-slate-400 text-sm">
-            Conversations with your AI assistants
+            {tabMode === 'conversations'
+              ? 'Conversations with your AI assistants'
+              : 'Manage AI tasks and automation'}
           </p>
         </div>
         <button
@@ -208,18 +222,49 @@ export default function UnifiedChatInterface() {
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search conversations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-          />
-        </div>
+      <div className="flex items-center gap-2 bg-slate-800/30 p-1 rounded-lg border border-slate-700/30">
+        <button
+          onClick={() => {
+            setTabMode('conversations');
+            setViewMode('list');
+            setSelectedSession(null);
+          }}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md transition-all font-medium ${
+            tabMode === 'conversations'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+              : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+          }`}
+        >
+          <MessageCircle className="w-4 h-4" />
+          Conversations
+        </button>
+        <button
+          onClick={() => setTabMode('tasks')}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md transition-all font-medium ${
+            tabMode === 'tasks'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+              : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+          }`}
+        >
+          <CheckSquare className="w-4 h-4" />
+          Tasks
+        </button>
       </div>
+
+      {tabMode === 'conversations' && (
+        <>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+              />
+            </div>
+          </div>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {[
@@ -316,24 +361,30 @@ export default function UnifiedChatInterface() {
         )}
       </div>
 
-      {showSettings && (
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 space-y-4">
-          <h3 className="text-white font-medium mb-4">Chat Settings</h3>
-          <div className="space-y-3">
-            <label className="flex items-center justify-between">
-              <span className="text-slate-300 text-sm">Show typing indicators</span>
-              <input type="checkbox" className="rounded" defaultChecked />
-            </label>
-            <label className="flex items-center justify-between">
-              <span className="text-slate-300 text-sm">Sound notifications</span>
-              <input type="checkbox" className="rounded" />
-            </label>
-            <label className="flex items-center justify-between">
-              <span className="text-slate-300 text-sm">Auto-save conversations</span>
-              <input type="checkbox" className="rounded" defaultChecked />
-            </label>
-          </div>
-        </div>
+          {showSettings && (
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 space-y-4">
+              <h3 className="text-white font-medium mb-4">Chat Settings</h3>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between">
+                  <span className="text-slate-300 text-sm">Show typing indicators</span>
+                  <input type="checkbox" className="rounded" defaultChecked />
+                </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-slate-300 text-sm">Sound notifications</span>
+                  <input type="checkbox" className="rounded" />
+                </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-slate-300 text-sm">Auto-save conversations</span>
+                  <input type="checkbox" className="rounded" defaultChecked />
+                </label>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {tabMode === 'tasks' && user?.id && (
+        <EngramTaskManager engrams={archetypalAIs} userId={user.id} />
       )}
     </div>
   );

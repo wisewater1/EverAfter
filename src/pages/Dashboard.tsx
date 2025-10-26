@@ -7,7 +7,6 @@ import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
-import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
 import CognitiveInsights from '../components/CognitiveInsights';
@@ -23,7 +22,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family' | 'health' | 'insights'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'family' | 'health' | 'insights'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -86,7 +85,6 @@ export default function Dashboard() {
     { id: 'insights', label: 'Insights', icon: Sparkles },
     { id: 'questions', label: 'Questions', icon: Calendar },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'tasks', label: 'Tasks', icon: Settings },
     { id: 'family', label: 'Family', icon: Users },
     { id: 'health', label: 'Health', icon: Activity },
   ];
@@ -271,9 +269,6 @@ export default function Dashboard() {
         )}
         {selectedView === 'chat' && (
           <UnifiedChatInterface />
-        )}
-        {selectedView === 'tasks' && (
-          <EngramTaskManager engrams={archetypalAIs} userId={user.id} />
         )}
         {selectedView === 'family' && (
           <div className="space-y-6">
