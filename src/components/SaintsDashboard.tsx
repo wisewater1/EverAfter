@@ -473,32 +473,32 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
         {/* Scanning Line Effect */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent animate-scan"></div>
 
-        <div className="relative p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="relative p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
-              <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center ring-2 ring-emerald-500/30">
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center ring-2 ring-emerald-500/30 flex-shrink-0">
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full"></div>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="text-base font-medium text-white">Today's Activities</h3>
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-medium text-white">Today's Activities</h3>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                     <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
                     <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Analyzing</span>
                   </div>
                 </div>
-                <p className="text-sm text-slate-400">Your Saints completed <span className="text-emerald-400 font-medium">{activities.length}</span> tasks today</p>
+                <p className="text-xs sm:text-sm text-slate-400">Your Saints completed <span className="text-emerald-400 font-medium">{activities.length}</span> tasks today</p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-4xl font-extralight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 tabular-nums">{activities.length}</div>
+            <div className="text-left sm:text-right">
+              <div className="text-3xl sm:text-4xl font-extralight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 tabular-nums">{activities.length}</div>
               <div className="text-xs text-slate-500 uppercase tracking-wider font-medium">Completed</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Protection Card */}
             <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-sky-500/30 transition-all duration-300 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-sky-500/0 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -593,7 +593,7 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
       </div>
 
       {/* Saints Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {saints.map((saint) => {
           const Icon = saint.icon;
           const isRaphael = saint.id === 'raphael';
