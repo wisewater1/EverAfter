@@ -31,11 +31,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin/create-user" element={<AdminUserCreation />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/marketplace" element={
-            <ProtectedRoute>
-              <Marketplace />
-            </ProtectedRoute>
-          } />
+          <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/digital-legacy" element={
             <ProtectedRoute>
               <DigitalLegacy />

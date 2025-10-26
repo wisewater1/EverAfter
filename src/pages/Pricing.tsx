@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Zap, Crown, Sparkles, Loader, LogIn, Brain, Heart, Lock, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import AuthModal from '../components/AuthModal';
+import { useAuthModal } from '../hooks/useAuthModal';
 
 const plans = [
   {
@@ -140,23 +142,30 @@ export default function Pricing() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const { isAuthModalOpen, authTab, contextMessage, openAuthModal, closeAuthModal, authIntent, clearAuthIntent } = useAuthModal();
 
-  const handleSubscribe = async (priceId: string | null, planId: string) => {
+  const handleSubscribe = async (priceId: string | null, planId: string, planName: string) => {
     if (!priceId) {
       if (!user) {
-        window.location.href = '/signup';
+        openAuthModal({
+          tab: 'signup',
+          message: 'Create your account to get started',
+        });
       } else {
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }
       return;
     }
 
     if (!user || !session) {
-      const confirmLogin = window.confirm('You need to sign in to purchase a premium Saint. Would you like to sign in now?');
-      if (confirmLogin) {
-        sessionStorage.setItem('pricing_redirect', 'true');
-        window.location.href = '/login';
-      }
+      openAuthModal({
+        tab: 'signup',
+        message: `Sign in to subscribe to ${planName}`,
+        intent: {
+          action: 'subscribe',
+          data: { priceId, planId, planName },
+        },
+      });
       return;
     }
 
@@ -186,6 +195,14 @@ export default function Pricing() {
       setLoading(null);
     }
   };
+
+  useEffect(() => {
+    if (user && authIntent && authIntent.action === 'subscribe') {
+      const { priceId, planId, planName } = authIntent.data;
+      handleSubscribe(priceId, planId, planName);
+      clearAuthIntent();
+    }
+  }, [user, authIntent]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
@@ -303,7 +320,7 @@ export default function Pricing() {
 
                 {/* CTA Button */}
                 <button
-                  onClick={() => handleSubscribe(plan.priceId, plan.id)}
+                  onClick={() => handleSubscribe(plan.priceId, plan.id, plan.name)}
                   disabled={loading === plan.id}
                   className={`w-full px-6 py-3 ${
                     plan.popular
@@ -356,6 +373,20 @@ export default function Pricing() {
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={closeAuthModal}
+        defaultTab={authTab}
+        contextMessage={contextMessage}
+        onSuccess={() => {
+          if (authIntent && authIntent.action === 'subscribe') {
+            const { priceId, planId, planName } = authIntent.data;
+            handleSubscribe(priceId, planId, planName);
+            clearAuthIntent();
+          }
+        }}
+      />
     </div>
   );
 }

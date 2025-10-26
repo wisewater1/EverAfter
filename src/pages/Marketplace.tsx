@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2 } from 'lucide-react';
+import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import AuthModal from '../components/AuthModal';
+import { useAuthModal } from '../hooks/useAuthModal';
 
 interface MarketplaceTemplate {
   id: string;
@@ -44,6 +46,7 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<MarketplaceTemplate | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const { isAuthModalOpen, authTab, contextMessage, openAuthModal, closeAuthModal, authIntent, clearAuthIntent } = useAuthModal();
 
   const activeConnectionsCount = getActiveConnectionsCount();
 
@@ -92,7 +95,14 @@ export default function Marketplace() {
 
   const handlePurchase = async (template: MarketplaceTemplate) => {
     if (!user) {
-      navigate('/login');
+      openAuthModal({
+        tab: 'signup',
+        message: `Sign in to purchase ${template.title}`,
+        intent: {
+          action: 'purchase',
+          data: { template },
+        },
+      });
       return;
     }
 
@@ -122,7 +132,17 @@ export default function Marketplace() {
   };
 
   const handleAddToEngrams = async (template: MarketplaceTemplate) => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal({
+        tab: 'signin',
+        message: `Sign in to add ${template.title} to your engrams`,
+        intent: {
+          action: 'add_to_engrams',
+          data: { template },
+        },
+      });
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -170,6 +190,18 @@ export default function Marketplace() {
   const featuredTemplates = filteredTemplates.filter(t => t.is_featured);
   const regularTemplates = filteredTemplates.filter(t => !t.is_featured);
 
+  useEffect(() => {
+    if (user && authIntent) {
+      if (authIntent.action === 'purchase' && authIntent.data?.template) {
+        handlePurchase(authIntent.data.template);
+        clearAuthIntent();
+      } else if (authIntent.action === 'add_to_engrams' && authIntent.data?.template) {
+        handleAddToEngrams(authIntent.data.template);
+        clearAuthIntent();
+      }
+    }
+  }, [user, authIntent]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
@@ -189,7 +221,7 @@ export default function Marketplace() {
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(user ? '/dashboard' : '/')}
                 className="w-10 h-10 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-lg flex items-center justify-center transition-all"
               >
                 <ArrowLeft className="w-5 h-5 text-slate-400" />
@@ -204,18 +236,30 @@ export default function Marketplace() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => openConnectionsPanel()}
-              className="relative hidden sm:flex px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
-            >
-              <Link2 className="w-4 h-4" />
-              Connections
-              {activeConnectionsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  {activeConnectionsCount}
-                </span>
+            <div className="flex items-center gap-2">
+              {user ? (
+                <button
+                  onClick={() => openConnectionsPanel()}
+                  className="relative hidden sm:flex px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
+                >
+                  <Link2 className="w-4 h-4" />
+                  Connections
+                  {activeConnectionsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {activeConnectionsCount}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => openAuthModal({ tab: 'signin' })}
+                  className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2 text-sm font-medium"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </button>
               )}
-            </button>
+            </div>
           </div>
 
           {/* Search and Filter Bar */}
@@ -317,6 +361,23 @@ export default function Marketplace() {
           purchasing={purchasing}
         />
       )}
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={closeAuthModal}
+        defaultTab={authTab}
+        contextMessage={contextMessage}
+        onSuccess={() => {
+          if (authIntent) {
+            if (authIntent.action === 'purchase' && authIntent.data?.template) {
+              handlePurchase(authIntent.data.template);
+            } else if (authIntent.action === 'add_to_engrams' && authIntent.data?.template) {
+              handleAddToEngrams(authIntent.data.template);
+            }
+            clearAuthIntent();
+          }
+        }}
+      />
     </div>
   );
 }
