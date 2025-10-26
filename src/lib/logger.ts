@@ -47,14 +47,21 @@ class Logger {
   }
 
   error(message: string, error?: unknown, context?: LogContext): void {
-    if (this.shouldLog('error')) {
-      const errorContext = {
-        ...context,
-        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
-      };
-      // eslint-disable-next-line no-console
-      console.error(this.formatMessage('error', message, errorContext));
-    }
+    const errorContext = {
+      ...context,
+      error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+    };
+    // eslint-disable-next-line no-console
+    console.error(this.formatMessage('error', message, errorContext));
+  }
+
+  critical(message: string, error?: unknown, context?: LogContext): void {
+    const errorContext = {
+      ...context,
+      error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+    };
+    // eslint-disable-next-line no-console
+    console.error(this.formatMessage('error', `[CRITICAL] ${message}`, errorContext));
   }
 }
 

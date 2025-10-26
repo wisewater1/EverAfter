@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
+
+export interface ErrorNotificationHook {
+  showError: (message: string, severity?: 'critical' | 'warning' | 'info') => void;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +15,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  setErrorNotifier: (notifier: ErrorNotificationHook) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -50,7 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('[AuthContext] Signup error:', error);
+        logger.critical('Signup failed', error);
+        errorNotifier?.showError(
+          error.message || 'Unable to create account. Please try again.',
+          'critical'
+        );
         return { error };
       }
 
@@ -69,10 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { error: null };
     } catch (err) {
-      console.error('[AuthContext] Signup exception:', err);
+      logger.critical('Signup exception', err);
+      const errorMsg = err instanceof Error ? err.message : 'Signup failed';
+      errorNotifier?.showError(errorMsg, 'critical');
       return {
         error: {
-          message: err instanceof Error ? err.message : 'Signup failed',
+          message: errorMsg,
           name: 'SignupError',
           status: 500
         } as AuthError
@@ -89,7 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('[AuthContext] Sign in error:', error);
+        logger.critical('Sign in failed', error);
+        errorNotifier?.showError(
+          error.message || 'Unable to sign in. Please check your credentials.',
+          'critical'
+        );
         return { error };
       }
 
@@ -107,10 +124,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { error: null };
     } catch (err) {
-      console.error('[AuthContext] Sign in exception:', err);
+      logger.critical('Sign in exception', err);
+      const errorMsg = err instanceof Error ? err.message : 'Sign in failed';
+      errorNotifier?.showError(errorMsg, 'critical');
       return {
         error: {
-          message: err instanceof Error ? err.message : 'Sign in failed',
+          message: errorMsg,
           name: 'SignInError',
           status: 500
         } as AuthError
@@ -120,6 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    if (error) {
+      logger.error('Sign out failed', error);
+      errorNotifier?.showError('Failed to sign out. Please try again.', 'warning');
+    }
     return { error };
   };
 
@@ -127,6 +150,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
+    if (error) {
+      logger.error('Password reset failed', error);
+      errorNotifier?.showError('Failed to send password reset email. Please try again.', 'warning');
+    }
     return { error };
   };
 
@@ -138,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     resetPassword,
+    setErrorNotifier,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
