@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity } from 'lucide-react';
+import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
@@ -103,13 +103,22 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500">{user?.email || 'Loading...'}</p>
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/marketplace')}
+                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-amber-500/20"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span className="hidden sm:inline">Marketplace</span>
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>

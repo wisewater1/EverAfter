@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight } from 'lucide-react';
+import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ArchetypalAI {
@@ -27,6 +27,9 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     name: '',
     description: '',
   });
+  const [showFastTrackModal, setShowFastTrackModal] = useState(false);
+  const [selectedEngramForUpgrade, setSelectedEngramForUpgrade] = useState<ArchetypalAI | null>(null);
+  const [purchasingFastTrack, setPurchasingFastTrack] = useState(false);
 
   const createDefaultAIs = useCallback(async () => {
     try {
@@ -242,6 +245,34 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                 </div>
               </div>
 
+              {/* Fast-Track Upgrade Banner */}
+              {!ai.is_ai_active && ai.ai_readiness_score >= 50 && ai.ai_readiness_score < 80 && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-amber-300 mb-1">Fast-Track Available!</h4>
+                      <p className="text-xs text-slate-400 mb-3">
+                        Unlock chat access now at 50% readiness instead of waiting for 80%
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEngramForUpgrade(ai);
+                          setShowFastTrackModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg text-xs font-medium transition-all shadow-lg shadow-amber-500/20 flex items-center gap-1.5"
+                      >
+                        <Crown className="w-3.5 h-3.5" />
+                        Upgrade to Fast-Track
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
                 <div className="flex items-center gap-2">
@@ -325,6 +356,127 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                 className="flex-1 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all shadow-lg shadow-sky-500/20 font-medium"
               >
                 Create AI
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fast-Track Upgrade Modal */}
+      {showFastTrackModal && selectedEngramForUpgrade && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-amber-500/30 p-8 max-w-lg w-full">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-light text-white mb-1">Fast-Track Activation</h3>
+                <p className="text-sm text-amber-400 font-medium">Unlock Early Access</p>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+              <h4 className="text-sm font-medium text-amber-300 mb-2">Your Engram</h4>
+              <p className="text-white font-medium">{selectedEngramForUpgrade.name}</p>
+              <p className="text-xs text-slate-400 mt-1">Current readiness: {selectedEngramForUpgrade.ai_readiness_score}%</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Instant Chat Access</p>
+                  <p className="text-xs text-slate-400">Start conversations immediately at 50% readiness</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Premium Question Categories</p>
+                  <p className="text-xs text-slate-400">Access relationship coaching, career mentoring, and more</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Audio & Video Uploads</p>
+                  <p className="text-xs text-slate-400">Add multimedia memories with AI-generated reflections</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Priority AI Responses</p>
+                  <p className="text-xs text-slate-400">Get faster, more detailed AI interactions</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl text-center">
+              <div className="text-sm text-slate-400 mb-1">Engram Premium</div>
+              <div className="text-4xl font-light text-white mb-1">$14.99</div>
+              <div className="text-xs text-slate-500">per month · cancel anytime</div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowFastTrackModal(false);
+                  setSelectedEngramForUpgrade(null);
+                }}
+                disabled={purchasingFastTrack}
+                className="flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Maybe Later
+              </button>
+              <button
+                onClick={async () => {
+                  setPurchasingFastTrack(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+                      body: {
+                        type: 'engram_premium',
+                        engram_id: selectedEngramForUpgrade.id,
+                        price_id: 'price_engram_premium_monthly',
+                        success_url: `${window.location.origin}/dashboard?upgrade=success`,
+                        cancel_url: `${window.location.origin}/dashboard?upgrade=cancelled`,
+                      },
+                    });
+
+                    if (error) throw error;
+                    if (data?.url) {
+                      window.location.href = data.url;
+                    }
+                  } catch (err) {
+                    console.error('Upgrade error:', err);
+                    alert('Failed to start upgrade. Please try again.');
+                  } finally {
+                    setPurchasingFastTrack(false);
+                  }
+                }}
+                disabled={purchasingFastTrack}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-lg shadow-amber-500/20 font-medium flex items-center justify-center gap-2"
+              >
+                {purchasingFastTrack ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Crown className="w-5 h-5" />
+                    Upgrade Now
+                  </>
+                )}
               </button>
             </div>
           </div>
