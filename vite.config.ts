@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],
-    include: ['react-router-dom', 'react', 'react-dom', '@supabase/supabase-js'],
+    include: ['react-router-dom', 'react', 'react-dom', '@supabase/supabase-js', 'zod'],
     force: true,
   },
   server: {
