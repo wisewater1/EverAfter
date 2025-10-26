@@ -13,8 +13,10 @@ import EmergencyContacts from '../components/EmergencyContacts';
 import HealthReportGenerator from '../components/HealthReportGenerator';
 import HealthConnectionManager from '../components/HealthConnectionManager';
 import FileManager from '../components/FileManager';
+import ConnectionRotationConfig from '../components/ConnectionRotationConfig';
+import ConnectionRotationMonitor from '../components/ConnectionRotationMonitor';
 
-type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files';
+type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -49,6 +51,7 @@ export default function HealthDashboard() {
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
     { id: 'files' as TabView, label: 'My Files', icon: FolderOpen },
     { id: 'connections' as TabView, label: 'Connections', icon: Activity },
+    { id: 'rotation' as TabView, label: 'Auto-Rotation', icon: Link2 },
     { id: 'contacts' as TabView, label: 'Emergency', icon: Users },
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
   ];
@@ -179,6 +182,12 @@ export default function HealthDashboard() {
           {activeTab === 'goals' && <HealthGoals />}
           {activeTab === 'files' && <FileManager />}
           {activeTab === 'connections' && <HealthConnectionManager />}
+          {activeTab === 'rotation' && (
+            <div className="space-y-6">
+              <ConnectionRotationConfig />
+              <ConnectionRotationMonitor />
+            </div>
+          )}
           {activeTab === 'contacts' && <EmergencyContacts />}
           {activeTab === 'chat' && <RaphaelChat />}
         </div>
