@@ -134,11 +134,11 @@ class SyncScheduler {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json() as any;
         throw new Error(error.error || 'Sync failed');
       }
 
-      const result = await response.json();
+      const result = await response.json() as any;
       const syncResult: SyncResult = {
         success: true,
         metricsIngested: result.metrics_ingested || 0,

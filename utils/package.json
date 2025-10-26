@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Comprehensive health data management utilities for connection management, synchronization, analytics, and reporting",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "build": "tsc",
     "health-cli": "node dist/health-cli.js",

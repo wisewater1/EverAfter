@@ -112,11 +112,11 @@ class HealthCli {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json() as any;
         throw new Error(error.error || 'Sync failed');
       }
 
-      const result = await response.json();
+      const result = await response.json() as any;
       console.log(`✓ Synced ${result.metrics_ingested || 0} metrics from ${provider}`);
     } catch (error: any) {
       console.error('❌ Sync error:', error.message);
