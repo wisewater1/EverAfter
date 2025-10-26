@@ -84,8 +84,8 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
         name: inviteForm.name,
         email: inviteForm.email,
         relationship: inviteForm.relationship,
-        status: 'Pending',
-        access_level: 'View',
+        status: 'pending',
+        access_level: 'view',
         invited_at: new Date().toISOString()
       });
 
