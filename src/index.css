@@ -120,4 +120,98 @@
   .animate-pulseGlow {
     animation: pulseGlow 2s ease-in-out;
   }
+
+  /* ========================================
+     KEYBOARD ACCESSIBILITY & FOCUS STYLES
+     ======================================== */
+
+  /* Focus visible only on keyboard navigation */
+  :focus-visible {
+    outline: 2px solid #34d399; /* emerald-400 */
+    outline-offset: 2px;
+  }
+
+  /* Remove outline for mouse clicks */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Enhanced focus for buttons */
+  button:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
+  }
+
+  /* Input focus with emerald ring */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    border-color: #34d399;
+    outline: none;
+  }
+
+  /* Link focus */
+  a:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  /* Skip link - visible when focused */
+  .skip-link {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .skip-link:focus {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 9999;
+    width: auto;
+    height: auto;
+    padding: 1rem 1.5rem;
+    background: #10b981;
+    color: white;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    font-weight: 500;
+  }
+
+  /* Card interactive focus */
+  .card-interactive:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.15);
+  }
+
+  /* Navigation item focus enhancement */
+  nav button:focus-visible {
+    background-color: rgba(52, 211, 153, 0.1);
+  }
+
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Focus within for container states */
+  .focus-within-ring:focus-within {
+    ring: 2px;
+    ring-color: rgba(52, 211, 153, 0.5);
+  }
 }
