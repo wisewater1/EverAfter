@@ -21,6 +21,10 @@ const ErrorNotificationContext = createContext<ErrorNotificationContextType | un
 export function ErrorNotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<ErrorNotification[]>([]);
 
+  const dismissError = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
   const showError = useCallback((message: string, severity: ErrorSeverity = 'critical') => {
     const notification: ErrorNotification = {
       id: `error-${Date.now()}-${Math.random()}`,
@@ -33,13 +37,9 @@ export function ErrorNotificationProvider({ children }: { children: React.ReactN
 
     if (severity !== 'critical') {
       setTimeout(() => {
-        dismissError(notification.id);
+        setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
       }, 5000);
     }
-  }, []);
-
-  const dismissError = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
   const clearAll = useCallback(() => {
