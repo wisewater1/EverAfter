@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity, ShoppingCart } from 'lucide-react';
+import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity, ShoppingCart, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
@@ -10,6 +10,7 @@ import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
+import CognitiveInsights from '../components/CognitiveInsights';
 
 interface ArchetypalAI {
   id: string;
@@ -20,7 +21,7 @@ interface ArchetypalAI {
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family' | 'health'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'tasks' | 'family' | 'health' | 'insights'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -78,6 +79,7 @@ export default function Dashboard() {
   const navItems = [
     { id: 'saints', label: 'Saints AI', icon: Heart },
     { id: 'engrams', label: 'Engrams', icon: Bot },
+    { id: 'insights', label: 'Insights', icon: Sparkles },
     { id: 'questions', label: 'Questions', icon: Calendar },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'tasks', label: 'Tasks', icon: Settings },
@@ -86,7 +88,7 @@ export default function Dashboard() {
   ];
 
   const handleNavigateToLegacy = () => {
-    navigate('/digital-legacy');
+    navigate('/legacy-vault');
   };
 
   return (
@@ -166,6 +168,9 @@ export default function Dashboard() {
         )}
         {selectedView === 'engrams' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+        )}
+        {selectedView === 'insights' && (
+          <CognitiveInsights userId={user.id} />
         )}
         {selectedView === 'questions' && (
           <DailyQuestionCard userId={user.id} preselectedAIId={selectedAIId || undefined} />

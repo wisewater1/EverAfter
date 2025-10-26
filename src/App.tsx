@@ -14,6 +14,7 @@ import Pricing from './pages/Pricing';
 import AdminUserCreation from './pages/AdminUserCreation';
 import Marketplace from './pages/Marketplace';
 import DigitalLegacy from './pages/DigitalLegacy';
+import LegacyVault from './pages/LegacyVault';
 
 function App() {
   return (
@@ -35,6 +36,11 @@ function App() {
           <Route path="/digital-legacy" element={
             <ProtectedRoute>
               <DigitalLegacy />
+            </ProtectedRoute>
+          } />
+          <Route path="/legacy-vault" element={
+            <ProtectedRoute>
+              <LegacyVault />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={
