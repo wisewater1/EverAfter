@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useConnections } from '../contexts/ConnectionsContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,6 +35,7 @@ interface Purchase {
 
 export default function Marketplace() {
   const { user } = useAuth();
+  const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<MarketplaceTemplate[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -42,6 +44,8 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<MarketplaceTemplate | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+
+  const activeConnectionsCount = getActiveConnectionsCount();
 
   const categories = ['all', 'Finance', 'Wellness', 'Personal Development', 'Career', 'Creativity', 'Relationships'];
 
@@ -182,22 +186,36 @@ export default function Marketplace() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-10 h-10 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-lg flex items-center justify-center transition-all"
+              >
+                <ArrowLeft className="w-5 h-5 text-slate-400" />
+              </button>
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <ShoppingCart className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-light tracking-tight text-white mb-1">AI Marketplace</h1>
+                <p className="text-slate-400 leading-relaxed">
+                  Discover expert-created AI personalities ready to guide your journey
+                </p>
+              </div>
+            </div>
             <button
-              onClick={() => navigate('/dashboard')}
-              className="w-10 h-10 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-lg flex items-center justify-center transition-all"
+              onClick={() => openConnectionsPanel()}
+              className="relative hidden sm:flex px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
             >
-              <ArrowLeft className="w-5 h-5 text-slate-400" />
+              <Link2 className="w-4 h-4" />
+              Connections
+              {activeConnectionsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {activeConnectionsCount}
+                </span>
+              )}
             </button>
-            <div className="w-14 h-14 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <ShoppingCart className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-light tracking-tight text-white mb-1">AI Marketplace</h1>
-              <p className="text-slate-400 leading-relaxed">
-                Discover expert-created AI personalities ready to guide your journey
-              </p>
-            </div>
           </div>
 
           {/* Search and Filter Bar */}

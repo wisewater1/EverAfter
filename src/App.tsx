@@ -1,7 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ConnectionsPanel from './components/ConnectionsPanel';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -19,8 +21,9 @@ import LegacyVault from './pages/LegacyVault';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
+      <ConnectionsProvider>
+        <Router>
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -59,7 +62,9 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+        <ConnectionsPanel />
       </Router>
+      </ConnectionsProvider>
     </AuthProvider>
   );
 }
