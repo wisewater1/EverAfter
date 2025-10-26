@@ -13,6 +13,7 @@ import OAuthCallback from './pages/OAuthCallback';
 import Pricing from './pages/Pricing';
 import AdminUserCreation from './pages/AdminUserCreation';
 import Marketplace from './pages/Marketplace';
+import DigitalLegacy from './pages/DigitalLegacy';
 
 function App() {
   return (
@@ -29,6 +30,11 @@ function App() {
           <Route path="/marketplace" element={
             <ProtectedRoute>
               <Marketplace />
+            </ProtectedRoute>
+          } />
+          <Route path="/digital-legacy" element={
+            <ProtectedRoute>
+              <DigitalLegacy />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={

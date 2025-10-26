@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Zap, Crown, Sparkles, Loader, LogIn, Brain } from 'lucide-react';
+import { Check, Zap, Crown, Sparkles, Loader, LogIn, Brain, Heart, Lock, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -7,58 +7,95 @@ import { supabase } from '../lib/supabase';
 const plans = [
   {
     id: 'free',
-    name: 'Free Trial',
+    name: 'Free Starter',
     price: '$0',
-    period: '14 days',
-    description: 'Perfect for trying out the platform',
+    period: 'forever',
+    description: 'Get started with EverAfter AI',
     features: [
-      '1 AI personality',
-      '30 daily questions',
+      'St. Raphael Health AI (FREE)',
+      '2 Custom AI personalities',
+      '365 daily questions',
       'Basic chat interface',
       'Email support',
-      '14-day trial period',
+      'Standard storage',
     ],
     icon: Sparkles,
-    color: 'from-gray-600 to-gray-700',
+    color: 'from-slate-600 to-slate-700',
     priceId: null,
   },
   {
-    id: 'pro',
-    name: 'Professional',
-    price: '$29',
+    id: 'engram_premium',
+    name: 'Engram Premium',
+    price: '$14.99',
     period: '/month',
-    description: 'For serious AI personality builders',
+    description: 'Unlock your AI personalities faster',
     features: [
-      'Unlimited AI personalities',
-      'Unlimited questions',
-      'Advanced chat with memory',
-      'Task automation',
-      'Priority support',
-      'Export capabilities',
+      'Fast-track activation at 50%',
+      'Premium question categories',
+      'Audio & video memory uploads',
+      'AI-generated reflections',
+      'Priority AI responses',
+      'Unlimited custom engrams',
     ],
-    icon: Zap,
-    color: 'from-blue-600 to-blue-700',
-    priceId: 'price_1234567890', // Replace with actual Stripe price ID
-    popular: true,
+    icon: Brain,
+    color: 'from-amber-600 to-orange-600',
+    priceId: 'price_engram_premium_monthly',
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: '$99',
+    id: 'health_premium',
+    name: 'Health Premium',
+    price: '$24.99',
     period: '/month',
-    description: 'For teams and organizations',
+    description: 'Advanced health monitoring & care',
     features: [
-      'Everything in Professional',
-      'Team collaboration',
-      'Custom integrations',
-      'Dedicated support',
-      'Custom AI training',
-      'White-label options',
-      'SLA guarantee',
+      'Personalized nutrition plans',
+      'Telemedicine integration',
+      'Prescription refill services',
+      'Unlimited health reports',
+      'Partner discounts',
+      'Advanced health analytics',
+    ],
+    icon: Heart,
+    color: 'from-rose-600 to-pink-600',
+    priceId: 'price_health_premium_monthly',
+  },
+  {
+    id: 'legacy_premium',
+    name: 'Legacy Premium',
+    price: '$19.99',
+    period: '/month',
+    description: 'Secure your digital afterlife',
+    features: [
+      '25-year guaranteed storage',
+      'Unlimited scheduled messages',
+      'Custom memorial pages',
+      'Digital will & secure vault',
+      'Time-capsule creation',
+      'Legacy preservation tools',
+    ],
+    icon: Lock,
+    color: 'from-purple-600 to-indigo-600',
+    priceId: 'price_legacy_premium_monthly',
+  },
+  {
+    id: 'ultimate',
+    name: 'Ultimate Bundle',
+    price: '$49.99',
+    period: '/month',
+    description: 'Everything EverAfter AI offers',
+    features: [
+      'All Engram Premium features',
+      'All Health Premium features',
+      'All Legacy Premium features',
+      '$20 monthly marketplace credit',
+      'Priority support & early access',
+      'Exclusive features & updates',
     ],
     icon: Crown,
-    color: 'from-purple-600 to-purple-700',
-    priceId: 'price_0987654321', // Replace with actual Stripe price ID
+    color: 'from-gradient-to-r from-amber-600 via-rose-600 to-purple-600',
+    priceId: 'price_ultimate_bundle_monthly',
+    popular: true,
+    badge: 'BEST VALUE',
   },
 ];
 
@@ -157,21 +194,41 @@ export default function Pricing() {
           </div>
         )}
 
+        {/* Marketplace Callout */}
+        <div className="max-w-4xl mx-auto mb-12 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20 rounded-2xl p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <ShoppingCart className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <h3 className="text-lg font-medium text-white mb-1">Explore the AI Marketplace</h3>
+              <p className="text-sm text-slate-400">Purchase expert-created AI personalities and templates starting at $16.99</p>
+            </div>
+            <button
+              onClick={() => navigate('/marketplace')}
+              className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all shadow-lg shadow-amber-500/20 font-medium whitespace-nowrap"
+            >
+              Browse Marketplace
+            </button>
+          </div>
+        </div>
+
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           {plans.map((plan) => {
             const Icon = plan.icon;
+            const badge = (plan as { badge?: string }).badge;
             return (
               <div
                 key={plan.id}
-                className={`relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border ${
-                  plan.popular ? 'border-blue-500/50 ring-2 ring-blue-500/20' : 'border-gray-700/50'
-                } p-8 backdrop-blur-sm transition-all hover:scale-105`}
+                className={`relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl border ${
+                  plan.popular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-slate-700/50'
+                } p-6 backdrop-blur-sm transition-all hover:scale-105 ${plan.id === 'ultimate' ? 'md:col-span-2 lg:col-span-1' : ''}`}
               >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
-                      Most Popular
+                {(plan.popular || badge) && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg uppercase tracking-wider">
+                      {badge || 'Popular'}
                     </span>
                   </div>
                 )}

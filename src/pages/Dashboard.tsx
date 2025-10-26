@@ -85,6 +85,10 @@ export default function Dashboard() {
     { id: 'health', label: 'Health', icon: Activity },
   ];
 
+  const handleNavigateToLegacy = () => {
+    navigate('/digital-legacy');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
@@ -173,7 +177,28 @@ export default function Dashboard() {
           <EngramTaskManager engrams={archetypalAIs} userId={user.id} />
         )}
         {selectedView === 'family' && (
-          <FamilyMembers userId={user.id} />
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Heart className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-1">Digital Legacy</h3>
+                    <p className="text-sm text-slate-400">Preserve memories and messages for future generations</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleNavigateToLegacy}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-purple-500/20 font-medium whitespace-nowrap"
+                >
+                  Open Legacy Vault
+                </button>
+              </div>
+            </div>
+            <FamilyMembers userId={user.id} />
+          </div>
         )}
         {selectedView === 'health' && (
           <RaphaelHealthInterface />
