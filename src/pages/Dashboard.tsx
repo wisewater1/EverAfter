@@ -9,7 +9,6 @@ import DailyQuestionCard from '../components/DailyQuestionCard';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
-import CognitiveInsights from '../components/CognitiveInsights';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 
 interface ArchetypalAI {
@@ -22,7 +21,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'family' | 'health' | 'insights'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'family' | 'health'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -82,7 +81,6 @@ export default function Dashboard() {
   const navItems = [
     { id: 'saints', label: 'Saints AI', icon: Heart },
     { id: 'engrams', label: 'Engrams', icon: Bot },
-    { id: 'insights', label: 'Insights', icon: Sparkles },
     { id: 'questions', label: 'Questions', icon: Calendar },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'family', label: 'Family', icon: Users },
@@ -260,9 +258,6 @@ export default function Dashboard() {
         )}
         {selectedView === 'engrams' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
-        )}
-        {selectedView === 'insights' && (
-          <CognitiveInsights userId={user.id} />
         )}
         {selectedView === 'questions' && (
           <DailyQuestionCard userId={user.id} preselectedAIId={selectedAIId || undefined} />

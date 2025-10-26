@@ -15,6 +15,7 @@ import AppointmentManager from './AppointmentManager';
 import RaphaelConnectors from './RaphaelConnectors';
 import QuickActions from './QuickActions';
 import HealthTips from './HealthTips';
+import CognitiveInsights from './CognitiveInsights';
 
 type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
@@ -202,9 +203,33 @@ export default function RaphaelHealthInterface() {
           </div>
         )}
 
-        {activeTab === 'insights' && (
-          <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-            <RaphaelInsightsPanel engramId={raphaelEngramId} />
+        {activeTab === 'insights' && user && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 backdrop-blur-lg rounded-2xl p-6 border border-slate-700/50">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Health Insights</h3>
+                  <p className="text-sm text-slate-400">AI-powered health analysis and patterns</p>
+                </div>
+              </div>
+              <RaphaelInsightsPanel engramId={raphaelEngramId} />
+            </div>
+
+            <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 backdrop-blur-lg rounded-2xl p-6 border border-slate-700/50">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Cognitive Insights</h3>
+                  <p className="text-sm text-slate-400">Deep analysis of emotional patterns and life themes</p>
+                </div>
+              </div>
+              <CognitiveInsights userId={user.id} />
+            </div>
           </div>
         )}
         {activeTab === 'analytics' && <HealthAnalytics />}
