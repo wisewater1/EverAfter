@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     exclude: ['lucide-react'],
+    include: ['zod'],
+    esbuildOptions: {
+      resolveExtensions: ['.js', '.ts', '.jsx', '.tsx', '.json'],
+    },
   },
   server: {
     hmr: {
@@ -17,6 +21,7 @@ export default defineConfig({
   },
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom'],
+    conditions: ['import', 'module', 'browser', 'default'],
   },
   clearScreen: false,
 });
