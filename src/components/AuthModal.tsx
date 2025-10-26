@@ -79,7 +79,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
         }
         setSubmitting(false);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       setSubmitting(false);
     }
@@ -112,7 +112,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
         }
         setSubmitting(false);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       setSubmitting(false);
     }

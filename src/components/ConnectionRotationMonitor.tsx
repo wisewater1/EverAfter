@@ -43,7 +43,7 @@ interface ConnectionEvent {
   id: string;
   provider: string;
   event_type: string;
-  event_data: any;
+  event_data: Record<string, unknown>;
   created_at: string;
 }
 
@@ -102,6 +102,7 @@ export default function ConnectionRotationMonitor() {
         scheduleSubscription.unsubscribe();
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function loadData() {

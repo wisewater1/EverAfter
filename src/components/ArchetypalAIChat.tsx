@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, User, Brain, Sparkles, RefreshCw, Info, Users, Zap, BookOpen } from 'lucide-react';
+import { Send, User, Brain, Sparkles, RefreshCw, Info, Users, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,7 +10,7 @@ interface ArchetypalAI {
   personality_traits: string[];
   core_values: string[];
   communication_style: string;
-  foundational_questions: any[];
+  foundational_questions: unknown[];
   readiness_score: number;
   total_memories: number;
   interaction_count: number;
@@ -24,7 +24,7 @@ interface ChatMessage {
   ai_name?: string;
   ai_id?: string;
   timestamp: Date;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface ConversationMode {
@@ -50,6 +50,7 @@ export default function ArchetypalAIChat({ preselectedAIId }: ArchetypalAIChatPr
     if (user) {
       loadArchetypalAIs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function ArchetypalAIChat({ preselectedAIId }: ArchetypalAIChatPr
     } else if (mode.type === 'dual' && archetypalAIs.length >= 2) {
       initializeDualChat();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   useEffect(() => {
@@ -282,6 +284,9 @@ ${ai.interaction_count > 0 ? `We've had ${ai.interaction_count} conversations so
       ? ai.foundational_questions
       : [];
 
+    // System prompt for AI context (reserved for future AI API integration)
+    // When implementing AI responses, uncomment and use the following prompt structure:
+    /*
     const systemPrompt = `You are ${ai.name}, an Archetypal AI with a distinct personality shaped by lived experiences.
 
 CORE IDENTITY:
@@ -307,6 +312,7 @@ INSTRUCTIONS:
 - Show personality through your word choices and perspective
 - Keep responses focused and meaningful (2-4 paragraphs)
 - Reference your foundational questions when they're relevant to the topic`;
+    */
 
     const mockResponses: Record<string, string> = {
       'jamal': `As someone who thinks deeply about financial strategy and legal frameworks, I would approach this from a risk-management perspective. ${ai.total_memories > 0 ? 'Based on what I have learned from our conversations,' : ''} it is crucial to consider both the immediate implications and long-term consequences.
@@ -421,7 +427,7 @@ What aspects of this are most meaningful to you? I'd like to understand your per
             </h4>
             {mode.selectedAI.foundational_questions && mode.selectedAI.foundational_questions.length > 0 ? (
               <ul className="space-y-2 text-sm text-gray-300">
-                {mode.selectedAI.foundational_questions.map((q: any, i: number) => (
+                {mode.selectedAI.foundational_questions.map((q: unknown, i: number) => (
                   <li key={i} className="flex gap-2">
                     <span className="text-blue-400">•</span>
                     <span>{typeof q === 'string' ? q : q.text || 'Unknown question'}</span>

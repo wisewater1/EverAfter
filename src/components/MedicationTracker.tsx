@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Pill, Plus, Check, X, Clock, AlertTriangle, Calendar, Bell } from 'lucide-react';
+import { Pill, Plus, Check, X, Clock, AlertTriangle } from 'lucide-react';
 
 interface Prescription {
   id: string;

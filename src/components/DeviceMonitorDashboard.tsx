@@ -8,8 +8,6 @@ import {
   AlertTriangle,
   RefreshCw,
   TrendingUp,
-  TrendingDown,
-  Minus,
   Bell,
   Settings,
   Zap,
@@ -58,7 +56,7 @@ export default function DeviceMonitorDashboard() {
   const [alerts, setAlerts] = useState<DeviceAlert[]>([]);
   const [qualityMetrics, setQualityMetrics] = useState<DataQualityMetric[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusSummary, setStatusSummary] = useState<any>(null);
+  const [statusSummary, setStatusSummary] = useState<Record<string, unknown> | null>(null);
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<{
     id: string;
@@ -72,6 +70,7 @@ export default function DeviceMonitorDashboard() {
       const interval = setInterval(loadDeviceData, 30000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function loadDeviceData() {
@@ -106,7 +105,9 @@ export default function DeviceMonitorDashboard() {
       }
 
       if (qualityResponse.data) {
-        const metricGroups = qualityResponse.data.reduce((acc: any, log: any) => {
+        interface QualityLog { metric_type: string; quality_score: number; anomaly_detected: boolean }
+        interface MetricGroup { scores: number[]; anomalies: number; total: number }
+        const metricGroups = qualityResponse.data.reduce((acc: Record<string, MetricGroup>, log: QualityLog) => {
           if (!acc[log.metric_type]) {
             acc[log.metric_type] = { scores: [], anomalies: 0, total: 0 };
           }
@@ -116,7 +117,7 @@ export default function DeviceMonitorDashboard() {
           return acc;
         }, {});
 
-        const metrics = Object.entries(metricGroups).map(([type, data]: [string, any]) => ({
+        const metrics = Object.entries(metricGroups).map(([type, data]: [string, MetricGroup]) => ({
           metric_type: type,
           avg_quality: Math.round(data.scores.reduce((a: number, b: number) => a + b, 0) / data.scores.length),
           anomaly_count: data.anomalies,
@@ -183,12 +184,13 @@ export default function DeviceMonitorDashboard() {
     }
   };
 
-  const getBatteryIcon = (level: number) => {
-    if (level > 75) return '🔋';
-    if (level > 50) return '🔋';
-    if (level > 25) return '🪫';
-    return '🪫';
-  };
+  // Battery icon utility (reserved for future display enhancements)
+  // const getBatteryIcon = (level: number) => {
+  //   if (level > 75) return '🔋';
+  //   if (level > 50) return '🔋';
+  //   if (level > 25) return '🪫';
+  //   return '🪫';
+  // };
 
   const getTimeSince = (timestamp: string) => {
     const minutes = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);

@@ -71,6 +71,7 @@ export default function ConnectionRotationConfig() {
       loadProviders();
       loadHealthMetrics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function loadConfig() {
@@ -168,9 +169,10 @@ export default function ConnectionRotationConfig() {
 
       setMessage({ type: 'success', text: 'Configuration saved successfully!' });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving config:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to save configuration' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setSaving(false);
     }

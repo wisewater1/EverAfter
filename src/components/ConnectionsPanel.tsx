@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Link2, Activity, CheckCircle, XCircle, RefreshCw, Loader, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Link2, Activity, CheckCircle, XCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelConnectors from './RaphaelConnectors';
 import { ModalManager } from '../lib/keyboard-navigation';

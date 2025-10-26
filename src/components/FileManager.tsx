@@ -7,7 +7,6 @@ import {
   Trash2,
   FolderOpen,
   Search,
-  Filter,
   X,
   FileText,
   Image,
@@ -21,7 +20,6 @@ import {
   listUserFiles,
   downloadFile,
   deleteFile,
-  getFileUrl,
   getUserStorageStats,
   formatFileSize,
   getFileIcon,
@@ -35,7 +33,7 @@ export default function FileManager() {
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [storageStats, setStorageStats] = useState<any>(null);
+  const [storageStats, setStorageStats] = useState<{ used_bytes: number; total_bytes: number; file_count: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -44,6 +42,7 @@ export default function FileManager() {
       loadFiles();
       loadStorageStats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedCategory]);
 
   async function loadFiles() {
@@ -52,8 +51,9 @@ export default function FileManager() {
       const category = selectedCategory === 'all' ? undefined : selectedCategory;
       const data = await listUserFiles(category);
       setFiles(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load files';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export default function FileManager() {
     try {
       const stats = await getUserStorageStats();
       setStorageStats(stats);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load storage stats:', err);
     }
   }
@@ -79,7 +79,7 @@ export default function FileManager() {
     try {
       for (const file of Array.from(uploadedFiles)) {
         await uploadFile(file, {
-          category: selectedCategory === 'all' ? 'other' : selectedCategory as any,
+          category: selectedCategory === 'all' ? 'other' : (selectedCategory as 'image' | 'document' | 'audio' | 'video' | 'other'),
           description: `Uploaded on ${new Date().toLocaleDateString()}`,
         });
       }
@@ -90,8 +90,9 @@ export default function FileManager() {
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload file(s)';
+      setError(errorMessage);
     } finally {
       setUploading(false);
       event.target.value = '';
@@ -109,8 +110,9 @@ export default function FileManager() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to download file';
+      setError(errorMessage);
     }
   }
 
@@ -125,8 +127,9 @@ export default function FileManager() {
       await loadFiles();
       await loadStorageStats();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
+      setError(errorMessage);
     }
   }
 

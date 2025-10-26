@@ -3,13 +3,14 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { TrendingUp, TrendingDown, Activity, Heart, Moon, Footprints, Calendar, Target, Award } from 'lucide-react';
 
-interface HealthMetric {
-  id: string;
-  metric_type: string;
-  metric_value: number;
-  metric_unit: string;
-  recorded_at: string;
-}
+// Reserved for future use
+// interface HealthMetric {
+//   id: string;
+//   metric_type: string;
+//   metric_value: number;
+//   metric_unit: string;
+//   recorded_at: string;
+// }
 
 interface AnalyticsData {
   avgSteps: number;

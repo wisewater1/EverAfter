@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Send, Mic, SkipForward, Calendar, Sparkles, User, Upload, X, FileText, Image as ImageIcon, Clock } from 'lucide-react';
+import { MessageCircle, Send, SkipForward, Calendar, Sparkles, User, Upload, X, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { uploadFile, formatFileSize, getFileIcon } from '../lib/file-storage';
+import { uploadFile, formatFileSize } from '../lib/file-storage';
 
 interface ArchetypalAI {
   id: string;

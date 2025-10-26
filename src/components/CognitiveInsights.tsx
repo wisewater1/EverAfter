@@ -27,6 +27,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
   useEffect(() => {
     checkSubscriptionStatus();
     loadInsights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, engramId]);
 
   const checkSubscriptionStatus = async () => {
@@ -73,7 +74,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       };
 
       data?.forEach((insight) => {
-        const insightData = insight.insight_data as any;
+        const insightData = insight.insight_data as Record<string, unknown>;
         if (insight.insight_type === 'emotional_arc' && insightData.arcs) {
           aggregated.emotional_arcs = [...(aggregated.emotional_arcs || []), ...insightData.arcs];
         } else if (insight.insight_type === 'recurring_themes' && insightData.themes) {

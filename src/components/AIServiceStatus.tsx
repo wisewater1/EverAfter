@@ -41,6 +41,7 @@ export default function AIServiceStatus() {
     checkServices();
     const interval = setInterval(checkServices, 60000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkServices = async () => {

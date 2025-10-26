@@ -95,18 +95,25 @@ export default function HealthReportGenerator() {
     }
   };
 
-  const generateReportHTML = (data: any) => {
+  interface HealthMetric { metric_type: string; metric_value: number }
+  interface Prescription { medication_name: string; dosage: string; frequency: string; refills_remaining: number }
+  interface Appointment { title: string; status: string; scheduled_at: string; provider_name?: string }
+  interface Goal { goal_title: string; current_value: number; target_value: number; deadline?: string }
+  interface MedicationLog { status: string }
+  interface ReportData { metrics: HealthMetric[]; appointments: Appointment[]; prescriptions: Prescription[]; goals: Goal[]; logs: MedicationLog[]; startDate: string; endDate: string }
+
+  const generateReportHTML = (data: ReportData) => {
     const { metrics, appointments, prescriptions, goals, logs, startDate, endDate } = data;
 
-    const steps = metrics.filter((m: any) => m.metric_type === 'steps');
-    const heartRates = metrics.filter((m: any) => m.metric_type === 'heart_rate');
-    const sleep = metrics.filter((m: any) => m.metric_type === 'sleep');
+    const steps = metrics.filter((m) => m.metric_type === 'steps');
+    const heartRates = metrics.filter((m) => m.metric_type === 'heart_rate');
+    const sleep = metrics.filter((m) => m.metric_type === 'sleep');
 
-    const avgSteps = steps.length > 0 ? Math.round(steps.reduce((sum: number, m: any) => sum + m.metric_value, 0) / steps.length) : 0;
-    const avgHeartRate = heartRates.length > 0 ? Math.round(heartRates.reduce((sum: number, m: any) => sum + m.metric_value, 0) / heartRates.length) : 0;
-    const avgSleep = sleep.length > 0 ? Math.round((sleep.reduce((sum: number, m: any) => sum + m.metric_value, 0) / sleep.length) * 10) / 10 : 0;
+    const avgSteps = steps.length > 0 ? Math.round(steps.reduce((sum: number, m) => sum + m.metric_value, 0) / steps.length) : 0;
+    const avgHeartRate = heartRates.length > 0 ? Math.round(heartRates.reduce((sum: number, m) => sum + m.metric_value, 0) / heartRates.length) : 0;
+    const avgSleep = sleep.length > 0 ? Math.round((sleep.reduce((sum: number, m) => sum + m.metric_value, 0) / sleep.length) * 10) / 10 : 0;
 
-    const adherence = logs.length > 0 ? Math.round((logs.filter((l: any) => l.status === 'taken').length / logs.length) * 100) : 0;
+    const adherence = logs.length > 0 ? Math.round((logs.filter((l) => l.status === 'taken').length / logs.length) * 100) : 0;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -226,7 +233,7 @@ export default function HealthReportGenerator() {
         ${prescriptions.length > 0 ? `
         <div class="section">
             <div class="section-title">💊 Active Medications (${prescriptions.length})</div>
-            ${prescriptions.map((p: any) => `
+            ${prescriptions.map((p) => `
                 <div class="list-item">
                     <div class="list-item-title">
                         ${p.medication_name}
@@ -241,7 +248,7 @@ export default function HealthReportGenerator() {
         ${appointments.length > 0 ? `
         <div class="section">
             <div class="section-title">📅 Appointments (${appointments.length})</div>
-            ${appointments.map((a: any) => `
+            ${appointments.map((a) => `
                 <div class="list-item">
                     <div class="list-item-title">
                         ${a.title}
@@ -258,7 +265,7 @@ export default function HealthReportGenerator() {
         ${goals.length > 0 ? `
         <div class="section">
             <div class="section-title">🎯 Active Health Goals (${goals.length})</div>
-            ${goals.map((g: any) => {
+            ${goals.map((g) => {
                 const progress = Math.round((g.current_value / g.target_value) * 100);
                 return `
                 <div class="list-item">

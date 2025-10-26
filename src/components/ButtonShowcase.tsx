@@ -14,8 +14,7 @@ import {
   Share,
   Heart,
   Bell,
-  BellOff,
-  Loader
+  BellOff
 } from 'lucide-react';
 
 /**

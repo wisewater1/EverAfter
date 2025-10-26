@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers';
+// import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers'; // Reserved for future use
 
 interface ArchetypalAI {
   id: string;
@@ -130,17 +130,18 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     }
   };
 
-  const getStatusColor = (status: string) => {
-    if (status === 'ready') return 'text-emerald-400';
-    if (status === 'training') return 'text-amber-400';
-    return 'text-slate-400';
-  };
+  // Utility functions for status display (reserved for future use)
+  // const getStatusColor = (status: string) => {
+  //   if (status === 'ready') return 'text-emerald-400';
+  //   if (status === 'training') return 'text-amber-400';
+  //   return 'text-slate-400';
+  // };
 
-  const getStatusBgColor = (status: string) => {
-    if (status === 'ready') return 'bg-emerald-500/10 border-emerald-500/20';
-    if (status === 'training') return 'bg-amber-500/10 border-amber-500/20';
-    return 'bg-slate-500/10 border-slate-500/20';
-  };
+  // const getStatusBgColor = (status: string) => {
+  //   if (status === 'ready') return 'bg-emerald-500/10 border-emerald-500/20';
+  //   if (status === 'training') return 'bg-amber-500/10 border-amber-500/20';
+  //   return 'bg-slate-500/10 border-slate-500/20';
+  // };
 
   if (loading) {
     return (
