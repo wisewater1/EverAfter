@@ -1,0 +1,47 @@
+{
+  "name": "health-data-utilities",
+  "version": "1.0.0",
+  "description": "Comprehensive health data management utilities for connection management, synchronization, analytics, and reporting",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "health-cli": "node dist/health-cli.js",
+    "sync-scheduler": "node dist/sync-scheduler.js",
+    "data-transformer": "node dist/data-transformer.js",
+    "health-analytics": "node dist/health-analytics.js",
+    "config-manager": "node dist/config-manager.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "health-cli": "./dist/health-cli.js",
+    "sync-scheduler": "./dist/sync-scheduler.js",
+    "data-transformer": "./dist/data-transformer.js",
+    "health-analytics": "./dist/health-analytics.js",
+    "config-manager": "./dist/config-manager.js"
+  },
+  "keywords": [
+    "health",
+    "data",
+    "cli",
+    "utilities",
+    "analytics",
+    "sync",
+    "dexcom",
+    "terra",
+    "fitbit",
+    "oura"
+  ],
+  "author": "Health Platform Team",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
