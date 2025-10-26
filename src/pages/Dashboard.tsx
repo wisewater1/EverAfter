@@ -6,13 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
-import EngramChat from '../components/EngramChat';
-import ArchetypalAIChat from '../components/ArchetypalAIChat';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyMembers from '../components/FamilyMembers';
 import CognitiveInsights from '../components/CognitiveInsights';
+import UnifiedChatInterface from '../components/UnifiedChatInterface';
 
 interface ArchetypalAI {
   id: string;
@@ -271,7 +270,7 @@ export default function Dashboard() {
           <DailyQuestionCard userId={user.id} preselectedAIId={selectedAIId || undefined} />
         )}
         {selectedView === 'chat' && (
-          <ArchetypalAIChat />
+          <UnifiedChatInterface />
         )}
         {selectedView === 'tasks' && (
           <EngramTaskManager engrams={archetypalAIs} userId={user.id} />

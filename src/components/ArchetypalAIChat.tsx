@@ -32,7 +32,11 @@ interface ConversationMode {
   selectedAI?: ArchetypalAI;
 }
 
-export default function ArchetypalAIChat() {
+interface ArchetypalAIChatProps {
+  preselectedAIId?: string;
+}
+
+export default function ArchetypalAIChat({ preselectedAIId }: ArchetypalAIChatProps = {}) {
   const { user } = useAuth();
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
   const [mode, setMode] = useState<ConversationMode>({ type: 'single' });
@@ -47,6 +51,15 @@ export default function ArchetypalAIChat() {
       loadArchetypalAIs();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (preselectedAIId && archetypalAIs.length > 0) {
+      const selectedAI = archetypalAIs.find(ai => ai.id === preselectedAIId);
+      if (selectedAI) {
+        setMode({ type: 'single', selectedAI });
+      }
+    }
+  }, [preselectedAIId, archetypalAIs]);
 
   useEffect(() => {
     if (mode.selectedAI && mode.selectedAI.readiness_score >= 50) {
