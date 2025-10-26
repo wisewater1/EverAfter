@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import DailyQuestionCard from '../components/DailyQuestionCard';
 import EngramChat from '../components/EngramChat';
+import ArchetypalAIChat from '../components/ArchetypalAIChat';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import EngramTaskManager from '../components/EngramTaskManager';
 import SaintsDashboard from '../components/SaintsDashboard';
@@ -254,7 +255,7 @@ export default function Dashboard() {
           <DailyQuestionCard userId={user.id} preselectedAIId={selectedAIId || undefined} />
         )}
         {selectedView === 'chat' && (
-          <EngramChat engrams={archetypalAIs} userId={user.id} />
+          <ArchetypalAIChat />
         )}
         {selectedView === 'tasks' && (
           <EngramTaskManager engrams={archetypalAIs} userId={user.id} />

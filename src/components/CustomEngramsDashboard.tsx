@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader } from 'lucide-react';
+import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers';
 
 interface ArchetypalAI {
   id: string;
