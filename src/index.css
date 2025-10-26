@@ -3,16 +3,44 @@
 @tailwind utilities;
 
 @layer utilities {
+  /* Scrollbar utilities */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
+  /* Touch optimization */
   .touch-manipulation {
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  /* Smooth snap scrolling for mobile nav */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  /* Enhanced button states for mobile */
+  @media (hover: none) and (pointer: coarse) {
+    .touch-active:active {
+      transform: scale(0.96);
+      transition: transform 0.1s ease;
+    }
   }
 
   @media (min-width: 475px) {

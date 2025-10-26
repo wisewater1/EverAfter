@@ -129,10 +129,11 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Navigation */}
-      <nav className="sticky top-[73px] z-40 bg-slate-950/60 backdrop-blur-2xl border-b border-slate-800/30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+      {/* Navigation - Minimalistic & Responsive */}
+      <nav className="sticky top-[73px] z-40 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/20 shadow-lg shadow-slate-950/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Mobile & Tablet: Horizontal Scroll */}
+          <div className="lg:hidden flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-4 px-4 snap-x snap-mandatory">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = selectedView === item.id;
@@ -141,20 +142,97 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   onClick={() => setSelectedView(item.id as any)}
-                  className={`group relative px-4 py-3.5 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-slate-400 hover:text-slate-200'
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group relative flex-shrink-0 snap-start px-4 sm:px-5 py-4 transition-all duration-200 ${
+                    isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300 active:text-slate-200'
                   }`}
+                  style={{ minWidth: '80px', touchAction: 'manipulation' }}
                 >
-                  <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'}`} />
-                  <span>{item.label}</span>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`relative transition-all duration-200 ${isActive ? 'scale-110' : 'scale-100 group-hover:scale-105 group-active:scale-95'}`}>
+                      <Icon
+                        className={`w-5 h-5 transition-colors duration-200 ${
+                          isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'
+                        }`}
+                        strokeWidth={isActive ? 2.5 : 2}
+                      />
+                      {isActive && (
+                        <div className="absolute -inset-1 bg-emerald-400/10 rounded-lg blur-sm"></div>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium transition-all duration-200 ${
+                      isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-400'
+                    }`}>
+                      {item.label}
+                    </span>
+                  </div>
                   {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"></div>
+                    <div
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent transition-all duration-300"
+                      style={{ width: '60%' }}
+                    ></div>
                   )}
                 </button>
               );
             })}
+          </div>
+
+          {/* Desktop: Full Width Navigation */}
+          <div className="hidden lg:flex items-center justify-center gap-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = selectedView === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedView(item.id as any)}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group relative px-6 py-3.5 rounded-lg transition-all duration-200 ${
+                    isActive
+                      ? 'text-white bg-slate-800/40'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/20 active:bg-slate-800/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon
+                      className={`w-4.5 h-4.5 transition-all duration-200 ${
+                        isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'
+                      }`}
+                      strokeWidth={isActive ? 2.5 : 2}
+                    />
+                    <span className={`text-sm font-medium transition-colors duration-200 ${
+                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                    }`}>
+                      {item.label}
+                    </span>
+                  </div>
+                  {isActive && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-500 rounded-t-full"></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile Scroll Indicator */}
+        <div className="lg:hidden">
+          <div className="flex justify-center py-1">
+            <div className="flex gap-1">
+              {navItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`h-0.5 rounded-full transition-all duration-300 ${
+                    selectedView === item.id
+                      ? 'w-4 bg-emerald-400'
+                      : 'w-1 bg-slate-700'
+                  }`}
+                ></div>
+              ))}
+            </div>
           </div>
         </div>
       </nav>
