@@ -17,6 +17,7 @@ import ConnectionRotationConfig from '../components/ConnectionRotationConfig';
 import ConnectionRotationMonitor from '../components/ConnectionRotationMonitor';
 import DeviceMonitorDashboard from '../components/DeviceMonitorDashboard';
 import PredictiveHealthInsights from '../components/PredictiveHealthInsights';
+import ScrollIndicator from '../components/ScrollIndicator';
 
 type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation' | 'devices' | 'predictive';
 
@@ -92,30 +93,35 @@ export default function HealthDashboard() {
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 mb-6 p-2">
-          <div className="flex flex-wrap gap-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 min-w-[120px] px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                      : 'text-purple-300 hover:bg-white/5'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <ScrollIndicator>
+            <div className="flex gap-2 min-w-min">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium transition-all flex items-center gap-2 min-h-[44px] whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                        : 'text-purple-300 hover:bg-white/5'
+                    }`}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`${tab.id}-panel`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollIndicator>
         </div>
 
         <div className="space-y-6">
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 gap-6">
+            <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab" className="grid grid-cols-1 gap-6">
               <RaphaelInsights />
               <HealthReportGenerator />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

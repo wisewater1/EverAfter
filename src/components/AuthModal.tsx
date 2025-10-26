@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Lock, AlertCircle, Loader, CheckCircle, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { ModalManager } from '../lib/keyboard-navigation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { signIn, signUp, user } = useAuth();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const modalManagerRef = useRef(new ModalManager());
 
   useEffect(() => {
     setActiveTab(defaultTab);
@@ -31,15 +34,18 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
   }, [user, onSuccess, onClose]);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    if (isOpen && modalRef.current) {
+      modalManagerRef.current.open(modalRef.current, onClose);
+    } else if (!isOpen) {
+      modalManagerRef.current.close();
     }
+
     return () => {
-      document.body.style.overflow = 'unset';
+      if (isOpen) {
+        modalManagerRef.current.close();
+      }
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   const passwordStrength = (pwd: string) => {
     let strength = 0;
@@ -116,20 +122,26 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
 
   return (
     <div
-      className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-modal-title"
     >
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div
+        ref={modalRef}
+        className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900"
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/50 p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/50 p-4 sm:p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-medium text-white">
+              <h2 id="auth-modal-title" className="text-lg sm:text-xl font-medium text-white">
                 {activeTab === 'signin' ? 'Welcome Back' : 'Create Account'}
               </h2>
               {contextMessage && (
@@ -139,8 +151,8 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-all"
-            aria-label="Close"
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label="Close dialog"
           >
             <X className="w-5 h-5 text-gray-400" />
           </button>
@@ -153,11 +165,14 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
               setActiveTab('signin');
               setError('');
             }}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-all ${
+            className={`flex-1 px-4 sm:px-6 py-4 text-sm font-medium transition-all min-h-[44px] ${
               activeTab === 'signin'
                 ? 'text-white border-b-2 border-blue-500 bg-gray-800/30'
                 : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/20'
             }`}
+            role="tab"
+            aria-selected={activeTab === 'signin'}
+            aria-controls="signin-panel"
           >
             Sign In
           </button>
@@ -166,18 +181,21 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
               setActiveTab('signup');
               setError('');
             }}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-all ${
+            className={`flex-1 px-4 sm:px-6 py-4 text-sm font-medium transition-all min-h-[44px] ${
               activeTab === 'signup'
                 ? 'text-white border-b-2 border-blue-500 bg-gray-800/30'
                 : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/20'
             }`}
+            role="tab"
+            aria-selected={activeTab === 'signup'}
+            aria-controls="signup-panel"
           >
             Sign Up
           </button>
         </div>
 
         {/* Forms */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {error && (
             <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3 mb-4 flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -191,7 +209,13 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
           )}
 
           {activeTab === 'signin' ? (
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <form
+              id="signin-panel"
+              onSubmit={handleSignIn}
+              className="space-y-4"
+              role="tabpanel"
+              aria-labelledby="auth-modal-title"
+            >
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Email Address
@@ -204,7 +228,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
@@ -221,7 +245,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="••••••••"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
@@ -245,7 +269,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? (
                   <>
@@ -258,7 +282,13 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
               </button>
             </form>
           ) : (
-            <form onSubmit={handleSignUp} className="space-y-4">
+            <form
+              id="signup-panel"
+              onSubmit={handleSignUp}
+              className="space-y-4"
+              role="tabpanel"
+              aria-labelledby="auth-modal-title"
+            >
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Email Address
@@ -271,7 +301,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
@@ -288,7 +318,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="••••••••"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[44px]"
                   />
                 </div>
                 {password && (
@@ -322,7 +352,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     placeholder="••••••••"
-                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900/50 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[44px]"
                   />
                   {confirmPassword && password === confirmPassword && (
                     <CheckCircle className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-400" />
@@ -351,7 +381,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? (
                   <>

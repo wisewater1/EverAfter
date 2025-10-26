@@ -418,3 +418,129 @@ export const getNextFocusableSibling = (
 
   return null;
 };
+
+// ========================================
+// MODAL UTILITIES
+// ========================================
+
+/**
+ * Comprehensive modal manager with focus trap, ESC handler, and scroll lock
+ */
+export class ModalManager {
+  private modalElement: HTMLElement | null = null;
+  private previousFocus: HTMLElement | null = null;
+  private cleanupFocusTrap: (() => void) | null = null;
+  private scrollPosition: number = 0;
+
+  /**
+   * Open modal with full accessibility support
+   */
+  open(modalElement: HTMLElement, onClose: () => void) {
+    this.modalElement = modalElement;
+    this.previousFocus = document.activeElement as HTMLElement;
+
+    this.enableScrollLock();
+    this.setupEscapeHandler(onClose);
+    this.setupFocusTrap();
+
+    announce('Dialog opened', 'polite');
+  }
+
+  /**
+   * Close modal and restore previous state
+   */
+  close() {
+    this.disableScrollLock();
+    this.cleanupEscapeHandler();
+    this.cleanupFocusTrap?.();
+
+    if (this.previousFocus) {
+      this.previousFocus.focus();
+    }
+
+    announce('Dialog closed', 'polite');
+  }
+
+  /**
+   * Enable scroll lock without layout shift
+   */
+  private enableScrollLock() {
+    this.scrollPosition = window.pageYOffset;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${this.scrollPosition}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+  }
+
+  /**
+   * Disable scroll lock and restore scroll position
+   */
+  private disableScrollLock() {
+    const scrollbarWidth = parseInt(document.body.style.paddingRight || '0');
+
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+
+    window.scrollTo(0, this.scrollPosition);
+  }
+
+  /**
+   * Setup ESC key handler
+   */
+  private setupEscapeHandler(onClose: () => void) {
+    this.escapeHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', this.escapeHandler);
+  }
+
+  private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
+
+  /**
+   * Cleanup ESC key handler
+   */
+  private cleanupEscapeHandler() {
+    if (this.escapeHandler) {
+      document.removeEventListener('keydown', this.escapeHandler);
+      this.escapeHandler = null;
+    }
+  }
+
+  /**
+   * Setup focus trap in modal
+   */
+  private setupFocusTrap() {
+    if (this.modalElement) {
+      this.cleanupFocusTrap = createFocusTrap(this.modalElement);
+    }
+  }
+}
+
+/**
+ * React hook for modal management
+ */
+export const useModalManager = () => {
+  const modalManagerRef = { current: new ModalManager() };
+
+  return {
+    openModal: (element: HTMLElement, onClose: () => void) => {
+      modalManagerRef.current.open(element, onClose);
+    },
+    closeModal: () => {
+      modalManagerRef.current.close();
+    }
+  };
+};

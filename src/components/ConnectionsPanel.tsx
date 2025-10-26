@@ -1,11 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Link2, Activity, CheckCircle, XCircle, RefreshCw, Loader, AlertCircle, Sparkles } from 'lucide-react';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelConnectors from './RaphaelConnectors';
+import { ModalManager } from '../lib/keyboard-navigation';
 
 export default function ConnectionsPanel() {
   const { isPanelOpen, closeConnectionsPanel, activeCategory, connections, getActiveConnectionsCount } = useConnections();
   const [view, setView] = useState<'overview' | 'health' | 'all'>('overview');
+  const panelRef = useRef<HTMLDivElement>(null);
+  const modalManagerRef = useRef(new ModalManager());
+
+  useEffect(() => {
+    if (isPanelOpen && panelRef.current) {
+      modalManagerRef.current.open(panelRef.current, closeConnectionsPanel);
+    } else if (!isPanelOpen) {
+      modalManagerRef.current.close();
+    }
+
+    return () => {
+      if (isPanelOpen) {
+        modalManagerRef.current.close();
+      }
+    };
+  }, [isPanelOpen, closeConnectionsPanel]);
 
   if (!isPanelOpen) return null;
 
@@ -20,10 +37,17 @@ export default function ConnectionsPanel() {
       <div
         className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40"
         onClick={closeConnectionsPanel}
+        role="presentation"
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[600px] lg:w-[700px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl z-50 overflow-y-auto">
+      <div
+        ref={panelRef}
+        className="fixed right-0 top-0 bottom-0 w-full sm:w-[600px] lg:w-[700px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl z-50 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="connections-panel-title"
+      >
         {/* Header */}
         <div className="sticky top-0 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 p-4 sm:p-6 z-10">
           <div className="flex items-center justify-between mb-4">
@@ -32,7 +56,7 @@ export default function ConnectionsPanel() {
                 <Link2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white">Connections</h2>
+                <h2 id="connections-panel-title" className="text-xl sm:text-2xl font-bold text-white">Connections</h2>
                 <p className="text-xs sm:text-sm text-slate-400">
                   {activeCount} active connection{activeCount !== 1 ? 's' : ''}
                 </p>
@@ -40,7 +64,8 @@ export default function ConnectionsPanel() {
             </div>
             <button
               onClick={closeConnectionsPanel}
-              className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-all"
+              className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-all min-w-[44px] min-h-[44px]"
+              aria-label="Close connections panel"
             >
               <X className="w-5 h-5 text-slate-400" />
             </button>
@@ -50,7 +75,7 @@ export default function ConnectionsPanel() {
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setView('overview')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap min-h-[44px] ${
                 view === 'overview'
                   ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg'
                   : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -60,7 +85,7 @@ export default function ConnectionsPanel() {
             </button>
             <button
               onClick={() => setView('health')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
                 view === 'health'
                   ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg'
                   : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -76,7 +101,7 @@ export default function ConnectionsPanel() {
             </button>
             <button
               onClick={() => setView('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap min-h-[44px] ${
                 view === 'all'
                   ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg'
                   : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
