@@ -128,8 +128,44 @@ export interface MetricIngestion {
 export async function ingestMetric(
   supabase: SupabaseClient,
   data: MetricIngestion
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; isDuplicate?: boolean }> {
   try {
+    // Check for duplicate data within 5-minute window
+    const timeWindow = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const ts = new Date(data.ts);
+    const startWindow = new Date(ts.getTime() - timeWindow);
+    const endWindow = new Date(ts.getTime() + timeWindow);
+
+    const { data: existingMetrics, error: checkError } = await supabase
+      .from('health_metrics')
+      .select('id, value, ts')
+      .eq('user_id', data.user_id)
+      .eq('source', data.source)
+      .eq('metric', data.metric)
+      .gte('ts', startWindow.toISOString())
+      .lte('ts', endWindow.toISOString())
+      .limit(10);
+
+    if (!checkError && existingMetrics && existingMetrics.length > 0) {
+      // Check for exact duplicates (same value and timestamp within 1 minute)
+      const isDuplicate = existingMetrics.some(existing => {
+        const existingTs = new Date(existing.ts).getTime();
+        const currentTs = ts.getTime();
+        const timeDiff = Math.abs(existingTs - currentTs);
+        const valueDiff = Math.abs(existing.value - data.value);
+
+        return timeDiff < 60000 && valueDiff < 0.1; // Within 1 minute and same value
+      });
+
+      if (isDuplicate) {
+        console.log(`Duplicate metric detected: ${data.metric} from ${data.source} at ${data.ts}`);
+        return { success: true, isDuplicate: true };
+      }
+    }
+
+    // Validate data quality
+    const qualityValidation = await validateMetricQuality(data);
+
     const { error } = await supabase.from('health_metrics').insert({
       user_id: data.user_id,
       engram_id: data.engram_id || null,
@@ -139,6 +175,9 @@ export async function ingestMetric(
       unit: data.unit,
       ts: data.ts,
       raw: data.raw || {},
+      quality_score: qualityValidation.qualityScore,
+      is_anomaly: qualityValidation.isAnomaly,
+      anomaly_reason: qualityValidation.anomalyReason,
     });
 
     if (error) {
@@ -146,10 +185,67 @@ export async function ingestMetric(
       return { success: false, error: error.message };
     }
 
-    return { success: true };
+    // Log data quality issues if detected
+    if (qualityValidation.isAnomaly) {
+      await logDataQualityIssue(supabase, data, qualityValidation);
+    }
+
+    return { success: true, isDuplicate: false };
   } catch (err: any) {
     console.error('Metric ingestion exception:', err);
     return { success: false, error: err.message };
+  }
+}
+
+async function validateMetricQuality(data: MetricIngestion): Promise<{
+  qualityScore: number;
+  isAnomaly: boolean;
+  anomalyReason?: string;
+}> {
+  const metricRanges: Record<string, { min: number; max: number }> = {
+    glucose: { min: 40, max: 400 },
+    heart_rate: { min: 30, max: 220 },
+    resting_hr: { min: 30, max: 120 },
+    steps: { min: 0, max: 100000 },
+    sleep_hours: { min: 0, max: 24 },
+    weight: { min: 20, max: 300 },
+    spo2: { min: 70, max: 100 },
+    body_temp: { min: 32, max: 43 },
+  };
+
+  const range = metricRanges[data.metric];
+
+  if (!range) {
+    return { qualityScore: 1.0, isAnomaly: false };
+  }
+
+  if (data.value < range.min || data.value > range.max) {
+    return {
+      qualityScore: 0.0,
+      isAnomaly: true,
+      anomalyReason: `Value ${data.value} outside valid range [${range.min}, ${range.max}]`,
+    };
+  }
+
+  return { qualityScore: 1.0, isAnomaly: false };
+}
+
+async function logDataQualityIssue(
+  supabase: SupabaseClient,
+  data: MetricIngestion,
+  validation: { anomalyReason?: string }
+): Promise<void> {
+  try {
+    await supabase.from('data_quality_issues').insert({
+      user_id: data.user_id,
+      provider: data.source,
+      metric_type: data.metric,
+      issue_type: 'invalid_range',
+      issue_description: validation.anomalyReason,
+      detected_value: data.value,
+    });
+  } catch (err) {
+    console.error('Failed to log data quality issue:', err);
   }
 }
 
