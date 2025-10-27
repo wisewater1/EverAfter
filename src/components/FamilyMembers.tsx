@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Sparkles, User, Activity } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Sparkles, User, Activity, Brain } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import PersonalityProfileViewer from './PersonalityProfileViewer';
 
 interface FamilyMember {
   id: string;
@@ -31,6 +32,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [inviteForm, setInviteForm] = useState({
     name: '',
@@ -351,10 +353,20 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedMember(member);
+                    setShowProfileModal(true);
+                  }}
+                  className="col-span-2 px-4 py-3 bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 border border-purple-500/30 hover:border-purple-500/50 rounded-xl hover:from-purple-600/30 hover:to-pink-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
+                >
+                  <Brain className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                  View Personality Profile
+                </button>
                 <button
                   onClick={() => openChat(member)}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 rounded-xl hover:from-emerald-600/30 hover:to-teal-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
+                  className="px-4 py-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 rounded-xl hover:from-emerald-600/30 hover:to-teal-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
                 >
                   <MessageCircle className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                   AI Chat
@@ -364,17 +376,18 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                     setSelectedMember(member);
                     setShowQuestionModal(true);
                   }}
-                  className="flex-1 px-4 py-3 bg-sky-600/20 text-sky-400 border border-sky-500/30 hover:border-sky-500/50 rounded-xl hover:bg-sky-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
+                  className="px-4 py-3 bg-sky-600/20 text-sky-400 border border-sky-500/30 hover:border-sky-500/50 rounded-xl hover:bg-sky-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
                 >
                   <Send className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-                  Send Question
+                  Question
                 </button>
                 <button
                   onClick={() => deleteFamilyMember(member.id)}
-                  className="px-4 py-3 bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:border-rose-500/50 rounded-xl hover:bg-rose-600/30 transition-all group/btn"
+                  className="col-span-2 px-4 py-3 bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:border-rose-500/50 rounded-xl hover:bg-rose-600/30 transition-all text-sm font-semibold flex items-center justify-center gap-2 group/btn"
                   title="Remove member"
                 >
                   <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                  Remove Member
                 </button>
               </div>
             </div>
@@ -637,6 +650,19 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Personality Profile Modal */}
+      {showProfileModal && selectedMember && (
+        <PersonalityProfileViewer
+          familyMemberId={selectedMember.id}
+          familyMemberName={selectedMember.name}
+          familyMemberRelationship={selectedMember.relationship}
+          onClose={() => {
+            setShowProfileModal(false);
+            setSelectedMember(null);
+          }}
+        />
       )}
     </div>
   );
