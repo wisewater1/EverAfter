@@ -17,6 +17,21 @@
   animation: slide-in-right 0.3s ease-out;
 }
 
+/* Hide scrollbar for mobile horizontal scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch manipulation for better mobile interaction */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
 @layer base {
   :root {
     /* Minimalist Neon Design System - Color Tokens */

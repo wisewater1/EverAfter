@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain, SkipForward } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PersonalityProfileViewer from './PersonalityProfileViewer';
+import DailyQuestionCard from './DailyQuestionCard';
 
 interface FamilyMember {
   id: string;
@@ -34,10 +35,11 @@ interface QuestionResponse {
 interface UnifiedFamilyInterfaceProps {
   userId: string;
   onNavigateToLegacy: () => void;
+  preselectedAIId?: string;
 }
 
-export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy }: UnifiedFamilyInterfaceProps) {
-  const [activeTab, setActiveTab] = useState<'members' | 'questions' | 'export'>('members');
+export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, preselectedAIId }: UnifiedFamilyInterfaceProps) {
+  const [activeTab, setActiveTab] = useState<'members' | 'questions' | 'daily-questions' | 'export'>(preselectedAIId ? 'daily-questions' : 'members');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [questionResponses, setQuestionResponses] = useState<QuestionResponse[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -285,35 +287,51 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy }: U
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-slate-700/50">
+        {/* Tab Navigation - Mobile Optimized */}
+        <div className="flex gap-1 sm:gap-2 border-b border-slate-700/50 overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
               activeTab === 'members'
                 ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Members
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">Members</span>
             </div>
             {activeTab === 'members' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"></div>
             )}
           </button>
           <button
-            onClick={() => setActiveTab('questions')}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
-              activeTab === 'questions'
+            onClick={() => setActiveTab('daily-questions')}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
+              activeTab === 'daily-questions'
                 ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" />
-              Questions & Responses
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">Daily Questions</span>
+            </div>
+            {activeTab === 'daily-questions' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
+              activeTab === 'questions'
+                ? 'text-blue-400'
+                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">Responses</span>
             </div>
             {activeTab === 'questions' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"></div>
@@ -321,15 +339,15 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy }: U
           </button>
           <button
             onClick={() => setActiveTab('export')}
-            className={`px-4 py-2 text-sm font-medium transition-all relative ${
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
               activeTab === 'export'
                 ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Export & Legacy
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">Export</span>
             </div>
             {activeTab === 'export' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"></div>
@@ -425,21 +443,37 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy }: U
         </div>
       )}
 
-      {/* Questions Tab */}
+      {/* Daily Questions Tab */}
+      {activeTab === 'daily-questions' && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-2xl p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className="w-5 h-5 text-blue-400" />
+              <h3 className="text-base sm:text-lg font-semibold text-white">Answer Your Daily Questions</h3>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400">
+              Build your digital legacy by answering meaningful questions about your life, memories, and experiences.
+            </p>
+          </div>
+          <DailyQuestionCard userId={userId} preselectedAIId={preselectedAIId} />
+        </div>
+      )}
+
+      {/* Questions/Responses Tab */}
       {activeTab === 'questions' && (
         <div className="space-y-4">
           {questionResponses.map((response) => (
             <div
               key={response.id}
-              className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6"
+              className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 sm:p-6 touch-manipulation"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-white" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
-                  <div>
-                    <h3 className="text-white font-medium">{response.member_name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm sm:text-base text-white font-medium truncate">{response.member_name}</h3>
                     <p className="text-xs text-slate-400">
                       {new Date(response.timestamp).toLocaleDateString()} at {new Date(response.timestamp).toLocaleTimeString()}
                     </p>
@@ -447,13 +481,13 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy }: U
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-3 sm:p-4">
                   <p className="text-xs text-slate-500 mb-1">Question</p>
-                  <p className="text-sm text-white">{response.question}</p>
+                  <p className="text-xs sm:text-sm text-white break-words">{response.question}</p>
                 </div>
-                <div className="bg-blue-600/10 border border-blue-500/20 rounded-lg p-4">
+                <div className="bg-blue-600/10 border border-blue-500/20 rounded-lg p-3 sm:p-4">
                   <p className="text-xs text-blue-400 mb-1">Response</p>
-                  <p className="text-sm text-slate-300">{response.response}</p>
+                  <p className="text-xs sm:text-sm text-slate-300 break-words">{response.response}</p>
                 </div>
               </div>
             </div>

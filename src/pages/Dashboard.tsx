@@ -5,7 +5,6 @@ import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Ac
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
-import DailyQuestionCard from '../components/DailyQuestionCard';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import SaintsDashboard from '../components/SaintsDashboard';
 import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
@@ -21,7 +20,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'questions' | 'chat' | 'family' | 'health'>('saints');
+  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'chat' | 'family' | 'health'>('saints');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -34,7 +33,7 @@ export default function Dashboard() {
 
   const handleSelectAI = (aiId: string) => {
     setSelectedAIId(aiId);
-    setSelectedView('questions');
+    setSelectedView('family');
   };
 
   const loadArchetypalAIs = useCallback(async () => {
@@ -81,7 +80,6 @@ export default function Dashboard() {
   const navItems = [
     { id: 'saints', label: 'Saints AI', icon: Heart },
     { id: 'engrams', label: 'Engrams', icon: Bot },
-    { id: 'questions', label: 'Questions', icon: Calendar },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'family', label: 'Family', icon: Users },
     { id: 'health', label: 'Health', icon: Activity },
@@ -266,14 +264,11 @@ export default function Dashboard() {
         {selectedView === 'engrams' && (
           <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
         )}
-        {selectedView === 'questions' && (
-          <DailyQuestionCard userId={user.id} preselectedAIId={selectedAIId || undefined} />
-        )}
         {selectedView === 'chat' && (
           <UnifiedChatInterface />
         )}
         {selectedView === 'family' && (
-          <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} />
+          <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
         )}
         {selectedView === 'health' && (
           <RaphaelHealthInterface />
