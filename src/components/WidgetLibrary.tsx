@@ -15,6 +15,7 @@ import {
   Gauge,
   Calendar,
   AlertCircle,
+  LayoutDashboard,
 } from 'lucide-react';
 
 interface WidgetType {
