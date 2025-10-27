@@ -27,26 +27,40 @@ export default function HealthReportGenerator() {
           .select('*')
           .gte('recorded_at', start.toISOString())
           .lte('recorded_at', end.toISOString())
-          .order('recorded_at', { ascending: true }),
+          .order('recorded_at', { ascending: true })
+          .then(res => ({ data: res.data || [], error: res.error })),
         supabase
           .from('appointments')
           .select('*')
           .gte('scheduled_at', start.toISOString())
-          .lte('scheduled_at', end.toISOString()),
+          .lte('scheduled_at', end.toISOString())
+          .then(res => ({ data: res.data || [], error: res.error })),
         supabase
           .from('prescriptions')
           .select('*')
-          .eq('is_active', true),
+          .eq('is_active', true)
+          .then(res => ({ data: res.data || [], error: res.error })),
         supabase
           .from('health_goals')
           .select('*')
-          .eq('status', 'active'),
+          .eq('status', 'active')
+          .then(res => ({ data: res.data || [], error: res.error })),
         supabase
           .from('medication_logs')
           .select('*')
           .gte('taken_at', start.toISOString())
           .lte('taken_at', end.toISOString())
+          .then(res => ({ data: res.data || [], error: res.error }))
       ]);
+
+      // Check for critical errors (ignore PGRST116 - not found)
+      const errors = [metricsRes.error, appointmentsRes.error, prescriptionsRes.error, goalsRes.error, logsRes.error]
+        .filter(err => err && err.code !== 'PGRST116');
+
+      if (errors.length > 0) {
+        console.error('Database errors:', errors);
+        throw new Error('Failed to fetch health data. Some tables may not exist yet.');
+      }
 
       const report = generateReportHTML({
         metrics: metricsRes.data || [],
@@ -61,22 +75,7 @@ export default function HealthReportGenerator() {
       const fileName = `health-report-${start.toISOString().split('T')[0]}-to-${end.toISOString().split('T')[0]}.html`;
       const blob = new Blob([report], { type: 'text/html' });
 
-      // Save to cloud storage if enabled
-      if (saveToCloud) {
-        const file = new File([blob], fileName, { type: 'text/html' });
-        await uploadFile(file, {
-          category: 'health_report',
-          description: `Health report from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
-          metadata: {
-            reportType,
-            startDate: start.toISOString(),
-            endDate: end.toISOString(),
-            generatedAt: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Download to device
+      // Download to device first (always works)
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -86,10 +85,35 @@ export default function HealthReportGenerator() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert(saveToCloud ? 'Report generated and saved to cloud!' : 'Report downloaded successfully!');
+      // Try to save to cloud storage if enabled
+      let cloudSaved = false;
+      if (saveToCloud) {
+        try {
+          const file = new File([blob], fileName, { type: 'text/html' });
+          await uploadFile(file, {
+            category: 'health_report',
+            description: `Health report from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
+            metadata: {
+              reportType,
+              startDate: start.toISOString(),
+              endDate: end.toISOString(),
+              generatedAt: new Date().toISOString(),
+            },
+          });
+          cloudSaved = true;
+        } catch (cloudError) {
+          console.error('Cloud storage error (non-critical):', cloudError);
+        }
+      }
+
+      alert(
+        cloudSaved
+          ? 'Report downloaded and saved to cloud!'
+          : 'Report downloaded successfully!'
+      );
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Failed to generate report');
+      alert('Failed to generate report. Please try again.');
     } finally {
       setGenerating(false);
     }
