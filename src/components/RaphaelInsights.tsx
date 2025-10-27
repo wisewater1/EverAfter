@@ -150,14 +150,40 @@ export default function RaphaelInsights() {
       }
     }
 
-    newInsights.push({
-      category: 'General',
-      title: 'Weekly Health Summary',
-      description: 'Your health data is being tracked consistently. Keep monitoring your metrics for better insights.',
-      trend: 'neutral',
-      priority: 'low',
-      icon: <Activity className="w-5 h-5" />
-    });
+    // Generate comprehensive weekly summary
+    const totalMetrics = metrics.length;
+    const uniqueDays = new Set(metrics.map(m => new Date(m.recorded_at).toDateString())).size;
+    const activeMetrics = metrics.filter(m => m.metric_value > 0).length;
+    const dataCompleteness = totalMetrics > 0 ? Math.round((activeMetrics / totalMetrics) * 100) : 0;
+
+    if (totalMetrics > 0) {
+      const stepData = steps.length > 0 ? `${Math.round(steps.reduce((sum, m) => sum + m.metric_value, 0))} steps` : '';
+      const sleepData = sleep.length > 0 ? `${(sleep.reduce((sum, m) => sum + m.metric_value, 0) / sleep.length).toFixed(1)}h avg sleep` : '';
+      const hrData = heartRates.length > 0 ? `${Math.round(heartRates.reduce((sum, m) => sum + m.metric_value, 0) / heartRates.length)} bpm avg` : '';
+
+      const summaryParts = [stepData, sleepData, hrData].filter(Boolean);
+      const summaryText = summaryParts.length > 0
+        ? `This week: ${summaryParts.join(', ')}. Tracking across ${uniqueDays} days with ${dataCompleteness}% data completeness.`
+        : `Tracking ${totalMetrics} health metrics across ${uniqueDays} days. Keep logging your data for personalized insights.`;
+
+      newInsights.push({
+        category: 'General',
+        title: 'Weekly Health Summary',
+        description: summaryText,
+        trend: dataCompleteness > 70 ? 'positive' : dataCompleteness > 40 ? 'neutral' : 'negative',
+        priority: 'low',
+        icon: <Activity className="w-5 h-5" />
+      });
+    } else {
+      newInsights.push({
+        category: 'General',
+        title: 'Weekly Health Summary',
+        description: 'No health data recorded this week. Connect your devices or manually log your health metrics to start receiving personalized insights.',
+        trend: 'neutral',
+        priority: 'medium',
+        icon: <Activity className="w-5 h-5" />
+      });
+    }
 
     setInsights(newInsights.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
