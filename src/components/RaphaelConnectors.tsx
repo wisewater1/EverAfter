@@ -48,9 +48,65 @@ const providers: Provider[] = [
     category: 'aggregator',
     icon: TrendingUp,
     color: 'from-green-600 to-emerald-600',
-    description: 'Unified aggregator connecting multiple wearables',
-    features: ['Steps', 'Heart Rate', 'Sleep', 'Activity'],
+    description: 'Unified API for 300+ wearables with real-time webhooks',
+    features: ['300+ Devices', 'Real-time', 'Normalized', 'Webhooks'],
     status: 'available',
+    setupUrl: 'https://www.tryterra.co/',
+  },
+  {
+    id: 'validic',
+    name: 'Validic',
+    category: 'aggregator',
+    icon: TrendingUp,
+    color: 'from-blue-600 to-cyan-600',
+    description: 'Enterprise-grade connection to 600+ devices and apps',
+    features: ['600+ Devices', 'EHR-integrated', 'RPM', 'Clinical'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.validic.com/',
+  },
+  {
+    id: 'humanapi',
+    name: 'Human API',
+    category: 'aggregator',
+    icon: TrendingUp,
+    color: 'from-cyan-600 to-teal-600',
+    description: 'Consumer-controlled health data: wearables + medical records',
+    features: ['Wellness', 'Medical Records', 'Normalized', 'Link Flow'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.humanapi.co/',
+  },
+  {
+    id: 'metriport',
+    name: 'Metriport',
+    category: 'aggregator',
+    icon: TrendingUp,
+    color: 'from-emerald-600 to-green-600',
+    description: 'Open-source universal API for EHRs and wearables',
+    features: ['EHR', 'Wearables', 'Open-source', 'Transparent'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.metriport.com/',
+  },
+  {
+    id: 'rook',
+    name: 'ROOK',
+    category: 'aggregator',
+    icon: TrendingUp,
+    color: 'from-teal-600 to-cyan-600',
+    description: 'Connect 400+ wearables through one API + SDK',
+    features: ['400+ Devices', 'API', 'SDK', 'Fast Integration'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.tryrook.io/',
+  },
+  {
+    id: 'spike',
+    name: 'Spike API',
+    category: 'aggregator',
+    icon: TrendingUp,
+    color: 'from-orange-600 to-red-600',
+    description: '360° health data across 500+ wearables, IoT, and labs',
+    features: ['500+ Sources', 'IoT', 'Labs', 'AI-ready'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.spikeapi.com/',
   },
   {
     id: 'fitbit',
@@ -151,11 +207,66 @@ const providers: Provider[] = [
     name: 'SMART on FHIR',
     category: 'ehr',
     icon: Activity,
-    color: 'from-indigo-600 to-purple-600',
+    color: 'from-blue-600 to-cyan-600',
     description: 'Electronic Health Records (Epic, Cerner)',
     features: ['Lab Results', 'HbA1c', 'Medications'],
     status: 'coming_soon',
     setupUrl: 'https://docs.smarthealthit.org/',
+  },
+  {
+    id: 'healthkit',
+    name: 'Apple HealthKit',
+    category: 'aggregator',
+    icon: Activity,
+    color: 'from-slate-600 to-gray-600',
+    description: 'iOS on-device health store with unified schema',
+    features: ['On-device', 'Privacy', 'iOS/Watch', 'Unified Schema'],
+    status: 'coming_soon',
+    setupUrl: 'https://developer.apple.com/documentation/healthkit',
+  },
+  {
+    id: 'healthconnect',
+    name: 'Health Connect',
+    category: 'aggregator',
+    icon: Activity,
+    color: 'from-emerald-600 to-teal-600',
+    description: 'Android on-device hub with FHIR medical records',
+    features: ['On-device', 'Android', 'FHIR', 'Samsung Health'],
+    status: 'coming_soon',
+    setupUrl: 'https://developer.android.com/health-and-fitness/guides/health-connect',
+  },
+  {
+    id: 'fitabase',
+    name: 'Fitabase',
+    category: 'wellness',
+    icon: Activity,
+    color: 'from-cyan-600 to-blue-600',
+    description: 'Research platform for Fitbit & Garmin with API',
+    features: ['Research', 'Exports', 'API', 'IRB-friendly'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.fitabase.com/',
+  },
+  {
+    id: 'fitrockr',
+    name: 'Fitrockr',
+    category: 'wellness',
+    icon: Activity,
+    color: 'from-teal-600 to-emerald-600',
+    description: 'Garmin research platform with live streaming API',
+    features: ['Garmin', 'REST API', 'Live Stream', 'Healthcare'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.fitrockr.com/',
+  },
+  {
+    id: 'openmhealth',
+    name: 'Open mHealth',
+    category: 'wellness',
+    icon: Activity,
+    color: 'from-blue-500 to-cyan-500',
+    description: 'Open data schemas and normalization with Shimmer',
+    features: ['Standards', 'Open-source', 'Shimmer', 'DIY'],
+    status: 'coming_soon',
+    setupUrl: 'https://www.openmhealth.org/',
   },
 ];
 
@@ -345,12 +456,23 @@ export default function RaphaelConnectors() {
           <div className="w-12 h-12 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl flex items-center justify-center flex-shrink-0">
             <Link2 className="w-6 h-6 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold text-white mb-2">Health Connectors</h2>
-            <p className="text-teal-200 text-sm">
+            <p className="text-teal-200 text-sm mb-4">
               Connect your health devices, apps, and medical records to give Raphael a complete
               view of your health journey.
             </p>
+
+            <div className="bg-teal-900/20 rounded-lg p-4 border border-teal-500/20">
+              <h3 className="text-sm font-semibold text-teal-300 mb-2">Quick Compass:</h3>
+              <ul className="text-xs text-teal-200/80 space-y-1">
+                <li><strong className="text-teal-300">Multi-wearable launch:</strong> Terra (300+ devices), Validic (600+ devices), ROOK (400+ devices)</li>
+                <li><strong className="text-teal-300">Hospital/EHR integration:</strong> Validic, Human API, Metriport (clinical compliance)</li>
+                <li><strong className="text-teal-300">iOS/Android privacy:</strong> Apple HealthKit, Android Health Connect (on-device)</li>
+                <li><strong className="text-teal-300">Research studies:</strong> Fitabase (Fitbit/Garmin), Fitrockr (Garmin live streams)</li>
+                <li><strong className="text-teal-300">Custom/Standards:</strong> Open mHealth + Shimmer (DIY normalization)</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -375,11 +497,19 @@ export default function RaphaelConnectors() {
           {Object.entries(categoryGroups).map(([category, providerList]) => {
             if (providerList.length === 0) return null;
 
+            const categoryTitles: Record<string, string> = {
+              aggregator: 'Multi-Device Aggregators',
+              wearable: 'Individual Wearables',
+              cgm: 'Glucose Monitoring',
+              ehr: 'Electronic Health Records',
+              wellness: 'Research & Wellness Platforms',
+            };
+
             return (
               <div key={category}>
-                <h3 className="text-lg font-semibold text-white mb-4 capitalize flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <div className="w-1 h-6 bg-gradient-to-b from-teal-500 to-cyan-500 rounded-full" />
-                  {category === 'cgm' ? 'Glucose Monitoring' : category + 's'}
+                  {categoryTitles[category] || category}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
