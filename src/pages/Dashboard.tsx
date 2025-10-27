@@ -111,6 +111,13 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => navigate('/legacy-vault')}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-purple-500/20"
+              >
+                <Heart className="w-4 h-4" />
+                <span className="hidden sm:inline">Legacy Vault</span>
+              </button>
+              <button
                 onClick={() => openConnectionsPanel()}
                 className="relative px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
               >
