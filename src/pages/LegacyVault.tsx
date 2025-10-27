@@ -245,37 +245,6 @@ export default function LegacyVault() {
             </button>
           </div>
 
-          {/* Premium Tier Banner */}
-          {!hasPremiumLegacy && activeSection === 'continuity' && (
-            <div className="relative bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-6 mb-6 overflow-hidden">
-              <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                    <Crown className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-serif font-medium text-white mb-1">Preserve Forever</h3>
-                    <p className="text-sm text-slate-300 mb-3">
-                      Transform memory preservation into eternal continuity
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-400">
-                      <div>Continuity Basic: 1 message</div>
-                      <div>Legacy Plus: 10GB · 10 messages · $9.99/mo</div>
-                      <div>Legacy Eternal: Perpetual hosting · $49/yr</div>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white rounded-xl transition-all shadow-lg shadow-amber-500/20 font-medium whitespace-nowrap flex items-center gap-2"
-                >
-                  <Crown className="w-5 h-5" />
-                  Upgrade Now
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Eternal Blessing Badge */}
           {hasEternalLegacy && activeSection === 'continuity' && (
             <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
