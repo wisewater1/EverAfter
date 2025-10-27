@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope } from 'lucide-react';
+import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelInsights from '../components/RaphaelInsights';
@@ -18,9 +18,10 @@ import ConnectionRotationMonitor from '../components/ConnectionRotationMonitor';
 import DeviceMonitorDashboard from '../components/DeviceMonitorDashboard';
 import PredictiveHealthInsights from '../components/PredictiveHealthInsights';
 import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations';
+import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
 import ScrollIndicator from '../components/ScrollIndicator';
 
-type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation' | 'devices' | 'predictive' | 'heart-devices';
+type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation' | 'devices' | 'predictive' | 'heart-devices' | 'comprehensive-analytics';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function HealthDashboard() {
 
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
+    { id: 'comprehensive-analytics' as TabView, label: 'All Sources Analytics', icon: LayoutGrid },
     { id: 'devices' as TabView, label: 'Devices', icon: Cpu },
     { id: 'heart-devices' as TabView, label: 'Heart Monitors', icon: Stethoscope },
     { id: 'predictive' as TabView, label: 'Predictions', icon: Brain },
@@ -184,6 +186,7 @@ export default function HealthDashboard() {
             </div>
           )}
 
+          {activeTab === 'comprehensive-analytics' && <ComprehensiveAnalyticsDashboard />}
           {activeTab === 'devices' && <DeviceMonitorDashboard />}
           {activeTab === 'heart-devices' && <HeartDeviceRecommendations />}
           {activeTab === 'predictive' && <PredictiveHealthInsights />}
