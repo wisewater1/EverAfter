@@ -43,7 +43,7 @@ export default function ConnectionsPanel() {
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed right-0 top-0 bottom-0 w-full sm:w-[600px] lg:w-[700px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl z-50 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900"
+        className="fixed right-0 top-0 bottom-0 w-[95%] max-w-full sm:w-[600px] lg:w-[700px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl z-50 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900"
         role="dialog"
         aria-modal="true"
         aria-labelledby="connections-panel-title"

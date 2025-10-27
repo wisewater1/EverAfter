@@ -96,12 +96,12 @@ export default function RaphaelHealthInterface() {
               <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                 <Crown className="w-6 h-6 text-white" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-medium text-white mb-1">Upgrade for Personalized Care</h3>
-                <p className="text-sm text-slate-300 mb-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-1">Upgrade for Personalized Care</h3>
+                <p className="text-xs sm:text-sm text-slate-300 mb-3 leading-relaxed">
                   Unlock advanced health features, personalized nutrition plans, telemedicine access, and unlimited health reports
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     Nutrition Plans
@@ -119,10 +119,10 @@ export default function RaphaelHealthInterface() {
             </div>
             <button
               onClick={() => setShowPremiumModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium whitespace-nowrap flex items-center gap-2"
+              className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"
             >
-              <Crown className="w-5 h-5" />
-              Upgrade to Premium
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base">Upgrade to Premium</span>
             </button>
           </div>
         </div>
@@ -167,26 +167,30 @@ export default function RaphaelHealthInterface() {
         </div>
       )}
 
-      <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-gray-700/50 p-1 sm:p-2 overflow-x-auto">
-        <div className="flex sm:flex-wrap gap-1 sm:gap-2 min-w-max sm:min-w-0">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 sm:flex-1 sm:min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                  activeTab === tab.id
-                    ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                    : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">{tab.label.split(' ').pop()}</span>
-              </button>
-            );
-          })}
+      <div className="relative bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-gray-700/50 overflow-hidden">
+        <div className="p-1 sm:p-2 overflow-x-auto scrollbar-hide">
+          <div className="flex sm:flex-wrap gap-1 sm:gap-2 min-w-max sm:min-w-0">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-shrink-0 sm:flex-1 sm:min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[44px] touch-manipulation ${
+                    activeTab === tab.id
+                      ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                      : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">{tab.label.split(' ').pop()}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+        {/* Scroll fade indicator on mobile */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-800/90 to-transparent pointer-events-none sm:hidden" />
       </div>
 
       <div className="min-h-[300px] sm:min-h-[400px] lg:min-h-[600px]">
@@ -242,9 +246,9 @@ export default function RaphaelHealthInterface() {
 
       {/* Health Premium Modal */}
       {showPremiumModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-rose-500/30 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center gap-4 mb-6">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-rose-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div className="w-14 h-14 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
                 <Heart className="w-7 h-7 text-white" />
               </div>
@@ -322,10 +326,10 @@ export default function RaphaelHealthInterface() {
               <div className="text-xs text-slate-500">per month · cancel anytime</div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => setShowPremiumModal(false)}
-                className="flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all font-medium"
+                className="flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all font-medium min-h-[44px] touch-manipulation"
               >
                 Maybe Later
               </button>
@@ -350,7 +354,7 @@ export default function RaphaelHealthInterface() {
                     alert('Failed to start upgrade. Please try again.');
                   }
                 }}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"
               >
                 <Crown className="w-5 h-5" />
                 Upgrade Now
