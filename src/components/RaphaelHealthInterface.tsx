@@ -90,7 +90,6 @@ export default function RaphaelHealthInterface() {
       {/* Premium Upgrade Banner */}
       {!hasPremiumHealth && (
         <div className="relative bg-gradient-to-r from-rose-500/10 via-pink-500/10 to-purple-500/10 border border-rose-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-purple-500/5 animate-pulse"></div>
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4 flex-1">
               <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
