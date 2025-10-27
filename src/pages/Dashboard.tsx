@@ -104,7 +104,6 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-lg font-medium text-white tracking-tight">EverAfter AI</h1>
-                <p className="text-xs text-slate-500">{user?.email || 'Loading...'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
