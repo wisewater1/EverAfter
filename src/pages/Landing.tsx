@@ -55,16 +55,7 @@ export default function Landing() {
               <h1 className="text-base sm:text-xl font-medium text-white truncate">EverAfter AI</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {user ? (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="px-4 sm:px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-600 text-white text-sm sm:text-base rounded-lg hover:from-blue-700 hover:to-teal-700 transition-all shadow-lg font-medium flex items-center gap-2 touch-target"
-                >
-                  <span className="hidden xs:inline">Dashboard</span>
-                  <span className="xs:hidden">App</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : (
+              {!user && (
                 <button
                   onClick={() => navigate('/login')}
                   className="px-4 sm:px-6 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2 text-sm sm:text-base touch-target"
