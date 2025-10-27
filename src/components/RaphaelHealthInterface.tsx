@@ -87,46 +87,6 @@ export default function RaphaelHealthInterface() {
         </div>
       </div>
 
-      {/* Premium Upgrade Banner */}
-      {!hasPremiumHealth && (
-        <div className="relative bg-gradient-to-r from-rose-500/10 via-pink-500/10 to-purple-500/10 border border-rose-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 overflow-hidden">
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <Crown className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base sm:text-lg font-medium text-white mb-1">Upgrade for Personalized Care</h3>
-                <p className="text-xs sm:text-sm text-slate-300 mb-3 leading-relaxed">
-                  Unlock advanced health features, personalized nutrition plans, telemedicine access, and unlimited health reports
-                </p>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />
-                    Nutrition Plans
-                  </span>
-                  <span className="px-2.5 py-1 bg-sky-500/10 text-sky-400 text-xs rounded-lg border border-sky-500/20 flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Telemedicine
-                  </span>
-                  <span className="px-2.5 py-1 bg-rose-500/10 text-rose-400 text-xs rounded-lg border border-rose-500/20 flex items-center gap-1">
-                    <Heart className="w-3 h-3" />
-                    Unlimited Reports
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowPremiumModal(true)}
-              className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"
-            >
-              <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-sm sm:text-base">Upgrade to Premium</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Partner Integrations Banner */}
       {hasPremiumHealth && (
         <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
