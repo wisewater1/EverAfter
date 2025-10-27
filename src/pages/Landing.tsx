@@ -84,7 +84,7 @@ export default function Landing() {
           </h2>
           <p className="text-base sm:text-lg lg:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6 sm:mb-8 px-4">
             EverAfter AI creates autonomous AI agents that work in the background to manage your health,
-            protect your legacy, and support your loved ones—today and after you're gone.
+            protect your legacy, and support your loved ones today and after you're gone.
           </p>
           <div className="flex items-center justify-center gap-3 sm:gap-4 px-4">
             <button
