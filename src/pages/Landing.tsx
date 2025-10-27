@@ -166,25 +166,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="bg-gradient-to-br from-blue-600 to-teal-600 rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-12 text-center">
-          <h3 className="text-2xl xs:text-3xl sm:text-4xl font-light text-white mb-3 sm:mb-4">
-            Start Building Your Digital Legacy Today
-          </h3>
-          <p className="text-base sm:text-lg lg:text-xl text-blue-100 mb-6 sm:mb-8">
-            St. Raphael is completely free. Try health management automation now.
-          </p>
-          <button
-            onClick={() => navigate(user ? '/dashboard' : '/signup')}
-            className="px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-600 rounded-xl hover:bg-gray-100 transition-all shadow-lg font-medium text-base sm:text-lg inline-flex items-center gap-2 touch-target"
-          >
-            {user ? 'Go to Dashboard' : 'Get Started Free'}
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-gray-800 mt-12 sm:mt-20 safe-bottom">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
