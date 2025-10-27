@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain } from 'lucide-react';
+import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelInsights from '../components/RaphaelInsights';
@@ -17,9 +17,10 @@ import ConnectionRotationConfig from '../components/ConnectionRotationConfig';
 import ConnectionRotationMonitor from '../components/ConnectionRotationMonitor';
 import DeviceMonitorDashboard from '../components/DeviceMonitorDashboard';
 import PredictiveHealthInsights from '../components/PredictiveHealthInsights';
+import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations';
 import ScrollIndicator from '../components/ScrollIndicator';
 
-type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation' | 'devices' | 'predictive';
+type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation' | 'devices' | 'predictive' | 'heart-devices';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function HealthDashboard() {
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
     { id: 'devices' as TabView, label: 'Devices', icon: Cpu },
+    { id: 'heart-devices' as TabView, label: 'Heart Monitors', icon: Stethoscope },
     { id: 'predictive' as TabView, label: 'Predictions', icon: Brain },
     { id: 'insights' as TabView, label: 'Insights', icon: TrendingUp },
     { id: 'analytics' as TabView, label: 'Analytics', icon: BarChart3 },
@@ -183,6 +185,7 @@ export default function HealthDashboard() {
           )}
 
           {activeTab === 'devices' && <DeviceMonitorDashboard />}
+          {activeTab === 'heart-devices' && <HeartDeviceRecommendations />}
           {activeTab === 'predictive' && <PredictiveHealthInsights />}
           {activeTab === 'insights' && (
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
