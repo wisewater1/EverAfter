@@ -248,7 +248,6 @@ export default function LegacyVault() {
           {/* Premium Tier Banner */}
           {!hasPremiumLegacy && activeSection === 'continuity' && (
             <div className="relative bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-6 mb-6 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-orange-500/5 animate-pulse"></div>
               <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
