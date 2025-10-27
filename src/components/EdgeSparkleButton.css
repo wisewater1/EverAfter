@@ -1,0 +1,501 @@
+/**
+ * Edge Sparkle Button Styles
+ *
+ * Button with contrasting edge color and sparkling border animation on hover.
+ * Matches the sign-out button's elegant hover effect.
+ */
+
+:root {
+  /* Edge Colors - Contrasting borders */
+  --edge-primary: #00f3ff;
+  --edge-primary-glow: rgba(0, 243, 255, 0.8);
+  --edge-primary-dim: rgba(0, 243, 255, 0.3);
+
+  --edge-secondary: #a855f7;
+  --edge-secondary-glow: rgba(168, 85, 247, 0.8);
+  --edge-secondary-dim: rgba(168, 85, 247, 0.3);
+
+  --edge-success: #10b981;
+  --edge-success-glow: rgba(16, 185, 129, 0.8);
+  --edge-success-dim: rgba(16, 185, 129, 0.3);
+
+  --edge-warning: #f59e0b;
+  --edge-warning-glow: rgba(245, 158, 11, 0.8);
+  --edge-warning-dim: rgba(245, 158, 11, 0.3);
+
+  --edge-danger: #ef4444;
+  --edge-danger-glow: rgba(239, 68, 68, 0.8);
+  --edge-danger-dim: rgba(239, 68, 68, 0.3);
+
+  --edge-info: #3b82f6;
+  --edge-info-glow: rgba(59, 130, 246, 0.8);
+  --edge-info-dim: rgba(59, 130, 246, 0.3);
+
+  /* Background Colors - Original button fill colors */
+  --bg-button: rgba(15, 23, 42, 0.8);
+  --bg-button-hover: rgba(15, 23, 42, 0.95);
+
+  /* Timing */
+  --edge-transition: 300ms;
+  --edge-sparkle-duration: 2s;
+}
+
+/* Base Button Styles */
+.edge-sparkle-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+  color: #ffffff;
+  background: var(--bg-button);
+  backdrop-filter: blur(12px);
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--edge-transition) cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Border Container - Contrasting Edge */
+.edge-sparkle-button__border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--edge-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity var(--edge-transition) ease;
+  z-index: 0;
+}
+
+/* Inner Border for Additional Glow Effect */
+.edge-sparkle-button__border-inner {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--edge-transition) ease;
+  pointer-events: none;
+}
+
+/* Content Container */
+.edge-sparkle-button__content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: inherit;
+  z-index: 1;
+}
+
+.edge-sparkle-button__text {
+  display: inline-block;
+}
+
+.edge-sparkle-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25em;
+  height: 1.25em;
+}
+
+/* ===================================================================
+   SPARKLE ANIMATION - Matches Sign-Out Button Style
+   =================================================================== */
+
+@keyframes edge-sparkle {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow:
+      0 0 4px var(--edge-glow),
+      0 0 8px var(--edge-dim),
+      inset 0 0 4px var(--edge-dim);
+  }
+  25% {
+    opacity: 0.85;
+    box-shadow:
+      0 0 8px var(--edge-glow),
+      0 0 16px var(--edge-dim),
+      0 0 24px var(--edge-dim),
+      inset 0 0 6px var(--edge-glow);
+  }
+  50% {
+    opacity: 0.95;
+    box-shadow:
+      0 0 12px var(--edge-glow),
+      0 0 20px var(--edge-dim),
+      0 0 32px var(--edge-dim),
+      inset 0 0 8px var(--edge-glow);
+  }
+  75% {
+    opacity: 0.85;
+    box-shadow:
+      0 0 8px var(--edge-glow),
+      0 0 16px var(--edge-dim),
+      0 0 24px var(--edge-dim),
+      inset 0 0 6px var(--edge-glow);
+  }
+}
+
+@keyframes edge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.9;
+  }
+}
+
+/* ===================================================================
+   HOVER STATE - Activate Sparkle Effect
+   =================================================================== */
+
+.edge-sparkle-button:not(.edge-sparkle-button--disabled):hover {
+  background: var(--bg-button-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.edge-sparkle-button:not(.edge-sparkle-button--disabled):hover .edge-sparkle-button__border {
+  opacity: 1;
+  animation: edge-sparkle var(--edge-sparkle-duration) ease-in-out infinite;
+}
+
+.edge-sparkle-button:not(.edge-sparkle-button--disabled):hover .edge-sparkle-button__border-inner {
+  opacity: 0.3;
+  box-shadow:
+    0 0 12px var(--edge-glow),
+    0 0 24px var(--edge-dim);
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+/* ===================================================================
+   ACTIVE STATE
+   =================================================================== */
+
+.edge-sparkle-button:not(.edge-sparkle-button--disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.edge-sparkle-button:not(.edge-sparkle-button--disabled):active .edge-sparkle-button__border {
+  opacity: 1;
+  animation: none;
+  box-shadow:
+    0 0 16px var(--edge-glow),
+    0 0 32px var(--edge-dim),
+    inset 0 0 12px var(--edge-glow);
+}
+
+/* ===================================================================
+   FOCUS STATE - Accessibility
+   =================================================================== */
+
+.edge-sparkle-button:focus-visible {
+  outline: 2px solid var(--edge-primary);
+  outline-offset: 3px;
+}
+
+.edge-sparkle-button:focus-visible .edge-sparkle-button__border {
+  opacity: 1;
+  box-shadow:
+    0 0 8px var(--edge-glow),
+    0 0 16px var(--edge-dim);
+}
+
+/* ===================================================================
+   SIZE VARIANTS
+   =================================================================== */
+
+.edge-sparkle-button--sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.edge-sparkle-button--sm .edge-sparkle-button__border {
+  padding: 1.5px;
+}
+
+.edge-sparkle-button--md {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+}
+
+.edge-sparkle-button--lg {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  border-radius: 0.875rem;
+}
+
+.edge-sparkle-button--lg .edge-sparkle-button__border {
+  padding: 2.5px;
+}
+
+/* ===================================================================
+   COLOR VARIANTS
+   =================================================================== */
+
+/* Primary (Cyan) */
+.edge-sparkle-button--primary {
+  --edge-color: var(--edge-primary);
+  --edge-glow: var(--edge-primary-glow);
+  --edge-dim: var(--edge-primary-dim);
+}
+
+.edge-sparkle-button--primary .edge-sparkle-button__border {
+  background: var(--edge-primary);
+}
+
+/* Secondary (Purple) */
+.edge-sparkle-button--secondary {
+  --edge-color: var(--edge-secondary);
+  --edge-glow: var(--edge-secondary-glow);
+  --edge-dim: var(--edge-secondary-dim);
+}
+
+.edge-sparkle-button--secondary .edge-sparkle-button__border {
+  background: var(--edge-secondary);
+}
+
+/* Success (Green) */
+.edge-sparkle-button--success {
+  --edge-color: var(--edge-success);
+  --edge-glow: var(--edge-success-glow);
+  --edge-dim: var(--edge-success-dim);
+}
+
+.edge-sparkle-button--success .edge-sparkle-button__border {
+  background: var(--edge-success);
+}
+
+/* Warning (Orange) */
+.edge-sparkle-button--warning {
+  --edge-color: var(--edge-warning);
+  --edge-glow: var(--edge-warning-glow);
+  --edge-dim: var(--edge-warning-dim);
+}
+
+.edge-sparkle-button--warning .edge-sparkle-button__border {
+  background: var(--edge-warning);
+}
+
+/* Danger (Red) */
+.edge-sparkle-button--danger {
+  --edge-color: var(--edge-danger);
+  --edge-glow: var(--edge-danger-glow);
+  --edge-dim: var(--edge-danger-dim);
+}
+
+.edge-sparkle-button--danger .edge-sparkle-button__border {
+  background: var(--edge-danger);
+}
+
+/* Info (Blue) */
+.edge-sparkle-button--info {
+  --edge-color: var(--edge-info);
+  --edge-glow: var(--edge-info-glow);
+  --edge-dim: var(--edge-info-dim);
+}
+
+.edge-sparkle-button--info .edge-sparkle-button__border {
+  background: var(--edge-info);
+}
+
+/* ===================================================================
+   FULL WIDTH VARIANT
+   =================================================================== */
+
+.edge-sparkle-button--full-width {
+  width: 100%;
+}
+
+/* ===================================================================
+   DISABLED STATE
+   =================================================================== */
+
+.edge-sparkle-button--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: var(--bg-button);
+}
+
+.edge-sparkle-button--disabled .edge-sparkle-button__border {
+  animation: none !important;
+  opacity: 0.3;
+  box-shadow: none;
+}
+
+.edge-sparkle-button--disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* ===================================================================
+   LOADING STATE
+   =================================================================== */
+
+.edge-sparkle-button--loading {
+  cursor: wait;
+}
+
+.edge-sparkle-button__spinner {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+}
+
+.edge-sparkle-button__spinner-svg {
+  width: 100%;
+  height: 100%;
+  animation: edge-spin 1s linear infinite;
+}
+
+@keyframes edge-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===================================================================
+   RESPONSIVE DESIGN
+   =================================================================== */
+
+@media (max-width: 640px) {
+  .edge-sparkle-button--lg {
+    padding: 0.875rem 1.75rem;
+    font-size: 0.9375rem;
+  }
+
+  .edge-sparkle-button--md {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .edge-sparkle-button--sm {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* Touch devices - increase touch target */
+@media (hover: none) and (pointer: coarse) {
+  .edge-sparkle-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ===================================================================
+   ACCESSIBILITY - REDUCED MOTION
+   =================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-sparkle-button,
+  .edge-sparkle-button__border,
+  .edge-sparkle-button__border-inner {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .edge-sparkle-button:not(.edge-sparkle-button--disabled):hover {
+    transform: none;
+  }
+}
+
+/* ===================================================================
+   ACCESSIBILITY - HIGH CONTRAST
+   =================================================================== */
+
+@media (prefers-contrast: high) {
+  .edge-sparkle-button__border {
+    opacity: 1;
+    padding: 3px;
+  }
+
+  .edge-sparkle-button:focus-visible {
+    outline-width: 3px;
+    outline-offset: 4px;
+  }
+}
+
+/* ===================================================================
+   DARK MODE OPTIMIZATION
+   =================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  .edge-sparkle-button {
+    background: rgba(15, 23, 42, 0.9);
+  }
+
+  .edge-sparkle-button:not(.edge-sparkle-button--disabled):hover {
+    background: rgba(15, 23, 42, 1);
+  }
+
+  .edge-sparkle-button__border {
+    opacity: 0.7;
+  }
+
+  .edge-sparkle-button:not(.edge-sparkle-button--disabled):hover .edge-sparkle-button__border {
+    opacity: 1;
+  }
+}
+
+/* ===================================================================
+   PRINT STYLES
+   =================================================================== */
+
+@media print {
+  .edge-sparkle-button {
+    border: 2px solid currentColor;
+    background: white;
+    color: black;
+  }
+
+  .edge-sparkle-button__border,
+  .edge-sparkle-button__border-inner {
+    display: none;
+  }
+}
+
+/* ===================================================================
+   PERFORMANCE OPTIMIZATION
+   =================================================================== */
+
+.edge-sparkle-button,
+.edge-sparkle-button__border,
+.edge-sparkle-button__content {
+  will-change: auto;
+}
+
+.edge-sparkle-button:hover {
+  will-change: transform, box-shadow;
+}
+
+.edge-sparkle-button:hover .edge-sparkle-button__border {
+  will-change: opacity, box-shadow;
+}
