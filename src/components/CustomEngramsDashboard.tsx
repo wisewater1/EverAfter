@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target, AlertCircle, CheckCircle2, Camera, Palette } from 'lucide-react';
+import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target, AlertCircle, CheckCircle2, Camera, Palette, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 // import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers'; // Reserved for future use
 
@@ -794,66 +794,75 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
         </div>
       )}
 
-      {/* Onboarding Modal */}
+      {/* Onboarding Modal - Mobile Optimized */}
       {showOnboarding && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-8 max-w-2xl w-full">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Brain className="w-7 h-7 text-white" />
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full my-4 relative">
+            {/* Close Button - Top Right */}
+            <button
+              onClick={dismissOnboarding}
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800/50 hover:bg-slate-700/70 border border-slate-600/30 hover:border-slate-500/50 text-slate-400 hover:text-white transition-all shadow-lg group z-10"
+              aria-label="Close welcome modal"
+            >
+              <X className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
+
+            <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pr-12">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 flex-shrink-0">
+                <Brain className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <h3 className="text-2xl font-semibold text-white mb-1">Welcome to Archetypal AIs!</h3>
-                <p className="text-sm text-emerald-400 font-medium">Build AI personalities through daily questions</p>
+                <h3 className="text-xl sm:text-2xl font-semibold text-white mb-1">Welcome to Archetypal AIs!</h3>
+                <p className="text-xs sm:text-sm text-emerald-400 font-medium">Build AI personalities through daily questions</p>
               </div>
             </div>
 
-            <div className="space-y-6 mb-8">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg font-bold text-emerald-400">1</span>
+            <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-base sm:text-lg font-bold text-emerald-400">1</span>
                 </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Choose Your AI</h4>
-                  <p className="text-slate-300 leading-relaxed">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">Choose Your AI</h4>
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                     Select between different AI personalities like Dante (philosophical guide) or Jamal (financial advisor).
                     You can train multiple AIs based on your needs.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg font-bold text-emerald-400">2</span>
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-base sm:text-lg font-bold text-emerald-400">2</span>
                 </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Answer Daily Questions</h4>
-                  <p className="text-slate-300 leading-relaxed">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">Answer Daily Questions</h4>
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                     Each answer becomes a "memory" that shapes their personality. Answer 50 questions to build a complete personality profile.
-                    <span className="block mt-2 text-emerald-400 font-medium">Takes just ~5 minutes per day</span>
+                    <span className="block mt-1.5 sm:mt-2 text-emerald-400 font-medium text-sm">Takes just ~5 minutes per day</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg font-bold text-emerald-400">3</span>
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-base sm:text-lg font-bold text-emerald-400">3</span>
                 </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Activate & Chat</h4>
-                  <p className="text-slate-300 leading-relaxed">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">Activate & Chat</h4>
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                     After 50 memories, your AI activates and you can start conversations! They'll remember everything you've shared
                     and respond in a way that reflects your unique personality and values.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <Target className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="text-sm font-semibold text-amber-300 mb-1">Your 50-Day Journey</h5>
-                    <p className="text-xs text-slate-300">
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                <div className="flex items-start gap-2.5 sm:gap-3">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-xs sm:text-sm font-semibold text-amber-300 mb-1">Your 50-Day Journey</h5>
+                    <p className="text-xs text-slate-300 leading-relaxed">
                       Most users complete activation in 6-8 weeks. You can go at your own pace—there's no rush!
                     </p>
                   </div>
@@ -863,7 +872,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
             <button
               onClick={dismissOnboarding}
-              className="w-full px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 font-semibold"
+              className="w-full px-5 sm:px-6 py-3 sm:py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 font-semibold text-sm sm:text-base"
             >
               Get Started
             </button>
