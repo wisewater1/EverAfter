@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
-import SaintsDashboard from '../components/SaintsDashboard';
+import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 
@@ -20,7 +20,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'saints' | 'engrams' | 'chat' | 'family' | 'health'>('saints');
+  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat' | 'family' | 'health'>('activities');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -78,11 +78,11 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { id: 'saints', label: 'Saints AI', icon: Heart },
+    { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'family', label: 'Family', icon: Users },
-    { id: 'health', label: 'Health', icon: Activity },
+    { id: 'health', label: 'Health', icon: Heart },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -255,23 +255,23 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {selectedView === 'saints' && (
-          <SaintsDashboard
-            onOpenHealthMonitor={() => setSelectedView('health')}
-          />
-        )}
-        {selectedView === 'engrams' && (
-          <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
-        )}
-        {selectedView === 'chat' && (
-          <UnifiedChatInterface />
-        )}
-        {selectedView === 'family' && (
-          <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
-        )}
-        {selectedView === 'health' && (
-          <RaphaelHealthInterface />
-        )}
+        <div className="space-y-8">
+          {selectedView === 'activities' && (
+            <UnifiedActivityCenter />
+          )}
+          {selectedView === 'engrams' && (
+            <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+          )}
+          {selectedView === 'chat' && (
+            <UnifiedChatInterface />
+          )}
+          {selectedView === 'family' && (
+            <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
+          )}
+          {selectedView === 'health' && (
+            <RaphaelHealthInterface />
+          )}
+        </div>
       </main>
     </div>
   );
