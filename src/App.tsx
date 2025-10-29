@@ -20,6 +20,9 @@ import AdminUserCreation from './pages/AdminUserCreation';
 import Marketplace from './pages/Marketplace';
 import CreatorDashboard from './pages/CreatorDashboard';
 import MyAIs from './pages/MyAIs';
+import UserPortal from './pages/UserPortal';
+import UserProfileSetup from './pages/UserProfileSetup';
+import AdminPortal from './pages/AdminPortal';
 import DigitalLegacy from './pages/DigitalLegacy';
 import LegacyVault from './pages/LegacyVault';
 import RaphaelPrototype from './pages/RaphaelPrototype';
@@ -64,6 +67,21 @@ function App() {
                 <Route path="/my-ais" element={
                   <ProtectedRoute>
                     <MyAIs />
+                  </ProtectedRoute>
+                } />
+                <Route path="/portal" element={
+                  <ProtectedRoute>
+                    <UserPortal />
+                  </ProtectedRoute>
+                } />
+                <Route path="/portal/profile" element={
+                  <ProtectedRoute>
+                    <UserProfileSetup />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/portal" element={
+                  <ProtectedRoute>
+                    <AdminPortal />
                   </ProtectedRoute>
                 } />
                 <Route path="/beyond-modules" element={<BeyondModules />} />
