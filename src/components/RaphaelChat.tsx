@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { chatWithAgent, EdgeFunctionException } from '../lib/edge-functions';
-import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ interface HealthContext {
 
 export default function RaphaelChat() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -196,14 +198,24 @@ export default function RaphaelChat() {
   return (
     <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-gray-700/50 flex flex-col h-[500px] sm:h-[600px]">
       <div className="p-4 sm:p-6 border-b border-gray-700/50">
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex-shrink-0">
-            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex-shrink-0">
+              <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-bold text-white truncate">Raphael Health Assistant</h2>
+              <p className="text-gray-400 text-xs sm:text-sm">Your personal health companion</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="text-base sm:text-xl font-bold text-white truncate">Raphael Health Assistant</h2>
-            <p className="text-gray-400 text-xs sm:text-sm">Your personal health companion</p>
-          </div>
+          <button
+            onClick={() => navigate('/raphael')}
+            className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 border border-emerald-500/20 backdrop-blur-xl group"
+          >
+            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline text-sm font-medium">Production AI</span>
+            <ExternalLink className="w-3 h-3" />
+          </button>
         </div>
 
         <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-2 sm:gap-3">
