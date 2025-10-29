@@ -193,6 +193,9 @@ export default function FamilyEngrams() {
           onRefresh={loadFamilyMembers}
         />
       )}
+
+      {/* Additional spacing for longer scrolling */}
+      <div className="h-[60vh]"></div>
     </div>
   );
 }
