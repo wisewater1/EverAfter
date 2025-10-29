@@ -224,7 +224,7 @@ export default function CompactSaintsOverlay() {
 
       {/* Expanded Content - Slides Down */}
       {isExpanded && (
-        <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown">
+        <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown max-h-[50vh] overflow-y-auto">
           {/* Category Stats Bar */}
           <div className="border-b border-slate-800/50 bg-slate-900/50">
             <div className="px-4 py-3 grid grid-cols-3 gap-3">
