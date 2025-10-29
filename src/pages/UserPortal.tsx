@@ -18,7 +18,8 @@ import {
   X,
   ArrowLeft,
   Settings,
-  Shield
+  Shield,
+  Clock
 } from 'lucide-react';
 
 interface UserProfile {
@@ -61,6 +62,7 @@ export default function UserPortal() {
   const [locationFilter, setLocationFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
+  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user) {
@@ -81,6 +83,19 @@ export default function UserPortal() {
 
         if (error) throw error;
         setProfiles(data || []);
+
+        // Load connection statuses for all profiles
+        const { data: allConnections } = await supabase
+          .from('user_connections')
+          .select('*')
+          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+
+        const statuses: Record<string, string> = {};
+        allConnections?.forEach(conn => {
+          const otherUserId = conn.requester_id === user.id ? conn.addressee_id : conn.requester_id;
+          statuses[otherUserId] = conn.status;
+        });
+        setConnectionStatuses(statuses);
       } else if (activeTab === 'connections') {
         const { data, error } = await supabase
           .from('user_connections')
@@ -97,31 +112,81 @@ export default function UserPortal() {
     }
   };
 
-  const handleSendConnectionRequest = async (profileId: string) => {
-    if (!user) return;
+  const handleSendConnectionRequest = async (targetUserId: string) => {
+    if (!user) {
+      alert('You must be logged in to send connection requests');
+      return;
+    }
+
+    if (targetUserId === user.id) {
+      alert('You cannot send a connection request to yourself');
+      return;
+    }
 
     try {
-      const { error } = await supabase
+      console.log('Sending connection request from', user.id, 'to', targetUserId);
+
+      // Check if connection already exists
+      const { data: existing } = await supabase
+        .from('user_connections')
+        .select('*')
+        .or(`and(requester_id.eq.${user.id},addressee_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},addressee_id.eq.${user.id})`)
+        .maybeSingle();
+
+      if (existing) {
+        if (existing.status === 'pending') {
+          alert('Connection request already pending');
+        } else if (existing.status === 'accepted') {
+          alert('You are already connected with this user');
+        } else {
+          alert('Connection request already sent');
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('user_connections')
         .insert({
           requester_id: user.id,
-          addressee_id: profileId,
+          addressee_id: targetUserId,
           status: 'pending',
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      console.log('Connection request created:', data);
+
+      // Log activity
       await supabase.from('user_activity_log').insert({
         user_id: user.id,
         activity_type: 'connection_request',
-        description: `Sent connection request to user ${profileId}`,
+        description: `Sent connection request to user ${targetUserId}`,
       });
 
-      alert('Connection request sent!');
-      loadData();
+      alert('Connection request sent successfully!');
+
+      // Close modal if open
+      setSelectedProfile(null);
+
+      // Reload data
+      await loadData();
     } catch (error: any) {
       console.error('Error sending connection request:', error);
-      alert(error.message || 'Failed to send connection request');
+
+      let errorMessage = 'Failed to send connection request';
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
+      }
+      if (error.code === '23505') {
+        errorMessage = 'Connection request already exists';
+      }
+
+      alert(errorMessage);
     }
   };
 
@@ -239,6 +304,7 @@ export default function UserPortal() {
                   <UserCard
                     key={profile.id}
                     profile={profile}
+                    connectionStatus={connectionStatuses[profile.user_id]}
                     onConnect={() => handleSendConnectionRequest(profile.user_id)}
                     onViewProfile={() => setSelectedProfile(profile)}
                   />
@@ -274,11 +340,12 @@ export default function UserPortal() {
 
 interface UserCardProps {
   profile: UserProfile;
+  connectionStatus?: string;
   onConnect: () => void;
   onViewProfile: () => void;
 }
 
-function UserCard({ profile, onConnect, onViewProfile }: UserCardProps) {
+function UserCard({ profile, connectionStatus, onConnect, onViewProfile }: UserCardProps) {
   return (
     <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 hover:border-slate-600/50 transition-all">
       <div className="flex items-start gap-4 mb-4">
@@ -339,13 +406,31 @@ function UserCard({ profile, onConnect, onViewProfile }: UserCardProps) {
         >
           View Profile
         </button>
-        <button
-          onClick={onConnect}
-          className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
-        >
-          <UserPlus className="w-4 h-4" />
-          Connect
-        </button>
+        {connectionStatus === 'accepted' ? (
+          <button
+            disabled
+            className="flex-1 px-4 py-2 bg-emerald-600/50 text-white rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed"
+          >
+            <Check className="w-4 h-4" />
+            Connected
+          </button>
+        ) : connectionStatus === 'pending' ? (
+          <button
+            disabled
+            className="flex-1 px-4 py-2 bg-amber-600/50 text-white rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed"
+          >
+            <Clock className="w-4 h-4" />
+            Pending
+          </button>
+        ) : (
+          <button
+            onClick={onConnect}
+            className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
+          >
+            <UserPlus className="w-4 h-4" />
+            Connect
+          </button>
+        )}
       </div>
     </div>
   );
