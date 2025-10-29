@@ -6,6 +6,12 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getTodayOverview, type TodayOverview } from '../lib/raphael/monitors';
+import TodayAlertsCard from './raphael/TodayAlertsCard';
+import TodayVitalsCard from './raphael/TodayVitalsCard';
+import TodayTrendsCard from './raphael/TodayTrendsCard';
+import TodayReportsCard from './raphael/TodayReportsCard';
+import TodayTasksCard from './raphael/TodayTasksCard';
 
 interface ActivityCategory {
   category: string;
@@ -70,6 +76,7 @@ export default function UnifiedActivityCenter() {
   const [totalTodayActivities, setTotalTodayActivities] = useState(0);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [todayData, setTodayData] = useState<TodayOverview | null>(null);
 
   const loadCategories = useCallback(async () => {
     if (!user) return;
@@ -160,19 +167,30 @@ export default function UnifiedActivityCenter() {
     }
   }, [user, rotationConfig.enabled, loadRotationConfig]);
 
+  const loadTodayData = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const data = await getTodayOverview(user.id);
+      setTodayData(data);
+    } catch (error) {
+      console.error('Failed to load today data:', error);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       await Promise.all([
         loadCategories(),
         loadActivities(),
-        loadRotationConfig()
+        loadRotationConfig(),
+        loadTodayData()
       ]);
       setLoading(false);
     };
 
     init();
-  }, [loadCategories, loadActivities, loadRotationConfig]);
+  }, [loadCategories, loadActivities, loadRotationConfig, loadTodayData]);
 
   useEffect(() => {
     if (!rotationConfig.enabled) return;
@@ -263,6 +281,21 @@ export default function UnifiedActivityCenter() {
             <span className="text-sm font-normal text-slate-400">COMPLETED</span>
           </div>
         </div>
+
+        {todayData && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+              <TodayAlertsCard alerts={todayData.alerts} />
+              <TodayVitalsCard summary={todayData.vitalsSummary} />
+              <TodayTrendsCard trends={todayData.trends} />
+              <TodayReportsCard reports={todayData.recentReports} />
+            </div>
+
+            <div className="mb-6">
+              <TodayTasksCard tasks={todayData.tasks} />
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {categories.slice(0, 3).map((category, index) => {
