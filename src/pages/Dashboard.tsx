@@ -22,7 +22,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'family-engrams' | 'activities' | 'engrams' | 'chat' | 'family'>('family-engrams');
+  const [selectedView, setSelectedView] = useState<'family' | 'activities' | 'engrams' | 'chat'>('family');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -80,11 +80,10 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { id: 'family-engrams', label: 'Members', icon: Users },
+    { id: 'family', label: 'Family', icon: Users },
     { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'family', label: 'Responses', icon: Calendar },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -258,8 +257,11 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48">
         <div className="space-y-8">
-          {selectedView === 'family-engrams' && (
-            <FamilyEngrams />
+          {selectedView === 'family' && (
+            <>
+              <FamilyEngrams />
+              <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
+            </>
           )}
           {selectedView === 'activities' && (
             <UnifiedActivityCenter />
@@ -269,9 +271,6 @@ export default function Dashboard() {
           )}
           {selectedView === 'chat' && (
             <UnifiedChatInterface />
-          )}
-          {selectedView === 'family' && (
-            <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
           )}
         </div>
       </main>
