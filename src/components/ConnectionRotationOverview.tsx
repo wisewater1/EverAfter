@@ -85,7 +85,7 @@ export default function ConnectionRotationOverview() {
 
     try {
       const { data, error } = await supabase
-        .from('connection_rotation_logs')
+        .from('connection_rotation_schedule')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -94,9 +94,9 @@ export default function ConnectionRotationOverview() {
       if (error) throw error;
 
       const logs = data || [];
-      const successful = logs.filter(log => log.status === 'success').length;
+      const successful = logs.filter(log => log.status === 'completed').length;
       const failed = logs.filter(log => log.status === 'failed').length;
-      const lastRotation = logs[0]?.created_at || null;
+      const lastRotation = logs[0]?.completed_at || logs[0]?.created_at || null;
 
       const { data: configData } = await supabase
         .from('connection_rotation_config')
