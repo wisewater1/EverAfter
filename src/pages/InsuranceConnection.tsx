@@ -102,7 +102,7 @@ export default function InsuranceConnection() {
 
   const handleConnect = () => {
     if (selectedPlan) {
-      navigate('/insurance');
+      window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host';
     }
   };
 
