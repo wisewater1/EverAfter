@@ -54,21 +54,22 @@ export default function TerraIntegration() {
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = async (selectedProviders?: string[]) => {
     if (!user) return;
 
     setConnecting(true);
 
     try {
-      const response = await terraClient.generateWidgetSession(user.id, [
-        'FITBIT',
-        'OURA',
-        'GARMIN',
-        'DEXCOM',
-        'FREESTYLELIBRE',
-        'WITHINGS',
-        'POLAR'
-      ]);
+      const providers = selectedProviders || [
+        'FITBIT', 'OURA', 'GARMIN', 'WHOOP', 'WITHINGS', 'POLAR',
+        'SUUNTO', 'PELOTON', 'DEXCOM', 'FREESTYLELIBRE', 'APPLE_HEALTH',
+        'GOOGLE_FIT', 'SAMSUNG_HEALTH', 'EIGHT_SLEEP', 'STRAVA',
+        'CRONOMETER', 'MYFITNESSPAL', 'NUTRACHECK', 'UNDERARMOUR',
+        'WAHOO', 'ZWIFT', 'TRAININGPEAKS', 'TODAYSPLAN', 'TEMPO',
+        'OMRON', 'RENPHO', 'ACCUPEDO', 'IHEALTH'
+      ];
+
+      const response = await terraClient.generateWidgetSession(user.id, providers);
 
       // Check if mock mode
       if ((response as any).mock) {

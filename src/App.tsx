@@ -23,6 +23,8 @@ import LegacyVault from './pages/LegacyVault';
 import RaphaelPrototype from './pages/RaphaelPrototype';
 import BeyondModules from './pages/BeyondModules';
 import DevicesDashboard from './components/DevicesDashboard';
+import TerraSetupWizard from './components/TerraSetupWizard';
+import TerraCallback from './pages/TerraCallback';
 
 function ErrorNotifierConnector() {
   const { showError } = useErrorNotification();
@@ -82,6 +84,16 @@ function App() {
                 <Route path="/oauth/callback" element={
                   <ProtectedRoute>
                     <OAuthCallback />
+                  </ProtectedRoute>
+                } />
+                <Route path="/setup/terra" element={
+                  <ProtectedRoute>
+                    <TerraSetupWizard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/terra/return" element={
+                  <ProtectedRoute>
+                    <TerraCallback />
                   </ProtectedRoute>
                 } />
               </Routes>
