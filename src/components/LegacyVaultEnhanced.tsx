@@ -470,7 +470,7 @@ function LegacyAssuranceSection({
                 <button
                   onClick={() => {
                     if (partner.id === 'eternal-care') {
-                      navigate('/insurance');
+                      navigate('/insurance/connect');
                     } else {
                       navigate('/portal');
                     }
