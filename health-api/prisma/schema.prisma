@@ -1,0 +1,228 @@
+// Prisma Schema for Raphael Health Connect API
+// Integrates with existing Supabase database tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Provider enum for all supported health services
+enum Provider {
+  TERRA
+  APPLE_HEALTH
+  GOOGLE_FIT
+  FITBIT
+  OURA
+  WHOOP
+  GARMIN
+  WITHINGS
+  POLAR
+  STRAVA
+  MYFITNESSPAL
+  SAMSUNG_HEALTH
+  DEXCOM
+  ABBOTT_LIBRE
+  VALIDIC
+  HUMAN_API
+  METRIPORT
+  ROOK
+  SPIKE
+}
+
+// Metric type enum for normalized health data
+enum MetricType {
+  HEART_RATE
+  STEPS
+  CALORIES
+  SLEEP_DURATION
+  SLEEP_STAGE
+  HRV
+  OXYGEN_SAT
+  RESPIRATION
+  TEMPERATURE
+  BODY_WEIGHT
+  BODY_FAT
+  GLUCOSE
+  WORKOUT_DISTANCE
+  WORKOUT_PACE
+  WORKOUT_POWER
+  READINESS
+  STRAIN
+  RECOVERY
+  BLOOD_PRESSURE
+  SPO2
+}
+
+// Account status enum
+enum AccountStatus {
+  ACTIVE
+  DISCONNECTED
+  ERROR
+  PENDING
+}
+
+// Consent purpose enum
+enum ConsentPurpose {
+  TRAIN_AI
+  RESEARCH_PROJECT
+  DATA_EXPORT
+  DELETE
+}
+
+// Consent role enum
+enum ConsentRole {
+  PARTICIPANT
+  CUSTODIAN
+  AUDITOR
+}
+
+// Uses existing Supabase auth.users table
+// This is a placeholder to establish relationships
+model User {
+  id                String            @id @db.Uuid
+  email             String            @unique
+  createdAt         DateTime          @default(now()) @map("created_at")
+  providerAccounts  ProviderAccount[]
+  healthMetrics     HealthMetric[]
+  consents          Consent[]
+  webhookEvents     WebhookEvent[]
+
+  @@map("profiles")
+}
+
+// Provider accounts table - OAuth connections to health services
+model ProviderAccount {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String         @map("user_id") @db.Uuid
+  provider         Provider
+  externalUserId   String         @map("external_user_id")
+  accessToken      String?        @map("access_token")
+  refreshToken     String?        @map("refresh_token")
+  expiresAt        DateTime?      @map("expires_at")
+  scopes           String[]       @default([])
+  webhookSecret    String?        @map("webhook_secret")
+  status           AccountStatus  @default(ACTIVE)
+  metadata         Json           @default("{}")
+  lastSyncAt       DateTime?      @map("last_sync_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devices          Device[]
+  metrics          HealthMetric[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+  @@index([status])
+  @@map("provider_accounts")
+}
+
+// Devices table - tracks individual health devices/wearables
+model Device {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId          String           @map("account_id") @db.Uuid
+  providerDeviceId   String           @map("provider_device_id")
+  name               String?
+  model              String?
+  manufacturer       String?
+  metadata           Json             @default("{}")
+  lastSeenAt         DateTime?        @map("last_seen_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  account            ProviderAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  metrics            HealthMetric[]
+
+  @@unique([accountId, providerDeviceId])
+  @@index([accountId])
+  @@map("devices")
+}
+
+// Health metrics table - normalized health data from all providers
+model HealthMetric {
+  id           BigInt           @id @default(autoincrement())
+  userId       String           @map("user_id") @db.Uuid
+  accountId    String?          @map("account_id") @db.Uuid
+  deviceId     String?          @map("device_id") @db.Uuid
+  source       String
+  metric       MetricType
+  value        Float
+  unit         String?
+  ts           DateTime
+  raw          Json             @default("{}")
+  insertedAt   DateTime         @default(now()) @map("inserted_at")
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account      ProviderAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  device       Device?          @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, ts(sort: Desc)])
+  @@index([userId, metric, ts(sort: Desc)])
+  @@index([source])
+  @@index([deviceId])
+  @@map("health_metrics")
+}
+
+// Webhook events table - tracks incoming webhook payloads
+model WebhookEvent {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String?   @map("user_id") @db.Uuid
+  provider     String
+  eventId      String?   @map("event_id")
+  receivedAt   DateTime  @default(now()) @map("received_at")
+  payload      Json
+  signature    String?
+  dedupKey     String?   @unique @map("dedup_key")
+  processed    Boolean   @default(false)
+  error        String?
+  processedAt  DateTime? @map("processed_at")
+
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([provider])
+  @@index([processed])
+  @@index([receivedAt(sort: Desc)])
+  @@map("webhook_events")
+}
+
+// Consent table - HIPAA/GDPR compliance tracking
+model Consent {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String          @map("user_id") @db.Uuid
+  role             ConsentRole
+  purpose          ConsentPurpose
+  grantedAt        DateTime        @default(now()) @map("granted_at")
+  expiresAt        DateTime?       @map("expires_at")
+  revokedAt        DateTime?       @map("revoked_at")
+  interactionCap   Int?            @map("interaction_cap")
+  interactionCount Int             @default(0) @map("interaction_count")
+  metadata         Json            @default("{}")
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs        AuditLog[]
+
+  @@index([userId])
+  @@index([purpose])
+  @@map("consents")
+}
+
+// Audit log table - tracks all data access and operations
+model AuditLog {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  consentId    String?   @map("consent_id") @db.Uuid
+  operation    String
+  provider     String?
+  recordCount  Int       @default(0) @map("record_count")
+  metadata     Json      @default("{}")
+  performedAt  DateTime  @default(now()) @map("performed_at")
+
+  consent      Consent?  @relation(fields: [consentId], references: [id], onDelete: SetNull)
+
+  @@index([performedAt(sort: Desc)])
+  @@index([operation])
+  @@map("audit_logs")
+}

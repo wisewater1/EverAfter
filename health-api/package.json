@@ -1,0 +1,71 @@
+{
+  "name": "@everafter/health-connect-api",
+  "version": "1.0.0",
+  "description": "Unified API for 14+ health service integrations - OAuth, webhooks, data normalization",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio",
+    "test": "vitest",
+    "test:integration": "vitest run tests/integration",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "docs:generate": "tsoa spec-and-routes",
+    "mock:webhooks": "tsx scripts/mock-webhook-sender.ts"
+  },
+  "keywords": [
+    "health",
+    "wearables",
+    "oauth",
+    "terra",
+    "fitbit",
+    "oura",
+    "dexcom",
+    "cgm",
+    "fhir",
+    "api"
+  ],
+  "author": "EverAfter",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "@supabase/supabase-js": "^2.57.4",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "cors": "^2.8.5",
+    "zod": "^3.23.8",
+    "bullmq": "^5.19.0",
+    "ioredis": "^5.4.1",
+    "dotenv": "^17.2.3",
+    "date-fns": "^4.1.0",
+    "jose": "^5.9.6",
+    "nanoid": "^5.0.8",
+    "axios": "^1.7.9",
+    "crypto-js": "^4.2.0",
+    "swagger-ui-express": "^5.0.1",
+    "tsoa": "^6.4.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^22.10.1",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/crypto-js": "^4.2.2",
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.3",
+    "eslint": "^9.9.1",
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
