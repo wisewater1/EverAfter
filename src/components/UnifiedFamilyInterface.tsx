@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain, SkipForward, Heart } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain, SkipForward, Heart, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PersonalityProfileViewer from './PersonalityProfileViewer';
 import DailyQuestionCard from './DailyQuestionCard';
 import StRaphaelHealthHub from './StRaphaelHealthHub';
+import PersonalityMediaUploader from './PersonalityMediaUploader';
 
 interface FamilyMember {
   id: string;
@@ -40,7 +41,7 @@ interface UnifiedFamilyInterfaceProps {
 }
 
 export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, preselectedAIId }: UnifiedFamilyInterfaceProps) {
-  const [activeTab, setActiveTab] = useState<'members' | 'questions' | 'daily-questions' | 'export' | 'st-raphael'>(preselectedAIId ? 'daily-questions' : 'members');
+  const [activeTab, setActiveTab] = useState<'members' | 'questions' | 'daily-questions' | 'media' | 'export' | 'st-raphael'>(preselectedAIId ? 'daily-questions' : 'members');
   const [raphaelEngramId, setRaphaelEngramId] = useState<string>('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [questionResponses, setQuestionResponses] = useState<QuestionResponse[]>([]);
@@ -358,6 +359,22 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             )}
           </button>
           <button
+            onClick={() => setActiveTab('media')}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
+              activeTab === 'media'
+                ? 'text-purple-400'
+                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Image className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">Media</span>
+            </div>
+            {activeTab === 'media' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-400"></div>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('st-raphael')}
             className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
               activeTab === 'st-raphael'
@@ -536,6 +553,25 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
               <p className="text-sm text-slate-500">Responses from family members will appear here</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Media Tab */}
+      {activeTab === 'media' && (
+        <div className="space-y-6">
+          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
+            <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
+              <Image className="w-6 h-6 text-purple-400" />
+              Personality Media Library
+            </h3>
+            <p className="text-slate-400 text-sm mb-6">
+              Enhance personality profiles with photos, videos, voice recordings, and documents
+            </p>
+          </div>
+          <PersonalityMediaUploader
+            userId={userId}
+            onMediaAdded={loadFamilyMembers}
+          />
         </div>
       )}
 
