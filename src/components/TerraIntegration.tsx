@@ -7,6 +7,9 @@ import {
   CheckCircle, AlertCircle, RefreshCw, Settings, Sparkles, Clock
 } from 'lucide-react';
 
+const IS_DEV = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+const USE_MOCK = import.meta.env.VITE_MOCK_TERRA_DATA === 'true';
+
 export default function TerraIntegration() {
   const { user } = useAuth();
   const [connections, setConnections] = useState<TerraConnection[]>([]);
@@ -15,18 +18,23 @@ export default function TerraIntegration() {
   const [connecting, setConnecting] = useState(false);
   const [configValid, setConfigValid] = useState(false);
   const [missingConfig, setMissingConfig] = useState<string[]>([]);
+  const isMockMode = IS_DEV && USE_MOCK;
 
   useEffect(() => {
     const validation = validateTerraConfig();
-    setConfigValid(validation.isValid);
+    setConfigValid(validation.isValid || isMockMode);
     setMissingConfig(validation.missing);
 
-    if (user && validation.isValid) {
-      loadData();
+    if (user) {
+      if (validation.isValid || isMockMode) {
+        loadData();
+      } else {
+        setLoading(false);
+      }
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isMockMode]);
 
   const loadData = async () => {
     if (!user) return;
@@ -62,14 +70,39 @@ export default function TerraIntegration() {
         'POLAR'
       ]);
 
-      window.open(response.url, '_blank', 'width=500,height=700');
+      // Check if mock mode
+      if ((response as any).mock) {
+        console.log('🔧 Dev Mode: Mock connection successful');
+        await loadData();
+        alert('✅ Mock Terra connection successful!\n\n🔧 Dev Mode Active\n\nRealistic health data has been loaded for testing.');
+      } else {
+        // Real OAuth flow
+        const popup = window.open(response.url, '_blank', 'width=500,height=700');
 
-      setTimeout(() => {
-        loadData();
-      }, 3000);
+        if (!popup) {
+          alert('Please allow popups for Terra OAuth to work.');
+        } else {
+          setTimeout(() => {
+            loadData();
+          }, 3000);
+        }
+      }
     } catch (error) {
       console.error('Error connecting Terra:', error);
-      alert('Failed to connect Terra. Please check your configuration.');
+
+      if (error instanceof Error && error.message.includes('credentialless')) {
+        alert(
+          '⚠️ OAuth Blocked in Sandbox\n\n' +
+          'This environment blocks OAuth flows.\n\n' +
+          'Solutions:\n' +
+          '1. Enable mock mode: VITE_MOCK_TERRA_DATA=true\n' +
+          '2. Use ngrok: npx ngrok http 5173\n' +
+          '3. Deploy to public HTTPS URL\n\n' +
+          'See TERRA_OAUTH_SETUP_GUIDE.md for details.'
+        );
+      } else {
+        alert('Failed to connect Terra. Please check your configuration.');
+      }
     } finally {
       setConnecting(false);
     }
@@ -187,6 +220,19 @@ export default function TerraIntegration() {
 
   return (
     <div className="space-y-6">
+      {/* Dev Mode Banner */}
+      {isMockMode && (
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/30">
+          <div className="flex items-center gap-3">
+            <Settings className="w-5 h-5 text-yellow-400" />
+            <div>
+              <p className="text-yellow-400 font-medium text-sm">🔧 Development Mode Active</p>
+              <p className="text-yellow-300/70 text-xs">Using mock Terra data for testing. Set VITE_MOCK_TERRA_DATA=false for real OAuth.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Connect Button */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
         <div className="flex items-start justify-between mb-6">

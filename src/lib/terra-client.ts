@@ -33,17 +33,33 @@ export interface TerraMetric {
   metadata: Record<string, unknown>;
 }
 
+const IS_DEV = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+const USE_MOCK = import.meta.env.VITE_MOCK_TERRA_DATA === 'true';
+
 export class TerraClient {
   private supabaseUrl: string;
+  private isMockMode: boolean;
 
   constructor() {
     this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    this.isMockMode = IS_DEV && USE_MOCK;
   }
 
   async generateWidgetSession(
     userId: string,
     providers?: TerraProvider[]
   ): Promise<TerraWidgetResponse> {
+    if (this.isMockMode) {
+      console.log('🔧 Dev Mode: Using mock Terra widget session');
+      return {
+        status: 'success',
+        session_id: 'mock-session-' + Date.now(),
+        url: '#mock-oauth',
+        expires_in: 3600,
+        mock: true,
+      } as TerraWidgetResponse & { mock: boolean };
+    }
+
     const { data, error } = await supabase.functions.invoke('terra-widget', {
       body: {
         reference_id: userId,
@@ -58,7 +74,116 @@ export class TerraClient {
     return data;
   }
 
+  async getMockData(userId: string) {
+    console.log('🔧 Dev Mode: Loading mock Terra data');
+
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 3600000);
+    const oneDayAgo = new Date(now.getTime() - 86400000);
+
+    return {
+      connections: [
+        {
+          id: 'mock-fitbit-1',
+          user_id: userId,
+          provider: 'FITBIT',
+          status: 'connected',
+          last_sync_at: new Date(now.getTime() - 120000).toISOString(),
+          created_at: oneDayAgo.toISOString(),
+        },
+        {
+          id: 'mock-dexcom-1',
+          user_id: userId,
+          provider: 'DEXCOM',
+          status: 'connected',
+          last_sync_at: new Date(now.getTime() - 300000).toISOString(),
+          created_at: oneDayAgo.toISOString(),
+        },
+      ],
+      summary: {
+        date: now.toISOString().split('T')[0],
+        metrics: {
+          hr_avg_hr: {
+            latest: 72,
+            average: 71.5,
+            max: 165,
+            min: 58,
+            unit: 'bpm',
+            count: 24,
+          },
+          steps_steps: {
+            latest: 7842,
+            average: 7842,
+            max: 7842,
+            min: 7842,
+            unit: 'steps',
+            count: 1,
+          },
+          sleep_sleep_duration: {
+            latest: 432,
+            average: 432,
+            max: 432,
+            min: 432,
+            unit: 'minutes',
+            count: 1,
+          },
+          glucose_glucose: {
+            latest: 98,
+            average: 102.3,
+            max: 145,
+            min: 85,
+            unit: 'mg/dL',
+            count: 288,
+          },
+        },
+      },
+      metrics: [
+        {
+          id: 'mock-hr-1',
+          user_id: userId,
+          provider: 'FITBIT',
+          metric_type: 'hr',
+          metric_name: 'avg_hr',
+          timestamp: oneHourAgo.toISOString(),
+          value: 72,
+          unit: 'bpm',
+          quality: 'good',
+          metadata: {},
+        },
+        {
+          id: 'mock-steps-1',
+          user_id: userId,
+          provider: 'FITBIT',
+          metric_type: 'steps',
+          metric_name: 'steps',
+          timestamp: oneHourAgo.toISOString(),
+          value: 7842,
+          unit: 'steps',
+          quality: 'good',
+          metadata: {},
+        },
+        {
+          id: 'mock-glucose-1',
+          user_id: userId,
+          provider: 'DEXCOM',
+          metric_type: 'glucose',
+          metric_name: 'glucose',
+          timestamp: now.toISOString(),
+          value: 98,
+          unit: 'mg/dL',
+          quality: 'good',
+          metadata: {},
+        },
+      ],
+    };
+  }
+
   async getConnections(userId: string): Promise<TerraConnection[]> {
+    if (this.isMockMode) {
+      const mockData = await this.getMockData(userId);
+      return mockData.connections;
+    }
+
     const { data, error } = await supabase
       .from('terra_connections')
       .select('*')
@@ -108,6 +233,11 @@ export class TerraClient {
   }
 
   async getDailySummary(userId: string, date?: Date): Promise<Record<string, unknown>> {
+    if (this.isMockMode) {
+      const mockData = await this.getMockData(userId);
+      return mockData.summary;
+    }
+
     const targetDate = date || new Date();
     const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
