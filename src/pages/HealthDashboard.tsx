@@ -25,7 +25,7 @@ import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations
 import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
 import ScrollIndicator from '../components/ScrollIndicator';
 
-type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'insights' | 'files' | 'rotation' | 'devices-analytics' | 'predictive' | 'heart-devices';
+type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'rotation' | 'devices-analytics' | 'predictions' | 'heart-devices';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -77,9 +77,7 @@ export default function HealthDashboard() {
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
     { id: 'devices-analytics' as TabView, label: 'Devices & Analytics', icon: LayoutGrid },
     { id: 'heart-devices' as TabView, label: 'Heart Monitors', icon: Stethoscope },
-    { id: 'predictive' as TabView, label: 'Predictions', icon: Brain },
-    { id: 'insights' as TabView, label: 'Insights', icon: TrendingUp },
-    { id: 'analytics' as TabView, label: 'Analytics', icon: BarChart3 },
+    { id: 'predictions' as TabView, label: 'Predictions', icon: Brain },
     { id: 'medications' as TabView, label: 'Medications', icon: Heart },
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
     { id: 'files' as TabView, label: 'My Files', icon: FolderOpen },
@@ -278,13 +276,15 @@ export default function HealthDashboard() {
             </div>
           )}
           {activeTab === 'heart-devices' && <HeartDeviceRecommendations />}
-          {activeTab === 'predictive' && <PredictiveHealthInsights />}
-          {activeTab === 'insights' && (
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-              <RaphaelInsightsPanel engramId={raphaelEngramId} />
+          {activeTab === 'predictions' && (
+            <div className="space-y-6">
+              <PredictiveHealthInsights />
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                <RaphaelInsightsPanel engramId={raphaelEngramId} />
+              </div>
+              <HealthAnalytics />
             </div>
           )}
-          {activeTab === 'analytics' && <HealthAnalytics />}
           {activeTab === 'medications' && <MedicationTracker />}
           {activeTab === 'goals' && <HealthGoals />}
           {activeTab === 'files' && <FileManager />}
