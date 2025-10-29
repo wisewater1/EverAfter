@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, ChevronDown, ChevronUp, Activity, Plus, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -72,6 +73,7 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
 
 export default function CompactSaintsOverlay() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -368,7 +370,10 @@ export default function CompactSaintsOverlay() {
                         </div>
                       )}
                       {isRaphael && (
-                        <button className="mt-2 w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => navigate('/health-dashboard')}
+                          className="mt-2 w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        >
                           <Activity className="w-3 h-3" />
                           Open Health Monitor
                         </button>
