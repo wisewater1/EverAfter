@@ -58,22 +58,6 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
   const aiArchetypes: AIArchetype[] = [
     {
-      id: 'philosopher',
-      name: 'The Philosopher',
-      description: 'Deep thinker focused on meaning, values, and life\'s big questions',
-      icon: '🧠',
-      suggestedName: 'Dante',
-      defaultDescription: 'A curious and philosophical AI that learns about you through thoughtful questions',
-    },
-    {
-      id: 'advisor',
-      name: 'The Advisor',
-      description: 'Practical guide for decision-making and strategic thinking',
-      icon: '💼',
-      suggestedName: 'Jamal',
-      defaultDescription: 'An investment attorney AI specializing in financial strategy, legal compliance, and investment planning',
-    },
-    {
       id: 'companion',
       name: 'The Companion',
       description: 'Empathetic friend for daily conversations and emotional support',
@@ -439,11 +423,11 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {ais.map((ai) => (
             <div
               key={ai.id}
-              className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300 cursor-pointer"
+              className="group glass-card p-6 cursor-pointer"
               onClick={() => onSelectAI?.(ai.id)}
             >
               {/* Header */}
@@ -648,12 +632,12 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
             {createStep === 'archetype' && (
               <div className="space-y-4">
                 <h4 className="text-lg font-medium text-white mb-4">Select AI Archetype</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-h-96 overflow-y-auto pr-2">
                   {aiArchetypes.map((archetype) => (
                     <button
                       key={archetype.id}
                       onClick={() => handleArchetypeSelect(archetype)}
-                      className="group text-left bg-slate-900/50 hover:bg-slate-900/70 border border-slate-700/50 hover:border-sky-500/50 rounded-xl p-5 transition-all"
+                      className="group text-left glass-card p-6 hover:scale-[1.02] transition-all"
                     >
                       <div className="flex items-start gap-4">
                         <div className="text-4xl flex-shrink-0">{archetype.icon}</div>
@@ -827,8 +811,8 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                 <div className="flex-1 min-w-0">
                   <h4 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">Choose Your AI</h4>
                   <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                    Select between different AI personalities like Dante (philosophical guide) or Jamal (financial advisor).
-                    You can train multiple AIs based on your needs.
+                    Select from different AI personalities tailored to your needs.
+                    You can train multiple AIs, each with their own unique focus.
                   </p>
                 </div>
               </div>
