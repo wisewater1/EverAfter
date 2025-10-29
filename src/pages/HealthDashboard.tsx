@@ -100,25 +100,27 @@ export default function HealthDashboard() {
             <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Health Monitor</h1>
             <p className="text-slate-400 text-sm">Comprehensive health tracking powered by St. Raphael AI</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => openConnectionsPanel('health')}
-              className="relative px-5 py-3 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 hover:from-teal-500/20 hover:to-cyan-500/20 text-teal-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-teal-500/20 backdrop-blur-xl group"
+              className="relative px-3 sm:px-5 py-3 rounded-xl sm:rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/50 text-white transition-all duration-300 flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/30 hover:bg-slate-900/60 group overflow-hidden whitespace-nowrap"
             >
-              <Link2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-              <span className="hidden sm:inline font-medium">Connections</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <Link2 className="w-4 h-4 relative z-10 text-cyan-400 group-hover:text-cyan-300 group-hover:rotate-12 transition-transform flex-shrink-0" />
+              <span className="hidden sm:inline font-medium relative z-10 text-sm">Connections</span>
               {activeConnectionsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg shadow-emerald-500/50 animate-pulse">
+                <span className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold z-20 shadow-lg shadow-emerald-500/50">
                   {activeConnectionsCount}
                 </span>
               )}
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] hover:from-[#1f1f2c] hover:to-[#16161d] text-slate-300 hover:text-white transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-white/5"
+              className="relative px-3 sm:px-5 py-3 rounded-xl sm:rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-600/30 hover:border-slate-500/50 text-slate-300 hover:text-white transition-all duration-300 flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-slate-900/20 hover:shadow-slate-700/30 hover:bg-slate-900/60 group overflow-hidden whitespace-nowrap"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="font-medium">Back</span>
+              <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <ArrowLeft className="w-4 h-4 relative z-10 flex-shrink-0" />
+              <span className="font-medium relative z-10 text-sm">Back</span>
             </button>
           </div>
         </div>
