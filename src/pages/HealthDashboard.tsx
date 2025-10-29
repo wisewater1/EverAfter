@@ -25,7 +25,7 @@ import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations
 import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
 import ScrollIndicator from '../components/ScrollIndicator';
 
-type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'rotation' | 'devices-analytics' | 'predictions';
+type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -81,7 +81,6 @@ export default function HealthDashboard() {
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
     { id: 'files' as TabView, label: 'My Files', icon: FolderOpen },
     { id: 'connections' as TabView, label: 'Connections', icon: Activity },
-    { id: 'rotation' as TabView, label: 'Auto-Rotation', icon: Link2 },
     { id: 'contacts' as TabView, label: 'Emergency', icon: Users },
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
   ];
@@ -271,6 +270,8 @@ export default function HealthDashboard() {
           {activeTab === 'devices-analytics' && (
             <div className="space-y-6">
               <DeviceMonitorDashboard />
+              <ConnectionRotationConfig />
+              <ConnectionRotationMonitor />
               <ComprehensiveAnalyticsDashboard />
             </div>
           )}
@@ -292,12 +293,6 @@ export default function HealthDashboard() {
           {activeTab === 'goals' && <HealthGoals />}
           {activeTab === 'files' && <FileManager />}
           {activeTab === 'connections' && <HealthConnectionManager />}
-          {activeTab === 'rotation' && (
-            <div className="space-y-6">
-              <ConnectionRotationConfig />
-              <ConnectionRotationMonitor />
-            </div>
-          )}
           {activeTab === 'contacts' && <EmergencyContacts />}
           {activeTab === 'chat' && <RaphaelChat />}
         </div>
