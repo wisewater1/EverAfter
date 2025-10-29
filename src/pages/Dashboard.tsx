@@ -261,16 +261,27 @@ export default function Dashboard() {
             <>
               <FamilyEngrams />
               <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
+              {/* Additional spacing for longer scrolling */}
+              <div className="h-[60vh]"></div>
             </>
           )}
           {selectedView === 'activities' && (
-            <UnifiedActivityCenter />
+            <>
+              <UnifiedActivityCenter />
+              <div className="h-[60vh]"></div>
+            </>
           )}
           {selectedView === 'engrams' && (
-            <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+            <>
+              <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+              <div className="h-[60vh]"></div>
+            </>
           )}
           {selectedView === 'chat' && (
-            <UnifiedChatInterface />
+            <>
+              <UnifiedChatInterface />
+              <div className="h-[60vh]"></div>
+            </>
           )}
         </div>
 
