@@ -157,18 +157,18 @@ export default function FamilyEngrams() {
           <p className="text-slate-400">Loading family engrams...</p>
         </div>
       ) : familyMembers.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No Family Engrams Yet</h3>
-          <p className="text-slate-400 mb-6 max-w-md mx-auto">
+        <div className="glass-card p-8 text-center">
+          <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-white mb-2">No Family Engrams Yet</h3>
+          <p className="text-slate-400 text-sm mb-4 max-w-md mx-auto">
             Start creating AI companions for your family members by capturing their personalities,
             memories, and moments.
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white rounded-xl font-medium inline-flex items-center gap-2 transition-all"
+            className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white rounded-xl font-medium inline-flex items-center gap-2 transition-all text-sm"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Create Your First Engram
           </button>
         </div>
