@@ -210,12 +210,6 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
             name: 'Dante',
             description: 'A curious and philosophical AI that learns about you through thoughtful questions',
             training_status: 'training'
-          },
-          {
-            user_id: userId,
-            name: 'Jamal',
-            description: 'An investment attorney AI specializing in financial strategy, legal compliance, and investment planning',
-            training_status: 'training'
           }
         ]);
     } catch (error) {

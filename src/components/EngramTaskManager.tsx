@@ -139,7 +139,7 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
               </div>
               <span className="text-sm text-white font-medium">Go to Engrams tab</span>
             </div>
-            <p className="text-xs text-gray-400 pl-11">Create or select an AI (like Dante or Jamal)</p>
+            <p className="text-xs text-gray-400 pl-11">Create or select an AI (like Dante)</p>
           </div>
           <div className="bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-left">
             <div className="flex items-center gap-3 mb-2">
