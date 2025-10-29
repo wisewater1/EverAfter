@@ -1,6 +1,35 @@
 import { supabase } from './supabase';
 import { getTerraConfig, TerraProvider } from './terra-config';
 
+export async function verifyTerraWebhookSignature(
+  signature: string,
+  body: string,
+  secret: string
+): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(body);
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, messageData);
+    const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+    const computedSignature = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    return computedSignature === signature;
+  } catch (error) {
+    console.error('Terra webhook signature verification error:', error);
+    return false;
+  }
+}
+
 export interface TerraWidgetResponse {
   status: string;
   session_id: string;
