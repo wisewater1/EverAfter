@@ -471,6 +471,8 @@ function LegacyAssuranceSection({
                   onClick={() => {
                     if (partner.id === 'eternal-care') {
                       navigate('/insurance/connect');
+                    } else if (partner.id === 'memorial-services') {
+                      navigate('/memorial-services');
                     } else {
                       navigate('/portal');
                     }
