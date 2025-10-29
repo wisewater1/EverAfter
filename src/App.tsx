@@ -21,6 +21,7 @@ import Marketplace from './pages/Marketplace';
 import DigitalLegacy from './pages/DigitalLegacy';
 import LegacyVault from './pages/LegacyVault';
 import RaphaelPrototype from './pages/RaphaelPrototype';
+import BeyondModules from './pages/BeyondModules';
 
 function ErrorNotifierConnector() {
   const { showError } = useErrorNotification();
@@ -50,6 +51,7 @@ function App() {
                 <Route path="/admin/create-user" element={<AdminUserCreation />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/beyond-modules" element={<BeyondModules />} />
                 <Route path="/raphael-prototype" element={<RaphaelPrototype />} />
                 <Route path="/digital-legacy" element={
                   <ProtectedRoute>
