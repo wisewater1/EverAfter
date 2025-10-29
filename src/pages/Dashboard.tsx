@@ -110,36 +110,40 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate('/legacy-vault')}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-purple-500/20"
+                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-purple-500/30 hover:border-purple-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-purple-500/10 hover:shadow-purple-500/30 hover:bg-slate-900/60 group overflow-hidden"
               >
-                <Heart className="w-4 h-4" />
-                <span className="hidden sm:inline">Legacy Vault</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <Heart className="w-4 h-4 relative z-10 text-purple-400 group-hover:text-purple-300" />
+                <span className="hidden sm:inline relative z-10">Legacy Vault</span>
               </button>
               <button
                 onClick={() => openConnectionsPanel()}
-                className="relative px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
+                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/30 hover:bg-slate-900/60 group overflow-hidden"
               >
-                <Link2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Connections</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <Link2 className="w-4 h-4 relative z-10 text-cyan-400 group-hover:text-cyan-300" />
+                <span className="hidden sm:inline relative z-10">Connections</span>
                 {activeConnectionsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold z-20 shadow-lg shadow-emerald-500/50">
                     {activeConnectionsCount}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => navigate('/marketplace')}
-                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-amber-500/20"
+                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-amber-500/30 hover:border-amber-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-amber-500/10 hover:shadow-amber-500/30 hover:bg-slate-900/60 group overflow-hidden"
               >
-                <ShoppingCart className="w-4 h-4" />
-                <span className="hidden sm:inline">Marketplace</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-600/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <ShoppingCart className="w-4 h-4 relative z-10 text-amber-400 group-hover:text-amber-300" />
+                <span className="hidden sm:inline relative z-10">Marketplace</span>
               </button>
               <button
                 onClick={handleSignOut}
-                className="px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
+                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-slate-600/30 hover:border-slate-500/50 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-slate-900/20 hover:shadow-slate-700/30 hover:bg-slate-900/60 group overflow-hidden"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <LogOut className="w-4 h-4 relative z-10" />
+                <span className="hidden sm:inline relative z-10">Sign Out</span>
               </button>
             </div>
           </div>
