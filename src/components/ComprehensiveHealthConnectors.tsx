@@ -6,8 +6,9 @@ import {
   CheckCircle, AlertCircle, RefreshCw, Plus, Upload, FileText,
   Smartphone, Radio, Droplet, Stethoscope, FlaskConical, Link2,
   Sparkles, Code, Settings, Info, TrendingUp, Moon, Brain, Target,
-  Scale, ThermometerSun, Clock
+  Scale, ThermometerSun, Clock, LayoutDashboard
 } from 'lucide-react';
+import CustomDashboardBuilder from './CustomDashboardBuilder';
 
 interface HealthConnection {
   id: string;
@@ -274,7 +275,7 @@ export default function ComprehensiveHealthConnectors() {
   const [syncing, setSyncing] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'all'>('all');
   const [connectedCount, setConnectedCount] = useState(0);
-  const [showCustomPluginModal, setShowCustomPluginModal] = useState(false);
+  const [showCustomDashboard, setShowCustomDashboard] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -498,7 +499,7 @@ export default function ComprehensiveHealthConnectors() {
               </ul>
             </div>
             <button
-              onClick={() => setShowCustomPluginModal(true)}
+              onClick={() => setShowCustomDashboard(true)}
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium transition-all duration-300 flex items-center gap-2 shadow-lg hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles className="w-4 h-4" />
@@ -531,11 +532,27 @@ export default function ComprehensiveHealthConnectors() {
       </div>
 
       {/* Custom Plugin Builder Modal */}
-      {showCustomPluginModal && (
-        <CustomPluginBuilderModal
-          connections={connections}
-          onClose={() => setShowCustomPluginModal(false)}
-        />
+      {showCustomDashboard && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-auto">
+          <div className="min-h-screen p-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <LayoutDashboard className="w-7 h-7 text-violet-400" />
+                  Custom Health Plugin Builder
+                  <Sparkles className="w-6 h-6 text-violet-400 animate-pulse" />
+                </h2>
+                <button
+                  onClick={() => setShowCustomDashboard(false)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                >
+                  Close
+                </button>
+              </div>
+              <CustomDashboardBuilder />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -618,219 +635,3 @@ function ServiceCard({ service, connection, onConnect, syncing }: ServiceCardPro
   );
 }
 
-interface CustomPluginBuilderModalProps {
-  connections: HealthConnection[];
-  onClose: () => void;
-}
-
-function CustomPluginBuilderModal({ connections, onClose }: CustomPluginBuilderModalProps) {
-  const [pluginName, setPluginName] = useState('');
-  const [selectedDataPoints, setSelectedDataPoints] = useState<string[]>([]);
-  const [dashboardType, setDashboardType] = useState<'correlation' | 'timeline' | 'comparison' | 'alerts'>('correlation');
-  const [creating, setCreating] = useState(false);
-
-  const availableDataPoints = [
-    { id: 'glucose', label: 'Glucose Levels', icon: Droplet, sources: ['dexcom_cgm', 'abbott_libre'] },
-    { id: 'heart_rate', label: 'Heart Rate', icon: Heart, sources: ['fitbit', 'oura_ring', 'whoop'] },
-    { id: 'sleep', label: 'Sleep Quality', icon: Moon, sources: ['oura_ring', 'fitbit', 'whoop'] },
-    { id: 'steps', label: 'Steps', icon: Activity, sources: ['fitbit', 'garmin', 'whoop'] },
-    { id: 'hrv', label: 'HRV', icon: Brain, sources: ['oura_ring', 'whoop', 'polar'] },
-    { id: 'activity', label: 'Activity', icon: TrendingUp, sources: ['fitbit', 'garmin', 'terra'] },
-    { id: 'recovery', label: 'Recovery Score', icon: Target, sources: ['oura_ring', 'whoop'] },
-    { id: 'temperature', label: 'Temperature', icon: ThermometerSun, sources: ['oura_ring'] },
-  ];
-
-  const toggleDataPoint = (id: string) => {
-    setSelectedDataPoints(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
-  };
-
-  const handleCreate = async () => {
-    if (!pluginName || selectedDataPoints.length === 0) return;
-
-    setCreating(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const hasConnections = connections.some(c => c.status === 'connected');
-      const message = hasConnections
-        ? `Custom plugin "${pluginName}" created successfully! You can now view it in your dashboard.`
-        : `Preview plugin "${pluginName}" created! Connect health sources to enable live data.`;
-
-      alert(message);
-      onClose();
-    } catch (error) {
-      console.error('Error creating plugin:', error);
-      alert('Failed to create plugin. Please try again.');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-[#1a1a24] to-[#13131a] rounded-3xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/10 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gradient-to-br from-[#1a1a24] to-[#13131a] border-b border-white/10 p-6 rounded-t-3xl z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Custom Plugin Builder</h2>
-                <p className="text-slate-400 text-sm">Combine data from your connected sources</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-            >
-              <Plus className="w-5 h-5 text-white rotate-45" />
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {connections.filter(c => c.status === 'connected').length === 0 && (
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-              <Info className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-amber-300">
-                <p className="font-medium mb-1">Preview Mode</p>
-                <p className="text-amber-300/80">
-                  You're in preview mode. Connect health sources above to enable live data in your custom plugins.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-white font-medium mb-2">Plugin Name</label>
-            <input
-              type="text"
-              value={pluginName}
-              onChange={(e) => setPluginName(e.target.value)}
-              placeholder="e.g., Glucose-Activity Correlation"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-white font-medium mb-3">Dashboard Type</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { id: 'correlation', label: 'Correlation', icon: TrendingUp, desc: 'Compare metrics' },
-                { id: 'timeline', label: 'Timeline', icon: Clock, desc: 'View trends' },
-                { id: 'comparison', label: 'Comparison', icon: Activity, desc: 'Side by side' },
-                { id: 'alerts', label: 'Alerts', icon: AlertCircle, desc: 'Real-time alerts' },
-              ].map((type) => {
-                const Icon = type.icon;
-                const isSelected = dashboardType === type.id;
-                return (
-                  <button
-                    key={type.id}
-                    onClick={() => setDashboardType(type.id as any)}
-                    className={`p-4 rounded-xl border transition-all ${
-                      isSelected
-                        ? 'bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-purple-500'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    <Icon className={`w-6 h-6 mx-auto mb-2 ${isSelected ? 'text-purple-400' : 'text-slate-400'}`} />
-                    <p className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-slate-300'}`}>{type.label}</p>
-                    <p className="text-xs text-slate-500 mt-1">{type.desc}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-white font-medium mb-3">
-              Select Data Points ({selectedDataPoints.length} selected)
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {availableDataPoints.map((point) => {
-                const Icon = point.icon;
-                const isSelected = selectedDataPoints.includes(point.id);
-                const hasConnection = connections.some(c =>
-                  point.sources.includes(c.service_name) && c.status === 'connected'
-                );
-
-                return (
-                  <button
-                    key={point.id}
-                    onClick={() => toggleDataPoint(point.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? 'bg-gradient-to-br from-teal-600/20 to-cyan-600/20 border-teal-500'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-5 h-5 ${isSelected ? 'text-teal-400' : 'text-slate-400'}`} />
-                      <div className="flex-1">
-                        <p className={`font-medium ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                          {point.label}
-                        </p>
-                        <p className={`text-xs ${hasConnection ? 'text-teal-400' : 'text-slate-500'}`}>
-                          {hasConnection ? `✓ From ${point.sources[0]}` : `Preview from ${point.sources[0]}`}
-                        </p>
-                      </div>
-                      {isSelected && <CheckCircle className="w-5 h-5 text-teal-400" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-300">
-                <p className="font-medium mb-1">How it works</p>
-                <p className="text-blue-300/80">
-                  Your custom plugin will combine data from selected sources and visualize them according
-                  to your chosen dashboard type. All data stays private and is only accessible to you.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="sticky bottom-0 bg-gradient-to-br from-[#1a1a24] to-[#13131a] border-t border-white/10 p-6 rounded-b-3xl">
-          <div className="flex items-center justify-between gap-4">
-            <button
-              onClick={onClose}
-              className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={!pluginName || selectedDataPoints.length === 0 || creating}
-              className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                !pluginName || selectedDataPoints.length === 0 || creating
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] shadow-lg'
-              }`}
-            >
-              {creating ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Create Plugin
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

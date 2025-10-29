@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Radio, Moon, Sparkles } from 'lucide-react';
+import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Radio, Moon, Sparkles, LayoutDashboard } from 'lucide-react';
 import TroubleshootingWizard from './TroubleshootingWizard';
+import CustomDashboardBuilder from './CustomDashboardBuilder';
 
 interface HealthConnection {
   id: string;
@@ -131,6 +132,7 @@ export default function HealthConnectionManager() {
     name: string;
     connectionId?: string;
   } | null>(null);
+  const [showCustomDashboard, setShowCustomDashboard] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -421,7 +423,10 @@ export default function HealthConnectionManager() {
                   </li>
                 </ul>
               </div>
-              <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-all duration-300 flex items-center gap-2 shadow-lg">
+              <button
+                onClick={() => setShowCustomDashboard(true)}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-all duration-300 flex items-center gap-2 shadow-lg"
+              >
                 <Sparkles className="w-4 h-4" />
                 Start Building Your Custom Plugin
               </button>
@@ -497,6 +502,29 @@ export default function HealthConnectionManager() {
           deviceName={selectedDevice.name}
           deviceConnectionId={selectedDevice.connectionId}
         />
+      )}
+
+      {showCustomDashboard && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-auto">
+          <div className="min-h-screen p-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <LayoutDashboard className="w-7 h-7 text-violet-400" />
+                  Custom Health Plugin Builder
+                  <Sparkles className="w-6 h-6 text-violet-400 animate-pulse" />
+                </h2>
+                <button
+                  onClick={() => setShowCustomDashboard(false)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                >
+                  Close
+                </button>
+              </div>
+              <CustomDashboardBuilder />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
