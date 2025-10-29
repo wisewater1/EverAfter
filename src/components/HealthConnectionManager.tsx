@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench } from 'lucide-react';
+import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Radio, Moon, Sparkles } from 'lucide-react';
 import TroubleshootingWizard from './TroubleshootingWizard';
 
 interface HealthConnection {
@@ -15,6 +15,15 @@ interface HealthConnection {
 }
 
 const HEALTH_SERVICES = [
+  // Multi-Device Aggregators
+  {
+    id: 'terra',
+    name: 'Terra',
+    icon: Cloud,
+    description: 'Unified API for 300+ wearables with real-time webhooks',
+    color: 'from-purple-600 to-violet-600'
+  },
+  // Platform Integrations
   {
     id: 'apple_health',
     name: 'Apple Health',
@@ -29,34 +38,50 @@ const HEALTH_SERVICES = [
     description: 'Connect with Google Fit',
     color: 'from-green-600 to-emerald-600'
   },
+  // Individual Wearables
   {
     id: 'fitbit',
     name: 'Fitbit',
     icon: Watch,
-    description: 'Sync Fitbit device data',
+    description: 'Popular fitness tracker and smartwatch',
     color: 'from-blue-600 to-cyan-600'
-  },
-  {
-    id: 'garmin',
-    name: 'Garmin',
-    icon: Watch,
-    description: 'Connect Garmin devices',
-    color: 'from-orange-600 to-amber-600'
   },
   {
     id: 'oura_ring',
     name: 'Oura Ring',
-    icon: Activity,
-    description: 'Track sleep and recovery data',
+    icon: Moon,
+    description: 'Advanced sleep and recovery tracking ring',
     color: 'from-slate-600 to-gray-600'
   },
   {
     id: 'whoop',
     name: 'Whoop',
     icon: Activity,
-    description: 'Connect Whoop strap data',
+    description: 'Performance optimization wearable',
     color: 'from-gray-700 to-slate-700'
   },
+  {
+    id: 'garmin',
+    name: 'Garmin',
+    icon: Watch,
+    description: 'Fitness and outdoor GPS watches',
+    color: 'from-orange-600 to-amber-600'
+  },
+  {
+    id: 'withings',
+    name: 'Withings',
+    icon: Scale,
+    description: 'Connected scales and health monitors',
+    color: 'from-teal-600 to-emerald-600'
+  },
+  {
+    id: 'polar',
+    name: 'Polar',
+    icon: Heart,
+    description: 'Training load and performance tracking',
+    color: 'from-red-600 to-orange-600'
+  },
+  // Activity & Nutrition
   {
     id: 'strava',
     name: 'Strava',
@@ -72,18 +97,26 @@ const HEALTH_SERVICES = [
     color: 'from-blue-700 to-cyan-700'
   },
   {
-    id: 'withings',
-    name: 'Withings',
-    icon: Watch,
-    description: 'Connect Withings health devices',
-    color: 'from-teal-600 to-emerald-600'
-  },
-  {
     id: 'samsung_health',
     name: 'Samsung Health',
     icon: Smartphone,
     description: 'Sync Samsung Health data',
     color: 'from-blue-600 to-indigo-600'
+  },
+  // Glucose Monitoring
+  {
+    id: 'dexcom_cgm',
+    name: 'Dexcom CGM',
+    icon: Droplet,
+    description: 'Continuous glucose monitoring with real-time data',
+    color: 'from-blue-500 to-indigo-500'
+  },
+  {
+    id: 'abbott_libre',
+    name: 'Abbott Libre',
+    icon: Droplet,
+    description: 'FreeStyle Libre via aggregator partners',
+    color: 'from-green-500 to-teal-500'
   }
 ];
 
@@ -332,6 +365,74 @@ export default function HealthConnectionManager() {
           })}
         </div>
 
+        {/* Custom Plugin Builder */}
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-purple-500/30">
+              <Sparkles className="w-6 h-6 text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-white mb-2">Create Your Own Health Plugin</h3>
+              <p className="text-slate-400 text-sm mb-4">Build custom dashboards combining multiple data sources</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/20">
+                  <div className="text-teal-400 text-xs mb-1">Connected Sources</div>
+                  <div className="text-white text-xl font-bold">{connections.filter(c => c.status === 'connected').length}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/20">
+                  <div className="text-blue-400 text-xs mb-1">Data Points</div>
+                  <div className="text-white text-xl font-bold">All</div>
+                </div>
+                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/20">
+                  <div className="text-purple-400 text-xs mb-1">Views</div>
+                  <div className="text-white text-xl font-bold">Custom</div>
+                </div>
+                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/20">
+                  <div className="text-orange-400 text-xs mb-1">Insights</div>
+                  <div className="text-white text-xl font-bold">AI</div>
+                </div>
+              </div>
+              <div className="mb-4">
+                <p className="text-slate-400 text-sm mb-2 font-medium">Features You Can Build:</p>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-400 text-xs">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-teal-400" />
+                    Unified health timeline across all devices
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-teal-400" />
+                    Custom correlation charts (glucose vs activity)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-teal-400" />
+                    Personalized health score algorithms
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-teal-400" />
+                    Multi-metric comparison dashboards
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-teal-400" />
+                    Automated health reports
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-teal-400" />
+                    Real-time alert systems
+                  </li>
+                </ul>
+              </div>
+              <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-all duration-300 flex items-center gap-2 shadow-lg">
+                <Sparkles className="w-4 h-4" />
+                Start Building Your Custom Plugin
+              </button>
+              {connections.filter(c => c.status === 'connected').length === 0 && (
+                <p className="text-slate-500 text-xs mt-2">Connect health sources above to get started</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* OAuth Integration Note */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.2)]">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center flex-shrink-0 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-teal-500/20">
