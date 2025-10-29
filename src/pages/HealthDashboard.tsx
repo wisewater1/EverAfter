@@ -82,13 +82,6 @@ export default function HealthDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/raphael')}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-emerald-500/20 backdrop-blur-xl group"
-            >
-              <Bell className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline font-medium">St. Raphael</span>
-            </button>
-            <button
               onClick={() => openConnectionsPanel('health')}
               className="relative px-5 py-3 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 hover:from-teal-500/20 hover:to-cyan-500/20 text-teal-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-teal-500/20 backdrop-blur-xl group"
             >

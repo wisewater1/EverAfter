@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp, Crown, Sparkles, Zap } from 'lucide-react';
+import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp, Crown, Sparkles, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import RaphaelChat from './RaphaelChat';
 import HealthConnectionManager from './HealthConnectionManager';
 import HealthAnalytics from './HealthAnalytics';
@@ -21,6 +22,7 @@ type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' 
 
 export default function RaphaelHealthInterface() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<HealthTab>('chat');
   const [raphaelEngramId, setRaphaelEngramId] = useState<string>('');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -76,14 +78,24 @@ export default function RaphaelHealthInterface() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="bg-gradient-to-r from-emerald-900/20 to-teal-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-emerald-500/20">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-            <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <Heart className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-0.5 sm:mb-1">St. Raphael Health Monitor</h1>
+              <p className="text-xs sm:text-sm lg:text-base text-emerald-200">Your comprehensive health companion powered by AI</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-0.5 sm:mb-1">St. Raphael Health Monitor</h1>
-            <p className="text-xs sm:text-sm lg:text-base text-emerald-200">Your comprehensive health companion powered by AI</p>
-          </div>
+          <button
+            onClick={() => navigate('/raphael')}
+            className="flex-shrink-0 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-emerald-500/20 backdrop-blur-xl group"
+          >
+            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline text-sm font-medium">Production AI</span>
+            <ExternalLink className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
