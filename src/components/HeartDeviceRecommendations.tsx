@@ -507,24 +507,33 @@ function ProfileSetupModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl border border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-auto p-6">
+      <div className="bg-gradient-to-br from-[#1a1a24]/95 to-[#13131a]/95 backdrop-blur-xl rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-white">Your Heart Monitoring Needs</h3>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl flex items-center justify-center border border-pink-500/30">
+              <Heart className="w-6 h-6 text-pink-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white">Your Heart Monitoring Needs</h3>
+          </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center justify-center text-gray-300"
+            className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-300 transition-all border border-white/10"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <label className="block text-white font-medium mb-2">Primary Goal</label>
+        <div className="space-y-5">
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <label className="block text-white font-medium mb-3 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-teal-400" />
+              Primary Goal
+            </label>
             <select
               value={profile.primary_goal}
               onChange={(e) => setProfile({ ...profile, primary_goal: e.target.value })}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all backdrop-blur-sm"
             >
               <option value="medical_monitoring">Medical Monitoring</option>
               <option value="fitness_optimization">Fitness Optimization</option>
@@ -534,12 +543,15 @@ function ProfileSetupModal({
             </select>
           </div>
 
-          <div>
-            <label className="block text-white font-medium mb-2">Activity Level</label>
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <label className="block text-white font-medium mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-teal-400" />
+              Activity Level
+            </label>
             <select
               value={profile.activity_level}
               onChange={(e) => setProfile({ ...profile, activity_level: e.target.value })}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all backdrop-blur-sm"
             >
               <option value="sedentary">Sedentary</option>
               <option value="light">Light Activity</option>
@@ -550,12 +562,15 @@ function ProfileSetupModal({
             </select>
           </div>
 
-          <div>
-            <label className="block text-white font-medium mb-2">Budget Range</label>
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <label className="block text-white font-medium mb-3 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-teal-400" />
+              Budget Range
+            </label>
             <select
               value={profile.budget_range}
               onChange={(e) => setProfile({ ...profile, budget_range: e.target.value })}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all backdrop-blur-sm"
             >
               <option value="under_50">Under $50</option>
               <option value="50_100">$50 - $100</option>
@@ -566,42 +581,47 @@ function ProfileSetupModal({
             </select>
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-white cursor-pointer">
+          <div className="bg-pink-500/10 backdrop-blur-sm rounded-xl p-4 border border-pink-500/20 space-y-3">
+            <div className="flex items-center gap-2 text-pink-300 font-medium mb-3">
+              <Shield className="w-4 h-4" />
+              Medical Requirements
+            </div>
+
+            <label className="flex items-center gap-3 text-white cursor-pointer group p-3 rounded-lg hover:bg-white/5 transition-all">
               <input
                 type="checkbox"
                 checked={profile.has_heart_condition || false}
                 onChange={(e) =>
                   setProfile({ ...profile, has_heart_condition: e.target.checked })
                 }
-                className="w-5 h-5 rounded"
+                className="w-5 h-5 rounded border-2 border-white/30 bg-white/10 checked:bg-pink-500 checked:border-pink-500 focus:ring-2 focus:ring-pink-500/50 transition-all"
               />
-              <span>I have a heart condition requiring monitoring</span>
+              <span className="flex-1">I have a heart condition requiring monitoring</span>
+              <AlertCircle className="w-4 h-4 text-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </label>
-          </div>
 
-          <div>
-            <label className="flex items-center gap-2 text-white cursor-pointer">
+            <label className="flex items-center gap-3 text-white cursor-pointer group p-3 rounded-lg hover:bg-white/5 transition-all">
               <input
                 type="checkbox"
                 checked={profile.needs_medical_grade || false}
                 onChange={(e) => setProfile({ ...profile, needs_medical_grade: e.target.checked })}
-                className="w-5 h-5 rounded"
+                className="w-5 h-5 rounded border-2 border-white/30 bg-white/10 checked:bg-pink-500 checked:border-pink-500 focus:ring-2 focus:ring-pink-500/50 transition-all"
               />
-              <span>I need a medical-grade device (FDA cleared)</span>
+              <span className="flex-1">I need a medical-grade device (FDA cleared)</span>
+              <Shield className="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </label>
           </div>
 
           <div className="flex gap-3 pt-4">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-medium transition-all"
+              className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all border border-white/10 backdrop-blur-sm"
             >
               Cancel
             </button>
             <button
               onClick={() => onSave(profile)}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white rounded-xl font-medium transition-all"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-medium transition-all shadow-[0_0_20px_rgba(236,72,153,0.3)] hover:shadow-[0_0_30px_rgba(236,72,153,0.5)]"
             >
               Save & Get Recommendations
             </button>
