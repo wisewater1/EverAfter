@@ -48,6 +48,15 @@ export default {
         'container-secondary': '1152px',
         'content': '896px',
       },
+      colors: {
+        ink: '#0B0F14',
+        'neon': '#00F5D4',
+        'neon-cyan': '#00F5D4',
+        'neon-pink': '#FF2E97',
+        'neon-purple': '#B026FF',
+        'glass': 'rgba(255, 255, 255, 0.06)',
+        'muted': '#9AA4AF',
+      },
       borderRadius: {
         'xl': '0.75rem',
         '2xl': '1rem',
@@ -58,6 +67,12 @@ export default {
         'glow-emerald-sm': '0 0 10px rgba(52, 211, 153, 0.2)',
         'card': '0 4px 24px rgba(0, 0, 0, 0.15)',
         'card-hover': '0 8px 32px rgba(0, 0, 0, 0.2)',
+        'glass': 'inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.45)',
+        'neon': '0 0 0 1px rgba(0, 245, 212, 0.25), 0 0 24px rgba(0, 245, 212, 0.15)',
+        'neon-focus': '0 0 0 2px rgba(0, 245, 212, 0.4), 0 0 32px rgba(0, 245, 212, 0.25)',
+      },
+      backdropBlur: {
+        'xs': '2px',
       },
       transitionDuration: {
         'fast': '100ms',

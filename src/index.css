@@ -2,6 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    /* iOS safe area support */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  body {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus visible styles for accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-cyan-400;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/10;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  .neon-border {
+    --neon-intensity: 0;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .neon-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,
+      rgba(0, 245, 212, calc(0.15 * var(--neon-intensity))),
+      rgba(0, 245, 212, calc(0.05 * var(--neon-intensity)))
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: calc(0.5 + 0.5 * var(--neon-intensity));
+    transition: opacity 0.2s ease;
+  }
+
+  .neon-border:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.45),
+      0 0 24px rgba(0, 245, 212, calc(0.15 * var(--neon-intensity)));
+  }
+
+  .neon-border:focus-visible {
+    outline: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.45),
+      0 0 0 2px rgba(0, 245, 212, 0.4),
+      0 0 32px rgba(0, 245, 212, 0.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neon-border::before,
+  .neon-border {
+    transition: none !important;
+  }
+}
+
 @keyframes slide-in-right {
   from {
     transform: translateX(100%);

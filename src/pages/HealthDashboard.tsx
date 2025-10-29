@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useConnections } from '../contexts/ConnectionsContext';
+import { useAuth } from '../contexts/AuthContext';
+import { getTodayOverview } from '../lib/raphael/monitors';
+import type { TodayOverview } from '../lib/raphael/monitors';
+import Today from '../components/raphael/Today';
 import RaphaelInsights from '../components/RaphaelInsights';
 import RaphaelInsightsPanel from '../components/RaphaelInsightsPanel';
 import RaphaelChat from '../components/RaphaelChat';
@@ -25,9 +29,12 @@ type TabView = 'overview' | 'analytics' | 'medications' | 'goals' | 'contacts' |
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const [activeTab, setActiveTab] = useState<TabView>('overview');
   const [raphaelEngramId, setRaphaelEngramId] = useState<string>('');
+  const [todayData, setTodayData] = useState<TodayOverview | null>(null);
+  const [loadingToday, setLoadingToday] = useState(true);
 
   const activeConnectionsCount = getActiveConnectionsCount();
 
@@ -47,6 +54,24 @@ export default function HealthDashboard() {
     }
     fetchRaphaelEngram();
   }, []);
+
+  useEffect(() => {
+    async function loadTodayData() {
+      if (!user?.id) return;
+
+      setLoadingToday(true);
+      try {
+        const data = await getTodayOverview(user.id);
+        setTodayData(data);
+      } catch (error) {
+        console.error('Error loading today data:', error);
+      } finally {
+        setLoadingToday(false);
+      }
+    }
+
+    loadTodayData();
+  }, [user?.id]);
 
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
@@ -174,7 +199,18 @@ export default function HealthDashboard() {
 
         <div className="space-y-6">
           {activeTab === 'overview' && (
-            <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab" className="grid grid-cols-1 gap-6">
+            <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab" className="space-y-6">
+              {loadingToday ? (
+                <div className="glass-card p-8">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-6 h-6 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                    <p className="text-slate-400">Loading today's overview...</p>
+                  </div>
+                </div>
+              ) : todayData ? (
+                <Today data={todayData} />
+              ) : null}
+
               <RaphaelInsights />
               <HealthReportGenerator />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
