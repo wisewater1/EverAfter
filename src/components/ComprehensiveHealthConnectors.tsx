@@ -499,18 +499,13 @@ export default function ComprehensiveHealthConnectors() {
             </div>
             <button
               onClick={() => setShowCustomPluginModal(true)}
-              disabled={connectedCount === 0}
-              className={`px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium transition-all duration-300 flex items-center gap-2 shadow-lg ${
-                connectedCount === 0
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]'
-              }`}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium transition-all duration-300 flex items-center gap-2 shadow-lg hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles className="w-4 h-4" />
               Start Building Your Custom Plugin
             </button>
             {connectedCount === 0 && (
-              <p className="text-slate-500 text-xs mt-2">Connect health sources above to get started</p>
+              <p className="text-teal-400 text-xs mt-2">Preview mode: Connect health sources to enable live data</p>
             )}
           </div>
         </div>
@@ -657,7 +652,13 @@ function CustomPluginBuilderModal({ connections, onClose }: CustomPluginBuilderM
     setCreating(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
-      alert(`Custom plugin "${pluginName}" created successfully! You can now view it in your dashboard.`);
+
+      const hasConnections = connections.some(c => c.status === 'connected');
+      const message = hasConnections
+        ? `Custom plugin "${pluginName}" created successfully! You can now view it in your dashboard.`
+        : `Preview plugin "${pluginName}" created! Connect health sources to enable live data.`;
+
+      alert(message);
       onClose();
     } catch (error) {
       console.error('Error creating plugin:', error);
@@ -691,6 +692,18 @@ function CustomPluginBuilderModal({ connections, onClose }: CustomPluginBuilderM
         </div>
 
         <div className="p-6 space-y-6">
+          {connections.filter(c => c.status === 'connected').length === 0 && (
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-300">
+                <p className="font-medium mb-1">Preview Mode</p>
+                <p className="text-amber-300/80">
+                  You're in preview mode. Connect health sources above to enable live data in your custom plugins.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-white font-medium mb-2">Plugin Name</label>
             <input
@@ -747,12 +760,9 @@ function CustomPluginBuilderModal({ connections, onClose }: CustomPluginBuilderM
                 return (
                   <button
                     key={point.id}
-                    onClick={() => hasConnection && toggleDataPoint(point.id)}
-                    disabled={!hasConnection}
+                    onClick={() => toggleDataPoint(point.id)}
                     className={`p-4 rounded-xl border text-left transition-all ${
-                      !hasConnection
-                        ? 'bg-white/5 border-white/10 opacity-50 cursor-not-allowed'
-                        : isSelected
+                      isSelected
                         ? 'bg-gradient-to-br from-teal-600/20 to-cyan-600/20 border-teal-500'
                         : 'bg-white/5 border-white/10 hover:border-white/20'
                     }`}
@@ -763,8 +773,8 @@ function CustomPluginBuilderModal({ connections, onClose }: CustomPluginBuilderM
                         <p className={`font-medium ${isSelected ? 'text-white' : 'text-slate-300'}`}>
                           {point.label}
                         </p>
-                        <p className="text-xs text-slate-500">
-                          {hasConnection ? `From ${point.sources[0]}` : 'Not connected'}
+                        <p className={`text-xs ${hasConnection ? 'text-teal-400' : 'text-slate-500'}`}>
+                          {hasConnection ? `✓ From ${point.sources[0]}` : `Preview from ${point.sources[0]}`}
                         </p>
                       </div>
                       {isSelected && <CheckCircle className="w-5 h-5 text-teal-400" />}
