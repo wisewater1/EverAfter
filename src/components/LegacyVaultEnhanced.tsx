@@ -366,6 +366,39 @@ function LegacyAssuranceSection({
   receipts: Receipt[];
   loading: boolean;
 }) {
+  const trustPartners = [
+    {
+      id: 'legacy-trust',
+      name: 'Legacy Trust Partners',
+      description: 'Estate planning and digital legacy management services',
+      icon: Crown,
+      status: 'Available',
+      color: 'from-amber-500/20 to-orange-500/20',
+      borderColor: 'border-amber-500/30',
+      features: ['Estate Planning', 'Trust Management', 'Legal Consultation', 'Document Custody']
+    },
+    {
+      id: 'eternal-care',
+      name: 'Eternal Care Insurance',
+      description: 'Specialized life insurance and legacy protection plans',
+      icon: Heart,
+      status: 'Available',
+      color: 'from-rose-500/20 to-pink-500/20',
+      borderColor: 'border-rose-500/30',
+      features: ['Life Insurance', 'Legacy Protection', 'Beneficiary Management', 'Claims Support']
+    },
+    {
+      id: 'memorial-services',
+      name: 'Memorial Services Network',
+      description: 'Comprehensive memorial and funeral service coordination',
+      icon: Heart,
+      status: 'Available',
+      color: 'from-cyan-500/20 to-blue-500/20',
+      borderColor: 'border-cyan-500/30',
+      features: ['Funeral Planning', 'Memorial Services', 'Cemetery Services', 'Online Tributes']
+    }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -390,6 +423,53 @@ function LegacyAssuranceSection({
           color="from-purple-500/20 to-indigo-500/20"
           status="info"
         />
+      </div>
+
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-white mb-2">Legacy Trust Partners</h3>
+          <p className="text-slate-400 text-sm">
+            Connect with verified service providers for comprehensive legacy planning and protection
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {trustPartners.map((partner) => {
+            const Icon = partner.icon;
+            return (
+              <div
+                key={partner.id}
+                className={`p-5 rounded-xl bg-gradient-to-br ${partner.color} border ${partner.borderColor} hover:scale-[1.02] transition-all`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium border border-emerald-500/30">
+                    {partner.status}
+                  </span>
+                </div>
+
+                <h4 className="text-white font-semibold mb-2">{partner.name}</h4>
+                <p className="text-slate-300 text-sm mb-4">{partner.description}</p>
+
+                <div className="space-y-2 mb-4">
+                  {partner.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                      <span className="text-slate-300">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button className="w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2">
+                  Connect
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
