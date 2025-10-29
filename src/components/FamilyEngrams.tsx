@@ -103,10 +103,11 @@ export default function FamilyEngrams() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white rounded-xl font-medium flex items-center gap-2 transition-all duration-200 shadow-neon hover:shadow-neon-focus"
+            className="relative px-4 sm:px-6 py-3 bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/30 hover:bg-slate-900/60 group overflow-hidden whitespace-nowrap"
           >
-            <Plus className="w-5 h-5" />
-            Create New Engram
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 relative z-10 text-cyan-400 group-hover:text-cyan-300 flex-shrink-0" />
+            <span className="relative z-10 text-sm sm:text-base">Create New Engram</span>
           </button>
         </div>
       </div>
