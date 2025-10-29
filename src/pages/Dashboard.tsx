@@ -4,6 +4,7 @@ import { useConnections } from '../contexts/ConnectionsContext';
 import { Brain, LogOut, Settings, MessageCircle, Users, Calendar, Bot, Heart, Activity, ShoppingCart, Sparkles, Link2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import FamilyEngrams from '../components/FamilyEngrams';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
@@ -22,7 +23,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat' | 'family'>('activities');
+  const [selectedView, setSelectedView] = useState<'family-engrams' | 'activities' | 'engrams' | 'chat' | 'family'>('family-engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -80,10 +81,11 @@ export default function Dashboard() {
   }
 
   const navItems = [
+    { id: 'family-engrams', label: 'Members', icon: Users },
     { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'family', label: 'Family', icon: Users },
+    { id: 'family', label: 'Responses', icon: Calendar },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -257,6 +259,9 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48">
         <div className="space-y-8">
+          {selectedView === 'family-engrams' && (
+            <FamilyEngrams />
+          )}
           {selectedView === 'activities' && (
             <>
               {/* Featured Carousel */}
