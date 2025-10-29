@@ -6,6 +6,8 @@ import ArchetypalAIChat from './ArchetypalAIChat';
 import EngramChat from './EngramChat';
 import RaphaelChat from './RaphaelChat';
 import EngramTaskManager from './EngramTaskManager';
+import GlassCard from './GlassCard';
+import ReactiveButton from './ReactiveButton';
 
 interface ChatSession {
   id: string;
@@ -168,13 +170,14 @@ export default function UnifiedChatInterface() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <button
+          <ReactiveButton
             onClick={handleBackToList}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-lg transition-all text-sm font-medium"
+            variant="teal"
+            className="flex items-center gap-2 text-sm font-medium"
           >
             <X className="w-4 h-4" />
             Back to Chats
-          </button>
+          </ReactiveButton>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 bg-gradient-to-br ${getSessionColor(selectedSession.type)} rounded-lg flex items-center justify-center`}>
               {getSessionIcon(selectedSession.type)}
@@ -196,9 +199,9 @@ export default function UnifiedChatInterface() {
           </button>
         </div>
 
-        <div className="bg-slate-900/50 rounded-xl border border-slate-800/50 overflow-hidden">
+        <GlassCard hover={false} className="overflow-hidden">
           {renderChatComponent()}
-        </div>
+        </GlassCard>
       </div>
     );
   }
@@ -222,29 +225,27 @@ export default function UnifiedChatInterface() {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-800/30 p-1 rounded-lg border border-slate-700/30">
+      <div className="flex items-center gap-2 glass-card p-1">
         <button
           onClick={() => {
             setTabMode('conversations');
             setViewMode('list');
             setSelectedSession(null);
           }}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md transition-all font-medium ${
-            tabMode === 'conversations'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
-              : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+          className={`glass-chip flex-1 flex items-center justify-center gap-2 px-4 py-2.5 transition-all font-medium ${
+            tabMode === 'conversations' ? 'text-[var(--accent-teal)]' : 'text-[var(--muted)]'
           }`}
+          aria-checked={tabMode === 'conversations'}
         >
           <MessageCircle className="w-4 h-4" />
           Conversations
         </button>
         <button
           onClick={() => setTabMode('tasks')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md transition-all font-medium ${
-            tabMode === 'tasks'
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
-              : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+          className={`glass-chip flex-1 flex items-center justify-center gap-2 px-4 py-2.5 transition-all font-medium ${
+            tabMode === 'tasks' ? 'text-[var(--accent-teal)]' : 'text-[var(--muted)]'
           }`}
+          aria-checked={tabMode === 'tasks'}
         >
           <CheckSquare className="w-4 h-4" />
           Tasks
@@ -261,7 +262,7 @@ export default function UnifiedChatInterface() {
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                className="glass-input w-full pl-10 pr-4 py-2.5 text-white placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -279,11 +280,10 @@ export default function UnifiedChatInterface() {
             <button
               key={filter.id}
               onClick={() => setFilterType(filter.id as FilterType)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all whitespace-nowrap text-sm font-medium ${
-                isActive
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-slate-800/30 text-slate-400 hover:text-slate-300 border border-slate-700/30 hover:border-slate-600/30'
+              className={`glass-chip flex items-center gap-2 px-4 py-2 transition-all whitespace-nowrap text-sm font-medium ${
+                isActive ? 'text-[var(--accent-teal)]' : 'text-[var(--muted)]'
               }`}
+              aria-checked={isActive}
             >
               <Icon className="w-4 h-4" />
               {filter.label}
@@ -294,10 +294,18 @@ export default function UnifiedChatInterface() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filteredSessions.map((session) => (
-          <button
+          <GlassCard
             key={session.id}
             onClick={() => handleSelectSession(session)}
-            className="relative group bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 hover:border-slate-600/50 rounded-xl p-4 transition-all text-left"
+            className="relative group p-4 cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectSession(session);
+              }
+            }}
           >
             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
@@ -347,7 +355,7 @@ export default function UnifiedChatInterface() {
                 {session.unreadCount}
               </div>
             )}
-          </button>
+          </GlassCard>
         ))}
 
         {filteredSessions.length === 0 && (
@@ -362,7 +370,7 @@ export default function UnifiedChatInterface() {
       </div>
 
           {showSettings && (
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 space-y-4">
+            <GlassCard hover={false} className="p-6 space-y-4 animate-spring-in">
               <h3 className="text-white font-medium mb-4">Chat Settings</h3>
               <div className="space-y-3">
                 <label className="flex items-center justify-between">
@@ -378,7 +386,7 @@ export default function UnifiedChatInterface() {
                   <input type="checkbox" className="rounded" defaultChecked />
                 </label>
               </div>
-            </div>
+            </GlassCard>
           )}
         </>
       )}

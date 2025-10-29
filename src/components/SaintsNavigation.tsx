@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, Shield, Users, Sparkles, Lock, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import GlassCard from './GlassCard';
 
 interface Saint {
   id: string;
@@ -75,7 +76,7 @@ export default function SaintsNavigation() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
       {/* Backdrop blur with gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-slate-950/0 backdrop-blur-2xl" />
+      <div className="absolute inset-0 glass-strong" style={{ background: 'linear-gradient(180deg, transparent 0%, var(--glass-strong) 40%)' }} />
 
       {/* Saints Container */}
       <div className="relative px-3 pb-6 pt-6 sm:px-4 sm:pt-8">
@@ -134,10 +135,10 @@ export default function SaintsNavigation() {
 
                     {/* Main Card */}
                     <div
-                      className={`relative aspect-square rounded-2xl border-2 transition-all duration-500 ${
+                      className={`glass-card relative aspect-square rounded-2xl transition-all duration-500 ${
                         saint.available
-                          ? `bg-gradient-to-br ${saint.gradient} border-white/20 shadow-lg shadow-${saint.color}-500/20`
-                          : 'bg-slate-800/50 border-slate-700/50'
+                          ? `bg-gradient-to-br ${saint.gradient} opacity-90`
+                          : 'opacity-50'
                       } overflow-hidden`}
                     >
                       {/* Animated Background Pattern */}
