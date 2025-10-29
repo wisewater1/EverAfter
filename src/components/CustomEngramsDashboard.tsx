@@ -111,12 +111,8 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     description: { min: 10, max: 500 },
   };
 
-  useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem('archetypal_ai_onboarding_seen');
-    if (!hasSeenOnboarding && !loading) {
-      setShowOnboarding(true);
-    }
-  }, [loading]);
+  // Onboarding modal is now click-triggered only via "How It Works" button
+  // No auto-trigger on page load
 
   const dismissOnboarding = () => {
     localStorage.setItem('archetypal_ai_onboarding_seen', 'true');
