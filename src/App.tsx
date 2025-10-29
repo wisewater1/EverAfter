@@ -25,6 +25,7 @@ import UserProfileSetup from './pages/UserProfileSetup';
 import AdminPortal from './pages/AdminPortal';
 import DigitalLegacy from './pages/DigitalLegacy';
 import LegacyVault from './pages/LegacyVault';
+import EternalCareInsurance from './pages/EternalCareInsurance';
 import RaphaelPrototype from './pages/RaphaelPrototype';
 import BeyondModules from './pages/BeyondModules';
 import DevicesDashboard from './components/DevicesDashboard';
@@ -94,6 +95,11 @@ function App() {
                 <Route path="/legacy-vault" element={
                   <ProtectedRoute>
                     <LegacyVault />
+                  </ProtectedRoute>
+                } />
+                <Route path="/insurance" element={
+                  <ProtectedRoute>
+                    <EternalCareInsurance />
                   </ProtectedRoute>
                 } />
                 <Route path="/dashboard" element={

@@ -468,7 +468,13 @@ function LegacyAssuranceSection({
                 </div>
 
                 <button
-                  onClick={() => navigate('/portal')}
+                  onClick={() => {
+                    if (partner.id === 'eternal-care') {
+                      navigate('/insurance');
+                    } else {
+                      navigate('/portal');
+                    }
+                  }}
                   className="w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2"
                 >
                   Connect
