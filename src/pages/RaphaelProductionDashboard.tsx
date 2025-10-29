@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Heart, TrendingUp, Droplet, Moon, Footprints, AlertTriangle, CheckCircle, Info, Lock, Shield, Clock, Zap, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import Today from '../components/raphael/Today';
+import { getTodayOverview, type TodayOverview } from '../lib/raphael/monitors';
 
 interface Insight {
   text: string;
@@ -18,6 +21,7 @@ interface VitalsData {
 
 export default function RaphaelProductionDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [suggestion, setSuggestion] = useState('');
   const [vitals, setVitals] = useState<VitalsData | null>(null);
@@ -25,10 +29,14 @@ export default function RaphaelProductionDashboard() {
   const [hasData, setHasData] = useState(false);
   const [lastRun, setLastRun] = useState<Date | null>(null);
   const [raphaelActive, setRaphaelActive] = useState(true);
+  const [todayData, setTodayData] = useState<TodayOverview | null>(null);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+    if (user?.id) {
+      loadTodayData();
+    }
+  }, [user?.id]);
 
   async function loadDashboardData() {
     try {
@@ -49,6 +57,16 @@ export default function RaphaelProductionDashboard() {
     }
   }
 
+  async function loadTodayData() {
+    if (!user?.id) return;
+    try {
+      const data = await getTodayOverview(user.id);
+      setTodayData(data);
+    } catch (error) {
+      console.error('Failed to load today data:', error);
+    }
+  }
+
   async function handleManualRun() {
     setLoading(true);
     try {
@@ -58,6 +76,7 @@ export default function RaphaelProductionDashboard() {
       setInsights(data.insights);
       setSuggestion(data.suggestion);
       setLastRun(new Date());
+      await loadTodayData();
     } catch (error) {
       console.error('Manual run failed:', error);
     } finally {
@@ -146,6 +165,12 @@ export default function RaphaelProductionDashboard() {
             </div>
           </div>
         </div>
+
+        {todayData && (
+          <div className="mb-8">
+            <Today data={todayData} />
+          </div>
+        )}
 
         {!hasData && (
           <div className="mb-8 p-8 rounded-[28px] bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-xl border border-amber-500/20 text-center">
