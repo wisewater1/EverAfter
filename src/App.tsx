@@ -22,6 +22,7 @@ import DigitalLegacy from './pages/DigitalLegacy';
 import LegacyVault from './pages/LegacyVault';
 import RaphaelPrototype from './pages/RaphaelPrototype';
 import BeyondModules from './pages/BeyondModules';
+import DevicesDashboard from './components/DevicesDashboard';
 
 function ErrorNotifierConnector() {
   const { showError } = useErrorNotification();
@@ -71,6 +72,11 @@ function App() {
                 <Route path="/health-dashboard" element={
                   <ProtectedRoute>
                     <HealthDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/devices" element={
+                  <ProtectedRoute>
+                    <DevicesDashboard />
                   </ProtectedRoute>
                 } />
                 <Route path="/oauth/callback" element={
