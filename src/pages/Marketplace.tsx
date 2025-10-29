@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn } from 'lucide-react';
+import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn, MessageSquare, Send, Wand2, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import { supabase } from '../lib/supabase';
@@ -45,6 +45,7 @@ export default function Marketplace() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<MarketplaceTemplate | null>(null);
+  const [demoTemplate, setDemoTemplate] = useState<MarketplaceTemplate | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const { isAuthModalOpen, authTab, contextMessage, openAuthModal, closeAuthModal, authIntent, clearAuthIntent } = useAuthModal();
 
@@ -238,18 +239,34 @@ export default function Marketplace() {
             </div>
             <div className="flex items-center gap-2">
               {user ? (
-                <button
-                  onClick={() => openConnectionsPanel()}
-                  className="relative hidden sm:flex px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
-                >
-                  <Link2 className="w-4 h-4" />
-                  Connections
-                  {activeConnectionsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                      {activeConnectionsCount}
-                    </span>
-                  )}
-                </button>
+                <>
+                  <button
+                    onClick={() => navigate('/my-ais')}
+                    className="px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span className="hidden sm:inline">My AIs</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/creator')}
+                    className="px-4 py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-xl hover:bg-amber-600/30 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    <span className="hidden lg:inline">Creator</span>
+                  </button>
+                  <button
+                    onClick={() => openConnectionsPanel()}
+                    className="relative hidden md:flex px-4 py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white rounded-xl transition-all items-center gap-2 text-sm font-medium shadow-lg shadow-teal-500/20"
+                  >
+                    <Link2 className="w-4 h-4" />
+                    Connections
+                    {activeConnectionsCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                        {activeConnectionsCount}
+                      </span>
+                    )}
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => openAuthModal({ tab: 'signin' })}
@@ -455,6 +472,15 @@ function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onVie
           >
             Details
           </button>
+          {!isPurchased && (
+            <button
+              onClick={() => setDemoTemplate(template)}
+              className="px-3 py-2 bg-sky-600/20 text-sky-400 border border-sky-500/30 rounded-lg hover:bg-sky-600/30 transition-all text-sm font-medium flex items-center gap-1"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Demo
+            </button>
+          )}
           {isPurchased ? (
             <button
               onClick={() => onAddToEngrams(template)}

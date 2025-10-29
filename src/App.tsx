@@ -18,6 +18,8 @@ import OAuthCallback from './pages/OAuthCallback';
 import Pricing from './pages/Pricing';
 import AdminUserCreation from './pages/AdminUserCreation';
 import Marketplace from './pages/Marketplace';
+import CreatorDashboard from './pages/CreatorDashboard';
+import MyAIs from './pages/MyAIs';
 import DigitalLegacy from './pages/DigitalLegacy';
 import LegacyVault from './pages/LegacyVault';
 import RaphaelPrototype from './pages/RaphaelPrototype';
@@ -54,6 +56,16 @@ function App() {
                 <Route path="/admin/create-user" element={<AdminUserCreation />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/creator" element={
+                  <ProtectedRoute>
+                    <CreatorDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/my-ais" element={
+                  <ProtectedRoute>
+                    <MyAIs />
+                  </ProtectedRoute>
+                } />
                 <Route path="/beyond-modules" element={<BeyondModules />} />
                 <Route path="/raphael-prototype" element={<RaphaelPrototype />} />
                 <Route path="/digital-legacy" element={
