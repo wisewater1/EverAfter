@@ -103,38 +103,75 @@ export default function HealthDashboard() {
           </div>
         </div>
 
-        {/* Tab Navigation - Glass Neumorphic */}
-        <div className="mb-6 p-3 rounded-3xl bg-gradient-to-br from-[#1a1a24]/80 to-[#13131a]/80 backdrop-blur-2xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
-          <ScrollIndicator>
-            <div className="flex gap-2 min-w-min">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-shrink-0 px-5 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2.5 min-h-[44px] whitespace-nowrap relative group ${
-                      activeTab === tab.id
-                        ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4),inset_-3px_-3px_8px_rgba(255,255,255,0.05)] border border-teal-500/30 backdrop-blur-xl'
-                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2),-2px_-2px_5px_rgba(255,255,255,0.02)] border border-transparent hover:border-white/5'
-                    }`}
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    aria-controls={`${tab.id}-panel`}
-                  >
-                    <Icon className={`w-4 h-4 transition-transform ${
-                      activeTab === tab.id ? 'scale-110' : 'group-hover:scale-105'
-                    }`} />
-                    <span className="text-sm">{tab.label}</span>
-                    {activeTab === tab.id && (
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-400/10 to-cyan-400/10 blur-sm -z-10"></div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollIndicator>
+        {/* Tab Navigation - Premium Dark Glass UI */}
+        <div className="mb-6 p-2 rounded-[28px] bg-gradient-to-br from-[#0d0d12]/95 via-[#13131a]/95 to-[#0d0d12]/95 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.5)] border border-white/[0.03] relative overflow-hidden">
+          {/* Subtle shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-[shimmer_3s_ease-in-out_infinite]"></div>
+
+          {/* Inner glass container */}
+          <div className="relative rounded-[24px] bg-gradient-to-br from-[#151520]/40 to-[#0a0a0f]/60 backdrop-blur-xl border border-white/[0.02] shadow-[inset_0_1px_2px_rgba(255,255,255,0.03)]">
+            <ScrollIndicator>
+              <div className="flex gap-1.5 min-w-min p-1.5">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex-shrink-0 px-6 py-3.5 rounded-[18px] font-medium transition-all duration-500 flex items-center gap-2.5 min-h-[48px] whitespace-nowrap relative group overflow-hidden ${
+                        activeTab === tab.id
+                          ? 'bg-gradient-to-br from-teal-500/15 via-cyan-500/10 to-teal-600/15 text-teal-200 shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),inset_0_-1px_4px_rgba(20,184,166,0.15),0_4px_16px_rgba(20,184,166,0.08)] border border-teal-400/20 backdrop-blur-2xl'
+                          : 'text-slate-400 hover:text-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4),0_1px_3px_rgba(0,0,0,0.3)] border border-white/[0.02] hover:border-white/[0.06] hover:bg-gradient-to-br hover:from-white/[0.03] hover:to-white/[0.01]'
+                      }`}
+                      role="tab"
+                      aria-selected={activeTab === tab.id}
+                      aria-controls={`${tab.id}-panel`}
+                    >
+                      {/* Active tab glow background */}
+                      {activeTab === tab.id && (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-br from-teal-400/5 via-cyan-400/5 to-teal-500/5 rounded-[18px] blur-md"></div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-teal-500/10 to-transparent rounded-[18px]"></div>
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-[1px] bg-gradient-to-r from-transparent via-teal-400/40 to-transparent"></div>
+                        </>
+                      )}
+
+                      {/* Icon with enhanced animation */}
+                      <Icon className={`w-4.5 h-4.5 relative z-10 transition-all duration-500 ${
+                        activeTab === tab.id
+                          ? 'scale-110 drop-shadow-[0_0_8px_rgba(20,184,166,0.4)]'
+                          : 'group-hover:scale-105 opacity-70 group-hover:opacity-100'
+                      }`} />
+
+                      {/* Label */}
+                      <span className={`text-sm relative z-10 font-semibold transition-all duration-500 ${
+                        activeTab === tab.id ? 'tracking-wide' : 'tracking-normal'
+                      }`}>
+                        {tab.label}
+                      </span>
+
+                      {/* Hover glow effect for inactive tabs */}
+                      {activeTab !== tab.id && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-white/[0.01] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[18px]"></div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </ScrollIndicator>
+          </div>
+
+          {/* Bottom subtle highlight */}
+          <div className="absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/[0.04] to-transparent"></div>
         </div>
+
+        {/* Shimmer animation keyframes */}
+        <style>{`
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+          }
+        `}</style>
 
         <div className="space-y-6">
           {activeTab === 'overview' && (
