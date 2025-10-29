@@ -106,6 +106,11 @@
     --transition-smooth: 300ms;
     --transition-slow: 500ms;
 
+    /* Mobile typography scale */
+    --fs-0: clamp(14px, 0.9rem + 0.2vw, 16px);
+    --fs-1: clamp(16px, 1rem + 0.35vw, 18px);
+    --lh: 1.45;
+
     /* Shadows with neon glow */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
@@ -127,7 +132,10 @@
 
   body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: var(--fs-0);
+    line-height: var(--lh);
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
     transform: none !important;
     background:
       radial-gradient(1200px 800px at 20% 10%, rgba(0,255,224,0.06), transparent 60%),
@@ -151,6 +159,65 @@
 
   input, select, textarea {
     font-size: 16px;
+  }
+
+  /* ========================================
+     MOBILE TYPOGRAPHY & TEXT RENDERING
+     Prevents jumbled/overlapping text on iOS/Android
+     ======================================== */
+
+  h1, h2, h3, .h1, .title {
+    font-size: clamp(20px, 1.1rem + 1.2vw, 28px);
+    line-height: 1.2;
+  }
+
+  /* Safe text wrapping - prevents mashed words */
+  .text, p, h1, h2, h3, h4, h5, h6,
+  button, .btn, .chip, span, label, a {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+    letter-spacing: 0;
+  }
+
+  /* Flexbox clipping fix - most common cause of jumbled text */
+  .flex > *, [class*="flex-"] > *, [class*="grid-"] > * {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* Prevent backdrop-blur + transform glitches on Safari */
+  .card, .glass-card, [class*="glass"] {
+    transform: none;
+  }
+
+  [class*="glass"] .text,
+  [class*="glass"] p,
+  [class*="glass"] h1,
+  [class*="glass"] h2,
+  [class*="glass"] h3,
+  [class*="glass"] span {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Button readability on small screens */
+  button, .btn {
+    font-size: var(--fs-0);
+    min-height: 44px;
+  }
+
+  @media (max-width: 360px) {
+    button, .btn {
+      font-size: var(--fs-1);
+    }
+  }
+
+  /* Modal/panel keyboard handling */
+  .modal, [role="dialog"] {
+    max-height: 80dvh;
+    overflow: auto;
   }
 }
 
