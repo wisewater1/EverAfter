@@ -33,7 +33,7 @@ export default function RaphaelChat() {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m St. Raphael, your AI health companion with memory and autonomous capabilities. I can remember our conversations, create health tasks in the background, and provide personalized assistance. How can I help you today?',
+      content: 'Hello! I\'m St. Raphael — The Healer. I analyze your health data with your consent, generate daily insights, and preserve meaningful observations to your Vault. I run autonomously each morning at 9 AM, but you can also chat with me anytime. How can I assist your wellness journey today?',
       timestamp: new Date()
     }
   ]);
@@ -51,17 +51,32 @@ export default function RaphaelChat() {
 
   const fetchHealthContext = async () => {
     try {
-      const [metricsRes, appointmentsRes, prescriptionsRes] = await Promise.all([
-        supabase.from('health_metrics').select('id', { count: 'exact', head: true }),
-        supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('scheduled_at', new Date().toISOString()),
-        supabase.from('prescriptions').select('id', { count: 'exact', head: true }).eq('is_active', true)
-      ]);
-
-      setHealthContext({
-        recentMetrics: metricsRes.count || 0,
-        upcomingAppointments: appointmentsRes.count || 0,
-        activePrescriptions: prescriptionsRes.count || 0
+      const response = await fetch('/api/me/raphael/summary', {
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHealthContext({
+          recentMetrics: data.metrics || 0,
+          upcomingAppointments: 0,
+          activePrescriptions: 0
+        });
+      } else {
+        const [metricsRes, appointmentsRes, prescriptionsRes] = await Promise.all([
+          supabase.from('health_metrics').select('id', { count: 'exact', head: true }),
+          supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('scheduled_at', new Date().toISOString()),
+          supabase.from('prescriptions').select('id', { count: 'exact', head: true }).eq('is_active', true)
+        ]);
+
+        setHealthContext({
+          recentMetrics: metricsRes.count || 0,
+          upcomingAppointments: appointmentsRes.count || 0,
+          activePrescriptions: prescriptionsRes.count || 0
+        });
+      }
     } catch (error) {
       console.error('Error fetching health context:', error);
     }

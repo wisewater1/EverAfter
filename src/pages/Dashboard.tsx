@@ -127,6 +127,13 @@ export default function Dashboard() {
                 )}
               </button>
               <button
+                onClick={() => navigate('/raphael')}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-emerald-500/20"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">St. Raphael</span>
+              </button>
+              <button
                 onClick={() => navigate('/marketplace')}
                 className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-amber-500/20"
               >

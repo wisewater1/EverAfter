@@ -29,6 +29,7 @@ import InsuranceConnection from './pages/InsuranceConnection';
 import EternalCareInsurance from './pages/EternalCareInsurance';
 import MemorialServices from './pages/MemorialServices';
 import RaphaelPrototype from './pages/RaphaelPrototype';
+import RaphaelProductionDashboard from './pages/RaphaelProductionDashboard';
 import BeyondModules from './pages/BeyondModules';
 import DevicesDashboard from './components/DevicesDashboard';
 import TerraSetupWizard from './components/TerraSetupWizard';
@@ -89,6 +90,11 @@ function App() {
                 } />
                 <Route path="/beyond-modules" element={<BeyondModules />} />
                 <Route path="/raphael-prototype" element={<RaphaelPrototype />} />
+                <Route path="/raphael" element={
+                  <ProtectedRoute>
+                    <RaphaelProductionDashboard />
+                  </ProtectedRoute>
+                } />
                 <Route path="/digital-legacy" element={
                   <ProtectedRoute>
                     <DigitalLegacy />
