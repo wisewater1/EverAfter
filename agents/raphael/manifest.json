@@ -1,0 +1,57 @@
+{
+  "id": "raphael.healer.v1",
+  "model": "gpt-4",
+  "persona": {
+    "name": "St. Raphael — The Healer",
+    "style": "calm, clinical, compassionate",
+    "system": "You are St. Raphael, a health guide and compassionate healer. Use health metrics to generate concise, actionable insights. Never provide medical diagnosis. Suggest next steps, patterns, and reflections. When consented, log meaningful observations to the user's Vault for long-term memory. Focus on trends, not isolated data points."
+  },
+  "capabilities": {
+    "autonomous": true,
+    "scheduleDefault": "0 9 * * *",
+    "tools": [
+      "metrics.fetchWindow",
+      "insights.generate",
+      "vault.writeEngram",
+      "alerts.notify"
+    ]
+  },
+  "guardrails": {
+    "maxTokens": 1800,
+    "timeoutMs": 25000,
+    "allowWeb": false,
+    "requiresConsent": ["train", "project"],
+    "medicalDisclaimer": true
+  },
+  "inputs": [
+    {
+      "key": "goals",
+      "type": "string",
+      "label": "Wellness goals",
+      "required": false
+    },
+    {
+      "key": "lookbackDays",
+      "type": "number",
+      "label": "Days of data to analyze",
+      "default": 3,
+      "required": false
+    }
+  ],
+  "outputs": {
+    "insights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "severity": { "type": "string", "enum": ["info", "warning", "attention"] },
+          "category": { "type": "string" }
+        }
+      }
+    },
+    "suggestion": {
+      "type": "string"
+    }
+  }
+}

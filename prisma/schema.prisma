@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  sources           Source[]
+  devices           Device[]
+  metrics           Metric[]
+  consents          Consent[]
+  engrams           EngramEntry[]
+  audits            AuditLog[]
+  emergencyContacts EmergencyContact[]
+  agentRuns         AgentRun[]
+
+  @@map("users")
+}
+
+model Source {
+  id             String    @id @default(cuid())
+  userId         String
+  provider       Provider
+  externalUserId String
+  accessToken    String?
+  refreshToken   String?
+  expiresAt      DateTime?
+  scopes         String[]
+  connectedAt    DateTime  @default(now())
+  lastSyncAt     DateTime?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devices Device[]
+  metrics Metric[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("sources")
+}
+
+model Device {
+  id               String  @id @default(cuid())
+  sourceId         String
+  providerDeviceId String
+  name             String?
+  model            String?
+  manufacturer     String?
+
+  source  Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  metrics Metric[]
+
+  @@unique([sourceId, providerDeviceId])
+  @@index([sourceId])
+  @@map("devices")
+}
+
+model Metric {
+  id       String     @id @default(cuid())
+  sourceId String
+  deviceId String?
+  type     MetricType
+  ts       DateTime
+  value    Float?
+  unit     String?
+  payload  Json
+
+  source Source  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([sourceId, type, ts])
+  @@index([ts])
+  @@map("metrics")
+}
+
+model Consent {
+  id             String    @id @default(cuid())
+  userId         String
+  role           String
+  purpose        String
+  expiresAt      DateTime?
+  interactionCap Int?
+  usageCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+  revokedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("consents")
+}
+
+model EngramEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  text      String
+  tags      String[]
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+  @@index([createdAt])
+  @@map("engram_entries")
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  userId     String?
+  action     String
+  provider   Provider?
+  snapshotId String?
+  consentId  String?
+  sha256     String?
+  metadata   Json?
+  ts         DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, ts])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model EmergencyContact {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String
+  email    String?
+  phone    String?
+  relation String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("emergency_contacts")
+}
+
+model AgentRun {
+  id          String   @id @default(cuid())
+  userId      String
+  agentId     String
+  status      String
+  tokensUsed  Int      @default(0)
+  costCents   Int      @default(0)
+  steps       Json?
+  error       String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, agentId, startedAt])
+  @@map("agent_runs")
+}
+
+enum Provider {
+  TERRA
+  APPLE_HEALTH
+  SAMSUNG_HEALTH
+  FITBIT
+  OURA
+  WHOOP
+  DEXCOM
+}
+
+enum MetricType {
+  HEART_RATE
+  STEPS
+  CALORIES
+  HRV
+  OXYGEN_SAT
+  RESPIRATION
+  TEMP
+  SLEEP_DURATION
+  SLEEP_STAGE
+  GLUCOSE
+  BLOOD_PRESSURE
+  WEIGHT
+  ACTIVITY
+  DISTANCE
+}
