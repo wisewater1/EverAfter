@@ -91,7 +91,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
@@ -255,7 +255,7 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48">
+      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48 safe-bottom w-full">
         <div className="space-y-8">
           {selectedView === 'family' && (
             <>
@@ -273,6 +273,9 @@ export default function Dashboard() {
             <UnifiedChatInterface />
           )}
         </div>
+
+        {/* Scroll sentinel for testing */}
+        <div id="scroll-end" className="h-1 w-1 opacity-0 pointer-events-none" aria-hidden="true"></div>
       </main>
 
       {/* Saints Navigation - Fixed Bottom */}

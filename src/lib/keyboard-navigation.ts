@@ -468,10 +468,8 @@ export class ModalManager {
     this.scrollPosition = window.pageYOffset;
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
 
-    document.body.style.position = 'fixed';
+    document.body.classList.add('modal-open');
     document.body.style.top = `-${this.scrollPosition}px`;
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
 
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -482,12 +480,8 @@ export class ModalManager {
    * Disable scroll lock and restore scroll position
    */
   private disableScrollLock() {
-    const scrollbarWidth = parseInt(document.body.style.paddingRight || '0');
-
-    document.body.style.position = '';
+    document.body.classList.remove('modal-open');
     document.body.style.top = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
     document.body.style.paddingRight = '';
 
     window.scrollTo(0, this.scrollPosition);
