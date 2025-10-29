@@ -41,21 +41,26 @@
     --safe-right: env(safe-area-inset-right, 0px);
     --vvh: 100vh;
 
-    /* Minimalist Neon Design System - Color Tokens */
-    /* Near-black backgrounds */
-    --bg-primary: #000000;
-    --bg-secondary: #0a0a0a;
-    --bg-tertiary: #141414;
-    --bg-card: #1a1a1a;
-    --bg-elevated: #1f1f1f;
+    /* Dark-Glass UI v2 Design Tokens */
+    --bg-0: #06080c;
+    --bg-1: #0a0f15;
+    --glass: rgba(16, 24, 32, 0.55);
+    --glass-strong: rgba(16, 24, 32, 0.72);
+    --stroke: rgba(255, 255, 255, 0.06);
+    --text: rgba(255, 255, 255, 0.86);
+    --muted: rgba(255, 255, 255, 0.62);
+    --accent-teal: #00ffe0;
+    --accent-gold: #f6c86b;
+    --glow-teal: 0 0 24px rgba(0,255,224,0.20);
+    --glow-gold: 0 0 24px rgba(246,200,107,0.16);
+    --radius: 14px;
+    --blur: 18px;
 
-    /* Neon accent - Cyan theme */
-    --neon-accent: #00ffff;
-    --neon-accent-dim: #00cccc;
-    --neon-accent-bright: #66ffff;
-    --neon-glow: rgba(0, 255, 255, 0.5);
-    --neon-glow-sm: rgba(0, 255, 255, 0.3);
-    --neon-glow-lg: rgba(0, 255, 255, 0.7);
+    /* Legacy compatibility */
+    --bg-primary: var(--bg-0);
+    --bg-secondary: var(--bg-1);
+    --neon-accent: var(--accent-teal);
+    --neon-glow: rgba(0, 255, 224, 0.5);
 
     /* Low-contrast neutrals */
     --text-primary: #ffffff;
@@ -124,6 +129,11 @@
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     text-rendering: optimizeLegibility;
     transform: none !important;
+    background:
+      radial-gradient(1200px 800px at 20% 10%, rgba(0,255,224,0.06), transparent 60%),
+      radial-gradient(1000px 700px at 80% 90%, rgba(246,200,107,0.05), transparent 60%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    color: var(--text);
   }
 
   #root {
@@ -566,5 +576,144 @@
   .scrollbar-neon::-webkit-scrollbar-thumb:hover {
     background-color: var(--neon-accent);
     box-shadow: 0 0 5px var(--neon-glow-sm);
+  }
+
+  /* ========================================
+     DARK-GLASS UI V2 COMPONENTS
+     ======================================== */
+
+  /* Glass Card */
+  .glass-card {
+    background: var(--glass);
+    backdrop-filter: blur(var(--blur));
+    -webkit-backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      0 10px 30px rgba(0,0,0,0.35);
+    transition: transform .25s cubic-bezier(.22,.61,.36,1),
+                box-shadow .25s cubic-bezier(.22,.61,.36,1),
+                background .25s cubic-bezier(.22,.61,.36,1);
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-teal), 0 14px 40px rgba(0,0,0,0.45);
+  }
+
+  /* Cursor-Reactive Button */
+  .btn-reactive {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--glass-strong);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 12px;
+    backdrop-filter: blur(calc(var(--blur) * .8));
+    -webkit-backdrop-filter: blur(calc(var(--blur) * .8));
+    transition: transform .18s cubic-bezier(.22,.61,.36,1),
+                background .18s cubic-bezier(.22,.61,.36,1);
+    cursor: pointer;
+  }
+
+  .btn-reactive:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-reactive .edge {
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(120px 120px at var(--mx,50%) var(--my,50%),
+        color-mix(in oklab, var(--edge, #00ffe0) 80%, white 0%) 24%,
+        transparent 60%);
+    opacity: .8;
+    filter: blur(10px);
+    transition: background .05s linear;
+  }
+
+  .btn-reactive[data-variant="teal"] {
+    --edge: var(--accent-teal);
+    box-shadow: var(--glow-teal);
+  }
+
+  .btn-reactive[data-variant="gold"] {
+    --edge: var(--accent-gold);
+    box-shadow: var(--glow-gold);
+  }
+
+  /* Glass Input & Chip */
+  .glass-input, .glass-chip {
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    border-radius: 12px;
+    backdrop-filter: blur(var(--blur));
+    -webkit-backdrop-filter: blur(var(--blur));
+    transition: all .18s cubic-bezier(.22,.61,.36,1);
+  }
+
+  .glass-input:focus {
+    outline: none;
+    border-color: rgba(0,255,224,0.35);
+    box-shadow: var(--glow-teal);
+  }
+
+  .glass-chip[aria-checked="true"] {
+    outline: 1px solid rgba(0,255,224,0.35);
+    box-shadow: var(--glow-teal);
+    background: rgba(0,255,224,0.08);
+  }
+
+  /* Strong glass for modals/popovers */
+  .glass-strong {
+    background: var(--glass-strong);
+    backdrop-filter: blur(calc(var(--blur) * 1.2));
+    -webkit-backdrop-filter: blur(calc(var(--blur) * 1.2));
+    border: 1px solid var(--stroke);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  /* Teal focus ring */
+  .focus-ring-teal:focus-visible {
+    outline: 2px solid var(--accent-teal);
+    outline-offset: 2px;
+  }
+
+  /* Spring animation for key actions */
+  @keyframes spring-in {
+    0% {
+      transform: scale(0.92) translateY(10px);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.02) translateY(-2px);
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-spring-in {
+    animation: spring-in 0.4s cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* Glow pulse for active states */
+  @keyframes glow-pulse-teal {
+    0%, 100% {
+      box-shadow: var(--glow-teal);
+    }
+    50% {
+      box-shadow: 0 0 32px rgba(0,255,224,0.35);
+    }
+  }
+
+  .animate-glow-pulse-teal {
+    animation: glow-pulse-teal 2s ease-in-out infinite;
   }
 }
