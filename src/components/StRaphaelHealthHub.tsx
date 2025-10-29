@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Heart, BarChart3, Target, Users, Bell, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid, Calendar, Pill, FileText, Zap } from 'lucide-react';
+import { Activity, Heart, BarChart3, Target, Users, Bell, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid, Calendar, Pill, FileText, Zap, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelHealthInterface from './RaphaelHealthInterface';
@@ -12,6 +12,7 @@ import HealthGoals from './HealthGoals';
 import EmergencyContacts from './EmergencyContacts';
 import HealthReportGenerator from './HealthReportGenerator';
 import HealthConnectionManager from './HealthConnectionManager';
+import ComprehensiveHealthConnectors from './ComprehensiveHealthConnectors';
 import FileManager from './FileManager';
 import ConnectionRotationConfig from './ConnectionRotationConfig';
 import ConnectionRotationMonitor from './ConnectionRotationMonitor';
@@ -29,6 +30,7 @@ type TabView =
   | 'contacts'
   | 'chat'
   | 'connections'
+  | 'all-connectors'
   | 'insights'
   | 'files'
   | 'rotation'
@@ -52,6 +54,7 @@ export default function StRaphaelHealthHub({ userId, raphaelEngramId }: StRaphae
 
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
+    { id: 'all-connectors' as TabView, label: 'All Connectors', icon: Cloud },
     { id: 'comprehensive-analytics' as TabView, label: 'All Sources', icon: LayoutGrid },
     { id: 'devices' as TabView, label: 'Devices', icon: Cpu },
     { id: 'heart-devices' as TabView, label: 'Heart Monitors', icon: Stethoscope },
@@ -62,7 +65,7 @@ export default function StRaphaelHealthHub({ userId, raphaelEngramId }: StRaphae
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
     { id: 'appointments' as TabView, label: 'Appointments', icon: Calendar },
     { id: 'files' as TabView, label: 'Files', icon: FolderOpen },
-    { id: 'connections' as TabView, label: 'Connections', icon: Activity },
+    { id: 'connections' as TabView, label: 'Quick Connect', icon: Link2 },
     { id: 'rotation' as TabView, label: 'Auto-Rotation', icon: Zap },
     { id: 'contacts' as TabView, label: 'Emergency', icon: Users },
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
@@ -184,6 +187,10 @@ export default function StRaphaelHealthHub({ userId, raphaelEngramId }: StRaphae
 
         {activeTab === 'files' && (
           <FileManager context="health" />
+        )}
+
+        {activeTab === 'all-connectors' && (
+          <ComprehensiveHealthConnectors />
         )}
 
         {activeTab === 'connections' && (
