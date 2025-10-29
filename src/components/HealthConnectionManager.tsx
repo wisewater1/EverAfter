@@ -237,21 +237,24 @@ export default function HealthConnectionManager() {
 
   if (loading) {
     return (
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-        <div className="text-white">Loading connections...</div>
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
+        <div className="flex items-center justify-center gap-3">
+          <div className="w-5 h-5 border-2 border-slate-700 border-t-teal-400 rounded-full animate-spin"></div>
+          <div className="text-slate-400">Loading connections...</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">Health Service Connections</h2>
-          <p className="text-gray-400 text-sm">Connect your health devices and apps to automatically sync data</p>
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Health Service Connections</h2>
+          <p className="text-slate-400 text-sm">Connect your health devices and apps to automatically sync data</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {HEALTH_SERVICES.map((service) => {
             const Icon = service.icon;
             const existingConnection = connections.find(c => c.service_type === service.id && c.status !== 'disconnected');
@@ -260,25 +263,25 @@ export default function HealthConnectionManager() {
             return (
               <div
                 key={service.id}
-                className="bg-white/5 rounded-xl p-5 border border-white/10 hover:border-purple-500/30 transition-all"
+                className="p-5 rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[4px_4px_8px_#08080c,-4px_-4px_8px_#1c1c28] border border-white/5 hover:border-teal-500/20 transition-all duration-300 group"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${service.color} rounded-xl flex items-center justify-center`}>
+                    <div className={`w-12 h-12 bg-gradient-to-br ${service.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
                       <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-white font-semibold">{service.name}</h3>
-                      <p className="text-gray-400 text-xs">{service.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-semibold text-sm">{service.name}</h3>
+                      <p className="text-slate-500 text-xs truncate">{service.description}</p>
                     </div>
                   </div>
                   {existingConnection && getStatusBadge(existingConnection.status)}
                 </div>
 
                 {existingConnection ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {existingConnection.last_sync_at && (
-                      <p className="text-gray-300 text-xs">
+                      <p className="text-slate-400 text-xs">
                         Last synced: {new Date(existingConnection.last_sync_at).toLocaleString()}
                       </p>
                     )}
@@ -292,7 +295,7 @@ export default function HealthConnectionManager() {
                           });
                           setTroubleshootingOpen(true);
                         }}
-                        className="px-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 rounded-lg transition-all text-sm flex items-center gap-2 min-h-[44px]"
+                        className="px-3 py-2 rounded-xl bg-gradient-to-br from-yellow-500/10 to-amber-500/10 hover:from-yellow-500/20 hover:to-amber-500/20 text-yellow-400 transition-all duration-300 text-sm flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-yellow-500/20 min-h-[44px]"
                         title="Troubleshoot connection issues"
                       >
                         <Wrench className="w-4 h-4" />
@@ -301,7 +304,7 @@ export default function HealthConnectionManager() {
                         <button
                           onClick={() => syncConnection(existingConnection.id, service.name)}
                           disabled={syncing === existingConnection.id}
-                          className="flex-1 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
+                          className="flex-1 px-4 py-2 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 hover:from-teal-500/20 hover:to-cyan-500/20 text-teal-400 transition-all duration-300 text-sm flex items-center justify-center gap-2 disabled:opacity-50 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-teal-500/20 min-h-[44px]"
                         >
                           <RefreshCw className={`w-4 h-4 ${syncing === existingConnection.id ? 'animate-spin' : ''}`} />
                           {syncing === existingConnection.id ? 'Syncing...' : 'Sync Now'}
@@ -309,7 +312,7 @@ export default function HealthConnectionManager() {
                       )}
                       <button
                         onClick={() => disconnectService(existingConnection.id)}
-                        className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-all text-sm min-h-[44px]"
+                        className="px-4 py-2 rounded-xl bg-gradient-to-br from-red-500/10 to-pink-500/10 hover:from-red-500/20 hover:to-pink-500/20 text-red-400 transition-all duration-300 text-sm shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-red-500/20 min-h-[44px]"
                       >
                         Disconnect
                       </button>
@@ -318,7 +321,7 @@ export default function HealthConnectionManager() {
                 ) : (
                   <button
                     onClick={() => connectService(service.id, service.name)}
-                    className={`w-full px-4 py-2 bg-gradient-to-r ${service.color} text-white rounded-lg hover:opacity-90 transition-all text-sm flex items-center justify-center gap-2`}
+                    className={`w-full px-4 py-3 bg-gradient-to-r ${service.color} text-white rounded-xl hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2 shadow-lg`}
                   >
                     <Plus className="w-4 h-4" />
                     Connect {service.name}
@@ -329,12 +332,14 @@ export default function HealthConnectionManager() {
           })}
         </div>
 
-        <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.2)]">
           <div className="flex items-start gap-3">
-            <Settings className="w-5 h-5 text-blue-400 mt-0.5" />
-            <div>
-              <p className="text-blue-400 font-medium text-sm mb-1">OAuth Integration Note</p>
-              <p className="text-blue-300 text-xs">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center flex-shrink-0 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-teal-500/20">
+              <Settings className="w-5 h-5 text-teal-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-teal-400 font-medium text-sm mb-2">OAuth Integration Note</p>
+              <p className="text-slate-400 text-xs leading-relaxed">
                 In production, clicking "Connect" would redirect you to the service's OAuth authorization page.
                 After authorization, health data would automatically sync based on your preferences.
                 This demo simulates the connection process.
