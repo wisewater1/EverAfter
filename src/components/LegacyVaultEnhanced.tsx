@@ -462,7 +462,12 @@ function LegacyAssuranceSection({
                   ))}
                 </div>
 
-                <button className="w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2">
+                <button
+                  onClick={() => {
+                    alert(`Opening connection wizard for ${partner.name}.\n\nThis integration is coming soon! You'll be able to:\n${partner.features.map(f => `\n• ${f}`).join('')}\n\nStay tuned for updates.`);
+                  }}
+                  className="w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2"
+                >
                   Connect
                   <ChevronRight className="w-4 h-4" />
                 </button>
