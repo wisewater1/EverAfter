@@ -25,7 +25,7 @@ import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations
 import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
 import ScrollIndicator from '../components/ScrollIndicator';
 
-type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'rotation' | 'devices-analytics' | 'predictions' | 'heart-devices';
+type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'rotation' | 'devices-analytics' | 'predictions';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -76,7 +76,6 @@ export default function HealthDashboard() {
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
     { id: 'devices-analytics' as TabView, label: 'Devices & Analytics', icon: LayoutGrid },
-    { id: 'heart-devices' as TabView, label: 'Heart Monitors', icon: Stethoscope },
     { id: 'predictions' as TabView, label: 'Predictions', icon: Brain },
     { id: 'medications' as TabView, label: 'Medications', icon: Heart },
     { id: 'goals' as TabView, label: 'Goals', icon: Target },
@@ -275,7 +274,6 @@ export default function HealthDashboard() {
               <ComprehensiveAnalyticsDashboard />
             </div>
           )}
-          {activeTab === 'heart-devices' && <HeartDeviceRecommendations />}
           {activeTab === 'predictions' && (
             <div className="space-y-6">
               <PredictiveHealthInsights />
@@ -285,7 +283,12 @@ export default function HealthDashboard() {
               <HealthAnalytics />
             </div>
           )}
-          {activeTab === 'medications' && <MedicationTracker />}
+          {activeTab === 'medications' && (
+            <div className="space-y-6">
+              <HeartDeviceRecommendations />
+              <MedicationTracker />
+            </div>
+          )}
           {activeTab === 'goals' && <HealthGoals />}
           {activeTab === 'files' && <FileManager />}
           {activeTab === 'connections' && <HealthConnectionManager />}
