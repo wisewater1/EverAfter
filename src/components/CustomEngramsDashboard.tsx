@@ -200,23 +200,6 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
     setNameExists(false);
   };
 
-  const createDefaultAIs = useCallback(async () => {
-    try {
-      await supabase
-        .from('archetypal_ais')
-        .insert([
-          {
-            user_id: userId,
-            name: 'Dante',
-            description: 'A curious and philosophical AI that learns about you through thoughtful questions',
-            training_status: 'training'
-          }
-        ]);
-    } catch (error) {
-      console.error('Error creating default AIs:', error);
-    }
-  }, [userId]);
-
   const loadAIs = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -227,25 +210,13 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
       if (error) throw error;
 
-      const aiList = data || [];
-
-      if (aiList.length === 0) {
-        await createDefaultAIs();
-        const { data: newData } = await supabase
-          .from('archetypal_ais')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-        setAIs(newData || []);
-      } else {
-        setAIs(aiList);
-      }
+      setAIs(data || []);
     } catch (error) {
       console.error('Error loading AIs:', error);
     } finally {
       setLoading(false);
     }
-  }, [userId, createDefaultAIs]);
+  }, [userId]);
 
   useEffect(() => {
     loadAIs();
