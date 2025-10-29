@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target, AlertCircle, CheckCircle2, Camera, Palette, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import CompactSaintsOverlay from './CompactSaintsOverlay';
 // import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers'; // Reserved for future use
 
 interface ArchetypalAI {
@@ -337,6 +338,11 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
   return (
     <div className="space-y-8">
+      {/* Compact Saints Overlay - Positioned Above Personality Journey */}
+      <div className="relative z-10">
+        <CompactSaintsOverlay />
+      </div>
+
       {/* Header Section with Progress Hero */}
       <div className="space-y-6">
         {/* Main Header */}
