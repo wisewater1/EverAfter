@@ -9,6 +9,7 @@ import RaphaelHealthInterface from '../components/RaphaelHealthInterface';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
+import SaintsNavigation from '../components/SaintsNavigation';
 
 interface ArchetypalAI {
   id: string;
@@ -254,7 +255,7 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48">
         <div className="space-y-8">
           {selectedView === 'activities' && (
             <UnifiedActivityCenter />
@@ -273,6 +274,9 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* Saints Navigation - Fixed Bottom */}
+      <SaintsNavigation />
     </div>
   );
 }
