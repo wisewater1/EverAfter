@@ -269,13 +269,8 @@ export default function InsuranceConnection() {
             Cancel
           </button>
           <button
-            onClick={handleConnect}
-            disabled={!selectedPlan}
-            className={`px-8 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              selectedPlan
-                ? 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-500/20'
-                : 'bg-slate-800/50 text-slate-500 cursor-not-allowed'
-            }`}
+            onClick={() => window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host'}
+            className="px-8 py-3 rounded-xl font-medium transition-all flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-500/20"
           >
             Continue to Dashboard
             <ArrowRight className="w-4 h-4" />
