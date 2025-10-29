@@ -78,20 +78,20 @@ export default function SaintsNavigation() {
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-slate-950/0 backdrop-blur-2xl" />
 
       {/* Saints Container */}
-      <div className="relative px-4 pb-6 pt-8">
+      <div className="relative px-3 pb-6 pt-6 sm:px-4 sm:pt-8">
         <div className="max-w-4xl mx-auto">
           {/* Title */}
-          <div className="text-center mb-6">
-            <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">
+          <div className="text-center mb-4 sm:mb-6">
+            <h2 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">
               Your Saints
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-[10px] sm:text-xs text-slate-500">
               AI-powered companions for your journey
             </p>
           </div>
 
-          {/* Saints Grid */}
-          <div className="grid grid-cols-5 gap-3 sm:gap-4">
+          {/* Saints Grid with space for labels */}
+          <div className="grid grid-cols-5 gap-2.5 sm:gap-3 md:gap-4 mb-14 sm:mb-16">
             {saints.map((saint, index) => {
               const Icon = saint.icon;
               const isCenter = index === 2; // St. Raphael
@@ -105,7 +105,7 @@ export default function SaintsNavigation() {
                   onMouseLeave={() => setHoveredSaint(null)}
                   disabled={!saint.available}
                   className={`group relative transition-all duration-500 ease-out ${
-                    isCenter ? 'scale-110 sm:scale-125' : 'scale-100'
+                    isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
                   } ${
                     saint.available
                       ? 'cursor-pointer'
@@ -113,7 +113,7 @@ export default function SaintsNavigation() {
                   }`}
                   style={{
                     transform: isCenter
-                      ? 'translateY(-12px)'
+                      ? 'translateY(-8px)'
                       : 'translateY(0)',
                   }}
                 >
@@ -153,7 +153,7 @@ export default function SaintsNavigation() {
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Icon
                           className={`transition-all duration-500 ${
-                            isCenter ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-8 h-8 sm:w-10 sm:h-10'
+                            isCenter ? 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12' : 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9'
                           } ${
                             saint.available
                               ? 'text-white drop-shadow-lg group-hover:scale-110'
@@ -186,30 +186,26 @@ export default function SaintsNavigation() {
                       )}
                     </div>
 
-                    {/* Name Label - Only shown on hover or for center saint */}
-                    <div
-                      className={`absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap transition-all duration-300 ${
-                        isHovered || isCenter
-                          ? 'opacity-100 translate-y-0'
-                          : 'opacity-0 translate-y-2'
-                      }`}
-                    >
+                    {/* Name Label - Always visible at bottom */}
+                    <div className="absolute -bottom-12 sm:-bottom-14 left-1/2 -translate-x-1/2 w-full px-0.5">
                       <div className="text-center">
                         <p
-                          className={`font-semibold transition-all duration-300 ${
-                            isCenter ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-xs'
+                          className={`font-semibold leading-tight whitespace-nowrap transition-all duration-300 ${
+                            isCenter ? 'text-[11px] sm:text-xs md:text-sm' : 'text-[9px] sm:text-[10px] md:text-xs'
                           } ${
                             saint.available
                               ? 'text-white'
-                              : 'text-slate-500'
+                              : 'text-slate-400'
                           }`}
                         >
                           {saint.name}
                         </p>
                         <p
-                          className={`text-[8px] sm:text-[10px] transition-all duration-300 ${
+                          className={`leading-tight mt-0.5 whitespace-nowrap transition-all duration-300 ${
+                            isCenter ? 'text-[9px] sm:text-[10px]' : 'text-[8px] sm:text-[9px]'
+                          } ${
                             saint.available
-                              ? 'text-slate-400'
+                              ? 'text-emerald-400 font-medium'
                               : 'text-slate-600'
                           }`}
                         >
@@ -231,8 +227,8 @@ export default function SaintsNavigation() {
           </div>
 
           {/* Instruction Text for Mobile */}
-          <div className="text-center mt-8 sm:mt-10">
-            <p className="text-xs text-slate-500">
+          <div className="text-center mt-2 sm:mt-4">
+            <p className="text-[10px] sm:text-xs text-slate-500">
               Tap <span className="text-emerald-400 font-medium">St. Raphael</span> to access health features
             </p>
           </div>
