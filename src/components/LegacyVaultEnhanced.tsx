@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
@@ -40,6 +41,7 @@ interface Receipt {
 
 export default function LegacyVaultEnhanced() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'continuity' | 'assurance'>('continuity');
   const [activeTab, setActiveTab] = useState<'CAPSULE' | 'MEMORIAL' | 'WILL' | 'MESSAGE'>('CAPSULE');
   const [items, setItems] = useState<VaultItem[]>([]);
@@ -161,6 +163,7 @@ export default function LegacyVaultEnhanced() {
             beneficiaries={beneficiaries}
             receipts={receipts}
             loading={loading}
+            navigate={navigate}
           />
         )}
 
@@ -360,11 +363,13 @@ function ItemCard({ item, onSelect }: { item: VaultItem; onSelect: (item: VaultI
 function LegacyAssuranceSection({
   beneficiaries,
   receipts,
-  loading
+  loading,
+  navigate
 }: {
   beneficiaries: Beneficiary[];
   receipts: Receipt[];
   loading: boolean;
+  navigate: any;
 }) {
   const trustPartners = [
     {
@@ -463,9 +468,7 @@ function LegacyAssuranceSection({
                 </div>
 
                 <button
-                  onClick={() => {
-                    alert(`Opening connection wizard for ${partner.name}.\n\nThis integration is coming soon! You'll be able to:\n${partner.features.map(f => `\n• ${f}`).join('')}\n\nStay tuned for updates.`);
-                  }}
+                  onClick={() => navigate('/portal')}
                   className="w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2"
                 >
                   Connect
