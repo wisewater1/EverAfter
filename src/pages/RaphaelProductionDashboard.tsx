@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Heart, TrendingUp, Droplet, Moon, Footprints, AlertTriangle, CheckCircle, Info, Lock, Shield, Clock, Zap } from 'lucide-react';
+import { Activity, Heart, TrendingUp, Droplet, Moon, Footprints, AlertTriangle, CheckCircle, Info, Lock, Shield, Clock, Zap, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Insight {
   text: string;
@@ -16,6 +17,7 @@ interface VitalsData {
 }
 
 export default function RaphaelProductionDashboard() {
+  const navigate = useNavigate();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [suggestion, setSuggestion] = useState('');
   const [vitals, setVitals] = useState<VitalsData | null>(null);
@@ -103,6 +105,13 @@ export default function RaphaelProductionDashboard() {
                 <span className={`w-2 h-2 rounded-full ${raphaelActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
                 <span className="text-sm font-medium">{raphaelActive ? 'Active' : 'Dormant'}</span>
               </span>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 py-2 rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] hover:from-[#1f1f2c] hover:to-[#16161d] text-slate-300 hover:text-white transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-white/5"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline font-medium">Back</span>
+              </button>
             </div>
           </div>
 
