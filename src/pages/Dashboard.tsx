@@ -11,7 +11,6 @@ import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
-import DarkGlassCarousel from '../components/DarkGlassCarousel';
 
 interface ArchetypalAI {
   id: string;
@@ -263,13 +262,7 @@ export default function Dashboard() {
             <FamilyEngrams />
           )}
           {selectedView === 'activities' && (
-            <>
-              {/* Featured Carousel */}
-              <div className="mb-8">
-                <DarkGlassCarousel />
-              </div>
-              <UnifiedActivityCenter />
-            </>
+            <UnifiedActivityCenter />
           )}
           {selectedView === 'engrams' && (
             <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
