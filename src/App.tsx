@@ -34,6 +34,7 @@ import BeyondModules from './pages/BeyondModules';
 import DevicesDashboard from './components/DevicesDashboard';
 import TerraSetupWizard from './components/TerraSetupWizard';
 import TerraCallback from './pages/TerraCallback';
+import DarkGlassCarouselShowcase from './pages/DarkGlassCarouselShowcase';
 
 function ErrorNotifierConnector() {
   const { showError } = useErrorNotification();
@@ -89,6 +90,7 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/beyond-modules" element={<BeyondModules />} />
+                <Route path="/dark-glass-carousel" element={<DarkGlassCarouselShowcase />} />
                 <Route path="/raphael-prototype" element={<RaphaelPrototype />} />
                 <Route path="/raphael" element={
                   <ProtectedRoute>
