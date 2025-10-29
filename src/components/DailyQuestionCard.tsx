@@ -298,63 +298,6 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
   return (
     <div className="space-y-6">
-      {/* AI Selector */}
-      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-lg font-semibold text-white">Choose Your AI to Train Today</h3>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Clock className="w-4 h-4" />
-            <span>~5 min</span>
-          </div>
-        </div>
-
-        {ais.length > 1 && (
-          <div className="mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
-            <p className="text-xs text-slate-300 leading-relaxed">
-              <strong className="text-white">Tip:</strong> Choose based on your interests today.
-              You can train both AIs - just pick one to begin with.
-            </p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {ais.map((ai) => (
-            <button
-              key={ai.id}
-              onClick={() => handleAISelect(ai)}
-              className={`p-5 rounded-xl border-2 transition-all text-left ${
-                selectedAI?.id === ai.id
-                  ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20'
-                  : 'bg-slate-900/50 border-slate-700/50 hover:border-slate-600 hover:bg-slate-900/70'
-              }`}
-              aria-pressed={selectedAI?.id === ai.id}
-              aria-label={`Select ${ai.name} to train`}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white mb-0.5">{ai.name}</div>
-                  <div className="text-xs text-slate-200 line-clamp-2 leading-relaxed">{ai.description}</div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-700/50">
-                <span className="text-slate-400">{ai.total_memories} memories</span>
-                <span className={`font-medium px-2.5 py-1 rounded-lg text-xs ${
-                  ai.training_status === 'ready' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                  ai.training_status === 'training' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
-                }`}>
-                  {ai.training_status}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Progress Bar */}
       {userProgress && (

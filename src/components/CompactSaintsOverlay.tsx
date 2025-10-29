@@ -270,18 +270,19 @@ export default function CompactSaintsOverlay() {
               const Icon = saint.icon;
               const isSelected = selectedSaint === saint.id;
               const isRaphael = saint.id === 'raphael';
+              const isTrainable = isRaphael;
 
               return (
                 <div key={saint.id} className="space-y-2">
                   {/* Saint Compact Row */}
                   <div
-                    onClick={() => setSelectedSaint(isSelected ? null : saint.id)}
-                    className={`group relative rounded-lg p-3 cursor-pointer transition-all ${
-                      saint.active && isRaphael
-                        ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 hover:border-emerald-500/50'
-                        : saint.tier === 'premium'
-                          ? 'bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 hover:border-amber-500/30'
-                          : 'bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50'
+                    onClick={() => isTrainable && setSelectedSaint(isSelected ? null : saint.id)}
+                    className={`group relative rounded-lg p-3 transition-all ${
+                      isTrainable
+                        ? saint.active && isRaphael
+                          ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer'
+                          : 'bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 cursor-pointer'
+                        : 'bg-slate-800/10 border border-slate-700/20 opacity-50 cursor-not-allowed'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -310,17 +311,22 @@ export default function CompactSaintsOverlay() {
                         {/* Name & Title */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold text-white truncate">{saint.name}</h4>
-                            {saint.tier === 'premium' && !saint.active && (
+                            <h4 className={`text-sm font-semibold truncate ${isTrainable ? 'text-white' : 'text-slate-500'}`}>{saint.name}</h4>
+                            {!isTrainable && (
+                              <span className="px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-slate-700/50 border border-slate-600/30 rounded uppercase tracking-wider">
+                                Coming Soon
+                              </span>
+                            )}
+                            {saint.tier === 'premium' && !saint.active && isTrainable && (
                               <span className="px-1.5 py-0.5 text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded uppercase tracking-wider">
                                 Premium
                               </span>
                             )}
-                            {saint.active && (
+                            {saint.active && isTrainable && (
                               <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 truncate">{saint.title}</p>
+                          <p className={`text-xs truncate ${isTrainable ? 'text-slate-400' : 'text-slate-600'}`}>{saint.title}</p>
                         </div>
 
                         {/* Stats */}
@@ -336,13 +342,15 @@ export default function CompactSaintsOverlay() {
                         </div>
 
                         {/* Expand Icon */}
-                        <div className="flex-shrink-0">
-                          {isSelected ? (
-                            <ChevronUp className="w-4 h-4 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
-                          )}
-                        </div>
+                        {isTrainable && (
+                          <div className="flex-shrink-0">
+                            {isSelected ? (
+                              <ChevronUp className="w-4 h-4 text-slate-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-slate-400" />
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
