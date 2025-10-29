@@ -21,7 +21,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat' | 'family' | 'health'>('activities');
+  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat' | 'family'>('activities');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -83,7 +83,6 @@ export default function Dashboard() {
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'family', label: 'Family', icon: Users },
-    { id: 'health', label: 'Health', icon: Heart },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -268,9 +267,6 @@ export default function Dashboard() {
           )}
           {selectedView === 'family' && (
             <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
-          )}
-          {selectedView === 'health' && (
-            <RaphaelHealthInterface />
           )}
         </div>
       </main>

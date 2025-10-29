@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain, SkipForward } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain, SkipForward, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PersonalityProfileViewer from './PersonalityProfileViewer';
 import DailyQuestionCard from './DailyQuestionCard';
+import StRaphaelHealthHub from './StRaphaelHealthHub';
 
 interface FamilyMember {
   id: string;
@@ -39,7 +40,8 @@ interface UnifiedFamilyInterfaceProps {
 }
 
 export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, preselectedAIId }: UnifiedFamilyInterfaceProps) {
-  const [activeTab, setActiveTab] = useState<'members' | 'questions' | 'daily-questions' | 'export'>(preselectedAIId ? 'daily-questions' : 'members');
+  const [activeTab, setActiveTab] = useState<'members' | 'questions' | 'daily-questions' | 'export' | 'st-raphael'>(preselectedAIId ? 'daily-questions' : 'members');
+  const [raphaelEngramId, setRaphaelEngramId] = useState<string>('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [questionResponses, setQuestionResponses] = useState<QuestionResponse[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -98,6 +100,24 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
         member_name: (item.archetypal_ais as any)?.name || 'Unknown'
       })));
     }
+  }, [userId]);
+
+  // Load St. Raphael engram ID
+  useEffect(() => {
+    async function fetchRaphaelEngram() {
+      const { data } = await supabase
+        .from('archetypal_ais')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', 'St. Raphael')
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setRaphaelEngramId(data.id);
+      }
+    }
+    fetchRaphaelEngram();
   }, [userId]);
 
   useEffect(() => {
@@ -338,6 +358,22 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             )}
           </button>
           <button
+            onClick={() => setActiveTab('st-raphael')}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
+              activeTab === 'st-raphael'
+                ? 'text-teal-400'
+                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="whitespace-nowrap">St. Raphael</span>
+            </div>
+            {activeTab === 'st-raphael' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400"></div>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('export')}
             className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
               activeTab === 'export'
@@ -501,6 +537,11 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             </div>
           )}
         </div>
+      )}
+
+      {/* St. Raphael Health Hub Tab */}
+      {activeTab === 'st-raphael' && (
+        <StRaphaelHealthHub userId={userId} raphaelEngramId={raphaelEngramId} />
       )}
 
       {/* Export Tab */}
