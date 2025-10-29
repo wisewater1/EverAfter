@@ -156,23 +156,7 @@ export default function FamilyEngrams() {
           <div className="w-12 h-12 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-400">Loading family engrams...</p>
         </div>
-      ) : familyMembers.length === 0 ? (
-        <div className="glass-card p-8 text-center">
-          <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-white mb-2">No Family Engrams Yet</h3>
-          <p className="text-slate-400 text-sm mb-4 max-w-md mx-auto">
-            Start creating AI companions for your family members by capturing their personalities,
-            memories, and moments.
-          </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white rounded-xl font-medium inline-flex items-center gap-2 transition-all text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create Your First Engram
-          </button>
-        </div>
-      ) : (
+      ) : familyMembers.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {familyMembers.map((member) => (
             <FamilyMemberCard
