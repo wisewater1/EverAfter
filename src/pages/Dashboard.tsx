@@ -134,6 +134,13 @@ export default function Dashboard() {
                 <span className="hidden sm:inline">Marketplace</span>
               </button>
               <button
+                onClick={() => navigate('/portal')}
+                className="px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-sky-500/20"
+              >
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Portal</span>
+              </button>
+              <button
                 onClick={handleSignOut}
                 className="px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium"
               >
