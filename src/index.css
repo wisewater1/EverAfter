@@ -442,6 +442,28 @@
     min-height: var(--vvh, 100dvh);
   }
 
+  /* Orientation-specific layouts */
+  @media (orientation: landscape) {
+    .app, .vh-100, .fullscreen {
+      padding-inline: max(var(--space-2, 1rem), var(--safe-left)) max(var(--space-2, 1rem), var(--safe-right));
+    }
+  }
+
+  /* Foldable device support */
+  @media (spanning: single-fold-vertical) {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+      gap: calc(var(--space-3, 1.5rem) + 8px);
+    }
+  }
+
+  @media (spanning: single-fold-horizontal) {
+    .grid {
+      grid-template-rows: 1fr 1fr;
+      gap: calc(var(--space-3, 1.5rem) + 8px);
+    }
+  }
+
   /* Sticky footer with safe area */
   .sticky-footer {
     position: sticky;
