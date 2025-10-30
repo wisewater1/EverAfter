@@ -165,19 +165,19 @@ export default function CompactSaintsOverlay() {
         className="bg-gradient-to-r from-slate-900/95 via-emerald-900/20 to-slate-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-xl shadow-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:border-emerald-500/40"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="px-4 py-2.5 flex items-center justify-between">
+        <div className="px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between">
           {/* Left: Saints Summary */}
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center">
-                <Heart className="w-4 h-4 text-emerald-400" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center">
+                <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
               </div>
               <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">Your Saints</h3>
-              <p className="text-xs text-slate-400">
-                {activeSaints.length} active • {totalActivities} tasks today
+              <h3 className="text-xs sm:text-sm font-semibold text-white">Your Saints</h3>
+              <p className="text-[10px] sm:text-xs text-slate-400">
+                {activeSaints.length} active • {totalActivities} tasks
               </p>
             </div>
           </div>
@@ -224,28 +224,28 @@ export default function CompactSaintsOverlay() {
 
       {/* Expanded Content - Slides Down */}
       {isExpanded && (
-        <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown max-h-[50vh] overflow-y-auto">
+        <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown max-h-[40vh] sm:max-h-[50vh] overflow-y-auto">
           {/* Category Stats Bar */}
           <div className="border-b border-slate-800/50 bg-slate-900/50">
-            <div className="px-4 py-3 grid grid-cols-3 gap-3">
+            <div className="px-3 py-2 sm:px-4 sm:py-3 grid grid-cols-3 gap-2 sm:gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-sky-500/10 flex items-center justify-center">
-                  <Shield className="w-3 h-3 text-sky-400" />
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-sky-500/10 flex items-center justify-center">
+                  <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-sky-400" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Protection</div>
-                  <div className="text-sm font-semibold text-white tabular-nums">
+                  <div className="text-[10px] sm:text-xs text-slate-400">Protection</div>
+                  <div className="text-xs sm:text-sm font-semibold text-white tabular-nums">
                     {activities.filter(a => a.category === 'protection').length}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-rose-500/10 flex items-center justify-center">
-                  <Heart className="w-3 h-3 text-rose-400" />
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-rose-500/10 flex items-center justify-center">
+                  <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-rose-400" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Support</div>
-                  <div className="text-sm font-semibold text-white tabular-nums">
+                  <div className="text-[10px] sm:text-xs text-slate-400">Support</div>
+                  <div className="text-xs sm:text-sm font-semibold text-white tabular-nums">
                     {activities.filter(a => a.category === 'support').length}
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function CompactSaintsOverlay() {
           </div>
 
           {/* Saints Compact Cards */}
-          <div className="p-4 space-y-2">
+          <div className="p-2 sm:p-4 space-y-1.5 sm:space-y-2">
             {saints.map((saint) => {
               const Icon = saint.icon;
               const isSelected = selectedSaint === saint.id;
@@ -277,7 +277,7 @@ export default function CompactSaintsOverlay() {
                   {/* Saint Compact Row */}
                   <div
                     onClick={() => isTrainable && setSelectedSaint(isSelected ? null : saint.id)}
-                    className={`group relative rounded-lg p-3 transition-all ${
+                    className={`group relative rounded-lg p-2 sm:p-3 transition-all ${
                       isTrainable
                         ? saint.active && isRaphael
                           ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer'
@@ -289,7 +289,7 @@ export default function CompactSaintsOverlay() {
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* Icon */}
                         <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                             saint.active && isRaphael
                               ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/30'
                               : saint.tier === 'premium'
@@ -298,7 +298,7 @@ export default function CompactSaintsOverlay() {
                           }`}
                         >
                           <Icon
-                            className={`w-5 h-5 ${
+                            className={`w-4 h-4 sm:w-5 sm:h-5 ${
                               saint.active && isRaphael
                                 ? 'text-emerald-400'
                                 : saint.tier === 'premium'
@@ -311,7 +311,7 @@ export default function CompactSaintsOverlay() {
                         {/* Name & Title */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className={`text-sm font-semibold truncate ${isTrainable ? 'text-white' : 'text-slate-500'}`}>{saint.name}</h4>
+                            <h4 className={`text-xs sm:text-sm font-semibold truncate ${isTrainable ? 'text-white' : 'text-slate-500'}`}>{saint.name}</h4>
                             {!isTrainable && (
                               <span className="px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-slate-700/50 border border-slate-600/30 rounded uppercase tracking-wider">
                                 Coming Soon
@@ -326,18 +326,18 @@ export default function CompactSaintsOverlay() {
                               <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
                             )}
                           </div>
-                          <p className={`text-xs truncate ${isTrainable ? 'text-slate-400' : 'text-slate-600'}`}>{saint.title}</p>
+                          <p className={`text-[10px] sm:text-xs truncate ${isTrainable ? 'text-slate-400' : 'text-slate-600'}`}>{saint.title}</p>
                         </div>
 
                         {/* Stats */}
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <div className="text-right hidden sm:block">
-                            <div className="text-lg font-semibold text-white tabular-nums">{saint.todayActivities}</div>
-                            <div className="text-[10px] text-slate-500 uppercase">Today</div>
+                            <div className="text-sm sm:text-lg font-semibold text-white tabular-nums">{saint.todayActivities}</div>
+                            <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase">Today</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-lg font-semibold text-emerald-400 tabular-nums">{saint.weeklyActivities}</div>
-                            <div className="text-[10px] text-slate-500 uppercase">Week</div>
+                            <div className="text-sm sm:text-lg font-semibold text-emerald-400 tabular-nums">{saint.weeklyActivities}</div>
+                            <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase">Week</div>
                           </div>
                         </div>
 
