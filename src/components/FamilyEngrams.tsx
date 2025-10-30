@@ -93,7 +93,7 @@ export default function FamilyEngrams() {
       <div className="glass-card p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
               <Users className="w-8 h-8 text-cyan-400" />
               Family Engrams
             </h2>
