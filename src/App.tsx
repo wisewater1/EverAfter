@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ConnectionsPanel from './components/ConnectionsPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorNotificationToast from './components/ErrorNotificationToast';
+import { attachEdgeReactive } from './lib/edge-reactive';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -49,6 +50,11 @@ function ErrorNotifierConnector() {
 }
 
 function App() {
+  useEffect(() => {
+    const cleanup = attachEdgeReactive('.ea-panel');
+    return cleanup;
+  }, []);
+
   return (
     <ErrorBoundary>
       <ErrorNotificationProvider>
