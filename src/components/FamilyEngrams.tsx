@@ -90,7 +90,7 @@ export default function FamilyEngrams() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass-card p-6">
+      <div className="bg-black/40 backdrop-blur-xl border border-slate-800/30 rounded-2xl p-4 sm:p-6 shadow-lg shadow-black/50">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
@@ -103,18 +103,17 @@ export default function FamilyEngrams() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="relative px-6 sm:px-8 py-3 bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/30 hover:bg-slate-900/60 group overflow-hidden whitespace-nowrap"
+            className="relative px-6 sm:px-8 py-3 bg-black/40 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:bg-black/60 group overflow-hidden whitespace-nowrap"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 relative z-10 text-cyan-400 group-hover:text-cyan-300 flex-shrink-0" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 relative z-10 flex-shrink-0" />
             <span className="relative z-10 text-xs sm:text-sm">Create</span>
           </button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card neon-border p-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-black/40 backdrop-blur-xl border border-slate-800/30 rounded-xl p-4 sm:p-5 shadow-lg shadow-black/50">
           <div className="flex items-center gap-3 mb-2">
             <Users className="w-5 h-5 text-cyan-400" />
             <span className="text-sm text-slate-400">Family Members</span>
@@ -122,7 +121,7 @@ export default function FamilyEngrams() {
           <p className="text-3xl font-bold text-white">{familyMembers.length}</p>
         </div>
 
-        <div className="glass-card neon-border p-5">
+        <div className="bg-black/40 backdrop-blur-xl border border-slate-800/30 rounded-xl p-4 sm:p-5 shadow-lg shadow-black/50">
           <div className="flex items-center gap-3 mb-2">
             <Heart className="w-5 h-5 text-pink-400" />
             <span className="text-sm text-slate-400">Total Moments</span>
@@ -132,7 +131,7 @@ export default function FamilyEngrams() {
           </p>
         </div>
 
-        <div className="glass-card neon-border p-5">
+        <div className="bg-black/40 backdrop-blur-xl border border-slate-800/30 rounded-xl p-4 sm:p-5 shadow-lg shadow-black/50">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
             <span className="text-sm text-slate-400">Active Engrams</span>
@@ -142,7 +141,7 @@ export default function FamilyEngrams() {
           </p>
         </div>
 
-        <div className="glass-card neon-border p-5">
+        <div className="bg-black/40 backdrop-blur-xl border border-slate-800/30 rounded-xl p-4 sm:p-5 shadow-lg shadow-black/50">
           <div className="flex items-center gap-3 mb-2">
             <MessageSquare className="w-5 h-5 text-purple-400" />
             <span className="text-sm text-slate-400">Interactions</span>

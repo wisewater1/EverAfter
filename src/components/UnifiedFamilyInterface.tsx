@@ -286,21 +286,21 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   return (
     <div className="space-y-6">
       {/* Header with Tabs */}
-      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Users className="w-6 h-6 text-white" />
+      <div className="bg-black/40 backdrop-blur-xl border border-slate-800/30 rounded-2xl p-4 sm:p-6 shadow-lg shadow-black/50">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black/60 backdrop-blur-xl border border-slate-700/50 rounded-xl flex items-center justify-center shadow-lg">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-white">Family Hub</h2>
-              <p className="text-sm text-slate-400">Manage family members, questions, and legacy data</p>
+              <h2 className="text-xl sm:text-2xl font-semibold text-white">Family Hub</h2>
+              <p className="text-xs sm:text-sm text-slate-400">Manage family members, questions, and legacy data</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => setShowInviteModal(true)}
-              className="px-4 py-2 bg-black/40 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600 hover:bg-black/60 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg"
+              className="flex-1 sm:flex-none px-4 py-2 bg-black/60 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600 hover:bg-black/70 text-white rounded-xl transition-all flex items-center justify-center gap-2 text-sm font-medium shadow-lg"
             >
               <UserPlus className="w-4 h-4" />
               Invite
@@ -481,13 +481,13 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           ))}
 
           {familyMembers.length === 0 && (
-            <div className="col-span-full bg-slate-900/30 border border-dashed border-slate-700/50 rounded-xl p-12 text-center">
+            <div className="col-span-full bg-black/40 backdrop-blur-xl border border-dashed border-slate-700/50 rounded-xl p-8 sm:p-12 text-center shadow-lg shadow-black/50">
               <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-slate-400 mb-2">No Family Members Yet</h3>
               <p className="text-sm text-slate-500 mb-4">Start building your family network by inviting members</p>
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all text-sm font-medium"
+                className="px-6 py-2.5 bg-black/60 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600 hover:bg-black/70 text-white rounded-xl transition-all text-sm font-medium shadow-lg"
               >
                 Invite Your First Member
               </button>
