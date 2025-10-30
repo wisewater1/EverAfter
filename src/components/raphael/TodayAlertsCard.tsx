@@ -30,8 +30,8 @@ export default function TodayAlertsCard({ alerts }: TodayAlertsCardProps) {
   };
 
   return (
-    <div className="glass-card neon-border group cursor-pointer">
-      <div className="p-5">
+    <div className="ea-panel group cursor-pointer" data-variant="emerald">
+      <div className="relative z-10 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">Alerts</h3>
           {alerts.length === 0 && (

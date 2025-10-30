@@ -9,8 +9,8 @@ interface TodayVitalsCardProps {
 export default function TodayVitalsCard({ summary }: TodayVitalsCardProps) {
   if (!summary) {
     return (
-      <div className="glass-card neon-border group cursor-pointer">
-        <div className="p-5">
+      <div className="ea-panel group cursor-pointer">
+        <div className="relative z-10 p-5">
           <h3 className="text-lg font-semibold text-white mb-4">Vitals</h3>
           <div className="text-center py-6">
             <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -40,8 +40,8 @@ export default function TodayVitalsCard({ summary }: TodayVitalsCardProps) {
   };
 
   return (
-    <div className="glass-card neon-border group cursor-pointer">
-      <div className="p-5">
+    <div className="ea-panel group cursor-pointer">
+      <div className="relative z-10 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">Vitals</h3>
           <span className="text-xs text-slate-500">

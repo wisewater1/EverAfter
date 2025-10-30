@@ -49,8 +49,8 @@ export default function TodayTasksCard({ tasks }: TodayTasksCardProps) {
   };
 
   return (
-    <div className="glass-card neon-border group">
-      <div className="p-5">
+    <div className="ea-panel group">
+      <div className="relative z-10 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">Today's Tasks</h3>
           {tasks.length > 0 && (

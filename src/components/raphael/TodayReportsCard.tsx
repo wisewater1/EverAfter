@@ -19,8 +19,8 @@ export default function TodayReportsCard({ reports }: TodayReportsCardProps) {
   };
 
   return (
-    <div className="glass-card neon-border group cursor-pointer">
-      <div className="p-5">
+    <div className="ea-panel group cursor-pointer">
+      <div className="relative z-10 p-5">
         <h3 className="text-lg font-semibold text-white mb-4">Recent Reports</h3>
 
         {reports.length === 0 ? (

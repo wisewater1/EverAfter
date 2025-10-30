@@ -3,27 +3,140 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-0: #06080c;
+    --bg-1: #0a0f15;
+    --glass: rgba(16, 24, 32, 0.55);
+    --glass-strong: rgba(16, 24, 32, 0.72);
+    --stroke: rgba(255, 255, 255, 0.07);
+    --text: rgba(255, 255, 255, 0.88);
+    --teal: #00ffe0;
+    --gold: #f6c86b;
+    --radius: 16px;
+    --blur: 18px;
+  }
+
   html {
     /* iOS safe area support */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    /* Text stability on phones */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply antialiased;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background:
+      radial-gradient(1200px 800px at 20% 10%, rgba(0, 255, 224, 0.06), transparent 60%),
+      radial-gradient(1000px 700px at 80% 90%, rgba(246, 200, 107, 0.05), transparent 60%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    color: var(--text);
   }
 
   /* Focus visible styles for accessibility */
   *:focus-visible {
     @apply outline-2 outline-offset-2 outline-cyan-400;
   }
+
+  /* Prevent text clipping */
+  p, .text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .flex-row > * {
+    min-width: 0;
+  }
+
+  .flex-col > * {
+    min-height: 0;
+  }
 }
 
 @layer components {
+  /* Dark glass panel with edge-reactive highlights */
+  .ea-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--glass);
+    backdrop-filter: blur(var(--blur));
+    -webkit-backdrop-filter: blur(var(--blur));
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 36px rgba(0, 0, 0, 0.45);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+  }
+
+  .ea-panel:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Responsive edge glow follows cursor/touch */
+  .ea-panel::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(140px 140px at var(--mx, 50%) var(--my, 50%),
+      rgba(0, 255, 224, 0.25), transparent 60%);
+    filter: blur(12px);
+    opacity: 0.8;
+    transition: background 0.06s linear, opacity 0.2s;
+  }
+
+  .ea-panel[data-variant="gold"]::after {
+    background: radial-gradient(140px 140px at var(--mx, 50%) var(--my, 50%),
+      rgba(246, 200, 107, 0.22), transparent 60%);
+  }
+
+  .ea-panel[data-variant="emerald"]::after {
+    background: radial-gradient(140px 140px at var(--mx, 50%) var(--my, 50%),
+      rgba(16, 185, 129, 0.25), transparent 60%);
+  }
+
+  /* Keyboard focus ring */
+  .ea-panel:focus-within {
+    outline: 2px solid rgba(0, 255, 224, 0.45);
+    outline-offset: 3px;
+  }
+
+  /* Glass buttons to match */
+  .ea-btn {
+    background: var(--glass-strong);
+    color: var(--text);
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    padding: 12px 18px;
+    min-height: 44px;
+    min-width: 44px;
+    backdrop-filter: blur(calc(var(--blur) * 0.8));
+    -webkit-backdrop-filter: blur(calc(var(--blur) * 0.8));
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+
+  .ea-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(16, 24, 32, 0.85);
+  }
+
+  .ea-btn:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+
+  .ea-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Legacy glass-card for backwards compatibility */
   .glass-card {
     @apply bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/10;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.45);
