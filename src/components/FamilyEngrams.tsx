@@ -107,7 +107,7 @@ export default function FamilyEngrams() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <Plus className="w-4 h-4 sm:w-5 sm:h-5 relative z-10 text-cyan-400 group-hover:text-cyan-300 flex-shrink-0" />
-            <span className="relative z-10 text-xs sm:text-sm">Create New Engram</span>
+            <span className="relative z-10 text-xs sm:text-sm">Create</span>
           </button>
         </div>
       </div>

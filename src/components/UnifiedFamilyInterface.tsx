@@ -300,10 +300,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowInviteModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg"
+              className="px-4 py-2 bg-black/40 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600 hover:bg-black/60 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg"
             >
               <UserPlus className="w-4 h-4" />
-              Invite Member
+              Invite
             </button>
           </div>
         </div>
