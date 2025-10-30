@@ -151,7 +151,7 @@ export default function Dashboard() {
       </header>
 
       {/* Navigation - Minimalistic & Responsive */}
-      <nav className="sticky top-[73px] z-40 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/20 shadow-lg shadow-slate-950/50">
+      <nav className="sticky top-[73px] z-40 bg-black/40 backdrop-blur-xl border-b border-slate-800/30 shadow-lg shadow-black/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile & Tablet: Horizontal Scroll */}
           <div className="lg:hidden flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-4 px-4 snap-x snap-mandatory">
