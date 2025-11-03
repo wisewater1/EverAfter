@@ -11,6 +11,7 @@ import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
+import SaintsDashboard from '../components/SaintsDashboard';
 
 interface ArchetypalAI {
   id: string;
@@ -268,6 +269,7 @@ export default function Dashboard() {
           )}
           {selectedView === 'engrams' && (
             <>
+              <SaintsDashboard />
               <FamilyEngrams />
               <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
               <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
