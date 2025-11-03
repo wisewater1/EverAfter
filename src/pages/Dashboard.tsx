@@ -22,7 +22,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'family' | 'activities' | 'engrams' | 'chat'>('family');
+  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
 
@@ -35,7 +35,7 @@ export default function Dashboard() {
 
   const handleSelectAI = (aiId: string) => {
     setSelectedAIId(aiId);
-    setSelectedView('family');
+    setSelectedView('engrams');
   };
 
   const loadArchetypalAIs = useCallback(async () => {
@@ -80,7 +80,6 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { id: 'family', label: 'Family', icon: Users },
     { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
@@ -261,11 +260,6 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48 safe-bottom w-full">
         <div className="space-y-8">
-          {selectedView === 'family' && (
-            <>
-              <div className="h-[60vh]"></div>
-            </>
-          )}
           {selectedView === 'activities' && (
             <>
               <UnifiedActivityCenter />
