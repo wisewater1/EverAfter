@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,10 +30,6 @@ interface SaintActivity {
   impact: 'high' | 'medium' | 'low';
   category: 'communication' | 'support' | 'protection' | 'memory' | 'family' | 'charity';
   details?: string | Record<string, unknown>;
-}
-
-interface SaintsDashboardProps {
-  onOpenHealthMonitor: () => void;
 }
 
 const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivities' | 'lastActive'>[] = [
@@ -77,8 +74,9 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
   }
 ];
 
-export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboardProps) {
+export default function SaintsDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
   const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
@@ -708,7 +706,7 @@ export default function SaintsDashboard({ onOpenHealthMonitor }: SaintsDashboard
 
                 {saint.active && isRaphael && (
                   <button
-                    onClick={onOpenHealthMonitor}
+                    onClick={() => navigate('/health-dashboard')}
                     className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
                   >
                     <Activity className="w-4 h-4" />
