@@ -169,7 +169,7 @@ export default function UnifiedChatInterface() {
   if (viewMode === 'chat' && selectedSession) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-4 shadow-2xl">
           <ReactiveButton
             onClick={handleBackToList}
             variant="teal"
@@ -179,17 +179,17 @@ export default function UnifiedChatInterface() {
             Back to Chats
           </ReactiveButton>
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 bg-gradient-to-br ${getSessionColor(selectedSession.type)} rounded-lg flex items-center justify-center`}>
+            <div className={`w-12 h-12 bg-gradient-to-br ${getSessionColor(selectedSession.type)} rounded-xl flex items-center justify-center shadow-xl`}>
               {getSessionIcon(selectedSession.type)}
             </div>
             <div>
-              <h3 className="text-white font-medium">{selectedSession.name}</h3>
+              <h3 className="text-white font-semibold">{selectedSession.name}</h3>
               <p className="text-xs text-slate-400">{selectedSession.archetype}</p>
             </div>
           </div>
           <button
             onClick={() => toggleFavorite(selectedSession.id)}
-            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all"
+            className="p-2.5 hover:bg-slate-800/50 rounded-xl transition-all backdrop-blur-sm border border-slate-700/30 hover:border-amber-500/30"
           >
             <Star
               className={`w-5 h-5 ${
@@ -199,16 +199,16 @@ export default function UnifiedChatInterface() {
           </button>
         </div>
 
-        <GlassCard hover={false} className="overflow-hidden">
+        <div className="bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden shadow-2xl">
           {renderChatComponent()}
-        </GlassCard>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6 shadow-2xl">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">Chat & Tasks Hub</h2>
           <p className="text-slate-400 text-sm">
@@ -219,21 +219,23 @@ export default function UnifiedChatInterface() {
         </div>
         <button
           onClick={() => setShowSettings(!showSettings)}
-          className="p-2 hover:bg-slate-800/50 rounded-lg transition-all"
+          className="p-3 hover:bg-slate-800/50 rounded-xl transition-all backdrop-blur-sm border border-slate-700/30 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10"
         >
-          <Settings className="w-5 h-5 text-slate-400" />
+          <Settings className="w-5 h-5 text-slate-400 hover:text-emerald-400 transition-colors" />
         </button>
       </div>
 
-      <div className="flex items-center gap-2 glass-card p-1">
+      <div className="flex items-center gap-2 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-2 shadow-2xl">
         <button
           onClick={() => {
             setTabMode('conversations');
             setViewMode('list');
             setSelectedSession(null);
           }}
-          className={`glass-chip flex-1 flex items-center justify-center gap-2 px-4 py-2.5 transition-all font-medium ${
-            tabMode === 'conversations' ? 'text-[var(--accent-teal)]' : 'text-[var(--muted)]'
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all font-medium ${
+            tabMode === 'conversations'
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10'
+              : 'text-slate-400 hover:bg-slate-800/30 hover:text-white'
           }`}
           aria-checked={tabMode === 'conversations'}
         >
@@ -242,8 +244,10 @@ export default function UnifiedChatInterface() {
         </button>
         <button
           onClick={() => setTabMode('tasks')}
-          className={`glass-chip flex-1 flex items-center justify-center gap-2 px-4 py-2.5 transition-all font-medium ${
-            tabMode === 'tasks' ? 'text-[var(--accent-teal)]' : 'text-[var(--muted)]'
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all font-medium ${
+            tabMode === 'tasks'
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10'
+              : 'text-slate-400 hover:bg-slate-800/30 hover:text-white'
           }`}
           aria-checked={tabMode === 'tasks'}
         >
@@ -256,13 +260,13 @@ export default function UnifiedChatInterface() {
         <>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="glass-input w-full pl-10 pr-4 py-2.5 text-white placeholder:text-slate-500"
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 transition-all shadow-xl"
               />
             </div>
           </div>
@@ -280,8 +284,10 @@ export default function UnifiedChatInterface() {
             <button
               key={filter.id}
               onClick={() => setFilterType(filter.id as FilterType)}
-              className={`glass-chip flex items-center gap-2 px-4 py-2 transition-all whitespace-nowrap text-sm font-medium ${
-                isActive ? 'text-[var(--accent-teal)]' : 'text-[var(--muted)]'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all whitespace-nowrap text-sm font-medium backdrop-blur-xl ${
+                isActive
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10'
+                  : 'bg-slate-950/40 border border-slate-800/30 text-slate-400 hover:bg-slate-800/40 hover:text-white hover:border-slate-700/50'
               }`}
               aria-checked={isActive}
             >
@@ -292,12 +298,12 @@ export default function UnifiedChatInterface() {
         })}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredSessions.map((session) => (
-          <GlassCard
+          <div
             key={session.id}
             onClick={() => handleSelectSession(session)}
-            className="relative group p-4 cursor-pointer"
+            className="relative group p-5 cursor-pointer bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
@@ -307,13 +313,13 @@ export default function UnifiedChatInterface() {
               }
             }}
           >
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleFavorite(session.id);
                 }}
-                className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-all"
+                className="p-2 hover:bg-slate-800/60 rounded-lg transition-all backdrop-blur-sm border border-slate-700/30"
               >
                 <Star
                   className={`w-4 h-4 ${
@@ -323,15 +329,15 @@ export default function UnifiedChatInterface() {
               </button>
             </div>
 
-            <div className="flex items-start gap-3 mb-3">
-              <div className={`w-12 h-12 bg-gradient-to-br ${getSessionColor(session.type)} rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg`}>
+            <div className="flex items-start gap-4 mb-4">
+              <div className={`w-14 h-14 bg-gradient-to-br ${getSessionColor(session.type)} rounded-xl flex items-center justify-center flex-shrink-0 shadow-xl`}>
                 {getSessionIcon(session.type)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-white font-medium truncate">{session.name}</h3>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="text-white font-semibold truncate">{session.name}</h3>
                   {session.isActive && (
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0 shadow-lg shadow-emerald-400/50 animate-pulse"></div>
                   )}
                 </div>
                 <p className="text-xs text-slate-400 truncate">{session.archetype}</p>
@@ -339,11 +345,11 @@ export default function UnifiedChatInterface() {
             </div>
 
             {session.lastMessage && (
-              <div className="space-y-1">
-                <p className="text-sm text-slate-400 line-clamp-2">{session.lastMessage}</p>
+              <div className="space-y-2 bg-slate-900/40 rounded-xl p-3 border border-slate-800/30">
+                <p className="text-sm text-slate-300 line-clamp-2">{session.lastMessage}</p>
                 {session.lastMessageTime && (
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                    <Clock className="w-3 h-3" />
+                    <Clock className="w-3.5 h-3.5" />
                     {new Date(session.lastMessageTime).toLocaleDateString()}
                   </div>
                 )}
@@ -351,18 +357,20 @@ export default function UnifiedChatInterface() {
             )}
 
             {session.unreadCount && session.unreadCount > 0 && (
-              <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              <div className="absolute top-4 right-4 w-7 h-7 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
                 {session.unreadCount}
               </div>
             )}
-          </GlassCard>
+          </div>
         ))}
 
         {filteredSessions.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-500">No conversations found</p>
-            <p className="text-sm text-slate-600 mt-1">
+          <div className="col-span-full text-center py-16 bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
+            <div className="w-20 h-20 bg-slate-900/60 border border-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="w-10 h-10 text-slate-600" />
+            </div>
+            <p className="text-slate-400 font-medium text-lg">No conversations found</p>
+            <p className="text-sm text-slate-500 mt-2">
               {searchQuery ? 'Try a different search' : 'Create an AI assistant to get started'}
             </p>
           </div>
@@ -370,23 +378,23 @@ export default function UnifiedChatInterface() {
       </div>
 
           {showSettings && (
-            <GlassCard hover={false} className="p-6 space-y-4 animate-spring-in">
-              <h3 className="text-white font-medium mb-4">Chat Settings</h3>
-              <div className="space-y-3">
-                <label className="flex items-center justify-between">
-                  <span className="text-slate-300 text-sm">Show typing indicators</span>
-                  <input type="checkbox" className="rounded" defaultChecked />
+            <div className="p-6 space-y-4 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-spring-in">
+              <h3 className="text-white font-semibold text-lg mb-4">Chat Settings</h3>
+              <div className="space-y-4">
+                <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">
+                  <span className="text-slate-300 text-sm font-medium">Show typing indicators</span>
+                  <input type="checkbox" className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-emerald-500/20" defaultChecked />
                 </label>
-                <label className="flex items-center justify-between">
-                  <span className="text-slate-300 text-sm">Sound notifications</span>
-                  <input type="checkbox" className="rounded" />
+                <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">
+                  <span className="text-slate-300 text-sm font-medium">Sound notifications</span>
+                  <input type="checkbox" className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-emerald-500/20" />
                 </label>
-                <label className="flex items-center justify-between">
-                  <span className="text-slate-300 text-sm">Auto-save conversations</span>
-                  <input type="checkbox" className="rounded" defaultChecked />
+                <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">
+                  <span className="text-slate-300 text-sm font-medium">Auto-save conversations</span>
+                  <input type="checkbox" className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-emerald-500/20" defaultChecked />
                 </label>
               </div>
-            </GlassCard>
+            </div>
           )}
         </>
       )}
