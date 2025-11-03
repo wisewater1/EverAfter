@@ -263,9 +263,6 @@ export default function Dashboard() {
         <div className="space-y-8">
           {selectedView === 'family' && (
             <>
-              <FamilyEngrams />
-              <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
-              {/* Additional spacing for longer scrolling */}
               <div className="h-[60vh]"></div>
             </>
           )}
@@ -277,6 +274,8 @@ export default function Dashboard() {
           )}
           {selectedView === 'engrams' && (
             <>
+              <FamilyEngrams />
+              <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
               <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
               <div className="h-[60vh]"></div>
             </>
