@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorNotificationProvider, useErrorNotification } from './contexts/ErrorNotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
@@ -139,6 +139,16 @@ function App() {
                   <ProtectedRoute>
                     <HealthDashboard />
                   </ProtectedRoute>
+                } />
+                {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}
+                <Route path="/emergency" element={
+                  <Navigate to="/health-dashboard#emergency" replace />
+                } />
+                <Route path="/files" element={
+                  <Navigate to="/health-dashboard#documents" replace />
+                } />
+                <Route path="/my-files" element={
+                  <Navigate to="/health-dashboard#documents" replace />
                 } />
                 <Route path="/devices" element={
                   <ProtectedRoute>

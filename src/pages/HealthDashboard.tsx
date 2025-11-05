@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useConnections } from '../contexts/ConnectionsContext';
@@ -29,6 +29,7 @@ type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'con
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const [activeTab, setActiveTab] = useState<TabView>('overview');
@@ -37,6 +38,16 @@ export default function HealthDashboard() {
   const [loadingToday, setLoadingToday] = useState(true);
 
   const activeConnectionsCount = getActiveConnectionsCount();
+
+  // Handle deep links from legacy routes (PRESERVES OLD ROUTES)
+  useEffect(() => {
+    const hash = location.hash.slice(1); // Remove # prefix
+    if (hash === 'emergency') {
+      setActiveTab('goals'); // Show goals tab with emergency section
+    } else if (hash === 'documents' || hash === 'files') {
+      setActiveTab('medications'); // Show medications tab with documents
+    }
+  }, [location.hash]);
 
   useEffect(() => {
     // Fetch St. Raphael engram ID
@@ -73,16 +84,16 @@ export default function HealthDashboard() {
     loadTodayData();
   }, [user?.id]);
 
+  // NAVIGATION REFACTOR: Connections first, Emergency merged into Goals, Files merged into Medications
   const tabs = [
     { id: 'overview' as TabView, label: 'Overview', icon: Activity },
+    { id: 'connections' as TabView, label: 'Connections', icon: Link2 }, // MOVED TO SECOND POSITION
     { id: 'devices-analytics' as TabView, label: 'Devices & Analytics', icon: LayoutGrid },
     { id: 'predictions' as TabView, label: 'Predictions', icon: Brain },
-    { id: 'medications' as TabView, label: 'Medications', icon: Heart },
-    { id: 'goals' as TabView, label: 'Goals', icon: Target },
-    { id: 'files' as TabView, label: 'My Files', icon: FolderOpen },
-    { id: 'connections' as TabView, label: 'Connections', icon: Activity },
-    { id: 'contacts' as TabView, label: 'Emergency', icon: Users },
+    { id: 'medications' as TabView, label: 'Medications', icon: Heart }, // NOW INCLUDES FILES AS DOCUMENTS
+    { id: 'goals' as TabView, label: 'Goals', icon: Target }, // NOW INCLUDES EMERGENCY AS SUB-SECTION
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
+    // Legacy tabs removed: 'files', 'contacts' - content merged into medications and goals
   ];
 
   return (
@@ -290,13 +301,50 @@ export default function HealthDashboard() {
             <div className="space-y-6">
               <HeartDeviceRecommendations />
               <MedicationTracker />
+              {/* Documents Section - Merged from Files */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <FolderOpen className="w-6 h-6 text-emerald-400" />
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">Documents</h2>
+                    <p className="text-sm text-slate-400">Medical records, prescriptions, and health documents</p>
+                  </div>
+                </div>
+                <FileManager />
+              </div>
             </div>
           )}
-          {activeTab === 'goals' && <HealthGoals />}
-          {activeTab === 'files' && <FileManager />}
+          {activeTab === 'goals' && (
+            <div className="space-y-6">
+              <HealthGoals />
+              {/* Emergency Actions Section - Merged from Emergency */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <Users className="w-6 h-6 text-rose-400" />
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">Emergency Actions</h2>
+                    <p className="text-sm text-slate-400">Emergency contacts and critical health information</p>
+                  </div>
+                </div>
+                <EmergencyContacts />
+              </div>
+            </div>
+          )}
           {activeTab === 'connections' && <HealthConnectionManager />}
-          {activeTab === 'contacts' && <EmergencyContacts />}
           {activeTab === 'chat' && <RaphaelChat />}
+          {/* Legacy tab handlers preserved for direct state changes */}
+          {activeTab === 'files' && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
+              <p className="text-amber-300 text-center">Files have been merged into Medications → Documents. Redirecting...</p>
+              {setTimeout(() => setActiveTab('medications'), 1500)}
+            </div>
+          )}
+          {activeTab === 'contacts' && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
+              <p className="text-amber-300 text-center">Emergency has been merged into Goals → Emergency Actions. Redirecting...</p>
+              {setTimeout(() => setActiveTab('goals'), 1500)}
+            </div>
+          )}
         </div>
 
         {/* Scroll sentinel for testing */}
