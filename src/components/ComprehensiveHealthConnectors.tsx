@@ -6,7 +6,7 @@ import {
   CheckCircle, AlertCircle, RefreshCw, Plus, Upload, FileText,
   Smartphone, Radio, Droplet, Stethoscope, FlaskConical, Link2,
   Sparkles, Code, Settings, Info, TrendingUp, Moon, Brain, Target,
-  Scale, ThermometerSun, Clock, LayoutDashboard
+  Scale, ThermometerSun, Clock, LayoutDashboard, Building2
 } from 'lucide-react';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
 
@@ -106,6 +106,119 @@ const HEALTH_SERVICES: HealthService[] = [
     status: 'coming_soon',
     deviceCount: '500+'
   },
+
+  // ========== NEW CLINICAL AGGREGATORS (11 INTEGRATIONS) ==========
+  {
+    id: 'particle_health',
+    name: 'Particle Health',
+    category: 'ehr',
+    description: 'Unified API for clinical records and claims from 270M+ patients',
+    icon: Building2,
+    color: 'from-indigo-600 to-purple-600',
+    features: ['Clinical Records', 'Claims Data', 'FHIR R4', '270M Patients'],
+    status: 'available'
+  },
+  {
+    id: '1up_health',
+    name: '1upHealth',
+    category: 'ehr',
+    description: 'FHIR-based aggregation from 9,000+ healthcare organizations',
+    icon: Building2,
+    color: 'from-emerald-600 to-teal-600',
+    features: ['FHIR R4', '9K+ Orgs', 'Labs', 'Medications'],
+    status: 'available'
+  },
+  {
+    id: 'health_gorilla',
+    name: 'Health Gorilla',
+    category: 'ehr',
+    description: 'Clinical lab results from 10,000+ laboratories',
+    icon: FlaskConical,
+    color: 'from-green-600 to-emerald-600',
+    features: ['Lab Results', '10K+ Labs', 'Real-time', 'Imaging'],
+    status: 'available'
+  },
+  {
+    id: 'zus_health',
+    name: 'Zus Health',
+    category: 'ehr',
+    description: 'Comprehensive clinical data from 300+ health systems',
+    icon: Shield,
+    color: 'from-violet-600 to-purple-600',
+    features: ['Clinical Data', 'Care Coordination', '300+ Systems', 'FHIR'],
+    status: 'available'
+  },
+  {
+    id: 'smart_on_fhir_generic',
+    name: 'SMART on FHIR (Generic)',
+    category: 'ehr',
+    description: 'Connect to any FHIR R4 compliant EHR (Epic, Cerner, Allscripts)',
+    icon: Stethoscope,
+    color: 'from-orange-600 to-red-600',
+    features: ['FHIR R4', 'EHR Universal', 'Labs', 'Meds', 'Conditions'],
+    status: 'available'
+  },
+  {
+    id: 'cms_blue_button',
+    name: 'Medicare Blue Button',
+    category: 'ehr',
+    description: 'Medicare claims and coverage (60M+ beneficiaries)',
+    icon: Shield,
+    color: 'from-blue-700 to-cyan-700',
+    features: ['Medicare', 'Claims', 'Coverage', '60M Users'],
+    status: 'available'
+  },
+  {
+    id: 'ble_heart_rate',
+    name: 'BLE Heart Rate Monitor',
+    category: 'wearables',
+    description: 'Any Bluetooth heart rate monitor (generic GATT profile)',
+    icon: Heart,
+    color: 'from-red-600 to-rose-600',
+    features: ['Bluetooth', 'HR', 'HRV', 'Universal'],
+    status: 'available'
+  },
+  {
+    id: 'ble_blood_pressure',
+    name: 'BLE Blood Pressure',
+    category: 'wearables',
+    description: 'Bluetooth BP monitors (Omron, A&D, iHealth compatible)',
+    icon: Activity,
+    color: 'from-blue-600 to-cyan-600',
+    features: ['Bluetooth', 'BP', 'Pulse', 'Omron'],
+    status: 'available'
+  },
+  {
+    id: 'ble_weight_scale',
+    name: 'BLE Weight Scale',
+    category: 'wearables',
+    description: 'Bluetooth smart scales (Withings, Fitbit, Eufy)',
+    icon: Scale,
+    color: 'from-emerald-600 to-green-600',
+    features: ['Bluetooth', 'Weight', 'BMI', 'Body Fat'],
+    status: 'available'
+  },
+  {
+    id: 'ble_glucose_meter',
+    name: 'BLE Glucose Meter',
+    category: 'glucose',
+    description: 'Bluetooth glucose meters (OneTouch, Contour, Accu-Chek)',
+    icon: Droplet,
+    color: 'from-amber-600 to-orange-600',
+    features: ['Bluetooth', 'Glucose', 'OneTouch', 'Contour'],
+    status: 'available'
+  },
+  {
+    id: 'ble_pulse_oximeter',
+    name: 'BLE Pulse Oximeter',
+    category: 'wearables',
+    description: 'Bluetooth SpO2 monitors (generic pulse oximeter profile)',
+    icon: Radio,
+    color: 'from-cyan-600 to-blue-600',
+    features: ['Bluetooth', 'SpO2', 'Pulse', 'Universal'],
+    status: 'available'
+  },
+  // ========== END NEW INTEGRATIONS ==========
 
   // Platform Integrations
   {

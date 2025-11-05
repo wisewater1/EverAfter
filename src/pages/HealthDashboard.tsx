@@ -16,6 +16,7 @@ import HealthGoals from '../components/HealthGoals';
 import EmergencyContacts from '../components/EmergencyContacts';
 import HealthReportGenerator from '../components/HealthReportGenerator';
 import HealthConnectionManager from '../components/HealthConnectionManager';
+import ComprehensiveHealthConnectors from '../components/ComprehensiveHealthConnectors';
 import FileManager from '../components/FileManager';
 import ConnectionRotationConfig from '../components/ConnectionRotationConfig';
 import ConnectionRotationMonitor from '../components/ConnectionRotationMonitor';
@@ -330,7 +331,7 @@ export default function HealthDashboard() {
               </div>
             </div>
           )}
-          {activeTab === 'connections' && <HealthConnectionManager />}
+          {activeTab === 'connections' && <ComprehensiveHealthConnectors />}
           {activeTab === 'chat' && <RaphaelChat />}
           {/* Legacy tab handlers preserved for direct state changes */}
           {activeTab === 'files' && (
