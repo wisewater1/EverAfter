@@ -83,7 +83,6 @@ export default function Dashboard() {
   const navItems = [
     { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
-    { id: 'chat', label: 'Chat', icon: MessageCircle },
   ];
 
   const handleNavigateToLegacy = () => {
