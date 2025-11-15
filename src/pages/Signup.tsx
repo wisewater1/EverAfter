@@ -136,13 +136,13 @@ export default function Signup() {
                       <div
                         key={i}
                         className={`h-1 flex-1 rounded-full transition-all ${
-                          i <= strength ? strengthColors[strength - 1] : 'bg-gray-700'
+                          i <= strength ? strengthColors[strength > 0 ? strength - 1 : 0] : 'bg-gray-700'
                         }`}
                       />
                     ))}
                   </div>
                   <p className="text-xs text-gray-400">
-                    Password strength: <span className={strength >= 4 ? 'text-green-400' : strength >= 3 ? 'text-blue-400' : strength >= 2 ? 'text-yellow-400' : 'text-red-400'}>{strengthLabels[Math.max(0, strength - 1)]}</span>
+                    Password strength: <span className={strength >= 4 ? 'text-green-400' : strength >= 3 ? 'text-blue-400' : strength >= 2 ? 'text-yellow-400' : 'text-red-400'}>{strength > 0 ? strengthLabels[strength - 1] : 'Very Weak'}</span>
                   </p>
                 </div>
               )}
