@@ -1,0 +1,10 @@
+# Supabase Configuration
+
+[api]
+enabled = true
+
+[db]
+enabled = true
+
+[functions]
+enabled = true
