@@ -37,6 +37,8 @@ import TerraSetupWizard from './components/TerraSetupWizard';
 import TerraCallback from './pages/TerraCallback';
 import DarkGlassCarouselShowcase from './pages/DarkGlassCarouselShowcase';
 import DeviceCheck from './pages/DeviceCheck';
+import Career from './pages/Career';
+import PublicCareerChat from './pages/PublicCareerChat';
 
 function ErrorNotifierConnector() {
   const { showError } = useErrorNotification();
@@ -170,6 +172,12 @@ function App() {
                     <TerraCallback />
                   </ProtectedRoute>
                 } />
+                <Route path="/career" element={
+                  <ProtectedRoute>
+                    <Career />
+                  </ProtectedRoute>
+                } />
+                <Route path="/career/public/:token" element={<PublicCareerChat />} />
               </Routes>
               <ConnectionsPanel />
             </Router>

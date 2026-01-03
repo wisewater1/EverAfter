@@ -1,3 +1,74 @@
+# EverAfter Changelog
+
+---
+
+## Version 2.1.0 - Career Agent Feature
+
+**Release Date:** January 2, 2026
+**Status:** Implementation Complete
+
+### Overview
+
+Integrated the Personal Career Agent into EverAfter's existing architecture. Originally designed as a standalone Python/Gradio application, this feature was adapted to use Supabase Edge Functions, PostgreSQL with RLS, and React components.
+
+### New Files Created
+
+| File | Description |
+|------|-------------|
+| `supabase/migrations/20260102100000_create_career_agent_system.sql` | Database migration with 5 tables and RLS policies |
+| `supabase/functions/career-chat/index.ts` | Main chat Edge Function with 4 AI tools |
+| `supabase/functions/career-profile-update/index.ts` | Profile CRUD and token management |
+| `src/components/CareerChat.tsx` | Chat component (supports auth + public modes) |
+| `src/components/CareerDashboard.tsx` | Dashboard with profile, goals, leads, questions |
+| `src/pages/Career.tsx` | Main career page with tab navigation |
+| `src/pages/PublicCareerChat.tsx` | Public shareable chat for visitors |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/lib/edge-functions.ts` | Added CareerChat interfaces and functions |
+| `src/App.tsx` | Added Career and PublicCareerChat routes |
+
+### Database Tables
+
+- `career_profiles` - User career data, skills, public chat settings
+- `career_chat_messages` - Conversation history (auth + anonymous)
+- `career_goals` - Career goal tracking with progress
+- `career_leads` - Captured visitor contact information
+- `career_unknown_questions` - Questions AI couldn't answer
+
+### AI Tools (career-chat function)
+
+1. `record_user_details` - Capture visitor email/name/company
+2. `record_unknown_question` - Log unanswerable questions
+3. `track_career_goal` - Create/update career goals
+4. `get_career_context` - Retrieve profile and goals for context
+
+### Routes Added
+
+| Route | Component | Auth | Description |
+|-------|-----------|------|-------------|
+| `/career` | Career | Protected | Main career dashboard/chat |
+| `/career/public/:token` | PublicCareerChat | Public | Shareable visitor chat |
+
+### Architecture Decisions
+
+- Integrated into EverAfter (not standalone Python app)
+- Supabase Edge Functions (instead of FastAPI)
+- PostgreSQL with RLS (instead of JSON file storage)
+- React components (instead of Gradio UI)
+- Skip notifications for MVP (no Pushover/email)
+
+### Post-MVP Features (deferred)
+
+- Pushover/email notifications for new leads
+- LinkedIn data import
+- Resume parsing
+- Interview preparation tools
+
+---
+
 # EverAfter - Production Audit & Minimalist Neon UI Transformation
 
 ## Version 2.0.0 - Production Ready Release

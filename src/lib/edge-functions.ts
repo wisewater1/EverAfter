@@ -12,12 +12,19 @@ export class EdgeFunctionException extends Error {
   hint?: string;
   status: number;
 
-  constructor(error: EdgeFunctionError) {
-    super(error.message);
+  constructor(codeOrError: string | EdgeFunctionError, message?: string, hint?: string) {
+    if (typeof codeOrError === 'string') {
+      super(message || 'An error occurred');
+      this.code = codeOrError;
+      this.hint = hint;
+      this.status = 500;
+    } else {
+      super(codeOrError.message);
+      this.code = codeOrError.code;
+      this.hint = codeOrError.hint;
+      this.status = codeOrError.status || 500;
+    }
     this.name = 'EdgeFunctionException';
-    this.code = error.code;
-    this.hint = error.hint;
-    this.status = error.status || 500;
   }
 }
 
@@ -164,4 +171,73 @@ export interface DailyProgressResponse {
 
 export async function getDailyProgress(): Promise<DailyProgressResponse> {
   return callEdgeFunction<DailyProgressResponse>('daily-progress', {});
+}
+
+/**
+ * Career Agent Chat
+ */
+export interface CareerChatRequest {
+  input: string;
+  conversation_history?: Array<{ role: string; content: string }>;
+}
+
+export interface CareerChatResponse {
+  reply: string;
+  is_owner: boolean;
+  tools_used: boolean;
+  tool_execution_log?: Array<{
+    tool: string;
+    args: any;
+    result: any;
+  }>;
+  visitor_token?: string;
+}
+
+export async function chatWithCareerAgent(request: CareerChatRequest): Promise<CareerChatResponse> {
+  return callEdgeFunction<CareerChatResponse>('career-chat', request);
+}
+
+/**
+ * Career Profile Management
+ */
+export interface CareerProfile {
+  id: string;
+  user_id: string;
+  linkedin_summary?: string;
+  current_role?: string;
+  industry?: string;
+  years_experience?: number;
+  skills: string[];
+  career_interests: string[];
+  public_chat_enabled: boolean;
+  public_chat_token?: string;
+  public_chat_greeting?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CareerProfileUpdateRequest {
+  linkedin_summary?: string;
+  current_role?: string;
+  industry?: string;
+  years_experience?: number;
+  skills?: string[];
+  career_interests?: string[];
+  public_chat_enabled?: boolean;
+  public_chat_greeting?: string;
+  generate_new_token?: boolean;
+}
+
+export interface CareerProfileResponse {
+  success: boolean;
+  profile: CareerProfile;
+  message?: string;
+}
+
+export async function getCareerProfile(): Promise<{ profile: CareerProfile | null; has_profile: boolean }> {
+  return callEdgeFunction('career-profile-update', {});
+}
+
+export async function updateCareerProfile(request: CareerProfileUpdateRequest): Promise<CareerProfileResponse> {
+  return callEdgeFunction<CareerProfileResponse>('career-profile-update', request);
 }
