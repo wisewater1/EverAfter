@@ -2,6 +2,108 @@
 
 ---
 
+## Version 2.2.0 - Onboarding Flow (Phase 1)
+
+**Release Date:** January 3, 2026
+**Status:** Implementation Complete
+**Phase:** 1 of 5 from IMPLEMENTATION_ROADMAP.md
+
+### Overview
+
+Implemented a comprehensive 6-step onboarding wizard for new users, collecting health demographics, connecting health data sources, managing media permissions, and creating the first Engram AI personality. This was identified as a critical gap in the product vision.
+
+### New Files Created
+
+| File | Description |
+|------|-------------|
+| `supabase/migrations/20260102110000_create_onboarding_system.sql` | Database migration with 3 tables, RLS policies, triggers |
+| `src/pages/Onboarding.tsx` | Main onboarding wizard with step management |
+| `src/components/onboarding/OnboardingProgress.tsx` | Visual progress indicator (desktop + mobile) |
+| `src/components/onboarding/WelcomeStep.tsx` | Introduction to EverAfter features |
+| `src/components/onboarding/MeetRaphaelStep.tsx` | St. Raphael AI companion introduction |
+| `src/components/onboarding/HealthProfileStep.tsx` | Health demographics collection |
+| `src/components/onboarding/HealthConnectionStep.tsx` | Connect wearables and health apps |
+| `src/components/onboarding/MediaPermissionsStep.tsx` | Photo/video/AI permissions |
+| `src/components/onboarding/FirstEngramStep.tsx` | Create first AI personality |
+| `src/components/onboarding/OnboardingComplete.tsx` | Success screen with next steps |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/App.tsx` | Added Onboarding import and `/onboarding` protected route |
+| `src/components/ProtectedRoute.tsx` | Added onboarding status check and redirect logic |
+
+### Database Schema
+
+**New Tables:**
+
+1. **health_demographics** - User health data
+   - Date of birth, gender, weight, height
+   - Health conditions (JSONB array)
+   - Allergies (JSONB array)
+   - Health goals (JSONB array)
+   - Activity level, BMI (auto-calculated)
+
+2. **onboarding_status** - Progress tracking
+   - Current step number
+   - Completed steps (JSONB array)
+   - Per-step completion flags
+   - Skip tracking with reason
+
+3. **media_consent** - Permission settings
+   - Photo library, camera, video access
+   - Face detection, expression analysis flags
+   - Consent timestamp
+
+**Profile Extensions:**
+- `has_completed_onboarding` - Completion flag
+- `onboarding_skipped` - Skip flag
+- `onboarding_skipped_at` - Skip timestamp
+
+### Onboarding Flow
+
+| Step | Component | Purpose |
+|------|-----------|---------|
+| 1 | WelcomeStep | Introduce EverAfter features |
+| 2 | MeetRaphaelStep | Present St. Raphael AI companion |
+| 3 | HealthProfileStep | Collect health demographics |
+| 4 | HealthConnectionStep | Connect wearables (Fitbit, Apple Health, etc.) |
+| 5 | MediaPermissionsStep | Configure photo/video/AI permissions |
+| 6 | FirstEngramStep | Create first custom AI personality |
+| 7 | OnboardingComplete | Success screen with next steps |
+
+### Key Features
+
+- **Resumable Flow:** Progress saved to database, users can resume from last step
+- **Skip Option:** Users can skip onboarding (tracked for follow-up)
+- **Automatic Redirect:** New users automatically redirected to onboarding
+- **Exempt Routes:** `/onboarding` and `/portal/profile` bypass onboarding check
+- **Mobile Responsive:** Progress indicator adapts to screen size
+- **Glass Morphism UI:** Consistent with EverAfter design system
+
+### RLS Policies
+
+- Users can only view/update their own onboarding data
+- Insert allowed for authenticated users
+- Auto-cleanup via ON DELETE CASCADE
+
+### Architecture Decisions
+
+- Onboarding check moved to ProtectedRoute for central enforcement
+- Health data saved to dedicated `health_demographics` table (not profiles)
+- Media consent stored separately for GDPR/privacy compliance
+- Database trigger syncs `onboarding_complete` to `profiles.has_completed_onboarding`
+
+### Next Phase
+
+Phase 2: St. Raphael Proactive Features (from IMPLEMENTATION_ROADMAP.md)
+- Daily check-in notifications
+- Health alerts and anomaly detection
+- Proactive health suggestions
+
+---
+
 ## Version 2.1.0 - Career Agent Feature
 
 **Release Date:** January 2, 2026

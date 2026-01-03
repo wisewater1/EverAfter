@@ -39,6 +39,7 @@ import DarkGlassCarouselShowcase from './pages/DarkGlassCarouselShowcase';
 import DeviceCheck from './pages/DeviceCheck';
 import Career from './pages/Career';
 import PublicCareerChat from './pages/PublicCareerChat';
+import Onboarding from './pages/Onboarding';
 
 function ErrorNotifierConnector() {
   const { showError } = useErrorNotification();
@@ -68,6 +69,11 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/onboarding" element={
+                  <ProtectedRoute>
+                    <Onboarding />
+                  </ProtectedRoute>
+                } />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/admin/create-user" element={<AdminUserCreation />} />
