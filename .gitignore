@@ -1,4 +1,5 @@
-# Logs
+
+# Netlify deployment trigger for dev branch# Logs
 logs
 *.log
 npm-debug.log*
