@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS career_profiles (
 
   -- Professional Information
   linkedin_summary text,
-  current_role text,
+  job_role text,  -- Renamed from current_role (reserved keyword)
   industry text,
   years_experience integer,
   skills jsonb DEFAULT '[]'::jsonb,
@@ -199,28 +199,33 @@ ALTER TABLE career_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE career_unknown_questions ENABLE ROW LEVEL SECURITY;
 
 -- Career Profiles Policies
+DROP POLICY IF EXISTS "Users can view own career profile" ON career_profiles;
 CREATE POLICY "Users can view own career profile"
   ON career_profiles FOR SELECT
   TO authenticated
   USING (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can create own career profile" ON career_profiles;
 CREATE POLICY "Users can create own career profile"
   ON career_profiles FOR INSERT
   TO authenticated
   WITH CHECK (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update own career profile" ON career_profiles;
 CREATE POLICY "Users can update own career profile"
   ON career_profiles FOR UPDATE
   TO authenticated
   USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete own career profile" ON career_profiles;
 CREATE POLICY "Users can delete own career profile"
   ON career_profiles FOR DELETE
   TO authenticated
   USING (user_id = (select auth.uid()));
 
 -- Career Chat Messages Policies
+DROP POLICY IF EXISTS "Users can view own chat messages" ON career_chat_messages;
 CREATE POLICY "Users can view own chat messages"
   ON career_chat_messages FOR SELECT
   TO authenticated
@@ -229,6 +234,7 @@ CREATE POLICY "Users can view own chat messages"
     OR profile_owner_id = (select auth.uid())
   );
 
+DROP POLICY IF EXISTS "Users can create chat messages" ON career_chat_messages;
 CREATE POLICY "Users can create chat messages"
   ON career_chat_messages FOR INSERT
   TO authenticated
@@ -238,39 +244,46 @@ CREATE POLICY "Users can create chat messages"
   );
 
 -- Anonymous visitors can insert messages with valid token (validated in Edge Function)
+DROP POLICY IF EXISTS "Anonymous can insert chat messages with token" ON career_chat_messages;
 CREATE POLICY "Anonymous can insert chat messages with token"
   ON career_chat_messages FOR INSERT
   TO anon
   WITH CHECK (visitor_token IS NOT NULL);
 
 -- Career Goals Policies
+DROP POLICY IF EXISTS "Users can view own career goals" ON career_goals;
 CREATE POLICY "Users can view own career goals"
   ON career_goals FOR SELECT
   TO authenticated
   USING (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can create career goals" ON career_goals;
 CREATE POLICY "Users can create career goals"
   ON career_goals FOR INSERT
   TO authenticated
   WITH CHECK (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update own career goals" ON career_goals;
 CREATE POLICY "Users can update own career goals"
   ON career_goals FOR UPDATE
   TO authenticated
   USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete own career goals" ON career_goals;
 CREATE POLICY "Users can delete own career goals"
   ON career_goals FOR DELETE
   TO authenticated
   USING (user_id = (select auth.uid()));
 
 -- Career Leads Policies
+DROP POLICY IF EXISTS "Users can view own leads" ON career_leads;
 CREATE POLICY "Users can view own leads"
   ON career_leads FOR SELECT
   TO authenticated
   USING (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can manage own leads" ON career_leads;
 CREATE POLICY "Users can manage own leads"
   ON career_leads FOR ALL
   TO authenticated
@@ -278,17 +291,20 @@ CREATE POLICY "Users can manage own leads"
   WITH CHECK (user_id = (select auth.uid()));
 
 -- Anonymous can insert leads (via Edge Function with token validation)
+DROP POLICY IF EXISTS "Anonymous can submit leads" ON career_leads;
 CREATE POLICY "Anonymous can submit leads"
   ON career_leads FOR INSERT
   TO anon
   WITH CHECK (true);
 
 -- Career Unknown Questions Policies
+DROP POLICY IF EXISTS "Users can view own unknown questions" ON career_unknown_questions;
 CREATE POLICY "Users can view own unknown questions"
   ON career_unknown_questions FOR SELECT
   TO authenticated
   USING (user_id = (select auth.uid()));
 
+DROP POLICY IF EXISTS "Users can manage own unknown questions" ON career_unknown_questions;
 CREATE POLICY "Users can manage own unknown questions"
   ON career_unknown_questions FOR ALL
   TO authenticated
@@ -296,6 +312,7 @@ CREATE POLICY "Users can manage own unknown questions"
   WITH CHECK (user_id = (select auth.uid()));
 
 -- Anonymous can insert unknown questions (via Edge Function with token validation)
+DROP POLICY IF EXISTS "Anonymous can submit unknown questions" ON career_unknown_questions;
 CREATE POLICY "Anonymous can submit unknown questions"
   ON career_unknown_questions FOR INSERT
   TO anon
@@ -380,7 +397,7 @@ RETURNS TABLE (
   id uuid,
   user_id uuid,
   linkedin_summary text,
-  current_role text,
+  job_role text,  -- Renamed from current_role (reserved keyword)
   industry text,
   years_experience integer,
   skills jsonb,
@@ -392,7 +409,7 @@ BEGIN
     cp.id,
     cp.user_id,
     cp.linkedin_summary,
-    cp.current_role,
+    cp.job_role,
     cp.industry,
     cp.years_experience,
     cp.skills,

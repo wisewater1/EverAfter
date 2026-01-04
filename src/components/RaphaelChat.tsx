@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { chatWithAgent, EdgeFunctionException } from '../lib/edge-functions';
+import { chatWithRaphael, EdgeFunctionException } from '../lib/edge-functions';
 import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -134,16 +134,9 @@ export default function RaphaelChat() {
     setLoading(true);
 
     try {
-      // Build conversation history from recent messages (last 5 exchanges)
-      const conversationHistory = messages.slice(-10).map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      }));
-
-      // Call the new AI agent with memory and tool calling
-      const response = await chatWithAgent({
-        input: userInput,
-        conversation_history: conversationHistory
+      // Call Raphael chat (uses Groq or OpenAI)
+      const response = await chatWithRaphael({
+        input: userInput
       });
 
       const assistantMessage: Message = {
@@ -151,8 +144,6 @@ export default function RaphaelChat() {
         role: 'assistant',
         content: response.reply,
         timestamp: new Date(),
-        toolsUsed: response.tools_used,
-        toolExecutionLog: response.tool_execution_log,
         context: {
           healthData: true,
           suggestions: ['View health dashboard', 'Schedule appointment', 'Track medication']
