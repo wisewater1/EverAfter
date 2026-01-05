@@ -2,6 +2,94 @@
 
 ---
 
+## Version 2.3.0 - Production Deployment & Schema Fixes
+
+**Release Date:** January 5, 2026
+**Status:** Deployed to Netlify (dev branch)
+**Dev URL:** https://dev--everafterai.netlify.app
+
+### Overview
+
+This release focuses on deploying the application to production, fixing database schema issues, and switching to Groq for AI chat. All 110+ migrations have been pushed to the remote Supabase database.
+
+### Major Changes
+
+#### 1. RaphaelChat Switched to Groq
+
+**Problem:** RaphaelChat was using the `agent` Edge Function which requires OpenAI API for embeddings.
+
+**Solution:** Updated to use `chatWithRaphael` function which supports Groq.
+
+| Function | API Provider | Features |
+|----------|--------------|----------|
+| `agent` | OpenAI only | Memory, embeddings, tool calling |
+| `raphael-chat` | Groq (primary) or OpenAI | Basic chat, safety guardrails |
+
+**Files Modified:**
+- `src/components/RaphaelChat.tsx` - Changed from `chatWithAgent` to `chatWithRaphael`
+
+#### 2. Database Schema Fixes
+
+**New Migrations Created:**
+
+| Migration | Purpose |
+|-----------|---------|
+| `20260103100000_fix_signup_trigger_conflicts.sql` | Fix "Database error saving new user" |
+| `20260103110000_fix_column_mismatches.sql` | Add missing frontend columns |
+| `20260104100000_comprehensive_schema_fix.sql` | Fix 406/400 API errors |
+
+**Issues Fixed:**
+- Signup trigger conflicts causing user creation failures
+- Missing columns: `avatar_url`, `task_title`, `due_date`, `metric_type`, `recorded_at`
+- Missing tables: `analytics_rotation_state`, `dashboard_auto_rotation`
+- Missing RPC: `get_user_storage_usage()`
+- Reserved keyword: `current_role` → `job_role` in career_profiles
+
+#### 3. Netlify Deployment
+
+- Linked project to Netlify site `everafterai`
+- Dev branch deploys to: https://dev--everafterai.netlify.app
+- Production deploys to: https://everafterai.net
+- Fixed `index.html` script tag syntax error
+
+#### 4. MCP Server Configuration
+
+Configured Claude Code with MCP servers:
+- context7, github, perplexity, supabase, netlify
+
+### Environment Setup
+
+**Supabase Secrets Set:**
+- `GROQ_API_KEY` - For Raphael chat
+
+**Supabase Secrets Needed (for health integrations):**
+- `TERRA_CLIENT_ID`, `TERRA_CLIENT_SECRET`
+- `FITBIT_CLIENT_ID`, `FITBIT_CLIENT_SECRET`
+- `DEXCOM_CLIENT_ID`, `DEXCOM_CLIENT_SECRET`
+- `APP_BASE_URL` = https://everafterai.net
+
+### Health Integrations Status
+
+**Edge Functions Ready (need API credentials):**
+- `connect-start` - OAuth initiation
+- `connect-callback` - OAuth callback
+- `_shared/connectors.ts` - Provider configurations
+
+**Supported Providers (pending credentials):**
+- Terra (50+ wearables)
+- Fitbit (direct)
+- Oura Ring
+- Dexcom CGM
+
+### Recommended Next Steps
+
+1. **Test chat functionality** at https://dev--everafterai.netlify.app
+2. **Set up Terra** - Register at tryterra.co, get API credentials
+3. **Configure `APP_BASE_URL`** in Supabase secrets
+4. **Implement email notifications** (Phase 3)
+
+---
+
 ## Version 2.2.0 - Onboarding Flow (Phase 1)
 
 **Release Date:** January 3, 2026

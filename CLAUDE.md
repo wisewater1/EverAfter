@@ -308,14 +308,31 @@ TERRA_API_KEY=your_terra_key
 
 ## Deployment Notes
 
-### Frontend (Vercel/Netlify)
+### Frontend (Netlify) - CURRENT
+- **Production:** https://everafterai.net
+- **Dev Branch:** https://dev--everafterai.netlify.app
+- **Site ID:** `everafterai` (2b042583-f657-4e89-914e-af3623dd3e78)
 - Build: `npm run build` → `dist/`
+- Deploy: `npx netlify-cli deploy --dir=dist --alias=dev` (dev) or `--prod` (production)
 - Environment: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 
-### Edge Functions (Supabase)
-- Deploy: `supabase functions deploy [function-name]`
+### Edge Functions (Supabase) - CURRENT
+- **Project Ref:** `sncvecvgxwkkxnxbvglv`
+- **URL:** https://sncvecvgxwkkxnxbvglv.supabase.co
+- Deploy: `SUPABASE_ACCESS_TOKEN='...' npx supabase db push --linked`
+- Functions deploy: `supabase functions deploy [function-name]`
 - Auto-scales with traffic
-- Set secrets in Supabase Dashboard
+- Set secrets in Supabase Dashboard → Settings → Edge Functions → Secrets
+
+**Secrets Currently Set:**
+- `GROQ_API_KEY` - For raphael-chat
+
+**Secrets Needed for Health Integrations:**
+- `TERRA_CLIENT_ID`, `TERRA_CLIENT_SECRET` - Terra aggregator
+- `FITBIT_CLIENT_ID`, `FITBIT_CLIENT_SECRET` - Fitbit direct
+- `DEXCOM_CLIENT_ID`, `DEXCOM_CLIENT_SECRET` - Dexcom CGM
+- `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET` - Oura Ring
+- `APP_BASE_URL` - Set to https://everafterai.net
 
 ### Backend Server (Railway/Render)
 - Requires: PostgreSQL, Redis

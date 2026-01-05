@@ -168,6 +168,174 @@ Created `IMPLEMENTATION_ROADMAP.md` with 105 tasks across 5 phases:
 
 ---
 
+## Session: January 4-5, 2026
+
+### Context Recovery
+
+This session continued from a previous conversation that hit context limits. Focus was on:
+- Deploying migrations to remote Supabase
+- Fixing console errors (400, 401, 406)
+- Setting up MCP servers
+- Deploying to Netlify
+
+---
+
+### Summary of Work Completed
+
+#### 1. Database Migration Deployment
+
+**Pushed 110+ migrations to remote Supabase database:**
+- Fixed `current_role` reserved keyword → renamed to `job_role` in career_profiles
+- Applied all migrations successfully
+
+**New migrations created:**
+- `20260103100000_fix_signup_trigger_conflicts.sql` - Fixed "Database error saving new user" by consolidating auth triggers
+- `20260103110000_fix_column_mismatches.sql` - Added missing frontend columns (avatar_url, task_title, due_date, metric_type, recorded_at)
+- `20260104100000_comprehensive_schema_fix.sql` - Fixed 406/400 errors by ensuring tables exist with proper RLS
+
+#### 2. RaphaelChat Groq Migration
+
+**Problem:** RaphaelChat was calling `agent` Edge Function which requires OpenAI for embeddings.
+
+**Solution:** Updated `src/components/RaphaelChat.tsx` to use `chatWithRaphael` function instead of `chatWithAgent`.
+
+| Function | API | Memory/Embeddings |
+|----------|-----|-------------------|
+| `agent` | OpenAI only | Yes (requires embeddings) |
+| `raphael-chat` | Groq OR OpenAI | No |
+
+**Files Modified:**
+- `src/components/RaphaelChat.tsx` - Changed import and function call
+
+#### 3. MCP Server Setup
+
+**Configured MCP servers for Claude Code:**
+- context7 - Documentation lookup
+- github - GitHub operations
+- perplexity - Web search
+- semgrep - Code analysis (deprecated)
+- supabase - Database operations (Bearer token auth)
+- netlify - Deployment (added by user)
+
+#### 4. Netlify Deployment
+
+**Linked project to Netlify site `everafterai`:**
+- Production: https://everafterai.net
+- Dev branch: https://dev--everafterai.netlify.app
+
+**Fixed build issues:**
+- `index.html` had missing quote in script tag
+
+#### 5. Schema Fixes for Console Errors
+
+**Fixed 406 errors (table not found):**
+- `engrams` - Ensured table exists with RLS
+- `analytics_rotation_state` - Created table with user_id constraint
+- `dashboard_auto_rotation` - Created table with widget order
+
+**Fixed 400 errors (column mismatch):**
+- `health_connections` - Added provider, service_name, service_type, status, sync_frequency columns
+- Created `get_user_storage_usage()` RPC function
+- Created `user_files` table
+
+---
+
+### Supabase Credentials (for CLI operations)
+
+```
+Project Ref: sncvecvgxwkkxnxbvglv
+Access Token: sbp_62a73a8ad0402ea01bb0dd2f20ae0dd2e0cefb5a
+Supabase URL: https://sncvecvgxwkkxnxbvglv.supabase.co
+```
+
+**Secrets set in Supabase Dashboard:**
+- `GROQ_API_KEY` - For Raphael chat
+
+**Secrets NOT set (need for health integrations):**
+- `TERRA_CLIENT_ID`, `TERRA_CLIENT_SECRET`
+- `FITBIT_CLIENT_ID`, `FITBIT_CLIENT_SECRET`
+- `DEXCOM_CLIENT_ID`, `DEXCOM_CLIENT_SECRET`
+- `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET`
+- `APP_BASE_URL` (should be https://everafterai.net)
+
+---
+
+### Health Connector Status
+
+**Current state:** Frontend inserts "pending" records to `health_connections` table. Real OAuth flow exists in Edge Functions but requires provider API credentials.
+
+**Edge Functions ready:**
+- `connect-start` - OAuth initiation (Terra, Fitbit, Oura, Dexcom)
+- `connect-callback` - OAuth callback handling
+- `supabase/functions/_shared/connectors.ts` - Shared utilities
+
+**To enable real integrations:**
+1. Register app with each provider (Terra, Fitbit, etc.)
+2. Get client ID and secret
+3. Set secrets in Supabase Dashboard
+4. Set `APP_BASE_URL` secret
+
+---
+
+### Integrations Roadmap
+
+**Phase 1 - Core Health (Recommended to start):**
+1. Terra - Single API for 50+ wearables
+2. Dexcom - Direct CGM for diabetes users
+
+**Phase 2 - Enhanced Health:**
+3. Fitbit Direct
+4. Oura Ring
+5. Apple Health (via Terra)
+
+**Phase 3 - Communication:**
+6. Email notifications (Resend/SendGrid)
+7. Push notifications (Pushover/Web Push)
+
+**Phase 4 - Career Agent:**
+8. LinkedIn API - Profile import
+9. Calendar integration
+
+---
+
+### Current Implementation Focus
+
+**Immediate:** Health device integrations (starting with Terra)
+
+**Pending tests:**
+- Chat functionality with Groq
+- Health connector flow
+
+---
+
+### Decisions Made
+
+1. **LLM Provider:** Use Groq for chat (fast, cheap), OpenAI only for embeddings
+2. **Health Aggregator:** Terra recommended (50+ devices via single API)
+3. **Deployment:** Netlify for frontend, Supabase for backend
+4. **OAuth:** Keep existing Edge Function architecture, just needs credentials
+
+---
+
+### Files Created This Session
+
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/20260103100000_fix_signup_trigger_conflicts.sql` | Fix auth trigger conflicts |
+| `supabase/migrations/20260103110000_fix_column_mismatches.sql` | Add missing columns |
+| `supabase/migrations/20260104100000_comprehensive_schema_fix.sql` | Fix 406/400 errors |
+
+### Files Modified This Session
+
+| File | Changes |
+|------|---------|
+| `src/components/RaphaelChat.tsx` | Use chatWithRaphael instead of chatWithAgent |
+| `index.html` | Fix missing quote in script tag |
+| `supabase/migrations/20260102100000_create_career_agent_system.sql` | Rename current_role to job_role |
+| `supabase/config.toml` | Updated configuration |
+
+---
+
 ## How to Use This File
 
 When starting a new session after context loss:
