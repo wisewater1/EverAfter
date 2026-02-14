@@ -171,3 +171,10 @@ class TraitTaskAssociation(Base):
     affects_execution = Column(Boolean, default=True)
     execution_modifier = Column(JSON, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Aliases for backward compatibility with API
+Engram = ArchetypalAI
+EngramDailyResponse = DailyQuestionResponse
+EngramPersonalityFilter = PersonalityTrait
+EngramAITask = AITask

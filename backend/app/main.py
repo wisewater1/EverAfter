@@ -1,4 +1,12 @@
+import sys
+import asyncio
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI
+print("====================================================")
+print("EVERAFTER BACKEND STARTING ON PORT 8001 (FIXED)")
+print("====================================================")
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
@@ -17,12 +25,11 @@ async def lifespan(app: FastAPI):
     global background_task
     from app.workers.task_worker import start_worker
 
-    # Start background worker
     background_task = asyncio.create_task(start_worker())
     yield
     # Shutdown
-    if background_task:
-        background_task.cancel()
+    # if background_task:
+    #     background_task.cancel()
 
 
 app = FastAPI(

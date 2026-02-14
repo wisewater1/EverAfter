@@ -10,7 +10,7 @@ class AgentCredential(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False)
-    engram_id = Column(UUID(as_uuid=True), ForeignKey("engrams.id", ondelete="CASCADE"))
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"))
     credential_type = Column(String, nullable=False)
     service_name = Column(String, nullable=False)
     username = Column(String)
@@ -27,7 +27,7 @@ class AgentTaskQueue(Base):
     __tablename__ = "agent_task_queue"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    engram_id = Column(UUID(as_uuid=True), ForeignKey("engrams.id", ondelete="CASCADE"), nullable=False)
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
     task_type = Column(String, nullable=False)
     task_title = Column(Text, nullable=False)
@@ -80,7 +80,7 @@ class AgentNotification(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False)
-    engram_id = Column(UUID(as_uuid=True), ForeignKey("engrams.id", ondelete="CASCADE"))
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"))
     task_id = Column(UUID(as_uuid=True), ForeignKey("agent_task_queue.id", ondelete="SET NULL"))
 
     notification_type = Column(String, nullable=False)
@@ -100,7 +100,7 @@ class AgentNotification(Base):
     medication_name = Column(String)
 
     # Metadata
-    metadata = Column(JSON, default=dict)
+    notification_metadata = Column(JSON, default=dict)
 
     read_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -112,7 +112,7 @@ class AgentEmailLog(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     task_id = Column(UUID(as_uuid=True), ForeignKey("agent_task_queue.id", ondelete="SET NULL"))
     user_id = Column(UUID(as_uuid=True), nullable=False)
-    engram_id = Column(UUID(as_uuid=True), ForeignKey("engrams.id", ondelete="SET NULL"))
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="SET NULL"))
 
     # Email details
     to_addresses = Column(ARRAY(String), nullable=False)
@@ -145,7 +145,7 @@ class CredentialRequest(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     task_id = Column(UUID(as_uuid=True), ForeignKey("agent_task_queue.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
-    engram_id = Column(UUID(as_uuid=True), ForeignKey("engrams.id", ondelete="SET NULL"))
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="SET NULL"))
 
     credential_type = Column(String, nullable=False)
     service_name = Column(String, nullable=False)

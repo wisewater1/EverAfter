@@ -127,4 +127,9 @@ async def stop_worker():
 
 if __name__ == "__main__":
     # Run worker standalone
+    import sys
+    if sys.platform == 'win32':
+        import asyncio
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
     asyncio.run(start_worker())

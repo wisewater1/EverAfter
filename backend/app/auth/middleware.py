@@ -5,7 +5,7 @@ from app.auth.jwt import verify_access_token, verify_supabase_token
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.url.path in ["/docs", "/redoc", "/openapi.json", "/health"]:
+        if request.url.path in ["/", "/docs", "/redoc", "/openapi.json", "/health"]:
             return await call_next(request)
 
         authorization: str = request.headers.get("Authorization")

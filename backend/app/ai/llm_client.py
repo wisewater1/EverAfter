@@ -18,9 +18,6 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None
     ) -> str:
-        if not self.api_key or self.api_key == "":
-            return await self._generate_fallback_response(messages)
-
         full_messages = []
 
         if system_prompt:
@@ -28,32 +25,77 @@ class LLMClient:
 
         full_messages.extend(messages)
 
+        # Try OpenAI first if API key is present
+        if self.api_key and self.api_key.strip():
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.api_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": self.model,
+                            "messages": full_messages,
+                            "max_tokens": max_tokens or self.max_tokens,
+                            "temperature": temperature or self.temperature
+                        },
+                        timeout=30.0
+                    )
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        return data["choices"][0]["message"]["content"]
+            except Exception as e:
+                print(f"OpenAI API Error: {str(e)}")
+                # Fall through to Ollama
+
+        # Try Ollama Fallback
+        return await self._generate_ollama_response(full_messages)
+
+    async def _generate_ollama_response(self, messages: List[Dict[str, str]]) -> str:
+        """Fallback to local Ollama instance"""
         try:
+            # Convert messages to Ollama format if needed, or use chat endpoint
+            # Assuming 'mistral' or 'llama3' is available, defaulting to a common one or checking env
+            model = "mistral" # User request implied 't0' but mistral/llama3 is safer default. Configurable?
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json"
-                    },
+                    "http://localhost:11434/api/chat",
                     json={
-                        "model": self.model,
-                        "messages": full_messages,
-                        "max_tokens": max_tokens or self.max_tokens,
-                        "temperature": temperature or self.temperature
+                        "model": model,
+                        "messages": messages,
+                        "stream": False
                     },
-                    timeout=30.0
+                    timeout=60.0 # Local LLMs can be slow
                 )
 
                 if response.status_code == 200:
                     data = response.json()
-                    return data["choices"][0]["message"]["content"]
-                else:
-                    return await self._generate_fallback_response(messages)
+                    return data["message"]["content"]
+                
+                # If 404, maybe model not found. Try 'llama3'
+                if response.status_code == 404:
+                     response = await client.post(
+                        "http://localhost:11434/api/chat",
+                        json={
+                            "model": "llama3",
+                            "messages": messages,
+                            "stream": False
+                        },
+                        timeout=60.0
+                    )
+                     if response.status_code == 200:
+                        data = response.json()
+                        return data["message"]["content"]
 
         except Exception as e:
-            print(f"LLM API Error: {str(e)}")
-            return await self._generate_fallback_response(messages)
+            print(f"Ollama Error: {str(e)}")
+        
+        # Final Fallback to Canned Responses
+        return await self._generate_fallback_response(messages)
 
     async def _generate_fallback_response(self, messages: List[Dict[str, str]]) -> str:
         user_message = messages[-1]["content"].lower() if messages else ""

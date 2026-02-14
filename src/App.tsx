@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ErrorNotificationProvider, useErrorNotification } from './contexts/ErrorNotificationContext';
+import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ConnectionsPanel from './components/ConnectionsPanel';
 import ErrorBoundary from './components/ErrorBoundary';
-import ErrorNotificationToast from './components/ErrorNotificationToast';
+import NotificationToast from './components/NotificationToast';
+import HealthAlertListener from './components/HealthAlertListener';
 import { attachEdgeReactive } from './lib/edge-reactive';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -39,12 +40,22 @@ import DarkGlassCarouselShowcase from './pages/DarkGlassCarouselShowcase';
 import DeviceCheck from './pages/DeviceCheck';
 
 function ErrorNotifierConnector() {
-  const { showError } = useErrorNotification();
+  const { showNotification } = useNotification();
   const { setErrorNotifier } = useAuth();
 
   useEffect(() => {
-    setErrorNotifier({ showError });
-  }, [showError, setErrorNotifier]);
+    // Adapter for legacy auth error handling
+    setErrorNotifier({
+      showError: (msg, severity = 'critical') => {
+        const typeMap: Record<string, 'error' | 'warning' | 'info'> = {
+          'critical': 'error',
+          'warning': 'warning',
+          'info': 'info'
+        };
+        showNotification(msg, typeMap[severity] || 'error');
+      }
+    });
+  }, [showNotification, setErrorNotifier]);
 
   return null;
 }
@@ -57,7 +68,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ErrorNotificationProvider>
+      <NotificationProvider>
         <AuthProvider>
           <ConnectionsProvider>
             <ErrorNotifierConnector />
@@ -173,10 +184,11 @@ function App() {
               </Routes>
               <ConnectionsPanel />
             </Router>
-            <ErrorNotificationToast />
+            <HealthAlertListener />
+            <NotificationToast />
           </ConnectionsProvider>
         </AuthProvider>
-      </ErrorNotificationProvider>
+      </NotificationProvider>
     </ErrorBoundary>
   );
 }

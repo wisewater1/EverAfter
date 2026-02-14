@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { chatWithAgent, EdgeFunctionException } from '../lib/edge-functions';
+import { apiClient } from '../lib/api-client';
 import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,7 +28,11 @@ interface HealthContext {
   activePrescriptions: number;
 }
 
-export default function RaphaelChat() {
+interface RaphaelChatProps {
+  engramId?: string;
+}
+
+export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
@@ -140,19 +144,19 @@ export default function RaphaelChat() {
         content: msg.content
       }));
 
-      // Call the new AI agent with memory and tool calling
-      const response = await chatWithAgent({
-        input: userInput,
-        conversation_history: conversationHistory
-      });
+      // Call the API Client which routes to local backend
+      if (!engramId) {
+        throw new Error('Raphael Engram ID not found. Please try again in a moment.');
+      }
+      const response = await apiClient.sendChatMessage(engramId, userInput, undefined);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.reply,
+        content: response.data?.message || "I'm here to help.", // Handle potential null
         timestamp: new Date(),
-        toolsUsed: response.tools_used,
-        toolExecutionLog: response.tool_execution_log,
+        toolsUsed: false, // Backend doesn't return this yet in the same format, need to align
+        toolExecutionLog: [],
         context: {
           healthData: true,
           suggestions: ['View health dashboard', 'Schedule appointment', 'Track medication']
@@ -165,11 +169,11 @@ export default function RaphaelChat() {
 
       let errorMessage = 'I apologize, but I encountered an error. Please try again.';
 
-      if (error instanceof EdgeFunctionException) {
-        if (error.code === 'AUTH_MISSING' || error.code === 'AUTH_FAILED') {
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
           errorMessage = 'Your session has expired. Please refresh the page and log in again.';
-        } else if (error.code === 'CONFIG_MISSING') {
-          errorMessage = 'The AI service is not configured. Please contact support.';
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Please check your internet connection.';
         } else {
           errorMessage = `Error: ${error.message}`;
         }
@@ -244,20 +248,18 @@ export default function RaphaelChat() {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`flex space-x-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
-              }`}>
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
+                }`}>
                 {message.role === 'user' ? (
                   <User className="w-4 h-4 text-blue-300" />
                 ) : (
                   <Bot className="w-4 h-4 text-emerald-300" />
                 )}
               </div>
-              <div className={`rounded-2xl p-4 ${
-                message.role === 'user'
-                  ? 'bg-blue-500/20 border border-blue-500/30'
-                  : 'bg-emerald-500/20 border border-emerald-500/30'
-              }`}>
+              <div className={`rounded-2xl p-4 ${message.role === 'user'
+                ? 'bg-blue-500/20 border border-blue-500/30'
+                : 'bg-emerald-500/20 border border-emerald-500/30'
+                }`}>
                 <p className="text-white text-sm leading-relaxed">{message.content}</p>
                 {message.toolsUsed && message.toolExecutionLog && (
                   <div className="mt-2 pt-2 border-t border-emerald-500/20">

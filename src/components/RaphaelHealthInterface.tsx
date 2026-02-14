@@ -147,11 +147,10 @@ export default function RaphaelHealthInterface() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-shrink-0 sm:flex-1 sm:min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[44px] touch-manipulation ${
-                    activeTab === tab.id
+                  className={`flex-shrink-0 sm:flex-1 sm:min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[44px] touch-manipulation ${activeTab === tab.id
                       ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
                       : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="text-xs sm:text-sm whitespace-nowrap">{tab.label.split(' ').pop()}</span>
@@ -165,7 +164,7 @@ export default function RaphaelHealthInterface() {
       </div>
 
       <div className="min-h-[300px] sm:min-h-[400px] lg:min-h-[600px]">
-        {activeTab === 'chat' && <RaphaelChat />}
+        {activeTab === 'chat' && <RaphaelChat engramId={raphaelEngramId} />}
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
