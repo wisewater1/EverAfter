@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -38,6 +38,8 @@ import TerraSetupWizard from './components/TerraSetupWizard';
 import TerraCallback from './pages/TerraCallback';
 import DarkGlassCarouselShowcase from './pages/DarkGlassCarouselShowcase';
 import DeviceCheck from './pages/DeviceCheck';
+import StMichaelSecurityDashboard from './components/StMichaelSecurityDashboard';
+import StJosephFamilyDashboard from './components/StJosephFamilyDashboard';
 
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
@@ -149,6 +151,16 @@ function App() {
                 <Route path="/health-dashboard" element={
                   <ProtectedRoute>
                     <HealthDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/security-dashboard" element={
+                  <ProtectedRoute>
+                    <StMichaelSecurityDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/family-dashboard" element={
+                  <ProtectedRoute>
+                    <StJosephFamilyDashboard />
                   </ProtectedRoute>
                 } />
                 {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}

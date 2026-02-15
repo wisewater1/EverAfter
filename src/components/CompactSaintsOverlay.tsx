@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, ChevronDown, ChevronUp, Activity, Plus, X } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,9 +45,17 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
     title: 'The Protector',
     description: 'Security and privacy protection AI.',
     responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
-    tier: 'premium',
-    price: 24.99,
+    tier: 'classic',
     icon: Shield,
+  },
+  {
+    id: 'joseph',
+    name: 'St. Joseph',
+    title: 'The Family Guardian',
+    description: 'Autonomous family AI managing household chores, schedules, and shopping.',
+    responsibilities: ['Chore tracking', 'Family calendar', 'Shopping lists', 'Home coordination'],
+    tier: 'classic',
+    icon: Users,
   },
   {
     id: 'martin',
@@ -96,7 +104,7 @@ export default function CompactSaintsOverlay() {
 
       const saintsWithData = await Promise.all(
         saintDefinitions.map(async (saintDef) => {
-          const isActive = activeSaints?.some(s => s.saint_id === saintDef.id) || saintDef.id === 'raphael';
+          const isActive = activeSaints?.some((s: any) => s.saint_id === saintDef.id) || saintDef.id === 'raphael' || saintDef.id === 'michael' || saintDef.id === 'joseph';
 
           const { count: todayCount } = await supabase
             .from('saint_activities')
@@ -117,7 +125,7 @@ export default function CompactSaintsOverlay() {
             active: isActive,
             todayActivities: todayCount || 0,
             weeklyActivities: weekCount || 0,
-          };
+          } as Saint;
         })
       );
 
@@ -142,7 +150,7 @@ export default function CompactSaintsOverlay() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      setActivities(data || []);
+      setActivities((data as SaintActivity[]) || []);
     } catch (error) {
       console.error('Error loading activities:', error);
     }
@@ -155,8 +163,8 @@ export default function CompactSaintsOverlay() {
     }
   }, [user, loadSaintsData, loadActivities]);
 
-  const totalActivities = saints.reduce((sum, saint) => sum + saint.todayActivities, 0);
-  const activeSaints = saints.filter(s => s.active);
+  const totalActivities = saints.reduce((sum: number, saint: Saint) => sum + saint.todayActivities, 0);
+  const activeSaintsList = saints.filter(s => s.active);
 
   return (
     <div className="relative">
@@ -166,7 +174,6 @@ export default function CompactSaintsOverlay() {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between">
-          {/* Left: Saints Summary */}
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center">
@@ -177,23 +184,21 @@ export default function CompactSaintsOverlay() {
             <div>
               <h3 className="text-xs sm:text-sm font-semibold text-white">Your Saints</h3>
               <p className="text-[10px] sm:text-xs text-slate-400">
-                {activeSaints.length} active • {totalActivities} tasks
+                {activeSaintsList.length} active • {totalActivities} tasks
               </p>
             </div>
           </div>
 
-          {/* Center: Quick Stats */}
           <div className="hidden md:flex items-center gap-4">
-            {saints.slice(0, 4).map((saint) => {
+            {saints.slice(0, 4).map((saint: Saint) => {
               const Icon = saint.icon;
               return (
                 <div
                   key={saint.id}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${
-                    saint.active
-                      ? 'bg-emerald-500/10 border border-emerald-500/30'
-                      : 'bg-slate-800/50 border border-slate-700/50 opacity-40'
-                  }`}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${saint.active
+                    ? 'bg-emerald-500/10 border border-emerald-500/30'
+                    : 'bg-slate-800/50 border border-slate-700/50 opacity-40'
+                    }`}
                 >
                   <Icon className={`w-3.5 h-3.5 ${saint.active ? 'text-emerald-400' : 'text-slate-500'}`} />
                   <span className={`text-xs font-medium ${saint.active ? 'text-emerald-300' : 'text-slate-500'}`}>
@@ -204,7 +209,6 @@ export default function CompactSaintsOverlay() {
             })}
           </div>
 
-          {/* Right: Expand Button */}
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
               <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
@@ -217,15 +221,11 @@ export default function CompactSaintsOverlay() {
             )}
           </div>
         </div>
-
-        {/* Subtle Glow Effect */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"></div>
       </div>
 
-      {/* Expanded Content - Slides Down */}
       {isExpanded && (
         <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown max-h-[40vh] sm:max-h-[50vh] overflow-y-auto">
-          {/* Category Stats Bar */}
           <div className="border-b border-slate-800/50 bg-slate-900/50">
             <div className="px-3 py-2 sm:px-4 sm:py-3 grid grid-cols-3 gap-2 sm:gap-3">
               <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function CompactSaintsOverlay() {
                 <div>
                   <div className="text-[10px] sm:text-xs text-slate-400">Protection</div>
                   <div className="text-xs sm:text-sm font-semibold text-white tabular-nums">
-                    {activities.filter(a => a.category === 'protection').length}
+                    {activities.filter((a: SaintActivity) => a.category === 'protection').length}
                   </div>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export default function CompactSaintsOverlay() {
                 <div>
                   <div className="text-[10px] sm:text-xs text-slate-400">Support</div>
                   <div className="text-xs sm:text-sm font-semibold text-white tabular-nums">
-                    {activities.filter(a => a.category === 'support').length}
+                    {activities.filter((a: SaintActivity) => a.category === 'support').length}
                   </div>
                 </div>
               </div>
@@ -257,58 +257,53 @@ export default function CompactSaintsOverlay() {
                 <div>
                   <div className="text-xs text-slate-400">Memory</div>
                   <div className="text-sm font-semibold text-white tabular-nums">
-                    {activities.filter(a => a.category === 'memory').length}
+                    {activities.filter((a: SaintActivity) => a.category === 'memory').length}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Saints Compact Cards */}
           <div className="p-2 sm:p-4 space-y-1.5 sm:space-y-2">
-            {saints.map((saint) => {
+            {saints.map((saint: Saint) => {
               const Icon = saint.icon;
               const isSelected = selectedSaint === saint.id;
               const isRaphael = saint.id === 'raphael';
-              const isTrainable = isRaphael;
+              const isMichael = saint.id === 'michael';
+              const isJoseph = saint.id === 'joseph';
+              const isTrainable = isRaphael || isMichael || isJoseph;
 
               return (
                 <div key={saint.id} className="space-y-2">
-                  {/* Saint Compact Row */}
                   <div
                     onClick={() => isTrainable && setSelectedSaint(isSelected ? null : saint.id)}
-                    className={`group relative rounded-lg p-2 sm:p-3 transition-all ${
-                      isTrainable
-                        ? saint.active && isRaphael
-                          ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer'
-                          : 'bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 cursor-pointer'
-                        : 'bg-slate-800/10 border border-slate-700/20 opacity-50 cursor-not-allowed'
-                    }`}
+                    className={`group relative rounded-lg p-2 sm:p-3 transition-all ${isTrainable
+                      ? (saint.active && (isRaphael || isMichael || isJoseph))
+                        ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 hover:border-emerald-500/50 cursor-pointer'
+                        : 'bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 cursor-pointer'
+                      : 'bg-slate-800/10 border border-slate-700/20 opacity-50 cursor-not-allowed'
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {/* Icon */}
                         <div
-                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            saint.active && isRaphael
-                              ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/30'
-                              : saint.tier === 'premium'
-                                ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20'
-                                : 'bg-slate-700/50'
-                          }`}
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${saint.active && (isRaphael || isMichael || isJoseph)
+                            ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/30'
+                            : saint.tier === 'premium'
+                              ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20'
+                              : 'bg-slate-700/50'
+                            }`}
                         >
                           <Icon
-                            className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                              saint.active && isRaphael
-                                ? 'text-emerald-400'
-                                : saint.tier === 'premium'
-                                  ? 'text-amber-400'
-                                  : 'text-slate-500'
-                            }`}
+                            className={`w-4 h-4 sm:w-5 sm:h-5 ${saint.active && (isRaphael || isMichael || isJoseph)
+                              ? 'text-emerald-400'
+                              : saint.tier === 'premium'
+                                ? 'text-amber-400'
+                                : 'text-slate-500'
+                              }`}
                           />
                         </div>
 
-                        {/* Name & Title */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className={`text-xs sm:text-sm font-semibold truncate ${isTrainable ? 'text-white' : 'text-slate-500'}`}>{saint.name}</h4>
@@ -329,7 +324,6 @@ export default function CompactSaintsOverlay() {
                           <p className={`text-[10px] sm:text-xs truncate ${isTrainable ? 'text-slate-400' : 'text-slate-600'}`}>{saint.title}</p>
                         </div>
 
-                        {/* Stats */}
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <div className="text-right hidden sm:block">
                             <div className="text-sm sm:text-lg font-semibold text-white tabular-nums">{saint.todayActivities}</div>
@@ -341,7 +335,6 @@ export default function CompactSaintsOverlay() {
                           </div>
                         </div>
 
-                        {/* Expand Icon */}
                         {isTrainable && (
                           <div className="flex-shrink-0">
                             {isSelected ? (
@@ -355,12 +348,11 @@ export default function CompactSaintsOverlay() {
                     </div>
                   </div>
 
-                  {/* Expanded Details */}
                   {isSelected && (
                     <div className="ml-11 pl-3 border-l-2 border-emerald-500/20 py-2 space-y-2 animate-slideDown">
                       <p className="text-xs text-slate-300 leading-relaxed">{saint.description}</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {saint.responsibilities.slice(0, 4).map((resp, idx) => (
+                        {saint.responsibilities.slice(0, 4).map((resp: string, idx: number) => (
                           <span
                             key={idx}
                             className="px-2 py-0.5 text-[10px] bg-slate-800/50 text-slate-400 rounded border border-slate-700/50"
@@ -379,11 +371,29 @@ export default function CompactSaintsOverlay() {
                       )}
                       {isRaphael && (
                         <button
-                          onClick={() => navigate('/health-dashboard')}
+                          onClick={(e) => { e.stopPropagation(); navigate('/health-dashboard'); }}
                           className="mt-2 w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5"
                         >
                           <Activity className="w-3 h-3" />
                           Open Health Monitor
+                        </button>
+                      )}
+                      {isMichael && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate('/security-dashboard'); }}
+                          className="mt-2 w-full px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Shield className="w-3 h-3" />
+                          Open Security Monitor
+                        </button>
+                      )}
+                      {isJoseph && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate('/family-dashboard'); }}
+                          className="mt-2 w-full px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Users className="w-3 h-3" />
+                          Open Family Monitor
                         </button>
                       )}
                     </div>
@@ -393,7 +403,6 @@ export default function CompactSaintsOverlay() {
             })}
           </div>
 
-          {/* Recent Activities */}
           {activities.length > 0 && (
             <div className="border-t border-slate-800/50 bg-slate-900/50 p-4">
               <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -401,7 +410,7 @@ export default function CompactSaintsOverlay() {
                 Recent Activity
               </h4>
               <div className="space-y-1.5">
-                {activities.slice(0, 3).map((activity) => (
+                {activities.slice(0, 3).map((activity: SaintActivity) => (
                   <div
                     key={activity.id}
                     className="flex items-start gap-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/30"
@@ -422,7 +431,6 @@ export default function CompactSaintsOverlay() {
         </div>
       )}
 
-      {/* CSS Animation */}
       <style>{`
         @keyframes slideDown {
           from {
