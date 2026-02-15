@@ -40,6 +40,8 @@ Base = declarative_base()
 
 async def get_async_session():
     factory = get_session_factory()
+    if factory is None:
+        raise RuntimeError("Database session factory is not initialized")
     async with factory() as session:
         try:
             yield session

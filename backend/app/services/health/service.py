@@ -1,8 +1,13 @@
-from app.services.health.core import HealthContext, HealthData, HealthReport
-from app.services.health.strategies import StandardHeartRateStrategy, AthleteHeartRateStrategy, GlucoseStrategy
+from app.services.health.core import HealthContext, HealthData, HealthReport, PredictionResult
+from app.services.health.strategies import (
+    StandardHeartRateStrategy,
+    AthleteHeartRateStrategy,
+    GlucoseStrategy,
+    DelphiPredictionStrategy
+)
 from app.services.health.decorators import LoggingDecorator, SafetyAlertDecorator, PrivacyDecorator
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 class HealthLogicService:
     """
@@ -18,7 +23,7 @@ class HealthLogicService:
         metric_type: str,
         value: float,
         user_id: str,
-        user_profile: Dict[str, Any] = None
+        user_profile: Optional[Dict[str, Any]] = None
     ) -> HealthReport:
         
         # 1. Select Strategy (The Guts) based on context
@@ -42,7 +47,7 @@ class HealthLogicService:
         report = await self.context.execute_analysis(data, decorators)
         return report
 
-    def _select_strategy(self, metric_type: str, profile: Dict[str, Any]):
+    def _select_strategy(self, metric_type: str, profile: Optional[Dict[str, Any]]):
         """Factory logic to pick the right algorithm (Strategy)"""
         is_athlete = profile and profile.get("is_athlete", False)
 
@@ -57,7 +62,7 @@ class HealthLogicService:
         # Default fallback
         raise ValueError(f"No strategy defined for metric: {metric_type}")
 
-    def _select_decorators(self, metric_type: str, profile: Dict[str, Any]) -> List[type]:
+    def _select_decorators(self, metric_type: str, profile: Optional[Dict[str, Any]]) -> List[type]:
         """Factory logic to pick the right wrappers (Decorators)"""
         decorators = []
 
@@ -81,6 +86,25 @@ class HealthLogicService:
             "steps": "count"
         }
         return units.get(metric_type, "unit")
+
+    async def get_predictions(
+        self,
+        user_id: str,
+        history: List[Dict[str, Any]]
+    ) -> List[PredictionResult]:
+        """
+        Specialized method to get health predictions using Delphi.
+        """
+        # Pick the Delphi strategy
+        strategy = DelphiPredictionStrategy()
+        
+        # We can still use the context if we want, but DelphiPredictionStrategy.predict 
+        # is what we need.
+        context_data = {"metrics_history": history}
+        
+        # For now, we return a single prediction result in a list
+        prediction = await strategy.predict(user_id, context_data)
+        return [prediction]
 
 # Singleton instance
 health_service = HealthLogicService()

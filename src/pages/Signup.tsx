@@ -14,9 +14,7 @@ export default function Signup() {
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
-    console.log('[Signup] User state changed:', { hasUser: !!user, userId: user?.id, loading });
     if (user && !loading) {
-      console.log('[Signup] User signed up, navigating to dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
@@ -63,7 +61,6 @@ export default function Signup() {
         setSubmitting(false);
       } else {
         // Success - navigate immediately
-        console.log('[Signup] Sign up successful, navigating to dashboard');
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
@@ -135,9 +132,8 @@ export default function Signup() {
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full transition-all ${
-                          i <= strength ? strengthColors[strength > 0 ? strength - 1 : 0] : 'bg-gray-700'
-                        }`}
+                        className={`h-1 flex-1 rounded-full transition-all ${i <= strength ? strengthColors[strength > 0 ? strength - 1 : 0] : 'bg-gray-700'
+                          }`}
                       />
                     ))}
                   </div>

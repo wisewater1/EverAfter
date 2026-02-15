@@ -98,7 +98,7 @@ class LLMClient:
         return await self._generate_fallback_response(messages)
 
     async def _generate_fallback_response(self, messages: List[Dict[str, str]]) -> str:
-        user_message = messages[-1]["content"].lower() if messages else ""
+        user_message: str = messages[-1]["content"].lower() if messages else ""
 
         fallback_responses = {
             "hello": "Hello! I'm here and ready to chat with you. How can I help you today?",
@@ -112,7 +112,7 @@ class LLMClient:
         }
 
         for keyword, response in fallback_responses.items():
-            if keyword in user_message:
+            if str(keyword) in str(user_message):
                 return response
 
         return "I appreciate you reaching out. While I'm still learning and developing my personality, I'm here to listen and respond thoughtfully. Could you tell me more about what you'd like to discuss?"

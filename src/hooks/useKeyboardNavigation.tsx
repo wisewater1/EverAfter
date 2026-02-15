@@ -24,7 +24,7 @@ import {
  *
  * @example
  * const handleClick = useKeyboardClick(() => {
- *   console.log('Clicked!');
+ *   // Action here
  * });
  *
  * <div onClick={handleClick} onKeyDown={handleClick} role="button" tabIndex={0}>

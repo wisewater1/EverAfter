@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/api-client';
 import { callEdgeFunction } from '../lib/edge-functions';
 import { TrendingUp, Calendar, CheckCircle, AlertCircle, Sparkles, Loader, User } from 'lucide-react';
 
@@ -36,18 +37,14 @@ export default function RaphaelInsightsPanel({ engramId: initialEngramId }: Raph
   async function loadEngrams() {
     setEngramsLoading(true);
     try {
-      const { data, error: fetchError } = await supabase
-        .from('engrams')
-        .select('id, name')
-        .order('name');
+      const data = await apiClient.getEngrams();
 
-      if (fetchError) throw fetchError;
       if (data) {
         setEngrams(data as Engram[]);
 
         // Auto-select St. Raphael if not already selected
         if (!selectedEngramId) {
-          const raphael = data.find(e => e.name === 'St. Raphael');
+          const raphael = data.find((e: any) => e.name === 'St. Raphael');
           if (raphael) {
             setSelectedEngramId(raphael.id);
           } else if (data.length > 0) {

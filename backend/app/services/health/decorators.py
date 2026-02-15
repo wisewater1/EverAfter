@@ -42,6 +42,7 @@ class SafetyAlertDecorator(HealthReportDecorator):
         # Placeholder for actual alert logic
         print(f"!!! DISPATCHING EMERGENCY ALERT: {report.summary} !!!")
 
+
 class PrivacyDecorator(HealthReportDecorator):
     """
     Decorator (Skin) that anonymizes or encrypts sensitive parts of the report depending on context.
@@ -53,5 +54,71 @@ class PrivacyDecorator(HealthReportDecorator):
         # For this example, we'll just add a privacy flag
         report.metadata["encryption_applied"] = "AES-256"
         report.metadata["privacy_compliant"] = True
+        
+        return report
+
+class ContextualInsightDecorator(HealthReportDecorator):
+    """
+    Decorator that adds therapeutic or scientific insights to the report summary.
+    """
+    async def generate_report(self, data: HealthData) -> HealthReport:
+        report = await self.wrapped.generate_report(data)
+        
+        # Simple rule-based insights
+        if data.metric_type == "glucose":
+            insight = "Stable glucose is the foundation of emotional resilience."
+            report.recommendations.append("Consider the emotional context of your next meal.")
+        elif data.metric_type == "heart_rate":
+            insight = "Your heart rhythm often mirrors your inner peace."
+            report.recommendations.append("A few deep breaths can recalibrate your autonomic state.")
+        else:
+            insight = "Wellness is a holistic journey of small, consistent choices."
+            
+        report.summary = f"{report.summary} {insight}"
+        report.metadata["insights_added"] = True
+        return report
+
+class TrendAnalysisDecorator(HealthReportDecorator):
+    """
+    Decorator that adds trend information based on recent data points.
+    """
+    async def generate_report(self, data: HealthData) -> HealthReport:
+        report = await self.wrapped.generate_report(data)
+        
+        # In a real app, this would query historical data from the DB
+        # For this prototype, we'll use a mock trend from metadata if available
+        trend = data.metadata.get("trend", "stable") if data.metadata else "stable"
+        
+        report.metadata["trend_detected"] = trend
+        report.summary = f"[{trend.upper()} TREND] {report.summary}"
+        
+        return report
+
+class ActionableGuidanceDecorator(HealthReportDecorator):
+    """
+    Decorator that provides concrete, time-sensitive wellness tasks.
+    """
+    async def generate_report(self, data: HealthData) -> HealthReport:
+        report = await self.wrapped.generate_report(data)
+        
+        if report.status != "normal":
+            report.recommendations.insert(0, "Action Required: Prioritize rest for the next 4 hours.")
+            report.metadata["urgent_action"] = True
+            
+        return report
+
+class RaphaelPersonaDecorator(HealthReportDecorator):
+    """
+    Decorator that rephrases the report in the 'St. Raphael' therapeutic persona.
+    """
+    async def generate_report(self, data: HealthData) -> HealthReport:
+        report = await self.wrapped.generate_report(data)
+        
+        # Therapeutic/Compassionate tone
+        persona_prefix = "Dear seeker of wellness,"
+        persona_suffix = "May you find balance in every breath."
+        
+        report.summary = f"{persona_prefix} {report.summary} {persona_suffix}"
+        report.metadata["persona_applied"] = "St. Raphael"
         
         return report

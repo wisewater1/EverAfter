@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp, Crown, Sparkles, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RaphaelChat from './RaphaelChat';
-import HealthConnectionManager from './HealthConnectionManager';
 import HealthAnalytics from './HealthAnalytics';
 import MedicationTracker from './MedicationTracker';
 import HealthGoals from './HealthGoals';
@@ -17,8 +16,10 @@ import RaphaelConnectors from './RaphaelConnectors';
 import QuickActions from './QuickActions';
 import HealthTips from './HealthTips';
 import CognitiveInsights from './CognitiveInsights';
+import PredictiveHealthInsights from './PredictiveHealthInsights';
+import { apiClient } from '../lib/api-client';
 
-type HealthTab = 'chat' | 'overview' | 'insights' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
+type HealthTab = 'chat' | 'overview' | 'insights' | 'predictions' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
 export default function RaphaelHealthInterface() {
   const { user } = useAuth();
@@ -30,15 +31,27 @@ export default function RaphaelHealthInterface() {
 
   useEffect(() => {
     async function fetchRaphaelEngram() {
-      const { data } = await supabase
-        .from('engrams')
-        .select('id')
-        .eq('name', 'St. Raphael')
-        .limit(1)
-        .maybeSingle();
+      try {
+        const engrams = await apiClient.getEngrams();
+        if (engrams && Array.isArray(engrams)) {
+          const raphael = engrams.find((e: any) => e.name === 'St. Raphael');
+          if (raphael) {
+            setRaphaelEngramId(raphael.id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching engrams from local backend:', err);
+        // Fallback to Supabase if local fails
+        const { data } = await supabase
+          .from('engrams')
+          .select('id')
+          .eq('name', 'St. Raphael')
+          .limit(1)
+          .maybeSingle();
 
-      if (data) {
-        setRaphaelEngramId(data.id);
+        if (data) {
+          setRaphaelEngramId(data.id);
+        }
       }
     }
     fetchRaphaelEngram();
@@ -148,8 +161,8 @@ export default function RaphaelHealthInterface() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-shrink-0 sm:flex-1 sm:min-w-[120px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 sm:gap-2 min-h-[44px] touch-manipulation ${activeTab === tab.id
-                      ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                      : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
+                    ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                    : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
                     }`}
                 >
                   <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -206,6 +219,7 @@ export default function RaphaelHealthInterface() {
             </div>
           </div>
         )}
+        {activeTab === 'predictions' && <PredictiveHealthInsights />}
         {activeTab === 'analytics' && <HealthAnalytics />}
         {activeTab === 'medications' && <MedicationTracker />}
         {activeTab === 'appointments' && <AppointmentManager />}

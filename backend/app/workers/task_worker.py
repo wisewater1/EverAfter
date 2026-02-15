@@ -2,10 +2,17 @@ import asyncio
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.session import AsyncSessionLocal
+from app.db.session import get_session_factory
 from app.models.agent import AgentTaskQueue
 from app.services.task_executor import TaskExecutor
 import logging
+import asyncio
+import sys
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+logging.basicConfig(level=logging.INFO)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,10 +28,16 @@ class TaskWorker:
     async def start(self):
         """Start the background worker"""
         self.is_running = True
-        logger.info("Task worker started")
+        logger.info(f"Task worker started using loop: {type(asyncio.get_event_loop())}")
 
         while self.is_running:
             try:
+                # Early check for ProactorEventLoop if on Windows with psycopg
+                if sys.platform == 'win32' and 'psycopg' in settings.DATABASE_URL:
+                    loop = asyncio.get_event_loop()
+                    if "Proactor" in str(type(loop)):
+                        logger.warning("Detected ProactorEventLoop with Psycopg on Windows. This may cause errors.")
+                
                 await self.process_pending_tasks()
                 await asyncio.sleep(self.poll_interval)
             except Exception as e:
@@ -38,6 +51,7 @@ class TaskWorker:
 
     async def process_pending_tasks(self):
         """Process all pending tasks"""
+        AsyncSessionLocal = get_session_factory()
         async with AsyncSessionLocal() as session:
             # Get pending tasks that are scheduled
             query = select(AgentTaskQueue).where(

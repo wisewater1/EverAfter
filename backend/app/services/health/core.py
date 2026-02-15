@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, cast
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -13,7 +13,7 @@ class HealthData:
     unit: str
     user_id: str
     timestamp: datetime
-    metadata: Dict[str, Any] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 @dataclass
 class HealthReport:
@@ -34,17 +34,25 @@ class HealthAnalysisStrategy(ABC):
     """
     @abstractmethod
     async def analyze(self, data: HealthData) -> HealthReport:
-        pass
+        raise NotImplementedError
+
+@dataclass
+class PredictionPoint:
+    """A single data point in a health trajectory"""
+    timestamp: datetime
+    value: float
+    confidence: float
 
 @dataclass
 class PredictionResult:
     """Output of a predictive model"""
-    prediction_type: str
+    prediction_type: str  # e.g., "glucose", "stress_index"
     predicted_value: float
     confidence: float
     horizon: str  # e.g., "4h", "24h"
     risk_level: str
     contributing_factors: List[str]
+    trajectory: Optional[List[PredictionPoint]] = None # List of points for charting
 
 class HealthPredictionStrategy(ABC):
     """
@@ -53,7 +61,7 @@ class HealthPredictionStrategy(ABC):
     """
     @abstractmethod
     async def predict(self, user_id: str, context_data: Dict[str, Any]) -> PredictionResult:
-        pass
+        raise NotImplementedError
 
 # --- Decorator Pattern (The Skin) ---
 
@@ -64,7 +72,8 @@ class HealthReportComponent(ABC):
     """
     @abstractmethod
     async def generate_report(self, data: HealthData) -> HealthReport:
-        pass
+        """Abstract method to generate a health report."""
+        raise NotImplementedError
 
 class BaseHealthReporter(HealthReportComponent):
     """
@@ -95,23 +104,25 @@ class HealthContext:
     Manages the execution context.
     Selects the right Strategy and applies necessary Decorators.
     """
-    def __init__(self, strategy: HealthAnalysisStrategy = None):
+    def __init__(self, strategy: Optional[HealthAnalysisStrategy] = None):
         self._strategy = strategy
 
     @property
-    def strategy(self) -> HealthAnalysisStrategy:
+    def strategy(self) -> Optional[HealthAnalysisStrategy]:
         return self._strategy
 
     @strategy.setter
     def strategy(self, strategy: HealthAnalysisStrategy) -> None:
         self._strategy = strategy
 
-    async def execute_analysis(self, data: HealthData, decorators: List[type] = None) -> HealthReport:
+    async def execute_analysis(self, data: HealthData, decorators: Optional[List[type]] = None) -> HealthReport:
         if not self._strategy:
             raise ValueError("No analysis strategy set")
 
         # 1. Create Base Component with selected Strategy
-        usage = BaseHealthReporter(self._strategy)
+        if not self._strategy:
+             raise ValueError("No analysis strategy set")
+        usage = BaseHealthReporter(cast(HealthAnalysisStrategy, self._strategy))
         
         # 2. Wrap with Decorators (if any)
         # Note: Decorators are applied in order, so the last one in list is the "outermost"

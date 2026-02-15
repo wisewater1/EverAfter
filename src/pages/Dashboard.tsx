@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Activity, Bot, Brain, Heart, Link2, ShoppingCart, LogOut } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
-import type { ArchetypalAI } from '../types/database.types';
 import MobileMenu from '../components/MobileMenu';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import SaintsDashboard from '../components/SaintsDashboard';
@@ -13,6 +11,7 @@ import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
+import SocietyFeed from '../components/SocietyFeed';
 
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
@@ -20,7 +19,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
-  const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const activeConnectionsCount = getActiveConnectionsCount();
@@ -35,30 +33,9 @@ export default function Dashboard() {
     setSelectedView('engrams');
   };
 
-  const loadArchetypalAIs = useCallback(async () => {
-    if (!user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('archetypal_ais')
-        .select('id, name, is_ai_active')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading archetypal AIs:', error);
-        return;
-      }
-
-      setArchetypalAIs(data || []);
-    } catch (error) {
-      console.error('Error loading archetypal AIs:', error);
-    }
-  }, [user?.id]);
-
   useEffect(() => {
-    loadArchetypalAIs();
-  }, [loadArchetypalAIs]);
+    // Initial configuration or analytics tracking could go here
+  }, []);
 
   if (loading) {
     return (
@@ -270,10 +247,11 @@ export default function Dashboard() {
       <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48 safe-bottom w-full">
         <div className="space-y-8">
           {selectedView === 'activities' && (
-            <>
+            <div className="space-y-8">
+              <SocietyFeed />
               <UnifiedActivityCenter />
               <div className="h-[60vh]"></div>
-            </>
+            </div>
           )}
           {selectedView === 'engrams' && (
             <>

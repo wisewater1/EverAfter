@@ -1,4 +1,5 @@
-from fastapi import Request, HTTPException, status
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.auth.jwt import verify_access_token, verify_supabase_token
 
@@ -12,31 +13,47 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
 
         if authorization:
             try:
-                scheme, token = authorization.split()
-                if scheme.lower() != "bearer":
-                    raise HTTPException(
+                parts = authorization.split()
+                if len(parts) != 2:
+                    print(f"DEBUG: Invalid auth header: {authorization[:20]}...")
+                    return JSONResponse(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid authentication scheme"
+                        content={"detail": "Invalid authorization header format"}
+                    )
+                
+                scheme, token = parts
+                if scheme.lower() != "bearer":
+                    print(f"DEBUG: Invalid scheme: {scheme}")
+                    return JSONResponse(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        content={"detail": "Invalid authentication scheme"}
                     )
 
                 try:
                     payload = verify_supabase_token(token)
-                except ValueError:
-                    payload = verify_access_token(token)
+                    print(f"DEBUG: Supabase token valid. Sub: {payload.get('sub')}")
+                except ValueError as e:
+                    print(f"DEBUG: Supabase verification failed: {str(e)}")
+                    try:
+                        payload = verify_access_token(token)
+                        print(f"DEBUG: Access token valid. Sub: {payload.get('sub')}")
+                    except ValueError as e2:
+                        print(f"DEBUG: Access verification failed: {str(e2)}")
+                        return JSONResponse(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            content={"detail": str(e2)}
+                        )
 
                 request.state.current_user = payload
 
-            except ValueError as e:
-                raise HTTPException(
+            except Exception as e:
+                print(f"DEBUG: Auth Exception: {type(e).__name__}: {str(e)}")
+                return JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=str(e)
-                )
-            except Exception:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid authorization header format"
+                    content={"detail": f"Authentication failed: {str(e)}"}
                 )
         else:
+            print("DEBUG: No authorization header")
             request.state.current_user = None
 
         response = await call_next(request)

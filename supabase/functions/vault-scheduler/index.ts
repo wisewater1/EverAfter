@@ -50,25 +50,26 @@ Deno.serve(async (req: Request) => {
         });
 
         processed++;
-      } else if (item.type === 'CAPSULE') {
+      } else if (item.type === 'CAPSULE' || item.type === 'WILL' || item.type === 'MEMORIAL') {
+        const nextStatus = item.type === 'MEMORIAL' ? 'PUBLISHED' : 'LOCKED';
         const { error: updateError } = await supabase
           .from('vault_items')
           .update({
-            status: 'LOCKED',
+            status: nextStatus,
             locked_at: now,
           })
           .eq('id', item.id);
 
         if (updateError) {
-          console.error(`Error unlocking capsule ${item.id}:`, updateError);
+          console.error(`Error unlocking ${item.type} ${item.id}:`, updateError);
           continue;
         }
 
         await supabase.from('vault_audit_logs').insert({
           user_id: item.user_id,
           vault_item_id: item.id,
-          action: 'UNLOCKED',
-          details: { unlocked_at: now },
+          action: item.type === 'MEMORIAL' ? 'PUBLISHED' : 'UNLOCKED',
+          details: { status: nextStatus, processed_at: now },
         });
 
         processed++;

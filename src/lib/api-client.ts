@@ -207,9 +207,10 @@ class APIClient {
           data: {
             message: data.content,
             conversationId: data.conversation_id,
-            metrics: {}
+            metrics: {},
+            timestamp: data.created_at
           },
-          error: null
+          error: undefined
         };
 
       } catch (error) {
@@ -217,6 +218,99 @@ class APIClient {
         throw error;
       }
     });
+  }
+
+  /**
+   * Get predictive health analytics from local backend
+   */
+  async getPredictiveAnalytics(lookbackDays: number = 30) {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/health/predictions?lookbackDays=${lookbackDays}`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Predictive Analytics API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get engrams from local backend
+   */
+  async getEngrams() {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Engrams API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get health summary from local backend
+   */
+  async getHealthSummary() {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/health/summary`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Health Summary API Error:", error);
+      throw error;
+    }
   }
 
   /**

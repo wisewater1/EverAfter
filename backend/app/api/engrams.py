@@ -8,13 +8,38 @@ from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.schemas.engram import (
     EngramCreate, EngramResponse, EngramUpdate,
-    ResponseCreate, ResponseResponse,
-    PersonalityAnalysisResponse
+    ResponseCreate, ResponseResponse, PersonalityAnalysisResponse,
+    EngramAssetBase, EngramAssetResponse
 )
-from app.models.engram import Engram, EngramDailyResponse
+from app.models.engram import Engram, EngramDailyResponse, EngramAsset
 from app.engrams.personality import get_personality_analyzer
+from app.services.health.service import health_service
+from app.services.embeddings import get_embeddings_service
 
 router = APIRouter(prefix="/api/v1/engrams", tags=["engrams"])
+
+
+@router.get("/", response_model=List[EngramResponse])
+async def list_engrams(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    sub = current_user.get("sub")
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User ID (sub) not found in token"
+        )
+    
+    user_id = UUID(sub)
+    # Get user's own engrams OR archetypal engrams (like St. Raphael)
+    query = select(Engram).where(
+        (Engram.user_id == user_id) | (Engram.name == 'St. Raphael')
+    ).order_by(Engram.created_at.desc())
+    result = await session.execute(query)
+    engrams = result.scalars().all()
+
+    return engrams
 
 
 @router.post("/create", response_model=EngramResponse, status_code=status.HTTP_201_CREATED)
@@ -154,6 +179,15 @@ async def create_response(
     session.add(new_response)
     await session.commit()
     await session.refresh(new_response)
+
+    # Generate embedding for the new response
+    embeddings_service = get_embeddings_service()
+    try:
+        await embeddings_service.generate_response_embedding(session, str(new_response.id))
+    except Exception as e:
+        # Don't fail the request if embedding fails, but log it
+        import logging
+        logging.getLogger(__name__).error(f"Failed to generate embedding: {e}")
 
     return new_response
 

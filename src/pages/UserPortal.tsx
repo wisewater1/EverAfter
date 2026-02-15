@@ -1,17 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
   Users,
   Search,
-  Filter,
   MapPin,
-  Mail,
   Phone,
-  Globe,
-  Linkedin,
-  Twitter,
   MessageSquare,
   UserPlus,
   Check,
@@ -50,6 +45,7 @@ interface Connection {
   status: string;
   message: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export default function UserPortal() {
@@ -73,6 +69,10 @@ export default function UserPortal() {
   }, [user, activeTab]);
 
   const loadData = async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       if (activeTab === 'directory') {
@@ -88,11 +88,11 @@ export default function UserPortal() {
         const { data: allConnections } = await supabase
           .from('user_connections')
           .select('*')
-          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+          .or(`requester_id.eq.${user?.id},addressee_id.eq.${user?.id}`);
 
         const statuses: Record<string, string> = {};
-        allConnections?.forEach(conn => {
-          const otherUserId = conn.requester_id === user.id ? conn.addressee_id : conn.requester_id;
+        allConnections?.forEach((conn: any) => {
+          const otherUserId = conn.requester_id === user?.id ? conn.addressee_id : conn.requester_id;
           statuses[otherUserId] = conn.status;
         });
         setConnectionStatuses(statuses);
@@ -100,7 +100,7 @@ export default function UserPortal() {
         const { data, error } = await supabase
           .from('user_connections')
           .select('*')
-          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+          .or(`requester_id.eq.${user?.id},addressee_id.eq.${user?.id}`);
 
         if (error) throw error;
         setConnections(data || []);
@@ -113,6 +113,7 @@ export default function UserPortal() {
   };
 
   const handleSendConnectionRequest = async (targetUserId: string) => {
+    if (!supabase) return;
     if (!user) {
       alert('You must be logged in to send connection requests');
       return;
@@ -124,7 +125,6 @@ export default function UserPortal() {
     }
 
     try {
-      console.log('Sending connection request from', user.id, 'to', targetUserId);
 
       // Check if connection already exists
       const { data: existing } = await supabase
@@ -144,7 +144,7 @@ export default function UserPortal() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_connections')
         .insert({
           requester_id: user.id,
@@ -159,7 +159,6 @@ export default function UserPortal() {
         throw error;
       }
 
-      console.log('Connection request created:', data);
 
       // Log activity
       await supabase.from('user_activity_log').insert({
@@ -230,33 +229,30 @@ export default function UserPortal() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab('directory')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'directory'
-                ? 'bg-sky-600 text-white'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-            }`}
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'directory'
+              ? 'bg-sky-600 text-white'
+              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+              }`}
           >
             <Users className="w-5 h-5 inline mr-2" />
             User Directory
           </button>
           <button
             onClick={() => setActiveTab('connections')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'connections'
-                ? 'bg-sky-600 text-white'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-            }`}
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'connections'
+              ? 'bg-sky-600 text-white'
+              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+              }`}
           >
             <UserPlus className="w-5 h-5 inline mr-2" />
             My Connections
           </button>
           <button
             onClick={() => setActiveTab('messages')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'messages'
-                ? 'bg-sky-600 text-white'
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-            }`}
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'messages'
+              ? 'bg-sky-600 text-white'
+              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+              }`}
           >
             <MessageSquare className="w-5 h-5 inline mr-2" />
             Messages
@@ -360,7 +356,7 @@ function UserCard({ profile, connectionStatus, onConnect, onViewProfile }: UserC
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-lg font-medium text-white truncate">{profile.full_name}</h3>
             {profile.is_verified && (
-              <Shield className="w-4 h-4 text-sky-400 flex-shrink-0" title="Verified" />
+              <Shield className="w-4 h-4 text-sky-400 flex-shrink-0" />
             )}
           </div>
           {profile.location && (
@@ -445,7 +441,6 @@ interface ConnectionsTabProps {
 function ConnectionsTab({ connections, userId, onRefresh }: ConnectionsTabProps) {
   const pending = connections.filter(c => c.status === 'pending' && c.addressee_id === userId);
   const accepted = connections.filter(c => c.status === 'accepted');
-  const sent = connections.filter(c => c.status === 'pending' && c.requester_id === userId);
 
   const handleAccept = async (connectionId: string) => {
     try {
@@ -551,7 +546,7 @@ function ProfileModal({ profile, onClose, onConnect }: ProfileModalProps) {
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold text-white">{profile.full_name}</h2>
                 {profile.is_verified && (
-                  <Shield className="w-5 h-5 text-sky-400" title="Verified" />
+                  <Shield className="w-5 h-5 text-sky-400" />
                 )}
               </div>
               {profile.display_name && (

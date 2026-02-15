@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
-import { Activity, Heart, BarChart3, Target, Users, Bell, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid, Calendar, Pill, FileText, Zap, Cloud } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, Heart, BarChart3, Target, Users, Bell, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid, Calendar, Pill, Zap, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelHealthInterface from './RaphaelHealthInterface';
-import RaphaelInsights from './RaphaelInsights';
 import RaphaelInsightsPanel from './RaphaelInsightsPanel';
 import RaphaelChat from './RaphaelChat';
 import HealthAnalytics from './HealthAnalytics';
 import MedicationTracker from './MedicationTracker';
 import HealthGoals from './HealthGoals';
 import EmergencyContacts from './EmergencyContacts';
-import HealthReportGenerator from './HealthReportGenerator';
 import HealthConnectionManager from './HealthConnectionManager';
 import ComprehensiveHealthConnectors from './ComprehensiveHealthConnectors';
 import FileManager from './FileManager';
@@ -40,12 +38,7 @@ type TabView =
   | 'comprehensive-analytics'
   | 'appointments';
 
-interface StRaphaelHealthHubProps {
-  userId: string;
-  raphaelEngramId?: string;
-}
-
-export default function StRaphaelHealthHub({ userId, raphaelEngramId }: StRaphaelHealthHubProps) {
+export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramId?: string }) {
   const navigate = useNavigate();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const [activeTab, setActiveTab] = useState<TabView>('overview');
@@ -120,17 +113,15 @@ export default function StRaphaelHealthHub({ userId, raphaelEngramId }: StRaphae
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 px-5 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2.5 min-h-[44px] whitespace-nowrap relative group ${
-                  isActive
-                    ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4),inset_-3px_-3px_8px_rgba(255,255,255,0.05)] border border-teal-500/30 backdrop-blur-xl'
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2),-2px_-2px_5px_rgba(255,255,255,0.02)] border border-transparent hover:border-white/5'
-                }`}
+                className={`flex-shrink-0 px-5 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2.5 min-h-[44px] whitespace-nowrap relative group ${isActive
+                  ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4),inset_-3px_-3px_8px_rgba(255,255,255,0.05)] border border-teal-500/30 backdrop-blur-xl'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2),-2px_-2px_5px_rgba(255,255,255,0.02)] border border-transparent hover:border-white/5'
+                  }`}
                 role="tab"
                 aria-selected={isActive}
               >
-                <Icon className={`w-4 h-4 transition-transform ${
-                  isActive ? 'scale-110' : 'group-hover:scale-105'
-                }`} />
+                <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-105'
+                  }`} />
                 <span className="text-sm">{tab.label}</span>
                 {isActive && (
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-400/10 to-cyan-400/10 blur-sm -z-10"></div>
@@ -186,7 +177,7 @@ export default function StRaphaelHealthHub({ userId, raphaelEngramId }: StRaphae
         )}
 
         {activeTab === 'files' && (
-          <FileManager context="health" />
+          <FileManager />
         )}
 
         {activeTab === 'all-connectors' && (

@@ -1,5 +1,6 @@
 import sys
 import asyncio
+
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -10,7 +11,7 @@ print("====================================================")
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
-from app.api import engrams, chat, tasks, autonomous_tasks, personality
+from app.api import engrams, chat, tasks, autonomous_tasks, personality, health, social
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -22,6 +23,9 @@ background_task = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    from app.db.session import get_engine
+    get_engine()  # Force engine and session factory initialization
+    
     global background_task
     from app.workers.task_worker import start_worker
 
@@ -54,6 +58,8 @@ app.include_router(chat.router)
 app.include_router(tasks.router)
 app.include_router(autonomous_tasks.router)
 app.include_router(personality.router)
+app.include_router(health.router)
+app.include_router(social.router)
 
 
 @app.get("/health")
