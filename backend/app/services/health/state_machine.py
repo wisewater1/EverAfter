@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Dict, Any, Optional
-from app.services.health.core import PredictionResult
+from .core import PredictionResult
 
 class PredictionState(Enum):
     IDLE = "idle"

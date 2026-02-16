@@ -27,6 +27,12 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
       }
 
       try {
+        if (!supabase) {
+          console.warn('Supabase client not initialized in ProtectedRoute');
+          setCheckingOnboarding(false);
+          return;
+        }
+
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('has_completed_onboarding, onboarding_skipped')

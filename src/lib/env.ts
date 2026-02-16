@@ -22,27 +22,33 @@ function isValidUrl(url: string): boolean {
 
 /**
  * Validates and returns typed environment variables
- * Throws descriptive error if validation fails
+ * In production, we log warnings instead of throwing to prevent blank screens
  */
 function validateEnv(): Env {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const isProd = import.meta.env.PROD;
 
-  if (!url || typeof url !== 'string') {
-    throw new Error('Environment validation failed:\nVITE_SUPABASE_URL is required\n\nPlease check your .env file.');
+  const missingVars = [];
+  if (!url) missingVars.push('VITE_SUPABASE_URL');
+  if (!anonKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
+
+  if (missingVars.length > 0) {
+    const msg = `Environment validation failed: Missing ${missingVars.join(', ')}. App will load in limited mode.`;
+    if (isProd) {
+      console.error(msg);
+    } else {
+      console.warn(msg);
+    }
   }
 
-  if (!isValidUrl(url)) {
-    throw new Error('Environment validation failed:\nVITE_SUPABASE_URL: Invalid Supabase URL\n\nPlease check your .env file.');
-  }
-
-  if (!anonKey || typeof anonKey !== 'string' || anonKey.length === 0) {
-    throw new Error('Environment validation failed:\nVITE_SUPABASE_ANON_KEY is required\n\nPlease check your .env file.');
+  if (url && !isValidUrl(url)) {
+    console.error('Invalid VITE_SUPABASE_URL format');
   }
 
   return {
-    VITE_SUPABASE_URL: url,
-    VITE_SUPABASE_ANON_KEY: anonKey,
+    VITE_SUPABASE_URL: url || '',
+    VITE_SUPABASE_ANON_KEY: anonKey || '',
   };
 }
 
