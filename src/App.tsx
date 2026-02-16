@@ -1,3 +1,4 @@
+// Deployment sync trigger - 2026-02-15 22:32
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
