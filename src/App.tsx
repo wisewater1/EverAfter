@@ -11,7 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import NotificationToast from './components/NotificationToast';
 import HealthAlertListener from './components/HealthAlertListener';
 import { attachEdgeReactive } from './lib/edge-reactive';
-import Landing from './pages/Landing';
+import Landing from './pages/LandingRecovery';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
