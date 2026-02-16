@@ -43,6 +43,16 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
     icon: Heart,
   },
   {
+    id: 'michael',
+    name: 'St. Michael',
+    title: 'The Protector',
+    description: 'Guardian AI that manages security, privacy, and system integrity. Scans for threats and ensures your digital safety.',
+    responsibilities: ['Security monitoring', 'Integrity checks', 'Privacy protection', 'Threat detection'],
+    tier: 'premium',
+    price: 39.99,
+    icon: Shield,
+  },
+  {
     id: 'joseph',
     name: 'St. Joseph',
     title: 'The Family Guardian',
