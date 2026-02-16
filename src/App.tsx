@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
+// Dummy comment to trigger Netlify rebuild - 1
 import ProtectedRoute from './components/ProtectedRoute';
 import ConnectionsPanel from './components/ConnectionsPanel';
 import ErrorBoundary from './components/ErrorBoundary';
