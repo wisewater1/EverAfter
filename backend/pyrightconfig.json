@@ -1,0 +1,14 @@
+{
+    "venvPath": ".",
+    "venv": "venv_stable",
+    "include": [
+        "app",
+        "check_imports.py",
+        "run_server.py"
+    ],
+    "executionEnvironments": [
+        {
+            "root": "app"
+        }
+    ]
+}
