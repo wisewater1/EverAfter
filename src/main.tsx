@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+// Dummy build trigger 2
 
 if (window.visualViewport) {
   const applyVVH = () => {
