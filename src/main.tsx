@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 // Deployment sync trigger - Debugging blank screen
 
-console.log('EVERAFTER: main.tsx initializing...');
+console.log('EVERAFTER: main.tsx initializing... Build Time: ' + new Date().toISOString());
 
 window.onerror = (message, source, lineno, colno, error) => {
   const msg = `CRITICAL RUNTIME ERROR: ${message} at ${source}:${lineno}:${colno}`;
