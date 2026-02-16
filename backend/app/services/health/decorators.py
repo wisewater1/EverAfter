@@ -1,4 +1,4 @@
-from app.services.health.core import HealthReportDecorator, HealthReport, HealthData
+from .core import HealthReportDecorator, HealthReport, HealthData
 import logging
 
 # Configure logger

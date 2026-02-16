@@ -1,7 +1,10 @@
 
-# Netlify deployment trigger for dev branch# Logs
+# Logs
 logs
 *.log
+backend/*.txt
+backend/*.log
+*.tmp
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -28,6 +31,7 @@ dist-ssr
 # Virtual Environments
 venv/
 venv_new/
+venv_stable/
 .venv/
 env/
 

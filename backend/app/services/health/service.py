@@ -1,11 +1,11 @@
-from app.services.health.core import HealthContext, HealthData, HealthReport, PredictionResult
-from app.services.health.strategies import (
+from .core import HealthContext, HealthData, HealthReport, PredictionResult
+from .strategies import (
     StandardHeartRateStrategy,
     AthleteHeartRateStrategy,
     GlucoseStrategy,
     DelphiPredictionStrategy
 )
-from app.services.health.decorators import LoggingDecorator, SafetyAlertDecorator, PrivacyDecorator
+from .decorators import LoggingDecorator, SafetyAlertDecorator, PrivacyDecorator
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 

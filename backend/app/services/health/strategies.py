@@ -1,4 +1,4 @@
-from app.services.health.core import HealthAnalysisStrategy, HealthData, HealthReport
+from .core import HealthAnalysisStrategy, HealthData, HealthReport
 from typing import Dict, Any, List
 
 class StandardHeartRateStrategy(HealthAnalysisStrategy):
@@ -105,8 +105,8 @@ class GlucoseStrategy(HealthAnalysisStrategy):
 
 # --- Prediction Strategies (The Prophet) ---
 
-from app.services.health.core import HealthPredictionStrategy, PredictionResult, PredictionPoint
-from app.services.health.delphi_model import DelphiModel, DelphiConfig
+from .core import HealthPredictionStrategy, PredictionResult, PredictionPoint
+from .delphi_model import DelphiModel, DelphiConfig
 from app.ai.llm_client import get_llm_client
 import torch
 from datetime import datetime, timedelta
