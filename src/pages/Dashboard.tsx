@@ -12,6 +12,7 @@ import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
 import SocietyFeed from '../components/SocietyFeed';
+import TrajectoryDashboard from '../components/TrajectoryDashboard';
 
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
@@ -255,6 +256,7 @@ export default function Dashboard() {
           )}
           {selectedView === 'engrams' && (
             <>
+              <TrajectoryDashboard userId={user.id} />
               <SaintsDashboard />
               <FamilyEngrams />
               <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
