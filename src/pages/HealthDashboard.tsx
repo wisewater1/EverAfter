@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Activity, Heart, BarChart3, Target, Users, Bell, ArrowLeft, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid } from 'lucide-react';
+import { Activity, Heart, Target, Users, Bell, ArrowLeft, FolderOpen, Link2, Brain, LayoutGrid } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useConnections } from '../contexts/ConnectionsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,7 +15,7 @@ import MedicationTracker from '../components/MedicationTracker';
 import HealthGoals from '../components/HealthGoals';
 import EmergencyContacts from '../components/EmergencyContacts';
 import HealthReportGenerator from '../components/HealthReportGenerator';
-import HealthConnectionManager from '../components/HealthConnectionManager';
+
 import ComprehensiveHealthConnectors from '../components/ComprehensiveHealthConnectors';
 import FileManager from '../components/FileManager';
 import ConnectionRotationConfig from '../components/ConnectionRotationConfig';
@@ -25,6 +25,7 @@ import PredictiveHealthInsights from '../components/PredictiveHealthInsights';
 import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations';
 import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
 import ScrollIndicator from '../components/ScrollIndicator';
+import TrajectoryDashboard from '../components/TrajectoryDashboard';
 
 type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions';
 
@@ -66,6 +67,17 @@ export default function HealthDashboard() {
     }
     fetchRaphaelEngram();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'files') {
+      const timer = setTimeout(() => setActiveTab('medications'), 1500);
+      return () => clearTimeout(timer);
+    }
+    if (activeTab === 'contacts') {
+      const timer = setTimeout(() => setActiveTab('goals'), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     async function loadTodayData() {
@@ -152,11 +164,10 @@ export default function HealthDashboard() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex-shrink-0 px-6 py-3.5 rounded-[18px] font-medium transition-all duration-500 flex items-center gap-2.5 min-h-[48px] whitespace-nowrap relative group overflow-hidden ${
-                        activeTab === tab.id
-                          ? 'bg-gradient-to-br from-teal-500/15 via-cyan-500/10 to-teal-600/15 text-teal-200 shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),inset_0_-1px_4px_rgba(20,184,166,0.15),0_4px_16px_rgba(20,184,166,0.08)] border border-teal-400/20 backdrop-blur-2xl'
-                          : 'text-slate-400 hover:text-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4),0_1px_3px_rgba(0,0,0,0.3)] border border-white/[0.02] hover:border-white/[0.06] hover:bg-gradient-to-br hover:from-white/[0.03] hover:to-white/[0.01]'
-                      }`}
+                      className={`flex-shrink-0 px-6 py-3.5 rounded-[18px] font-medium transition-all duration-500 flex items-center gap-2.5 min-h-[48px] whitespace-nowrap relative group overflow-hidden ${activeTab === tab.id
+                        ? 'bg-gradient-to-br from-teal-500/15 via-cyan-500/10 to-teal-600/15 text-teal-200 shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),inset_0_-1px_4px_rgba(20,184,166,0.15),0_4px_16px_rgba(20,184,166,0.08)] border border-teal-400/20 backdrop-blur-2xl'
+                        : 'text-slate-400 hover:text-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4),0_1px_3px_rgba(0,0,0,0.3)] border border-white/[0.02] hover:border-white/[0.06] hover:bg-gradient-to-br hover:from-white/[0.03] hover:to-white/[0.01]'
+                        }`}
                       role="tab"
                       aria-selected={activeTab === tab.id}
                       aria-controls={`${tab.id}-panel`}
@@ -171,16 +182,14 @@ export default function HealthDashboard() {
                       )}
 
                       {/* Icon with enhanced animation */}
-                      <Icon className={`w-4.5 h-4.5 relative z-10 transition-all duration-500 ${
-                        activeTab === tab.id
-                          ? 'scale-110 drop-shadow-[0_0_8px_rgba(20,184,166,0.4)]'
-                          : 'group-hover:scale-105 opacity-70 group-hover:opacity-100'
-                      }`} />
+                      <Icon className={`w-4.5 h-4.5 relative z-10 transition-all duration-500 ${activeTab === tab.id
+                        ? 'scale-110 drop-shadow-[0_0_8px_rgba(20,184,166,0.4)]'
+                        : 'group-hover:scale-105 opacity-70 group-hover:opacity-100'
+                        }`} />
 
                       {/* Label */}
-                      <span className={`text-sm relative z-10 font-semibold transition-all duration-500 ${
-                        activeTab === tab.id ? 'tracking-wide' : 'tracking-normal'
-                      }`}>
+                      <span className={`text-sm relative z-10 font-semibold transition-all duration-500 ${activeTab === tab.id ? 'tracking-wide' : 'tracking-normal'
+                        }`}>
                         {tab.label}
                       </span>
 
@@ -287,10 +296,12 @@ export default function HealthDashboard() {
               <ConnectionRotationConfig />
               <ConnectionRotationMonitor />
               <ComprehensiveAnalyticsDashboard />
+
             </div>
           )}
           {activeTab === 'predictions' && (
             <div className="space-y-6">
+              <TrajectoryDashboard userId={user?.id || ''} />
               <PredictiveHealthInsights />
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
                 <RaphaelInsightsPanel engramId={raphaelEngramId} />
@@ -337,13 +348,11 @@ export default function HealthDashboard() {
           {activeTab === 'files' && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
               <p className="text-amber-300 text-center">Files have been merged into Medications → Documents. Redirecting...</p>
-              {setTimeout(() => setActiveTab('medications'), 1500)}
             </div>
           )}
           {activeTab === 'contacts' && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
               <p className="text-amber-300 text-center">Emergency has been merged into Goals → Emergency Actions. Redirecting...</p>
-              {setTimeout(() => setActiveTab('goals'), 1500)}
             </div>
           )}
         </div>

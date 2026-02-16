@@ -171,13 +171,146 @@ class APIClient {
     conversationId?: string
   ): Promise<EdgeFunctionResponse<ChatResponse>> {
     const dedupeKey = `chat-${engramId}-${content}`;
-    return this.deduplicate(dedupeKey, () =>
-      this.callEdgeFunction<ChatResponse>('engram-chat', {
-        engramId,
-        message: content,
-        conversationId: conversationId || `conv_${Date.now()}_${engramId}`,
-      })
-    );
+
+    // Redirect to local backend instead of Edge Function
+    return this.deduplicate(dedupeKey, async () => {
+      const token = await this.getAuthToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Use VITE_API_BASE_URL from env or default to localhost:8001
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+      try {
+        const response = await fetch(`${API_BASE}/api/v1/chat/${engramId}/message`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            content,
+            conversation_id: conversationId
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Backend error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Transform backend response to match expected EdgeFunctionResponse structure
+        return {
+          data: {
+            message: data.content,
+            conversationId: data.conversation_id,
+            metrics: {},
+            timestamp: data.created_at
+          },
+          error: undefined
+        };
+
+      } catch (error) {
+        console.error("Chat API Error:", error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Get predictive health analytics from local backend
+   */
+  async getPredictiveAnalytics(lookbackDays: number = 30) {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/health/predictions?lookbackDays=${lookbackDays}`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Predictive Analytics API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get engrams from local backend
+   */
+  async getEngrams() {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Engrams API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get health summary from local backend
+   */
+  async getHealthSummary() {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/health/summary`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Health Summary API Error:", error);
+      throw error;
+    }
   }
 
   /**

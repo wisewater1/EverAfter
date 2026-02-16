@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, Sparkles, User, Activity, Brain, SkipForward, Heart, Image } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, User, Activity, Brain, Heart, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PersonalityProfileViewer from './PersonalityProfileViewer';
 import DailyQuestionCard from './DailyQuestionCard';
@@ -19,12 +19,7 @@ interface FamilyMember {
   personality_questions_answered: number;
 }
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+
 
 interface QuestionResponse {
   id: string;
@@ -47,7 +42,6 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   const [questionResponses, setQuestionResponses] = useState<QuestionResponse[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [inviteForm, setInviteForm] = useState({
@@ -56,10 +50,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     relationship: ''
   });
   const [questionText, setQuestionText] = useState('');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [aiTyping, setAiTyping] = useState(false);
   const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'pdf'>('json');
   const [selectedExportData, setSelectedExportData] = useState({
     members: true,
@@ -93,7 +84,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       .limit(50);
 
     if (data) {
-      setQuestionResponses(data.map(item => ({
+      setQuestionResponses(data.map((item: any) => ({
         id: item.id,
         question: item.question_text,
         response: item.response_text,
@@ -312,11 +303,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
         <div className="flex gap-1 sm:gap-2 border-b border-slate-700/50 overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab('members')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
-              activeTab === 'members'
-                ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
-            }`}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${activeTab === 'members'
+              ? 'text-blue-400'
+              : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -328,11 +318,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           </button>
           <button
             onClick={() => setActiveTab('daily-questions')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
-              activeTab === 'daily-questions'
-                ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
-            }`}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${activeTab === 'daily-questions'
+              ? 'text-blue-400'
+              : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -344,11 +333,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           </button>
           <button
             onClick={() => setActiveTab('questions')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
-              activeTab === 'questions'
-                ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
-            }`}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${activeTab === 'questions'
+              ? 'text-blue-400'
+              : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -360,11 +348,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           </button>
           <button
             onClick={() => setActiveTab('media')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
-              activeTab === 'media'
-                ? 'text-purple-400'
-                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
-            }`}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${activeTab === 'media'
+              ? 'text-purple-400'
+              : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Image className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -376,11 +363,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           </button>
           <button
             onClick={() => setActiveTab('st-raphael')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
-              activeTab === 'st-raphael'
-                ? 'text-teal-400'
-                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
-            }`}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${activeTab === 'st-raphael'
+              ? 'text-teal-400'
+              : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -392,11 +378,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           </button>
           <button
             onClick={() => setActiveTab('export')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${
-              activeTab === 'export'
-                ? 'text-blue-400'
-                : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
-            }`}
+            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium transition-all relative touch-manipulation ${activeTab === 'export'
+              ? 'text-blue-400'
+              : 'text-slate-400 hover:text-slate-300 active:text-slate-200'
+              }`}
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -577,7 +562,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
 
       {/* St. Raphael Health Hub Tab */}
       {activeTab === 'st-raphael' && (
-        <StRaphaelHealthHub userId={userId} raphaelEngramId={raphaelEngramId} />
+        <StRaphaelHealthHub raphaelEngramId={raphaelEngramId} />
       )}
 
       {/* Export Tab */}
@@ -622,22 +607,20 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => setExportFormat('json')}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  exportFormat === 'json'
-                    ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                    : 'bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-slate-600'
-                }`}
+                className={`p-4 rounded-lg border-2 transition-all ${exportFormat === 'json'
+                  ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+                  : 'bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-slate-600'
+                  }`}
               >
                 <Database className="w-6 h-6 mx-auto mb-2" />
                 <p className="text-xs font-medium">JSON</p>
               </button>
               <button
                 onClick={() => setExportFormat('csv')}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  exportFormat === 'csv'
-                    ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                    : 'bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-slate-600'
-                }`}
+                className={`p-4 rounded-lg border-2 transition-all ${exportFormat === 'csv'
+                  ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+                  : 'bg-slate-800/30 border-slate-700/50 text-slate-400 hover:border-slate-600'
+                  }`}
               >
                 <FileText className="w-6 h-6 mx-auto mb-2" />
                 <p className="text-xs font-medium">CSV</p>
@@ -791,7 +774,15 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <PersonalityProfileViewer userId={userId} targetMemberId={selectedMember.id} />
+            <PersonalityProfileViewer
+              familyMemberId={selectedMember.id}
+              familyMemberName={selectedMember.name}
+              familyMemberRelationship={selectedMember.relationship}
+              onClose={() => {
+                setShowProfileModal(false);
+                setSelectedMember(null);
+              }}
+            />
           </div>
         </div>
       )}

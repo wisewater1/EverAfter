@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { chatWithRaphael, EdgeFunctionException } from '../lib/edge-functions';
-import { Send, Bot, User, Heart, Activity, Moon, Pill, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../lib/api-client';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, ExternalLink } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -28,9 +27,12 @@ interface HealthContext {
   activePrescriptions: number;
 }
 
-export default function RaphaelChat() {
+interface RaphaelChatProps {
+  engramId?: string;
+}
+
+export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -53,34 +55,26 @@ export default function RaphaelChat() {
 
   const fetchHealthContext = async () => {
     try {
-      const response = await fetch('/api/me/raphael/summary', {
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        }
+      const data = await apiClient.getHealthSummary();
+      setHealthContext({
+        recentMetrics: data.metrics || 0,
+        upcomingAppointments: 0,
+        activePrescriptions: 0
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setHealthContext({
-          recentMetrics: data.metrics || 0,
-          upcomingAppointments: 0,
-          activePrescriptions: 0
-        });
-      } else {
-        const [metricsRes, appointmentsRes, prescriptionsRes] = await Promise.all([
-          supabase.from('health_metrics').select('id', { count: 'exact', head: true }),
-          supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('scheduled_at', new Date().toISOString()),
-          supabase.from('prescriptions').select('id', { count: 'exact', head: true }).eq('is_active', true)
-        ]);
-
-        setHealthContext({
-          recentMetrics: metricsRes.count || 0,
-          upcomingAppointments: appointmentsRes.count || 0,
-          activePrescriptions: prescriptionsRes.count || 0
-        });
-      }
     } catch (error) {
-      console.error('Error fetching health context:', error);
+      console.error('Error fetching health context from local backend:', error);
+      // Fallback to supabase if local fails
+      const [metricsRes, appointmentsRes, prescriptionsRes] = await Promise.all([
+        supabase.from('health_metrics').select('id', { count: 'exact', head: true }),
+        supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('scheduled_at', new Date().toISOString()),
+        supabase.from('prescriptions').select('id', { count: 'exact', head: true }).eq('is_active', true)
+      ]);
+
+      setHealthContext({
+        recentMetrics: metricsRes.count || 0,
+        upcomingAppointments: appointmentsRes.count || 0,
+        activePrescriptions: prescriptionsRes.count || 0
+      });
     }
   };
 
@@ -88,35 +82,6 @@ export default function RaphaelChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const generateRaphaelResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-
-    if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule')) {
-      return `I can help you manage your appointments. You currently have ${healthContext.upcomingAppointments} upcoming appointment${healthContext.upcomingAppointments !== 1 ? 's' : ''}. Would you like to schedule a new appointment or view your existing ones?`;
-    }
-
-    if (lowerMessage.includes('medication') || lowerMessage.includes('prescription') || lowerMessage.includes('pill')) {
-      return `You have ${healthContext.activePrescriptions} active prescription${healthContext.activePrescriptions !== 1 ? 's' : ''}. I can help you track your medications, set reminders, or check refill status. What would you like to know?`;
-    }
-
-    if (lowerMessage.includes('health data') || lowerMessage.includes('metrics') || lowerMessage.includes('stats')) {
-      return `I've tracked ${healthContext.recentMetrics} health metric${healthContext.recentMetrics !== 1 ? 's' : ''} for you. Would you like me to analyze your recent activity, sleep patterns, or heart rate data?`;
-    }
-
-    if (lowerMessage.includes('sleep')) {
-      return 'Good sleep is crucial for your health. Based on your data, I recommend maintaining a consistent sleep schedule. Would you like tips for better sleep quality?';
-    }
-
-    if (lowerMessage.includes('exercise') || lowerMessage.includes('activity') || lowerMessage.includes('workout')) {
-      return 'Regular physical activity is essential for maintaining good health. I can help you track your activity levels and suggest appropriate exercise routines based on your goals and current fitness level.';
-    }
-
-    if (lowerMessage.includes('stress') || lowerMessage.includes('anxiety') || lowerMessage.includes('mental')) {
-      return 'Mental health is just as important as physical health. I can suggest relaxation techniques, mindfulness exercises, or breathing practices. Would you like to try a guided breathing exercise?';
-    }
-
-    return 'I\'m here to help with your health and wellness journey. You can ask me about appointments, medications, health metrics, exercise, sleep, or general wellness advice. What would you like to explore?';
-  };
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -134,16 +99,18 @@ export default function RaphaelChat() {
     setLoading(true);
 
     try {
-      // Call Raphael chat (uses Groq or OpenAI)
-      const response = await chatWithRaphael({
-        input: userInput
-      });
+      if (!engramId) {
+        throw new Error('Raphael Engram ID not found. Please try again in a moment.');
+      }
+      const response = await apiClient.sendChatMessage(engramId, userInput, undefined);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.reply,
+        content: response.data?.message || "I'm here to help.",
         timestamp: new Date(),
+        toolsUsed: false,
+        toolExecutionLog: [],
         context: {
           healthData: true,
           suggestions: ['View health dashboard', 'Schedule appointment', 'Track medication']
@@ -156,11 +123,11 @@ export default function RaphaelChat() {
 
       let errorMessage = 'I apologize, but I encountered an error. Please try again.';
 
-      if (error instanceof EdgeFunctionException) {
-        if (error.code === 'AUTH_MISSING' || error.code === 'AUTH_FAILED') {
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
           errorMessage = 'Your session has expired. Please refresh the page and log in again.';
-        } else if (error.code === 'CONFIG_MISSING') {
-          errorMessage = 'The AI service is not configured. Please contact support.';
+        } else if (error.message.includes('Network')) {
+          errorMessage = 'Please check your internet connection.';
         } else {
           errorMessage = `Error: ${error.message}`;
         }
@@ -235,20 +202,18 @@ export default function RaphaelChat() {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`flex space-x-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
-              }`}>
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
+                }`}>
                 {message.role === 'user' ? (
                   <User className="w-4 h-4 text-blue-300" />
                 ) : (
                   <Bot className="w-4 h-4 text-emerald-300" />
                 )}
               </div>
-              <div className={`rounded-2xl p-4 ${
-                message.role === 'user'
-                  ? 'bg-blue-500/20 border border-blue-500/30'
-                  : 'bg-emerald-500/20 border border-emerald-500/30'
-              }`}>
+              <div className={`rounded-2xl p-4 ${message.role === 'user'
+                ? 'bg-blue-500/20 border border-blue-500/30'
+                : 'bg-emerald-500/20 border border-emerald-500/30'
+                }`}>
                 <p className="text-white text-sm leading-relaxed">{message.content}</p>
                 {message.toolsUsed && message.toolExecutionLog && (
                   <div className="mt-2 pt-2 border-t border-emerald-500/20">

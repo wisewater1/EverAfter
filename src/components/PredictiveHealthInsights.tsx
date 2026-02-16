@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { apiClient } from '../lib/api-client';
 import {
   TrendingUp,
   TrendingDown,
@@ -60,27 +61,7 @@ export default function PredictiveHealthInsights() {
   async function loadAnalytics() {
     try {
       setLoading(true);
-      const { data: session } = await supabase.auth.getSession();
-
-      if (!session.session) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/predictive-health-analytics?lookbackDays=${lookbackDays}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to load analytics');
-      }
-
-      const data = await response.json();
+      const data = await apiClient.getPredictiveAnalytics(lookbackDays);
       setAnalytics(data);
     } catch (error) {
       console.error('Error loading analytics:', error);
@@ -305,22 +286,20 @@ export default function PredictiveHealthInsights() {
                       {corr.metric_2.replace(/_/g, ' ')}
                     </span>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-lg ${
-                    corr.strength === 'strong' ? 'bg-green-600 text-white' :
+                  <span className={`px-2 py-1 text-xs rounded-lg ${corr.strength === 'strong' ? 'bg-green-600 text-white' :
                     corr.strength === 'moderate' ? 'bg-yellow-600 text-white' :
-                    'bg-gray-600 text-white'
-                  }`}>
+                      'bg-gray-600 text-white'
+                    }`}>
                     {corr.strength}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${
-                        Math.abs(corr.correlation) > 0.7 ? 'bg-green-500' :
+                      className={`h-full ${Math.abs(corr.correlation) > 0.7 ? 'bg-green-500' :
                         Math.abs(corr.correlation) > 0.4 ? 'bg-yellow-500' :
-                        'bg-gray-500'
-                      }`}
+                          'bg-gray-500'
+                        }`}
                       style={{ width: `${Math.abs(corr.correlation) * 100}%` }}
                     />
                   </div>

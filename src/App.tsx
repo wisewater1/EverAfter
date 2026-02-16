@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ErrorNotificationProvider, useErrorNotification } from './contexts/ErrorNotificationContext';
+import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ConnectionsPanel from './components/ConnectionsPanel';
 import ErrorBoundary from './components/ErrorBoundary';
-import ErrorNotificationToast from './components/ErrorNotificationToast';
+import NotificationToast from './components/NotificationToast';
+import HealthAlertListener from './components/HealthAlertListener';
 import { attachEdgeReactive } from './lib/edge-reactive';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -40,14 +41,26 @@ import DeviceCheck from './pages/DeviceCheck';
 import Career from './pages/Career';
 import PublicCareerChat from './pages/PublicCareerChat';
 import Onboarding from './pages/Onboarding';
+import StMichaelSecurityDashboard from './components/StMichaelSecurityDashboard';
+import StJosephFamilyDashboard from './components/StJosephFamilyDashboard';
 
 function ErrorNotifierConnector() {
-  const { showError } = useErrorNotification();
+  const { showNotification } = useNotification();
   const { setErrorNotifier } = useAuth();
 
   useEffect(() => {
-    setErrorNotifier({ showError });
-  }, [showError, setErrorNotifier]);
+    // Adapter for legacy auth error handling
+    setErrorNotifier({
+      showError: (msg, severity = 'critical') => {
+        const typeMap: Record<string, 'error' | 'warning' | 'info'> = {
+          'critical': 'error',
+          'warning': 'warning',
+          'info': 'info'
+        };
+        showNotification(msg, typeMap[severity] || 'error');
+      }
+    });
+  }, [showNotification, setErrorNotifier]);
 
   return null;
 }
@@ -60,7 +73,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ErrorNotificationProvider>
+      <NotificationProvider>
         <AuthProvider>
           <ConnectionsProvider>
             <ErrorNotifierConnector />
@@ -148,6 +161,16 @@ function App() {
                     <HealthDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/security-dashboard" element={
+                  <ProtectedRoute>
+                    <StMichaelSecurityDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/family-dashboard" element={
+                  <ProtectedRoute>
+                    <StJosephFamilyDashboard />
+                  </ProtectedRoute>
+                } />
                 {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}
                 <Route path="/emergency" element={
                   <Navigate to="/health-dashboard#emergency" replace />
@@ -187,10 +210,11 @@ function App() {
               </Routes>
               <ConnectionsPanel />
             </Router>
-            <ErrorNotificationToast />
+            <HealthAlertListener />
+            <NotificationToast />
           </ConnectionsProvider>
         </AuthProvider>
-      </ErrorNotificationProvider>
+      </NotificationProvider>
     </ErrorBoundary>
   );
 }

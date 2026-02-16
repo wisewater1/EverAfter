@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status, Request
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 async def get_current_user(request: Request) -> Dict[str, Any]:
@@ -12,7 +12,7 @@ async def get_current_user(request: Request) -> Dict[str, Any]:
     return request.state.current_user
 
 
-async def get_optional_user(request: Request) -> Dict[str, Any] | None:
+async def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
     if hasattr(request.state, "current_user"):
         return request.state.current_user
     return None

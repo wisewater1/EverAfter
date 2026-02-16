@@ -13,9 +13,7 @@ export default function Login() {
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
-    console.log('[Login] User state changed:', { hasUser: !!user, userId: user?.id, loading });
     if (user && !loading) {
-      console.log('[Login] User logged in, navigating to dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
@@ -39,7 +37,6 @@ export default function Login() {
         setSubmitting(false);
       } else {
         // Success - navigate immediately
-        console.log('[Login] Sign in successful, navigating to dashboard');
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {

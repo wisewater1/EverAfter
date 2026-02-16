@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,11 +46,20 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
     id: 'michael',
     name: 'St. Michael',
     title: 'The Protector',
-    description: 'Guardian AI that manages security, privacy protection, and digital legacy preservation.',
-    responsibilities: ['Security monitoring', 'Privacy protection', 'Data integrity', 'Access control'],
+    description: 'Guardian AI that manages security, privacy, and system integrity. Scans for threats and ensures your digital safety.',
+    responsibilities: ['Security monitoring', 'Integrity checks', 'Privacy protection', 'Threat detection'],
     tier: 'premium',
-    price: 24.99,
+    price: 39.99,
     icon: Shield,
+  },
+  {
+    id: 'joseph',
+    name: 'St. Joseph',
+    title: 'The Family Guardian',
+    description: 'Autonomous family AI managing household chores, schedules, and shopping.',
+    responsibilities: ['Chore tracking', 'Family calendar', 'Shopping lists', 'Home coordination'],
+    tier: 'classic',
+    icon: Users,
   },
   {
     id: 'martin',
@@ -79,11 +88,9 @@ export default function SaintsDashboard() {
   const navigate = useNavigate();
   const [saints, setSaints] = useState<Saint[]>([]);
   const [activities, setActivities] = useState<SaintActivity[]>([]);
-  const [showActivityDetails, setShowActivityDetails] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
-  const [newActivityIds, setNewActivityIds] = useState<Set<string>>(new Set());
 
   const restoreSaintsData = async () => {
     if (!user) return;
@@ -149,7 +156,7 @@ export default function SaintsDashboard() {
 
       const saintsWithData = await Promise.all(
         saintDefinitions.map(async (saintDef) => {
-          const isActive = activeSaints?.some(s => s.saint_id === saintDef.id) || saintDef.id === 'raphael';
+          const isActive = activeSaints?.some((s: any) => s.saint_id === saintDef.id) || saintDef.id === 'raphael' || saintDef.id === 'michael' || saintDef.id === 'joseph';
 
           if (!isActive) {
             return {
@@ -236,18 +243,12 @@ export default function SaintsDashboard() {
 
       const newData = data || [];
       const currentIds = new Set(activities.map(a => a.id));
-      const newIds = new Set<string>();
 
-      newData.forEach(activity => {
+      newData.forEach((activity: any) => {
         if (!currentIds.has(activity.id)) {
-          newIds.add(activity.id);
+          // New activity detected
         }
       });
-
-      if (newIds.size > 0) {
-        setNewActivityIds(newIds);
-        setTimeout(() => setNewActivityIds(new Set()), 3000);
-      }
 
       setActivities(newData);
     } catch (error) {
@@ -338,6 +339,62 @@ export default function SaintsDashboard() {
         category: 'support',
         impact: 'high',
         status: 'in_progress'
+      },
+      {
+        saint_id: 'michael',
+        action: 'Integrity Check Completed',
+        description: 'Verified SHA-256 hashes for 42 digital engrams. No discrepancies detected.',
+        category: 'protection',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'michael',
+        action: 'Raphael Data Secured',
+        description: 'Confirmed health data isolation. No unauthorized access recorded from external sources.',
+        category: 'protection',
+        impact: 'high',
+        status: 'completed'
+      },
+      {
+        saint_id: 'michael',
+        action: 'Security Patch Deployed',
+        description: 'Updated autonomous firewall rules for enhanced agent protection.',
+        category: 'protection',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'michael',
+        action: 'Leak Prevention Scan',
+        description: 'Scanned 12 outbound connection attempts. All verified safe.',
+        category: 'protection',
+        impact: 'low',
+        status: 'completed'
+      },
+      {
+        saint_id: 'joseph',
+        action: 'Shopping List Updated',
+        description: 'Added milk and eggs to the family grocery list.',
+        category: 'family',
+        impact: 'low',
+        status: 'completed'
+      },
+      {
+        saint_id: 'joseph',
+        action: 'Chore Assignment',
+        description: 'Assigned "Take out trash" to Bob based on rotating schedule.',
+        category: 'family',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'joseph',
+        action: 'Calendar Sync',
+        description: 'Synced family dinner event across all household calendars.',
+        category: 'family',
+        impact: 'medium',
+        status: 'completed'
       }
     ];
 
@@ -389,24 +446,6 @@ export default function SaintsDashboard() {
   const handleSaintActivation = (saint: Saint) => {
     if (saint.tier === 'premium' && !saint.active) {
       alert(`${saint.name} is a premium feature. Coming soon!`);
-    }
-  };
-
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case 'high': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      case 'medium': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      case 'low': return 'bg-sky-500/10 text-sky-400 border-sky-500/20';
-      default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'protection': return Shield;
-      case 'support': return Heart;
-      case 'memory': return Clock;
-      default: return CheckCircle;
     }
   };
 
@@ -599,40 +638,37 @@ export default function SaintsDashboard() {
           return (
             <div
               key={saint.id}
-              className={`group relative bg-gradient-to-br rounded-2xl p-6 transition-all duration-300 ${
-                saint.active && isRaphael
-                  ? 'from-emerald-500/10 to-teal-500/5 border-2 border-emerald-500/30 shadow-xl shadow-emerald-500/5'
-                  : saint.active
-                    ? 'from-sky-500/10 to-blue-500/5 border-2 border-sky-500/30 shadow-xl shadow-sky-500/5'
-                    : saint.tier === 'premium'
-                      ? 'from-amber-500/10 to-orange-500/5 border-2 border-amber-500/20 shadow-xl shadow-amber-500/5'
-                      : 'from-slate-800/50 to-slate-900/50 border-2 border-slate-700/30'
-              }`}
+              className={`group relative bg-gradient-to-br rounded-2xl p-6 transition-all duration-300 ${saint.active && isRaphael
+                ? 'from-emerald-500/10 to-teal-500/5 border-2 border-emerald-500/30 shadow-xl shadow-emerald-500/5'
+                : saint.active
+                  ? 'from-sky-500/10 to-blue-500/5 border-2 border-sky-500/30 shadow-xl shadow-sky-500/5'
+                  : saint.tier === 'premium'
+                    ? 'from-amber-500/10 to-orange-500/5 border-2 border-amber-500/20 shadow-xl shadow-amber-500/5'
+                    : 'from-slate-800/50 to-slate-900/50 border-2 border-slate-700/30'
+                }`}
             >
               {/* Saint Header */}
               <div className="flex items-start justify-between mb-5">
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                      saint.active && isRaphael
-                        ? 'bg-emerald-500/15 shadow-lg shadow-emerald-500/20'
-                        : saint.active
-                          ? 'bg-sky-500/15 shadow-lg shadow-sky-500/20'
-                          : saint.tier === 'premium'
-                            ? 'bg-amber-500/15 shadow-lg shadow-amber-500/20'
-                            : 'bg-slate-700/30'
-                    }`}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${saint.active && isRaphael
+                      ? 'bg-emerald-500/15 shadow-lg shadow-emerald-500/20'
+                      : saint.active
+                        ? 'bg-sky-500/15 shadow-lg shadow-sky-500/20'
+                        : saint.tier === 'premium'
+                          ? 'bg-amber-500/15 shadow-lg shadow-amber-500/20'
+                          : 'bg-slate-700/30'
+                      }`}
                   >
                     <Icon
-                      className={`w-6 h-6 ${
-                        saint.active && isRaphael
-                          ? 'text-emerald-400'
-                          : saint.active
-                            ? 'text-sky-400'
-                            : saint.tier === 'premium'
-                              ? 'text-amber-400'
-                              : 'text-slate-500'
-                      }`}
+                      className={`w-6 h-6 ${saint.active && isRaphael
+                        ? 'text-emerald-400'
+                        : saint.active
+                          ? 'text-sky-400'
+                          : saint.tier === 'premium'
+                            ? 'text-amber-400'
+                            : 'text-slate-500'
+                        }`}
                     />
                   </div>
                   <div>
@@ -711,6 +747,24 @@ export default function SaintsDashboard() {
                   >
                     <Activity className="w-4 h-4" />
                     <span>Open Health Monitor</span>
+                  </button>
+                )}
+                {saint.active && saint.id === 'michael' && (
+                  <button
+                    onClick={() => navigate('/security-dashboard')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-sky-500/20"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>Open Security Monitor</span>
+                  </button>
+                )}
+                {saint.active && saint.id === 'joseph' && (
+                  <button
+                    onClick={() => navigate('/family-dashboard')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Open Family Monitor</span>
                   </button>
                 )}
                 {!saint.active && saint.tier === 'premium' && (

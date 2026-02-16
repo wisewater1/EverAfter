@@ -122,3 +122,23 @@ class TaskResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class EngramAssetBase(BaseModel):
+    asset_type: str = Field(..., pattern="^(photo|video|voice_note|custom)$")
+    file_url: str
+    description: Optional[str] = None
+
+
+class EngramAssetCreate(EngramAssetBase):
+    ai_id: UUID
+
+
+class EngramAssetResponse(EngramAssetBase):
+    id: UUID
+    ai_id: UUID
+    user_id: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

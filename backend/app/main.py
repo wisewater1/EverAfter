@@ -1,8 +1,17 @@
+import sys
+import asyncio
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI
+print("====================================================")
+print("EVERAFTER BACKEND STARTING ON PORT 8001 (FIXED)")
+print("====================================================")
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
-from app.api import engrams, chat, tasks, autonomous_tasks, personality
+from app.api import engrams, chat, tasks, autonomous_tasks, personality, health, social
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -14,15 +23,17 @@ background_task = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    from app.db.session import get_engine
+    get_engine()  # Force engine and session factory initialization
+    
     global background_task
     from app.workers.task_worker import start_worker
 
-    # Start background worker
     background_task = asyncio.create_task(start_worker())
     yield
     # Shutdown
-    if background_task:
-        background_task.cancel()
+    # if background_task:
+    #     background_task.cancel()
 
 
 app = FastAPI(
@@ -47,6 +58,8 @@ app.include_router(chat.router)
 app.include_router(tasks.router)
 app.include_router(autonomous_tasks.router)
 app.include_router(personality.router)
+app.include_router(health.router)
+app.include_router(social.router)
 
 
 @app.get("/health")

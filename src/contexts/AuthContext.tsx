@@ -27,13 +27,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -43,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     try {
-      console.log('[AuthContext] Starting signup for:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -65,11 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
       }
 
-      console.log('[AuthContext] Signup successful:', {
-        hasUser: !!data?.user,
-        hasSession: !!data?.session,
-        userId: data?.user?.id
-      });
 
       // Supabase now auto-confirms emails in some configurations
       // If we have both user and session, auth is complete
@@ -94,11 +94,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     try {
-      console.log('[AuthContext] Starting sign in for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: { // Added explicit options to match some client versions if needed, or remove if not
+        }
       });
 
       if (error) {
@@ -110,11 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
       }
 
-      console.log('[AuthContext] Sign in successful:', {
-        hasUser: !!data?.user,
-        hasSession: !!data?.session,
-        userId: data?.user?.id
-      });
 
       // Manually update state to ensure immediate update
       if (data?.user && data?.session) {
@@ -138,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     const { error } = await supabase.auth.signOut();
     if (error) {
       logger.error('Sign out failed', error);
@@ -147,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });

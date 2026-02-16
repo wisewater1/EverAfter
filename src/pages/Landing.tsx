@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Brain, Heart, Shield, Crown, Star, ArrowRight, LogIn, Sparkles } from 'lucide-react';
+import { Brain, Heart, Shield, Crown, Star, ArrowRight, LogIn, LogOut, LayoutDashboard, Sparkles } from 'lucide-react';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const saints = [
     {
@@ -54,8 +54,26 @@ export default function Landing() {
               </div>
               <h1 className="text-base sm:text-xl font-medium text-white truncate">EverAfter AI</h1>
             </div>
+
             <div className="flex items-center gap-2 sm:gap-3">
-              {!user && (
+              {user ? (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 sm:px-6 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2 text-sm sm:text-base touch-target"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span className="hidden xs:inline">Dashboard</span>
+                  </button>
+                  <button
+                    onClick={async () => { await signOut(); navigate('/'); }}
+                    className="px-3 sm:px-4 py-2 text-gray-400 hover:text-white border border-gray-700 rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2 text-sm touch-target"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sign Out</span>
+                  </button>
+                </>
+              ) : (
                 <button
                   onClick={() => navigate('/login')}
                   className="px-4 sm:px-6 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2 text-sm sm:text-base touch-target"
@@ -83,8 +101,9 @@ export default function Landing() {
             </span>
           </h2>
           <p className="text-base sm:text-lg lg:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6 sm:mb-8 px-4">
-            EverAfter AI creates autonomous AI agents that work in the background to manage your health,
-            protect your legacy, and support your loved ones today and after you're gone.
+            EverAfter AI creates autonomous AI agents that work in the background
+            to manage your health, protect your legacy, and support your loved
+            ones today and after you're gone.
           </p>
           <div className="flex items-center justify-center gap-3 sm:gap-4 px-4">
             <button
@@ -110,11 +129,10 @@ export default function Landing() {
                   <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div className="mb-2">
-                  <span className={`inline-block px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
-                    saint.tier === 'Free'
-                      ? 'bg-green-600/20 text-green-400 border border-green-500/30'
-                      : 'bg-purple-600/20 text-purple-400 border border-purple-500/30'
-                  }`}>
+                  <span className={`inline-block px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${saint.tier === 'Free'
+                    ? 'bg-green-600/20 text-green-400 border border-green-500/30'
+                    : 'bg-purple-600/20 text-purple-400 border border-purple-500/30'
+                    }`}>
                     {saint.tier}
                   </span>
                 </div>
@@ -135,6 +153,7 @@ export default function Landing() {
             Build AI personalities through daily questions, then let them work autonomously
           </p>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           <div className="bg-gray-800/50 rounded-xl sm:rounded-2xl border border-gray-700/50 p-6 sm:p-8 text-center">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-white">
@@ -145,6 +164,7 @@ export default function Landing() {
               Build rich AI personalities by answering thoughtful questions about yourself and your loved ones
             </p>
           </div>
+
           <div className="bg-gray-800/50 rounded-xl sm:rounded-2xl border border-gray-700/50 p-6 sm:p-8 text-center">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-white">
               2
@@ -154,6 +174,7 @@ export default function Landing() {
               Each Saint learns your preferences, habits, and needs to serve you better
             </p>
           </div>
+
           <div className="bg-gray-800/50 rounded-xl sm:rounded-2xl border border-gray-700/50 p-6 sm:p-8 text-center">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-white">
               3

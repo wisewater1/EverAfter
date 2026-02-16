@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ARRAY, 
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.session import Base
+from pgvector.sqlalchemy import Vector
 import uuid
 
 
@@ -34,9 +35,32 @@ class DailyQuestionResponse(Base):
     mood = Column(String)
     dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="SET NULL"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("question_categories.id", ondelete="SET NULL"))
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"))
+    question_category = Column(String)
     embedding_generated = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class DailyQuestionEmbedding(Base):
+    __tablename__ = "daily_question_embeddings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    response_id = Column(UUID(as_uuid=True), ForeignKey("daily_question_responses.id", ondelete="CASCADE"), nullable=False, unique=True)
+    embedding = Column(Vector(384), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EngramAsset(Base):
+    __tablename__ = "engram_assets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    asset_type = Column(String) # photo, video, voice_note, etc.
+    file_url = Column(String, nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 # Removed - replaced by personality_traits table
@@ -171,3 +195,11 @@ class TraitTaskAssociation(Base):
     affects_execution = Column(Boolean, default=True)
     execution_modifier = Column(JSON, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Aliases for backward compatibility with API
+Engram = ArchetypalAI
+EngramDailyResponse = DailyQuestionResponse
+EngramPersonalityFilter = PersonalityTrait
+EngramAITask = AITask
+EngramAssetModel = EngramAsset

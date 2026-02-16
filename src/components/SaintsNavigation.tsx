@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import { Heart, Shield, Users, Sparkles, Lock, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import GlassCard from './GlassCard';
+import { Heart, Shield, Users, Sparkles, Lock, Calendar } from 'lucide-react';
 
 interface Saint {
   id: string;
@@ -16,26 +14,27 @@ interface Saint {
 
 export default function SaintsNavigation() {
   const navigate = useNavigate();
-  const [hoveredSaint, setHoveredSaint] = useState<string | null>(null);
 
   const saints: Saint[] = [
     {
       id: 'michael',
       name: 'St. Michael',
-      role: 'Protection',
+      role: 'Protection & Security',
       icon: Shield,
       color: 'blue',
       gradient: 'from-blue-500 to-sky-600',
-      available: false,
+      available: true,
+      route: '/security-dashboard',
     },
     {
       id: 'joseph',
       name: 'St. Joseph',
-      role: 'Family',
+      role: 'Family coordination',
       icon: Users,
       color: 'amber',
       gradient: 'from-amber-500 to-orange-600',
-      available: false,
+      available: true,
+      route: '/family-dashboard',
     },
     {
       id: 'raphael',
@@ -96,22 +95,17 @@ export default function SaintsNavigation() {
             {saints.map((saint, index) => {
               const Icon = saint.icon;
               const isCenter = index === 2; // St. Raphael
-              const isHovered = hoveredSaint === saint.id;
 
               return (
                 <button
                   key={saint.id}
                   onClick={() => handleSaintClick(saint)}
-                  onMouseEnter={() => setHoveredSaint(saint.id)}
-                  onMouseLeave={() => setHoveredSaint(null)}
                   disabled={!saint.available}
-                  className={`group relative transition-all duration-500 ease-out ${
-                    isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
-                  } ${
-                    saint.available
+                  className={`group relative transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
+                    } ${saint.available
                       ? 'cursor-pointer'
                       : 'cursor-not-allowed opacity-50'
-                  }`}
+                    }`}
                   style={{
                     transform: isCenter
                       ? 'translateY(-8px)'
@@ -120,11 +114,10 @@ export default function SaintsNavigation() {
                 >
                   {/* Card Container */}
                   <div
-                    className={`relative rounded-2xl transition-all duration-500 ease-out ${
-                      saint.available
-                        ? 'hover:scale-105 active:scale-95'
-                        : ''
-                    }`}
+                    className={`relative rounded-2xl transition-all duration-500 ease-out ${saint.available
+                      ? 'hover:scale-105 active:scale-95'
+                      : ''
+                      }`}
                   >
                     {/* Glow Effect */}
                     {saint.available && (
@@ -135,11 +128,10 @@ export default function SaintsNavigation() {
 
                     {/* Main Card */}
                     <div
-                      className={`glass-card relative aspect-square rounded-2xl transition-all duration-500 ${
-                        saint.available
-                          ? `bg-gradient-to-br ${saint.gradient} opacity-90`
-                          : 'opacity-50'
-                      } overflow-hidden`}
+                      className={`glass-card relative aspect-square rounded-2xl transition-all duration-500 ${saint.available
+                        ? `bg-gradient-to-br ${saint.gradient} opacity-90`
+                        : 'opacity-50'
+                        } overflow-hidden`}
                     >
                       {/* Animated Background Pattern */}
                       {saint.available && (
@@ -153,13 +145,11 @@ export default function SaintsNavigation() {
                       {/* Icon */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Icon
-                          className={`transition-all duration-500 ${
-                            isCenter ? 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12' : 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9'
-                          } ${
-                            saint.available
+                          className={`transition-all duration-500 ${isCenter ? 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12' : 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9'
+                            } ${saint.available
                               ? 'text-white drop-shadow-lg group-hover:scale-110'
                               : 'text-slate-600'
-                          }`}
+                            }`}
                         />
                       </div>
 
@@ -191,24 +181,20 @@ export default function SaintsNavigation() {
                     <div className="absolute -bottom-12 sm:-bottom-14 left-1/2 -translate-x-1/2 w-full px-0.5">
                       <div className="text-center">
                         <p
-                          className={`font-semibold leading-tight whitespace-nowrap transition-all duration-300 ${
-                            isCenter ? 'text-[11px] sm:text-xs md:text-sm' : 'text-[9px] sm:text-[10px] md:text-xs'
-                          } ${
-                            saint.available
+                          className={`font-semibold leading-tight whitespace-nowrap transition-all duration-300 ${isCenter ? 'text-[11px] sm:text-xs md:text-sm' : 'text-[9px] sm:text-[10px] md:text-xs'
+                            } ${saint.available
                               ? 'text-white'
                               : 'text-slate-400'
-                          }`}
+                            }`}
                         >
                           {saint.name}
                         </p>
                         <p
-                          className={`leading-tight mt-0.5 whitespace-nowrap transition-all duration-300 ${
-                            isCenter ? 'text-[9px] sm:text-[10px]' : 'text-[8px] sm:text-[9px]'
-                          } ${
-                            saint.available
+                          className={`leading-tight mt-0.5 whitespace-nowrap transition-all duration-300 ${isCenter ? 'text-[9px] sm:text-[10px]' : 'text-[8px] sm:text-[9px]'
+                            } ${saint.available
                               ? 'text-emerald-400 font-medium'
                               : 'text-slate-600'
-                          }`}
+                            }`}
                         >
                           {saint.role}
                         </p>
@@ -230,7 +216,7 @@ export default function SaintsNavigation() {
           {/* Instruction Text for Mobile */}
           <div className="text-center mt-2 sm:mt-4">
             <p className="text-[10px] sm:text-xs text-slate-500">
-              Tap <span className="text-emerald-400 font-medium">St. Raphael</span> to access health features
+              Tap <span className="text-emerald-400 font-medium">St. Raphael</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features
             </p>
           </div>
         </div>
