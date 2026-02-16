@@ -6,10 +6,12 @@ import './index.css';
 
 if (window.visualViewport) {
   const applyVVH = () => {
-    document.documentElement.style.setProperty('--vvh', `${visualViewport.height}px`);
+    if (window.visualViewport) {
+      document.documentElement.style.setProperty('--vvh', `${window.visualViewport.height}px`);
+    }
   };
-  visualViewport.addEventListener('resize', applyVVH);
-  visualViewport.addEventListener('scroll', applyVVH);
+  window.visualViewport.addEventListener('resize', applyVVH);
+  window.visualViewport.addEventListener('scroll', applyVVH);
   applyVVH();
 }
 

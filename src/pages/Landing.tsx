@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Heart, Shield, Crown, Star, ArrowRight, LogIn, LogOut, LayoutDashboard, Sparkles } from 'lucide-react';
