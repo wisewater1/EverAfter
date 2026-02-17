@@ -27,18 +27,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
+    console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
     if (!supabase) {
+      console.warn('AuthContext: Supabase client is null');
       setLoading(false);
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }: any) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        console.log('AuthContext: Session retrieved', { hasSession: !!session });
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (err) {
+        console.error('AuthContext: Session retrieval crash', err);
+        // Don't swallow the error, trigger the global overlay if possible
+        if (window.onerror) {
+          window.onerror(`Auth Initialization Failed: ${err}`, 'AuthContext.tsx', 0, 0, err as Error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      console.log('AuthContext: Auth state changed', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
