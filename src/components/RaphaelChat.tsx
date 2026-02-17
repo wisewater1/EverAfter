@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
-import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, ExternalLink } from 'lucide-react';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, ExternalLink, CheckCircle } from 'lucide-react';
+import { extractHealthDataFromMessage, storeHealthMetrics, type ExtractedHealthData } from '../lib/raphael/healthDataService';
 
 interface Message {
   id: string;
@@ -19,6 +20,7 @@ interface Message {
     args: any;
     result: any;
   }>;
+  storedHealthData?: ExtractedHealthData[];
 }
 
 interface HealthContext {
@@ -44,6 +46,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [healthContext, setHealthContext] = useState<HealthContext>({ recentMetrics: 0, upcomingAppointments: 0, activePrescriptions: 0 });
+  const [healthDataNotice, setHealthDataNotice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,6 +100,22 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     const userInput = input.trim();
     setInput('');
     setLoading(true);
+
+    // Extract and store health data from user message
+    const extracted = extractHealthDataFromMessage(userInput);
+    if (extracted.length > 0 && user?.id) {
+      storeHealthMetrics(user.id, extracted, 'raphael_chat').then(result => {
+        if (result.stored > 0) {
+          const labels = extracted.map(d => `${d.metric_type.replace(/_/g, ' ')}: ${d.value} ${d.unit}`).join(', ');
+          setHealthDataNotice(`✓ Stored: ${labels}`);
+          // Update health context count
+          setHealthContext(prev => ({ ...prev, recentMetrics: prev.recentMetrics + result.stored }));
+          setTimeout(() => setHealthDataNotice(null), 4000);
+        }
+      });
+      // Tag the user message with extracted data
+      userMessage.storedHealthData = extracted;
+    }
 
     try {
       if (!engramId) {
@@ -230,6 +249,21 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
                     </div>
                   </div>
                 )}
+                {message.storedHealthData && message.storedHealthData.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-blue-500/20">
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-400">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>Health data stored to Delphi</span>
+                    </div>
+                    <div className="mt-1 space-y-0.5">
+                      {message.storedHealthData.map((d, idx) => (
+                        <div key={idx} className="text-xs text-gray-400">
+                          • {d.metric_type.replace(/_/g, ' ')}: {d.value} {d.unit}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="text-gray-400 text-xs mt-2">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -255,6 +289,14 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Health data notification */}
+      {healthDataNotice && (
+        <div className="mx-3 sm:mx-6 mb-0 px-3 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-xs text-cyan-400 flex items-center gap-2 animate-pulse">
+          <CheckCircle className="w-3 h-3" />
+          {healthDataNotice}
+        </div>
+      )}
 
       <div className="p-3 sm:p-6 border-t border-gray-700/50">
         <div className="flex space-x-2 sm:space-x-3">

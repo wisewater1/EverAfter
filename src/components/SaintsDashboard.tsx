@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -464,11 +464,20 @@ export default function SaintsDashboard() {
     <div className="space-y-8">
       {/* Header Section */}
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-light tracking-tight text-white">Saints AI Agents</h1>
-          <p className="text-slate-400 max-w-2xl leading-relaxed">
-            Autonomous AI agents working in the background to manage your life, protect your legacy, and support your family.
-          </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-400 hover:text-white rounded-xl transition-all"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-light tracking-tight text-white">Saints AI Agents</h1>
+            <p className="text-slate-400 max-w-2xl leading-relaxed">
+              Autonomous AI agents working in the background to manage your life, protect your legacy, and support your family.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => { loadSaintsData(); loadActivities(); }}

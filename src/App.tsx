@@ -11,7 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import NotificationToast from './components/NotificationToast';
 import HealthAlertListener from './components/HealthAlertListener';
 import { attachEdgeReactive } from './lib/edge-reactive';
-import Landing from './pages/LandingRecovery';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
@@ -45,6 +45,7 @@ import PublicCareerChat from './pages/PublicCareerChat';
 import Onboarding from './pages/Onboarding';
 import StMichaelSecurityDashboard from './components/StMichaelSecurityDashboard';
 import StJosephFamilyDashboard from './components/StJosephFamilyDashboard';
+import SaintsDashboard from './components/SaintsDashboard';
 
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
@@ -171,6 +172,11 @@ function App() {
                 <Route path="/family-dashboard" element={
                   <ProtectedRoute>
                     <StJosephFamilyDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/saints" element={
+                  <ProtectedRoute>
+                    <SaintsDashboard />
                   </ProtectedRoute>
                 } />
                 {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}

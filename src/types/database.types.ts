@@ -51,6 +51,11 @@ export interface Database {
         Insert: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Subscription, 'id' | 'created_at'>>;
       };
+      delphi_trajectories: {
+        Row: DelphiTrajectory;
+        Insert: Omit<DelphiTrajectory, 'id' | 'created_at'>;
+        Update: Partial<Omit<DelphiTrajectory, 'id' | 'created_at'>>;
+      };
     };
   };
 }
@@ -149,6 +154,21 @@ export interface Subscription {
   current_period_end: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface DelphiTrajectory {
+  id: string;
+  user_id: string;
+  prediction_type: string;
+  predicted_value: number;
+  confidence: number;
+  risk_level: string;
+  contributing_factors: string[];
+  trajectory_data: Array<{ timestamp: string; value: number }>;
+  metrics_used: number;
+  data_source: 'live' | 'simulated';
+  generated_at: string;
+  created_at: string;
 }
 
 // Edge Function Response Types

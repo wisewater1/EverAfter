@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Activity, Heart, Target, Users, Bell, ArrowLeft, FolderOpen, Link2, Brain, LayoutGrid } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -26,6 +26,7 @@ import HeartDeviceRecommendations from '../components/HeartDeviceRecommendations
 import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
 import ScrollIndicator from '../components/ScrollIndicator';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
+import PhoneHealthConnect from '../components/PhoneHealthConnect';
 
 type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions';
 
@@ -342,7 +343,12 @@ export default function HealthDashboard() {
               </div>
             </div>
           )}
-          {activeTab === 'connections' && <ComprehensiveHealthConnectors />}
+          {activeTab === 'connections' && (
+            <div className="space-y-8">
+              <PhoneHealthConnect />
+              <ComprehensiveHealthConnectors />
+            </div>
+          )}
           {activeTab === 'chat' && <RaphaelChat />}
           {/* Legacy tab handlers preserved for direct state changes */}
           {activeTab === 'files' && (

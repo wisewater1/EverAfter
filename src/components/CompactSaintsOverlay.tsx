@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, ChevronDown, ChevronUp, Activity, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
