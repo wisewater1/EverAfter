@@ -3,6 +3,7 @@ import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshC
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SaintChat from './SaintChat';
 
 interface Saint {
   id: string;
@@ -91,6 +92,12 @@ export default function SaintsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [selectedSaint, setSelectedSaint] = useState<Saint | null>(null);
+  const [activeTab, setActiveTab] = useState<'activities' | 'engrams'>('activities');
+
+  const handleChat = (saint: Saint) => {
+    setSelectedSaint(saint);
+  };
 
   const restoreSaintsData = async () => {
     if (!user) return;
@@ -156,7 +163,8 @@ export default function SaintsDashboard() {
 
       const saintsWithData = await Promise.all(
         saintDefinitions.map(async (saintDef) => {
-          const isActive = activeSaints?.some((s: any) => s.saint_id === saintDef.id) || saintDef.id === 'raphael' || saintDef.id === 'michael' || saintDef.id === 'joseph';
+          // Unleash the Saints: Activate all agents for the user
+          const isActive = true; // activeSaints?.some((s: any) => s.saint_id === saintDef.id) || saintDef.id === 'raphael' || saintDef.id === 'michael' || saintDef.id === 'joseph';
 
           if (!isActive) {
             return {
@@ -390,10 +398,57 @@ export default function SaintsDashboard() {
       },
       {
         saint_id: 'joseph',
-        action: 'Calendar Sync',
-        description: 'Synced family dinner event across all household calendars.',
-        category: 'family',
         impact: 'medium',
+        status: 'completed'
+      },
+      // St. Martin (Charity)
+      {
+        saint_id: 'martin',
+        action: 'Donation Opportunity Found',
+        description: 'Identified a high-impact local food bank needing urgent support.',
+        category: 'charity',
+        impact: 'high',
+        status: 'completed'
+      },
+      {
+        saint_id: 'martin',
+        action: 'Community Impact Report',
+        description: 'Generated monthly report on your charitable contributions and their effects.',
+        category: 'charity',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'martin',
+        action: 'Volunteer Match',
+        description: 'Found a weekend volunteering opportunity matching your skills.',
+        category: 'charity',
+        impact: 'medium',
+        status: 'completed'
+      },
+      // St. Agatha (Resilience)
+      {
+        saint_id: 'agatha',
+        action: 'Resilience Check-in',
+        description: 'Detected signs of stress in your recent communications. Suggesting a break.',
+        category: 'support',
+        impact: 'high',
+        status: 'completed'
+      },
+      {
+        saint_id: 'agatha',
+        action: 'Crisis Resource Update',
+        description: 'Updated local emergency contact list and resource database.',
+        category: 'protection',
+        impact: 'medium',
+        status: 'completed'
+      },
+      {
+        saint_id: 'agatha',
+        action: 'Strength Building',
+        description: 'Recommended a daily stoic reflection for mental fortitude.',
+        category: 'support',
+        impact: 'low',
         status: 'completed'
       }
     ];
@@ -473,7 +528,7 @@ export default function SaintsDashboard() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="space-y-1">
-            <h1 className="text-3xl font-light tracking-tight text-white">Saints AI Agents</h1>
+            <h1 className="text-3xl font-light tracking-tight text-white">Saints AI Agents (V2 LIVE)</h1>
             <p className="text-slate-400 max-w-2xl leading-relaxed">
               Autonomous AI agents working in the background to manage your life, protect your legacy, and support your family.
             </p>
@@ -511,284 +566,403 @@ export default function SaintsDashboard() {
         </div>
       )}
 
-      {/* Activity Summary Card - Enhanced Real-time Look */}
-      <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
-        {/* Animated Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-sky-500/5 animate-pulse"></div>
-
-        {/* Scanning Line Effect */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent animate-scan"></div>
-
-        <div className="relative p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center ring-2 ring-emerald-500/30 flex-shrink-0">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full"></div>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <h3 className="text-sm sm:text-base font-medium text-white">Today's Activities</h3>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                    <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Analyzing</span>
-                  </div>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-400">Your Saints completed <span className="text-emerald-400 font-medium">{activities.length}</span> tasks today</p>
-              </div>
-            </div>
-            <div className="text-left sm:text-right">
-              <div className="text-3xl sm:text-4xl font-extralight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 tabular-nums">{activities.length}</div>
-              <div className="text-xs text-slate-500 uppercase tracking-wider font-medium">Completed</div>
-            </div>
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-6 border-b border-slate-700/50 mb-8">
+        <button
+          onClick={() => setActiveTab('activities')}
+          className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'activities'
+            ? 'text-emerald-400'
+            : 'text-slate-400 hover:text-slate-300'
+            }`}
+        >
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            <span>Live Activities</span>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {/* Protection Card */}
-            <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-sky-500/30 transition-all duration-300 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-sky-500/0 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center ring-1 ring-sky-500/20">
-                    <Shield className="w-4 h-4 text-sky-400" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Protection</span>
-                </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <div className="text-3xl font-extralight text-white tabular-nums">
-                    {activities.filter(a => a.category === 'protection').length}
-                  </div>
-                  <div className="flex items-center gap-1 text-sky-400">
-                    <Zap className="w-3 h-3 animate-pulse" />
-                    <span className="text-[10px] font-medium">ACTIVE</span>
-                  </div>
-                </div>
-                <div className="text-xs text-slate-500 font-medium">Security actions</div>
-                {/* Progress Bar */}
-                <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((activities.filter(a => a.category === 'protection').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Support Card */}
-            <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-rose-500/30 transition-all duration-300 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center ring-1 ring-rose-500/20">
-                    <Heart className="w-4 h-4 text-rose-400" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Support</span>
-                </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <div className="text-3xl font-extralight text-white tabular-nums">
-                    {activities.filter(a => a.category === 'support').length}
-                  </div>
-                  <div className="flex items-center gap-1 text-rose-400">
-                    <Zap className="w-3 h-3 animate-pulse" />
-                    <span className="text-[10px] font-medium">ACTIVE</span>
-                  </div>
-                </div>
-                <div className="text-xs text-slate-500 font-medium">Comfort actions</div>
-                {/* Progress Bar */}
-                <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((activities.filter(a => a.category === 'support').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Memory Card */}
-            <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-emerald-500/30 transition-all duration-300 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20">
-                    <Clock className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Memory</span>
-                </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <div className="text-3xl font-extralight text-white tabular-nums">
-                    {activities.filter(a => a.category === 'memory').length}
-                  </div>
-                  <div className="flex items-center gap-1 text-emerald-400">
-                    <Zap className="w-3 h-3 animate-pulse" />
-                    <span className="text-[10px] font-medium">ACTIVE</span>
-                  </div>
-                </div>
-                <div className="text-xs text-slate-500 font-medium">Memory actions</div>
-                {/* Progress Bar */}
-                <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((activities.filter(a => a.category === 'memory').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
+          {activeTab === 'activities' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('engrams')}
+          className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'engrams'
+            ? 'text-emerald-400'
+            : 'text-slate-400 hover:text-slate-300'
+            }`}
+        >
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span>Engrams</span>
           </div>
-        </div>
+          {activeTab === 'engrams' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
+          )}
+        </button>
       </div>
 
-      {/* Saints Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {saints.map((saint) => {
-          const Icon = saint.icon;
-          const isRaphael = saint.id === 'raphael';
+      {/* Tabs Content */}
+      <div className="min-h-[500px]">
+        {activeTab === 'activities' ? (
+          <div className="space-y-6">
+            {/* Activity Summary Card */}
+            <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-sky-500/5 animate-pulse"></div>
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent animate-scan"></div>
 
-          return (
-            <div
-              key={saint.id}
-              className={`group relative bg-gradient-to-br rounded-2xl p-6 transition-all duration-300 ${saint.active && isRaphael
-                ? 'from-emerald-500/10 to-teal-500/5 border-2 border-emerald-500/30 shadow-xl shadow-emerald-500/5'
-                : saint.active
-                  ? 'from-sky-500/10 to-blue-500/5 border-2 border-sky-500/30 shadow-xl shadow-sky-500/5'
-                  : saint.tier === 'premium'
-                    ? 'from-amber-500/10 to-orange-500/5 border-2 border-amber-500/20 shadow-xl shadow-amber-500/5'
-                    : 'from-slate-800/50 to-slate-900/50 border-2 border-slate-700/30'
-                }`}
-            >
-              {/* Saint Header */}
-              <div className="flex items-start justify-between mb-5">
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${saint.active && isRaphael
-                      ? 'bg-emerald-500/15 shadow-lg shadow-emerald-500/20'
-                      : saint.active
-                        ? 'bg-sky-500/15 shadow-lg shadow-sky-500/20'
-                        : saint.tier === 'premium'
-                          ? 'bg-amber-500/15 shadow-lg shadow-amber-500/20'
-                          : 'bg-slate-700/30'
-                      }`}
-                  >
-                    <Icon
-                      className={`w-6 h-6 ${saint.active && isRaphael
-                        ? 'text-emerald-400'
-                        : saint.active
-                          ? 'text-sky-400'
-                          : saint.tier === 'premium'
-                            ? 'text-amber-400'
-                            : 'text-slate-500'
-                        }`}
-                    />
+              <div className="relative p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center ring-2 ring-emerald-500/30 flex-shrink-0">
+                      <CheckCircle className="w-5 h-5 text-emerald-400" />
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full"></div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <h3 className="text-sm sm:text-base font-medium text-white">Today's Activities</h3>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                          <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Analyzing</span>
+                        </div>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-400">Your Saints completed <span className="text-emerald-400 font-medium">{activities.length}</span> tasks today</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-white mb-0.5">{saint.name}</h3>
-                    <p className="text-sm text-slate-400">{saint.title}</p>
+                  <div className="text-left sm:text-right">
+                    <div className="text-3xl sm:text-4xl font-extralight text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 tabular-nums">{activities.length}</div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wider font-medium">Completed</div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {saint.tier === 'premium' && (
-                    <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs font-medium rounded-full border border-amber-500/20">
-                      Premium
-                    </span>
-                  )}
-                  {saint.active && (
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-sm shadow-emerald-400/50"></div>
-                  )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  {/* Protection Card */}
+                  <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-sky-500/30 transition-all duration-300 overflow-hidden">
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center ring-1 ring-sky-500/20">
+                          <Shield className="w-4 h-4 text-sky-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Protection</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <div className="text-3xl font-extralight text-white tabular-nums">
+                          {activities.filter(a => a.category === 'protection').length}
+                        </div>
+                        <div className="flex items-center gap-1 text-sky-400">
+                          <Zap className="w-3 h-3 animate-pulse" />
+                          <span className="text-[10px] font-medium">ACTIVE</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((activities.filter(a => a.category === 'protection').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Support Card */}
+                  <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-rose-500/30 transition-all duration-300 overflow-hidden">
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center ring-1 ring-rose-500/20">
+                          <Heart className="w-4 h-4 text-rose-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Support</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <div className="text-3xl font-extralight text-white tabular-nums">
+                          {activities.filter(a => a.category === 'support').length}
+                        </div>
+                        <div className="flex items-center gap-1 text-rose-400">
+                          <Zap className="w-3 h-3 animate-pulse" />
+                          <span className="text-[10px] font-medium">ACTIVE</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((activities.filter(a => a.category === 'support').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Memory Card */}
+                  <div className="group relative bg-gradient-to-br from-slate-900/70 to-slate-900/50 rounded-xl p-4 border border-slate-800/50 hover:border-emerald-500/30 transition-all duration-300 overflow-hidden">
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20">
+                          <Clock className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Memory</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <div className="text-3xl font-extralight text-white tabular-nums">
+                          {activities.filter(a => a.category === 'memory').length}
+                        </div>
+                        <div className="flex items-center gap-1 text-emerald-400">
+                          <Zap className="w-3 h-3 animate-pulse" />
+                          <span className="text-[10px] font-medium">ACTIVE</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((activities.filter(a => a.category === 'memory').length / Math.max(activities.length, 1)) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Description */}
-              <p className="text-sm text-slate-300 mb-5 leading-relaxed">{saint.description}</p>
+            {/* Live Activity Feed */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-medium text-white">Live Feed</h2>
+              {activities.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 bg-slate-800/20 rounded-xl border border-slate-700/30">
+                  No recent activities.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activities.map((activity) => {
+                    const saint = saints.find(s => s.id === activity.saint_id);
+                    if (!saint) return null;
+                    const Icon = saint.icon;
 
-              {/* Activity Stats */}
-              {saint.active && (
-                <div className="mb-5 p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Today's Activity</span>
-                    <span className="text-xs text-slate-500">{saint.lastActive}</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-light text-white">{saint.todayActivities}</span>
-                      <span className="text-xs text-slate-500">today</span>
-                    </div>
-                    <div className="w-px h-6 bg-slate-700"></div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-light text-white">{saint.weeklyActivities}</span>
-                      <span className="text-xs text-slate-500">this week</span>
-                    </div>
-                  </div>
+                    return (
+                      <div key={activity.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 flex items-start gap-4 hover:bg-slate-800/60 transition-colors">
+                        <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center ${saint.id === 'michael' ? 'bg-sky-500/10 text-sky-400' :
+                          saint.id === 'raphael' ? 'bg-emerald-500/10 text-emerald-400' :
+                            saint.id === 'martin' ? 'bg-amber-500/10 text-amber-400' :
+                              saint.id === 'agatha' ? 'bg-rose-500/10 text-rose-400' :
+                                'bg-slate-700/50 text-slate-400'
+                          }`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-medium text-white">{activity.action}</h4>
+                            <span className="text-xs text-slate-500">{new Date(activity.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          <p className="text-sm text-slate-400 mb-2">{activity.description}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-medium ${activity.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                              }`}>
+                              {activity.status.replace('_', ' ')}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-500 uppercase tracking-wider">
+                              {activity.category}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-
-              {/* Responsibilities */}
-              <div className="mb-5">
-                <h5 className="text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Responsibilities</h5>
-                <div className="flex flex-wrap gap-2">
-                  {saint.responsibilities.map((responsibility, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-lg"
-                    >
-                      {responsibility}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer Action */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-700/30">
-                <div>
-                  {saint.price ? (
-                    <span className="text-xl font-light text-white">${saint.price}<span className="text-sm text-slate-500">/month</span></span>
-                  ) : saint.tier === 'classic' && saint.active ? (
-                    <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-medium rounded-lg border border-emerald-500/20">
-                      FREE
-                    </span>
-                  ) : null}
-                </div>
-
-                {saint.active && isRaphael && (
-                  <button
-                    onClick={() => navigate('/health-dashboard')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-                  >
-                    <Activity className="w-4 h-4" />
-                    <span>Open Health Monitor</span>
-                  </button>
-                )}
-                {saint.active && saint.id === 'michael' && (
-                  <button
-                    onClick={() => navigate('/security-dashboard')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-sky-500/20"
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span>Open Security Monitor</span>
-                  </button>
-                )}
-                {saint.active && saint.id === 'joseph' && (
-                  <button
-                    onClick={() => navigate('/family-dashboard')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-amber-500/20"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>Open Family Monitor</span>
-                  </button>
-                )}
-                {!saint.active && saint.tier === 'premium' && (
-                  <button
-                    onClick={() => handleSaintActivation(saint)}
-                    className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/20 transition-all duration-200"
-                  >
-                    Subscribe
-                  </button>
-                )}
-              </div>
             </div>
-          );
-        })}
+          </div>
+        ) : (
+          /* Saints Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {saints.map((saint) => {
+              const Icon = saint.icon;
+              const isRaphael = saint.id === 'raphael';
+
+              return (
+                <div
+                  key={saint.id}
+                  className={`group relative bg-gradient-to-br rounded-2xl p-6 transition-all duration-300 ${saint.active && isRaphael
+                    ? 'from-emerald-500/10 to-teal-500/5 border-2 border-emerald-500/30 shadow-xl shadow-emerald-500/5'
+                    : saint.active
+                      ? 'from-sky-500/10 to-blue-500/5 border-2 border-sky-500/30 shadow-xl shadow-sky-500/5'
+                      : saint.tier === 'premium'
+                        ? 'from-amber-500/10 to-orange-500/5 border-2 border-amber-500/20 shadow-xl shadow-amber-500/5'
+                        : 'from-slate-800/50 to-slate-900/50 border-2 border-slate-700/30'
+                    }`}
+                >
+                  {/* Saint Header */}
+                  <div className="flex items-start justify-between mb-5">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${saint.active && isRaphael
+                          ? 'bg-emerald-500/15 shadow-lg shadow-emerald-500/20'
+                          : saint.active
+                            ? 'bg-sky-500/15 shadow-lg shadow-sky-500/20'
+                            : saint.tier === 'premium'
+                              ? 'bg-amber-500/15 shadow-lg shadow-amber-500/20'
+                              : 'bg-slate-700/30'
+                          }`}
+                      >
+                        <Icon
+                          className={`w-6 h-6 ${saint.active && isRaphael
+                            ? 'text-emerald-400'
+                            : saint.active
+                              ? 'text-sky-400'
+                              : saint.tier === 'premium'
+                                ? 'text-amber-400'
+                                : 'text-slate-500'
+                            }`}
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium text-white mb-0.5">{saint.name}</h3>
+                        <p className="text-sm text-slate-400">{saint.title}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {saint.tier === 'premium' && (
+                        <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs font-medium rounded-full border border-amber-500/20">
+                          Premium
+                        </span>
+                      )}
+                      {saint.active && (
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-sm shadow-emerald-400/50"></div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-sm text-slate-300 mb-5 leading-relaxed">{saint.description}</p>
+
+                  {/* Activity Stats */}
+                  {saint.active && (
+                    <div className="mb-5 p-4 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Today's Activity</span>
+                        <span className="text-xs text-slate-500">{saint.lastActive}</span>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-light text-white">{saint.todayActivities}</span>
+                          <span className="text-xs text-slate-500">today</span>
+                        </div>
+                        <div className="w-px h-6 bg-slate-700"></div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-light text-white">{saint.weeklyActivities}</span>
+                          <span className="text-xs text-slate-500">this week</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Responsibilities */}
+                  <div className="mb-5">
+                    <h5 className="text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Responsibilities</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {saint.responsibilities.map((responsibility, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs rounded-lg"
+                        >
+                          {responsibility}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer Action */}
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-700/30">
+                    <div>
+                      {saint.price ? (
+                        <span className="text-xl font-light text-white">${saint.price}<span className="text-sm text-slate-500">/month</span></span>
+                      ) : saint.tier === 'classic' && saint.active ? (
+                        <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-medium rounded-lg border border-emerald-500/20">
+                          FREE
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {saint.active && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleChat(saint);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-700 hover:border-slate-600 shadow-sm group-hover:shadow-md"
+                      >
+                        <div className={`p-1 rounded bg-slate-700/50 ${saint.id === 'raphael' ? 'text-emerald-400' :
+                          saint.id === 'michael' ? 'text-sky-400' :
+                            saint.id === 'martin' ? 'text-amber-400' :
+                              'text-indigo-400'
+                          }`}>
+                          <Users className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-sm font-medium">Chat</span>
+                      </button>
+                    )}
+
+                    {saint.active && isRaphael && (
+                      <button
+                        onClick={() => navigate('/health-dashboard')}
+                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                      >
+                        <Activity className="w-4 h-4" />
+                        <span>Open Health Monitor</span>
+                      </button>
+                    )}
+                    {saint.active && saint.id === 'michael' && (
+                      <button
+                        onClick={() => navigate('/security-dashboard')}
+                        className="px-4 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-sky-500/20"
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>Open Security Monitor</span>
+                      </button>
+                    )}
+                    {saint.active && saint.id === 'joseph' && (
+                      <button
+                        onClick={() => navigate('/family-dashboard')}
+                        className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>Open Family Monitor</span>
+                      </button>
+                    )}
+                    {!saint.active && saint.tier === 'premium' && (
+                      <button
+                        onClick={() => handleSaintActivation(saint)}
+                        className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/20 transition-all duration-200"
+                      >
+                        Subscribe
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Chat Overlay */}
+      {selectedSaint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm">
+          <div className="w-full max-w-4xl h-[85vh] relative z-20">
+            <SaintChat
+              saintId={selectedSaint.id}
+              saintName={selectedSaint.name}
+              saintTitle={selectedSaint.title}
+              saintIcon={selectedSaint.icon}
+              primaryColor={
+                selectedSaint.id === 'raphael' ? 'emerald' :
+                  selectedSaint.id === 'michael' ? 'sky' :
+                    selectedSaint.id === 'martin' ? 'amber' :
+                      selectedSaint.id === 'agatha' ? 'rose' :
+                        'indigo'
+              }
+              onClose={() => setSelectedSaint(null)}
+            />
+          </div>
+          {/* Click background to close */}
+          <div className="absolute inset-0 z-10" onClick={() => setSelectedSaint(null)}></div>
+        </div>
+      )}
     </div>
   );
 }

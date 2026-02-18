@@ -11,7 +11,7 @@ print("====================================================")
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
-from app.api import engrams, chat, tasks, autonomous_tasks, personality, health, social
+from app.api import engrams, chat, tasks, autonomous_tasks, personality, health, social, saints
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -60,6 +60,7 @@ app.include_router(autonomous_tasks.router)
 app.include_router(personality.router)
 app.include_router(health.router)
 app.include_router(social.router)
+app.include_router(saints.router)
 
 
 @app.get("/health")

@@ -99,6 +99,13 @@ export const config = {
         description: 'Security and privacy protection',
         capabilities: ['security-monitoring', 'privacy-alerts', 'data-protection']
       },
+      'st-joseph': {
+        id: 'st-joseph',
+        name: 'St. Joseph',
+        tier: 'premium',
+        description: 'Family and home management',
+        capabilities: ['chore-tracking', 'family-calendar', 'household-coordination']
+      },
       'st-martin': {
         id: 'st-martin',
         name: 'St. Martin',

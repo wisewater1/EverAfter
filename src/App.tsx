@@ -1,4 +1,4 @@
-// Deployment sync trigger - 2026-02-15 22:32
+// Deployment sync trigger - 2026-02-18 HMR CHECK
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';

@@ -417,6 +417,108 @@ class APIClient {
       throw error;
     }
   }
+
+  // ─── Saint Agent API ────────────────────────────────────────────────────────
+
+  async getSaintsStatus(): Promise<Exclude<EdgeFunctionResponse<any>['data'], undefined>> {
+    return this.deduplicate('saints-status', async () => {
+      const token = await this.getAuthToken();
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+      try {
+        const response = await fetch(`${API_BASE}/api/v1/saints/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.error("Get Saints Status Error:", error);
+        throw error;
+      }
+    });
+  }
+
+  async bootstrapSaint(saintId: string): Promise<{ engram_id: string, saint_id: string, name: string }> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/bootstrap`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Bootstrap Saint Error:", error);
+      throw error;
+    }
+  }
+
+  async chatWithSaint(saintId: string, message: string): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message })
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      const data = await response.json();
+
+      // Map backend response to ChatResponse format expected by UI
+      return {
+        id: data.id,
+        message: data.content,
+        conversationId: data.conversation_id,
+        metrics: {},
+        timestamp: data.created_at,
+        saint_id: data.saint_id,
+        saint_name: data.saint_name,
+        role: data.role,
+        content: data.content
+      } as any;
+    } catch (error) {
+      console.error("Chat with Saint Error:", error);
+      throw error;
+    }
+  }
+
+  async getSaintKnowledge(saintId: string, category?: string): Promise<any[]> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    let url = `${API_BASE}/api/v1/saints/${saintId}/knowledge`;
+    if (category) {
+      url += `?category=${category}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Saint Knowledge Error:", error);
+      throw error;
+    }
+  }
 }
 
 export const apiClient = new APIClient();
