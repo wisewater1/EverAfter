@@ -519,6 +519,47 @@ class APIClient {
       throw error;
     }
   }
+
+  async registerDynamicAgent(agentData: { name: string, description: string, system_prompt: string, traits: any }): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(agentData)
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Register Dynamic Agent Error:", error);
+      throw error;
+    }
+  }
+
+  async getChatHistory(saintId: string): Promise<any[]> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Chat History Error:", error);
+      throw error;
+    }
+  }
 }
 
 export const apiClient = new APIClient();

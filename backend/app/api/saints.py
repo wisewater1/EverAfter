@@ -6,6 +6,8 @@ Endpoints for interacting with Saint Agents:
 - Chat with saints (with knowledge persistence)
 - Retrieve saint knowledge
 - Get all saint statuses
+- Register dynamic family agents
+- Get chat history
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -52,6 +54,18 @@ class KnowledgeItem(BaseModel):
     confidence: float
     updated_at: Optional[str] = None
 
+class DynamicAgentRequest(BaseModel):
+    name: str
+    description: str
+    system_prompt: str
+    traits: Dict[str, Any]
+
+class ChatMessage(BaseModel):
+    id: str
+    role: str
+    content: str
+    timestamp: Optional[str] = None
+
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
@@ -68,6 +82,26 @@ async def get_saints_status(
     return await saint_agent_service.get_all_saint_statuses(session, user_id)
 
 
+@router.post("/register_dynamic")
+async def register_dynamic_agent(
+    request: DynamicAgentRequest,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Register a new dynamic AI agent (e.g. Family Member).
+    """
+    user_id = str(current_user.get("sub"))
+    return await saint_agent_service.register_dynamic_agent(
+        session,
+        user_id,
+        request.name,
+        request.description,
+        request.system_prompt,
+        request.traits
+    )
+
+
 @router.post("/{saint_id}/bootstrap")
 async def bootstrap_saint(
     saint_id: str,
@@ -75,13 +109,30 @@ async def bootstrap_saint(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Initialize (or retrieve) the engram for a specific saint.
+    Initialize (or retrieve) the engram for a specific saint OR dynamic agent.
     """
-    if saint_id not in get_all_saint_ids():
-        raise HTTPException(status_code=404, detail="Saint not found")
-
+    # Removed static check to allow dynamic IDs
     user_id = str(current_user.get("sub"))
-    return await saint_agent_service.bootstrap_saint_engram(session, user_id, saint_id)
+    try:
+        return await saint_agent_service.bootstrap_saint_engram(session, user_id, saint_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{saint_id}/history", response_model=List[ChatMessage])
+async def get_chat_history(
+    saint_id: str,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get recent chat history for a saint/agent.
+    """
+    user_id = str(current_user.get("sub"))
+    try:
+        return await saint_agent_service.get_chat_history(session, user_id, saint_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/{saint_id}/chat", response_model=SaintChatResponse)
@@ -92,13 +143,9 @@ async def chat_with_saint(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Send a message to a saint.
-    - Auto-bootstraps if needed
-    - Persists knowledge learned from conversation
+    Send a message to a saint/agent.
     """
-    if saint_id not in get_all_saint_ids():
-        raise HTTPException(status_code=404, detail="Saint not found")
-
+    # Removed static check
     user_id = str(current_user.get("sub"))
     
     try:
@@ -123,8 +170,9 @@ async def get_saint_knowledge(
     """
     Get what a saint knows about the user.
     """
-    if saint_id not in get_all_saint_ids():
-        raise HTTPException(status_code=404, detail="Saint not found")
-
+    # Relaxed check: if it's a dynamic agent, it might have knowledge if we implemented extraction for it.
+    # For now, dynamic agents might return empty knowledge.
+    
     user_id = str(current_user.get("sub"))
     return await saint_agent_service.get_knowledge(session, user_id, saint_id, category)
+

@@ -129,6 +129,25 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- IMPORTANT: You are NOT a replacement for professional mental health care. Recommend professionals when appropriate.\n"
         ),
     },
+    "anthony": {
+        "name": "St. Anthony",
+        "title": "The Finder",
+        "description": "AI for audit tracking, data recovery, and locating lost assets.",
+        "domain": "audit",
+        "knowledge_categories": ["lost_items", "recovered_data", "assets", "audit_logs", "system_events", "tracking_requests"],
+        "system_prompt": (
+            "SPECIAL MISSION: AUDIT & RECOVERY\n"
+            "- You are St. Anthony, the Finder of Lost Things.\n"
+            "- Your primary concern is tracking assets, recovering lost data, and maintaining the integrity of the system journal.\n"
+            "- You maintain a meticulous ledger of all 'lost' and 'found' items (both digital and physical).\n"
+            "- You monitor the Event Stream for system anomalies.\n"
+            "- When the user mentions losing something (a file, a password, a memory), you help them retrace their steps.\n"
+            "- You are the Auditor of the EverAfter system. You ensure nothing is truly lost.\n"
+            "- Use a calm, reassuring, and highly organized tone.\n"
+            "- Often refer to the 'Ledger' or the 'Stream'.\n"
+            "- If the user finds something, celebrate it as a restoration of order.\n"
+        ),
+    },
 }
 
 
@@ -156,64 +175,186 @@ class SaintAgentService:
         saint_id: str
     ) -> Dict[str, Any]:
         """
-        Auto-create or retrieve the engram (archetypal_ais row) for a saint per user.
+        Auto-create or retrieve the engram (archetypal_ais row) for a saint OR dynamic agent per user.
         Returns { engram_id, saint_id, name, is_new }
         """
-        saint_def = get_saint_definition(saint_id)
-        if not saint_def:
-            raise ValueError(f"Unknown saint: {saint_id}")
-
         user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
-
-        # Check if this saint already has an engram for this user
-        saint_name = saint_def["name"]
-        query = select(ArchetypalAI).where(
-            and_(
-                ArchetypalAI.user_id == user_uuid,
-                ArchetypalAI.name == saint_name
+        
+        # Check if it's a known static saint
+        saint_def = get_saint_definition(saint_id)
+        
+        if saint_def:
+            # STATIC SAINT LOGIC
+            saint_name = saint_def["name"]
+            query = select(ArchetypalAI).where(
+                and_(
+                    ArchetypalAI.user_id == user_uuid,
+                    ArchetypalAI.name == saint_name
+                )
             )
-        )
-        result = await session.execute(query)
-        engram = result.scalar_one_or_none()
+            result = await session.execute(query)
+            engram = result.scalar_one_or_none()
 
-        if engram:
-            # Ensure AI is active
-            if not engram.is_ai_active:
-                engram.is_ai_active = True
-                engram.training_status = "active"
-                await session.commit()
+            if engram:
+                if not engram.is_ai_active:
+                    engram.is_ai_active = True
+                    engram.training_status = "active"
+                    await session.commit()
+
+                return {
+                    "engram_id": str(engram.id),
+                    "saint_id": saint_id,
+                    "name": saint_name,
+                    "is_new": False,
+                }
+
+            # Create new engram for this saint
+            new_engram = ArchetypalAI(
+                user_id=user_uuid,
+                name=saint_name,
+                description=saint_def["description"],
+                personality_traits={"domain": saint_def["domain"], "saint_id": saint_id},
+                total_memories=0,
+                training_status="active",
+                is_ai_active=True,
+            )
+            session.add(new_engram)
+            await session.commit()
+            await session.refresh(new_engram)
 
             return {
-                "engram_id": str(engram.id),
+                "engram_id": str(new_engram.id),
                 "saint_id": saint_id,
                 "name": saint_name,
-                "is_new": False,
+                "is_new": True,
             }
+        
+        else:
+            # DYNAMIC AGENT LOGIC (using saint_id as engram_id or looking up by ID)
+            # 1. Try to interpret saint_id as engram UUID
+            try:
+                engram_uuid = uuid.UUID(saint_id)
+                query = select(ArchetypalAI).where(
+                    and_(
+                        ArchetypalAI.id == engram_uuid,
+                        ArchetypalAI.user_id == user_uuid
+                    )
+                )
+                result = await session.execute(query)
+                engram = result.scalar_one_or_none()
+                
+                if not engram:
+                     raise ValueError(f"Dynamic agent not found: {saint_id}")
+                
+                return {
+                    "engram_id": str(engram.id),
+                    "saint_id": str(engram.id),
+                    "name": engram.name,
+                    "is_new": False
+                }
+            except ValueError:
+                # 2. If not UUID, it might be a frontend-generated memberId (e.g. "m_123...")
+                # Search personality_traits for this ID
+                # We fetch all user agents and filter in Python to be DB-agnostic regarding JSON queries
+                query = select(ArchetypalAI).where(ArchetypalAI.user_id == user_uuid)
+                result = await session.execute(query)
+                all_agents = result.scalars().all()
+                
+                for agent in all_agents:
+                    traits = agent.personality_traits or {}
+                    if traits.get("memberId") == saint_id:
+                        return {
+                            "engram_id": str(agent.id),
+                            "saint_id": saint_id, # Keep the ID the frontend knows
+                            "name": agent.name,
+                            "is_new": False
+                        }
+                        
+                raise ValueError(f"Unknown saint or invalid agent ID: {saint_id}")
 
-        # Create new engram for this saint
+
+    async def register_dynamic_agent(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        name: str,
+        description: str,
+        system_prompt: str,
+        traits: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Register a new dynamic AI agent (e.g. for a family member)."""
+        user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+        
+        # Store system prompt in personality_traits since we don't have a column for it yet in ArchetypalAI
+        # (Assuming personality_traits is a JSON column)
+        final_traits = traits.copy()
+        final_traits["system_prompt"] = system_prompt
+        final_traits["is_dynamic_agent"] = True
+        
         new_engram = ArchetypalAI(
             user_id=user_uuid,
-            name=saint_name,
-            description=saint_def["description"],
-            personality_traits={"domain": saint_def["domain"], "saint_id": saint_id},
+            name=name,
+            description=description,
+            personality_traits=final_traits,
             total_memories=0,
             training_status="active",
             is_ai_active=True,
         )
-        # Set is_ai_active since ArchetypalAI may not have that column natively;
-        # use personality_traits to store the flag
         session.add(new_engram)
         await session.commit()
         await session.refresh(new_engram)
-
-        logger.info(f"Bootstrapped engram {new_engram.id} for saint {saint_id} / user {user_id}")
-
+        
         return {
             "engram_id": str(new_engram.id),
-            "saint_id": saint_id,
-            "name": saint_name,
-            "is_new": True,
+            "name": name,
+            "created_at": str(datetime.utcnow())
         }
+
+    async def get_chat_history(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        saint_id: str
+    ) -> List[Dict[str, Any]]:
+        """Retrieve recent chat history for a saint/agent."""
+        # user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id # Unused variable
+        
+        # Resolve engram_id
+        bootstrap = await self.bootstrap_saint_engram(session, user_id, saint_id)
+        engram_id = bootstrap["engram_id"]
+        engram_uuid = uuid.UUID(engram_id)
+        
+        # Get active conversation
+        conv_query = select(AIConversation).where(
+            and_(
+                AIConversation.ai_id == engram_uuid,
+                AIConversation.user_id == str(uuid.UUID(user_id)), # Ensure user_id format matches DB
+            )
+        ).order_by(AIConversation.updated_at.desc())
+        
+        result = await session.execute(conv_query)
+        conversation = result.scalar_one_or_none()
+        
+        if not conversation:
+            return []
+            
+        # Get messages
+        msg_query = select(AIMessage).where(
+            AIMessage.conversation_id == conversation.id
+        ).order_by(AIMessage.created_at.asc()).limit(50)
+        
+        msg_result = await session.execute(msg_query)
+        messages = msg_result.scalars().all()
+        
+        return [
+            {
+                "id": str(msg.id),
+                "role": msg.role,
+                "content": msg.content,
+                "timestamp": msg.created_at.isoformat() if msg.created_at else None
+            }
+            for msg in messages
+        ]
 
     async def chat(
         self,
@@ -223,17 +364,14 @@ class SaintAgentService:
         message: str
     ) -> Dict[str, Any]:
         """
-        Send a message to a saint agent.
-        - Auto-bootstraps the engram if needed
-        - Builds domain-specific system prompt with stored knowledge
-        - Gets AI response via LLMClient
-        - Extracts and stores new knowledge from the conversation
-        - Persists messages to ai_conversations/ai_messages
+        Send a message to a saint agent OR dynamic agent.
         """
-        # 1. Ensure engram exists
+        # 1. Ensure engram exists & resolve ID
         bootstrap = await self.bootstrap_saint_engram(session, user_id, saint_id)
         engram_id = bootstrap["engram_id"]
         engram_uuid = uuid.UUID(engram_id)
+        agent_name = bootstrap["name"]
+        
         user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
 
         # 2. Get or create conversation
@@ -246,13 +384,11 @@ class SaintAgentService:
         conv_result = await session.execute(conv_query)
         conversation = conv_result.scalar_one_or_none()
 
-        saint_def = SAINT_DEFINITIONS[saint_id]
-
         if not conversation:
             conversation = AIConversation(
                 ai_id=engram_uuid,
                 user_id=str(user_uuid),
-                title=f"Chat with {saint_def['name']}",
+                title=f"Chat with {agent_name}",
             )
             session.add(conversation)
             await session.commit()
@@ -275,7 +411,22 @@ class SaintAgentService:
         past_messages = history_result.scalars().all()
 
         # 5. Build system prompt
-        system_prompt = await self._build_saint_prompt(session, user_id, saint_id, engram_id)
+        # Check if it's static or dynamic
+        saint_def = SAINT_DEFINITIONS.get(saint_id)
+        
+        if saint_def:
+             system_prompt = await self._build_saint_prompt(session, user_id, saint_id, engram_id)
+        else:
+             # Build prompt for dynamic agent
+             # Fetch system prompt from engram's personality_traits
+             engram_query = select(ArchetypalAI).where(ArchetypalAI.id == engram_uuid)
+             e_result = await session.execute(engram_query)
+             engram_obj = e_result.scalar_one()
+             
+             traits = engram_obj.personality_traits or {}
+             base_prompt = traits.get("system_prompt", f"You are {agent_name}, a helpful AI agent.")
+             
+             system_prompt = f"{base_prompt}\n\nCONVERSATION HISTORY:\n"
 
         # 6. Format conversation for LLM
         conversation_messages = [
@@ -299,8 +450,9 @@ class SaintAgentService:
         await session.commit()
         await session.refresh(ai_msg)
 
-        # 9. Extract and store knowledge asynchronously
-        await self._extract_and_store_knowledge(session, user_id, saint_id, message, ai_response_text)
+        # 9. Extract and store knowledge (only for static saints for now, or expand later)
+        if saint_def:
+             await self._extract_and_store_knowledge(session, user_id, saint_id, message, ai_response_text)
 
         return {
             "id": str(ai_msg.id),
@@ -310,7 +462,7 @@ class SaintAgentService:
             "content": ai_response_text,
             "created_at": ai_msg.created_at.isoformat() if ai_msg.created_at else datetime.utcnow().isoformat(),
             "saint_id": saint_id,
-            "saint_name": saint_def["name"],
+            "saint_name": agent_name,
         }
 
     async def _build_saint_prompt(

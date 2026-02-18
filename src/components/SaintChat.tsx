@@ -9,6 +9,7 @@ interface SaintChatProps {
     saintTitle: string;
     saintIcon: React.ElementType;
     primaryColor?: string;
+    initialMessage?: string;
     onClose?: () => void;
 }
 
@@ -33,6 +34,7 @@ export default function SaintChat({
     saintTitle,
     saintIcon: Icon,
     primaryColor = 'blue',
+    initialMessage,
     onClose
 }: SaintChatProps) {
     const { user } = useAuth();
@@ -62,19 +64,36 @@ export default function SaintChat({
             try {
                 setBootstrapping(true);
                 setError(null);
+
                 // 1. Bootstrap (ensure engram exists)
+                // For dynamic agents, this might fail if they aren't registered yet, 
+                // but we assume they are registered before Chat is opened.
+                // If not, the backend bootstrap will try to look them up.
                 await apiClient.bootstrapSaint(saintId);
 
-                // 2. Load knowledge
-                const knowledgeData = await apiClient.getSaintKnowledge(saintId);
+                // 2. Load knowledge & history in parallel
+                const [knowledgeData, historyData] = await Promise.all([
+                    apiClient.getSaintKnowledge(saintId),
+                    apiClient.getChatHistory(saintId)
+                ]);
+
                 setKnowledge(knowledgeData);
 
-                // 3. Add initial greeting if empty
-                if (messages.length === 0) {
+                // 3. Set messages from history or add initial greeting
+                if (historyData && historyData.length > 0) {
+                    // Map backend history to UI format
+                    const historyMessages: Message[] = historyData.map((msg: any) => ({
+                        id: msg.id,
+                        role: msg.role,
+                        content: msg.content,
+                        timestamp: msg.timestamp || new Date().toISOString()
+                    }));
+                    setMessages(historyMessages);
+                } else if (messages.length === 0) {
                     setMessages([{
                         id: 'init',
                         role: 'assistant',
-                        content: `Greetings. I am ${saintName}, ${saintTitle}. How may I assist you today?`,
+                        content: initialMessage || `Greetings. I am ${saintName}, ${saintTitle}. How may I assist you today?`,
                         timestamp: new Date().toISOString()
                     }]);
                 }
@@ -191,8 +210,8 @@ export default function SaintChat({
                                 >
                                     <div
                                         className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
-                                                ? `bg-${primaryColor}-600 text-white`
-                                                : 'bg-white border border-slate-100 text-slate-700'
+                                            ? `bg-${primaryColor}-600 text-white`
+                                            : 'bg-white border border-slate-100 text-slate-700'
                                             }`}
                                     >
                                         <div className="flex items-center gap-2 mb-1.5 opacity-80 border-b border-white/10 pb-1">

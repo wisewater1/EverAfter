@@ -25,7 +25,13 @@ class LLMClient:
 
         full_messages.extend(messages)
 
-        # Try OpenAI first if API key is present
+        # 1. Try Ollama FIRST (local, privacy-focused, free)
+        try:
+            return await self._generate_ollama_response(full_messages)
+        except Exception as e:
+            print(f"Ollama generation failed (fallback to OpenAI): {str(e)}")
+
+        # 2. Try OpenAI Fallback if API key is present
         if self.api_key and self.api_key.strip():
             try:
                 async with httpx.AsyncClient() as client:
@@ -49,50 +55,55 @@ class LLMClient:
                         return data["choices"][0]["message"]["content"]
             except Exception as e:
                 print(f"OpenAI API Error: {str(e)}")
-                # Fall through to Ollama
 
-        # Try Ollama Fallback
-        return await self._generate_ollama_response(full_messages)
+        # 3. Final Fallback to Canned Responses
+        return await self._generate_fallback_response(full_messages)
 
     async def _generate_ollama_response(self, messages: List[Dict[str, str]]) -> str:
-        """Fallback to local Ollama instance"""
+        """Primary generation via local Ollama instance"""
+        # Use settings for configuration
+        ollama_url = settings.OLLAMA_URL.rstrip('/')
+        model = settings.OLLAMA_MODEL
+
         try:
-            # Convert messages to Ollama format if needed, or use chat endpoint
-            # Assuming 'mistral' or 'llama3' is available, defaulting to a common one or checking env
-            model = "mistral" # User request implied 't0' but mistral/llama3 is safer default. Configurable?
-            
             async with httpx.AsyncClient() as client:
+                # Try primary configured model
                 response = await client.post(
-                    "http://localhost:11434/api/chat",
+                    f"{ollama_url}/api/chat",
                     json={
                         "model": model,
                         "messages": messages,
                         "stream": False
                     },
-                    timeout=60.0 # Local LLMs can be slow
+                    timeout=120.0 # Local LLMs can be slow
                 )
 
                 if response.status_code == 200:
                     data = response.json()
                     return data["message"]["content"]
                 
-                # If 404, maybe model not found. Try 'llama3'
-                if response.status_code == 404:
+                # If 404, maybe model not found. Try 'llama3' as backup
+                if response.status_code == 404 and model != "llama3":
+                     print(f"Ollama model '{model}' not found, trying 'llama3'...")
                      response = await client.post(
-                        "http://localhost:11434/api/chat",
+                        f"{ollama_url}/api/chat",
                         json={
                             "model": "llama3",
                             "messages": messages,
                             "stream": False
                         },
-                        timeout=60.0
+                        timeout=120.0
                     )
                      if response.status_code == 200:
                         data = response.json()
                         return data["message"]["content"]
 
+                # If we get here, Ollama returned an error code
+                raise Exception(f"Ollama API returned status {response.status_code}: {response.text}")
+
         except Exception as e:
-            print(f"Ollama Error: {str(e)}")
+            # Re-raise to trigger fallback in generate_response
+            raise e
         
         # Final Fallback to Canned Responses
         return await self._generate_fallback_response(messages)

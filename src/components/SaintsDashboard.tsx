@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users, ArrowLeft } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users, ArrowLeft, MessageCircle, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -81,6 +81,16 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
     tier: 'premium',
     price: 34.99,
     icon: Star,
+  },
+  {
+    id: 'anthony',
+    name: 'St. Anthony',
+    title: 'The Finder',
+    description: 'Patron of lost things. Tracks your digital assets, recovers lost data, and maintains a ledger of all system events.',
+    responsibilities: ['Data Recovery', 'Audit Logging', 'Event Tracking', 'Asset Location'],
+    tier: 'premium',
+    price: 49.99,
+    icon: Search,
   }
 ];
 
@@ -93,7 +103,9 @@ export default function SaintsDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [selectedSaint, setSelectedSaint] = useState<Saint | null>(null);
-  const [activeTab, setActiveTab] = useState<'activities' | 'engrams'>('activities');
+
+  const [activeTab, setActiveTab] = useState<'activities' | 'engrams' | 'chat'>('activities');
+  const [chatSaintId, setChatSaintId] = useState<string>('raphael');
 
   const handleChat = (saint: Saint) => {
     setSelectedSaint(saint);
@@ -602,7 +614,7 @@ export default function SaintsDashboard() {
 
       {/* Tabs Content */}
       <div className="min-h-[500px]">
-        {activeTab === 'activities' ? (
+        {activeTab === 'activities' && (
           <div className="space-y-6">
             {/* Activity Summary Card */}
             <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
@@ -766,7 +778,8 @@ export default function SaintsDashboard() {
               )}
             </div>
           </div>
-        ) : (
+        )}
+        {activeTab === 'engrams' && (
           /* Saints Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {saints.map((saint) => {
@@ -924,6 +937,15 @@ export default function SaintsDashboard() {
                         <span>Open Family Monitor</span>
                       </button>
                     )}
+                    {saint.active && saint.id === 'anthony' && (
+                      <button
+                        onClick={() => navigate('/anthony-dashboard')}
+                        className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                      >
+                        <Search className="w-4 h-4" />
+                        <span>Open Audit Ledger</span>
+                      </button>
+                    )}
                     {!saint.active && saint.tier === 'premium' && (
                       <button
                         onClick={() => handleSaintActivation(saint)}
@@ -938,31 +960,96 @@ export default function SaintsDashboard() {
             })}
           </div>
         )}
+        {activeTab === 'chat' && (
+          /* Chat Interface */
+          <div className="flex flex-col h-[700px] bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden">
+            {/* Saint Selector Bar */}
+            <div className="flex items-center gap-3 p-4 border-b border-slate-700/50 overflow-x-auto">
+              {saints.filter(s => s.active).map((saint) => {
+                const Icon = saint.icon;
+                const isSelected = chatSaintId === saint.id;
+
+                return (
+                  <button
+                    key={saint.id}
+                    onClick={() => setChatSaintId(saint.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${isSelected
+                      ? 'bg-slate-700 text-white shadow-md ring-1 ring-slate-600'
+                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                      }`}
+                  >
+                    <div className={`p-1 rounded ${isSelected ? 'bg-slate-600' : 'bg-slate-700/50'
+                      }`}>
+                      <Icon className={`w-3.5 h-3.5 ${saint.id === 'raphael' ? 'text-emerald-400' :
+                        saint.id === 'michael' ? 'text-sky-400' :
+                          saint.id === 'martin' ? 'text-amber-400' :
+                            saint.id === 'anthony' ? 'text-amber-400' :
+                              saint.id === 'agatha' ? 'text-rose-400' :
+                                'text-indigo-400'
+                        }`} />
+                    </div>
+                    <span className="text-sm font-medium">{saint.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 bg-slate-950 relative">
+              {(() => {
+                const currentSaint = saints.find(s => s.id === chatSaintId) || saints.find(s => s.active) || saints[0];
+                if (!currentSaint) return <div className="p-8 text-center text-slate-500">No active saints available.</div>;
+
+                return (
+                  <div className="absolute inset-0">
+                    <SaintChat
+                      key={currentSaint.id} // Force re-mount when switching saints
+                      saintId={currentSaint.id}
+                      saintName={currentSaint.name}
+                      saintTitle={currentSaint.title}
+                      saintIcon={currentSaint.icon}
+                      primaryColor={
+                        currentSaint.id === 'raphael' ? 'emerald' :
+                          currentSaint.id === 'michael' ? 'sky' :
+                            currentSaint.id === 'martin' ? 'amber' :
+                              currentSaint.id === 'agatha' ? 'rose' :
+                                'indigo'
+                      }
+                    />
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chat Overlay */}
-      {selectedSaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm">
-          <div className="w-full max-w-4xl h-[85vh] relative z-20">
-            <SaintChat
-              saintId={selectedSaint.id}
-              saintName={selectedSaint.name}
-              saintTitle={selectedSaint.title}
-              saintIcon={selectedSaint.icon}
-              primaryColor={
-                selectedSaint.id === 'raphael' ? 'emerald' :
-                  selectedSaint.id === 'michael' ? 'sky' :
-                    selectedSaint.id === 'martin' ? 'amber' :
-                      selectedSaint.id === 'agatha' ? 'rose' :
-                        'indigo'
-              }
-              onClose={() => setSelectedSaint(null)}
-            />
+      {
+        selectedSaint && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm">
+            <div className="w-full max-w-4xl h-[85vh] relative z-20">
+              <SaintChat
+                saintId={selectedSaint.id}
+                saintName={selectedSaint.name}
+                saintTitle={selectedSaint.title}
+                saintIcon={selectedSaint.icon}
+                primaryColor={
+                  selectedSaint.id === 'raphael' ? 'emerald' :
+                    selectedSaint.id === 'michael' ? 'sky' :
+                      selectedSaint.id === 'martin' ? 'amber' :
+                        selectedSaint.id === 'anthony' ? 'amber' :
+                          selectedSaint.id === 'agatha' ? 'rose' :
+                            'indigo'
+                }
+                onClose={() => setSelectedSaint(null)}
+              />
+            </div>
+            {/* Click background to close */}
+            <div className="absolute inset-0 z-10" onClick={() => setSelectedSaint(null)}></div>
           </div>
-          {/* Click background to close */}
-          <div className="absolute inset-0 z-10" onClick={() => setSelectedSaint(null)}></div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

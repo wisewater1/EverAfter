@@ -14,6 +14,10 @@ class Settings(BaseSettings):
 
     HF_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
     OPENAI_API_KEY: str = ""
+    
+    # Ollama Settings
+    OLLAMA_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "mistral"
 
     REDIS_URL: str = "redis://localhost:6379/0"
 
