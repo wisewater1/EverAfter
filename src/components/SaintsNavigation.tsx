@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Heart, Shield, Users, Sparkles, Lock, Calendar } from 'lucide-react';
+import { Heart, Shield, Users, Sparkles, Lock, Calendar, Wallet } from 'lucide-react';
 
 interface Saint {
   id: string;
@@ -49,11 +49,12 @@ export default function SaintsNavigation() {
     {
       id: 'gabriel',
       name: 'St. Gabriel',
-      role: 'Communication',
-      icon: Sparkles,
+      role: 'Finance & Trusteeship',
+      icon: Wallet,
       color: 'purple',
       gradient: 'from-purple-500 to-violet-600',
-      available: false,
+      available: true,
+      route: '/finance-dashboard',
     },
     {
       id: 'anthony',
@@ -62,7 +63,8 @@ export default function SaintsNavigation() {
       icon: Calendar,
       color: 'rose',
       gradient: 'from-rose-500 to-pink-600',
-      available: false,
+      available: true,
+      route: '/anthony-dashboard',
     },
   ];
 

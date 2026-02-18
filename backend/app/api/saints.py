@@ -157,6 +157,10 @@ async def chat_with_saint(
         )
         return response
     except Exception as e:
+        import traceback
+        import datetime
+        with open("backend_error.log", "a") as f:
+            f.write(f"[{datetime.datetime.utcnow()}] Error in chat_with_saint ({saint_id}): {e}\n{traceback.format_exc()}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 

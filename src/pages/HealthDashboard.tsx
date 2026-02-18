@@ -27,6 +27,7 @@ import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalytic
 import ScrollIndicator from '../components/ScrollIndicator';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 import PhoneHealthConnect from '../components/PhoneHealthConnect';
+import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge';
 
 type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions';
 
@@ -126,6 +127,7 @@ export default function HealthDashboard() {
             <p className="text-slate-400 text-sm">Comprehensive health tracking powered by St. Raphael AI</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <SecurityIntegrityBadge />
             <button
               onClick={() => openConnectionsPanel('health')}
               className="relative px-3 sm:px-5 py-3 rounded-xl sm:rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/50 text-white transition-all duration-300 flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/30 hover:bg-slate-900/60 group overflow-hidden whitespace-nowrap"

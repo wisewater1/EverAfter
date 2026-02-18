@@ -15,6 +15,7 @@ import {
 } from '../lib/joseph/family';
 import SaintChat from './SaintChat';
 import FamilyTreeView from './joseph/FamilyTreeView';
+import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
 import FamilyMembersGrid from './joseph/FamilyMembersGrid';
 import FamilyTimeline from './joseph/FamilyTimeline';
 
@@ -97,6 +98,10 @@ export default function StJosephFamilyDashboard() {
                             <h1 className="text-3xl font-light text-white tracking-tight">St. Joseph</h1>
                             <p className="text-amber-500/60 font-medium uppercase tracking-[0.2em] text-[10px]">The Family Guardian</p>
                         </div>
+                    </div>
+
+                    <div className="flex items-center justify-center md:justify-end flex-1 px-4">
+                        <SecurityIntegrityBadge />
                     </div>
 
                     <div className="flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto">

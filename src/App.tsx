@@ -47,6 +47,7 @@ import StMichaelSecurityDashboard from './components/StMichaelSecurityDashboard'
 import StJosephFamilyDashboard from './components/StJosephFamilyDashboard';
 import SaintsDashboard from './components/SaintsDashboard';
 import StAnthonyAuditDashboard from './components/anthony/StAnthonyAuditDashboard';
+import StGabrielFinanceDashboard from './components/gabriel/StGabrielFinanceDashboard';
 
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
@@ -183,6 +184,11 @@ function App() {
                 <Route path="/anthony-dashboard" element={
                   <ProtectedRoute>
                     <StAnthonyAuditDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/finance-dashboard" element={
+                  <ProtectedRoute>
+                    <StGabrielFinanceDashboard />
                   </ProtectedRoute>
                 } />
                 {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}

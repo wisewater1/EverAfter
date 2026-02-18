@@ -68,6 +68,12 @@ class LLMClient:
         try:
             async with httpx.AsyncClient() as client:
                 # Try primary configured model
+                try:
+                    with open("backend_llm.log", "a") as f:
+                        f.write(f"Attempting Ollama with model {model} at {ollama_url}\n")
+                except:
+                    pass
+
                 response = await client.post(
                     f"{ollama_url}/api/chat",
                     json={
@@ -85,6 +91,9 @@ class LLMClient:
                 # If 404, maybe model not found. Try 'llama3' as backup
                 if response.status_code == 404 and model != "llama3":
                      print(f"Ollama model '{model}' not found, trying 'llama3'...")
+                     with open("backend_llm.log", "a") as f:
+                        f.write(f"Ollama model {model} not found (404). Trying llama3...\n")
+                     
                      response = await client.post(
                         f"{ollama_url}/api/chat",
                         json={
@@ -99,10 +108,14 @@ class LLMClient:
                         return data["message"]["content"]
 
                 # If we get here, Ollama returned an error code
+                with open("backend_llm.log", "a") as f:
+                    f.write(f"Ollama failed with status {response.status_code}: {response.text}\n")
                 raise Exception(f"Ollama API returned status {response.status_code}: {response.text}")
 
         except Exception as e:
             # Re-raise to trigger fallback in generate_response
+            with open("backend_llm.log", "a") as f:
+                f.write(f"Ollama Exception: {e}\n")
             raise e
         
         # Final Fallback to Canned Responses

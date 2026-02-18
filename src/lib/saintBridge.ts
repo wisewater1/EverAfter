@@ -71,6 +71,14 @@ export function emitSaintEvent(event: Omit<SaintEvent, 'id' | 'timestamp'>): Sai
         });
     }
 
+    // Anthony always gets a copy (audit logging)
+    if (event.to !== 'anthony' && event.from !== 'anthony') {
+        const anthonyHandlers = _handlers.get('anthony') || [];
+        anthonyHandlers.forEach(h => {
+            try { h(full); } catch (e) { console.error('Anthony bridge handler error:', e); }
+        });
+    }
+
     return full;
 }
 
@@ -146,6 +154,22 @@ export function getSaintStatuses(): SaintStatus[] {
             activeAgents: 1,
             securityLevel: 'green',
         },
+        {
+            id: 'anthony',
+            name: 'St. Anthony',
+            status: 'online',
+            lastActivity: lastEvent('anthony'),
+            activeAgents: 1,
+            securityLevel: 'green',
+        },
+        {
+            id: 'gabriel',
+            name: 'St. Gabriel',
+            status: 'online',
+            lastActivity: lastEvent('gabriel'),
+            activeAgents: 4, // Gabriel + 3 Council Members
+            securityLevel: 'green',
+        },
     ];
 }
 
@@ -167,6 +191,18 @@ export const SAINT_EVENT_TYPES = {
     // Raphael events
     HEALTH_DATA_ACCESSED: 'health_data_accessed',
     HEALTH_PREDICTION: 'health_prediction',
+
+    // Anthony events
+    AUDIT_FLAG: 'audit_flag',
+    INTEGRITY_CHECK: 'integrity_check',
+    ITEM_FOUND: 'item_found',
+
+    // Gabriel events
+    BUDGET_ANOMALY: 'budget_anomaly',
+    COUNCIL_DECISION: 'council_decision',
+
+    // Cross-Saint
+    CROSS_SAINT_ALERT: 'cross_saint_alert',
 
     // System events
     SYSTEM_STARTUP: 'system_startup',

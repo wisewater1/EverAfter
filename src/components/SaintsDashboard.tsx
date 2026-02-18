@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users, ArrowLeft, MessageCircle, Search } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, Zap, Activity, RefreshCw, AlertCircle, Users, ArrowLeft, Search, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -91,6 +91,16 @@ const saintDefinitions: Omit<Saint, 'active' | 'todayActivities' | 'weeklyActivi
     tier: 'premium',
     price: 49.99,
     icon: Search,
+  },
+  {
+    id: 'gabriel',
+    name: 'St. Gabriel',
+    title: 'The Financial Steward',
+    description: 'Presides over the Financial Council. Fuses envelope budgeting with multi-agent advisory to manage your wealth, strategy, and risk.',
+    responsibilities: ['Budgeting', 'Investment Strategy', 'Risk Management', 'Financial Auditing'],
+    tier: 'premium',
+    price: 49.99,
+    icon: Wallet,
   }
 ];
 
@@ -946,6 +956,15 @@ export default function SaintsDashboard() {
                         <span>Open Audit Ledger</span>
                       </button>
                     )}
+                    {saint.active && saint.id === 'gabriel' && (
+                      <button
+                        onClick={() => navigate('/finance-dashboard')}
+                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                      >
+                        <Wallet className="w-4 h-4" />
+                        <span>Open Finance Dashboard</span>
+                      </button>
+                    )}
                     {!saint.active && saint.tier === 'premium' && (
                       <button
                         onClick={() => handleSaintActivation(saint)}
@@ -984,8 +1003,9 @@ export default function SaintsDashboard() {
                         saint.id === 'michael' ? 'text-sky-400' :
                           saint.id === 'martin' ? 'text-amber-400' :
                             saint.id === 'anthony' ? 'text-amber-400' :
-                              saint.id === 'agatha' ? 'text-rose-400' :
-                                'text-indigo-400'
+                              saint.id === 'gabriel' ? 'text-emerald-400' :
+                                saint.id === 'agatha' ? 'text-rose-400' :
+                                  'text-indigo-400'
                         }`} />
                     </div>
                     <span className="text-sm font-medium">{saint.name}</span>
