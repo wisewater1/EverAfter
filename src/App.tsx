@@ -45,9 +45,13 @@ import PublicCareerChat from './pages/PublicCareerChat';
 import Onboarding from './pages/Onboarding';
 import StMichaelSecurityDashboard from './components/StMichaelSecurityDashboard';
 import StJosephFamilyDashboard from './components/StJosephFamilyDashboard';
-import SaintsDashboard from './components/SaintsDashboard';
+import CouncilOracle from './components/council/CouncilOracle';
+import TimeCapsuleVault from './components/capsules/TimeCapsuleVault';
+import RitualAltar from './components/rituals/RitualAltar';
+
 import StAnthonyAuditDashboard from './components/anthony/StAnthonyAuditDashboard';
 import StGabrielFinanceDashboard from './components/gabriel/StGabrielFinanceDashboard';
+import SystemMonitorDashboard from './components/saints/SystemMonitorDashboard';
 
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
@@ -177,9 +181,7 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/saints" element={
-                  <ProtectedRoute>
-                    <SaintsDashboard />
-                  </ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
                 } />
                 <Route path="/anthony-dashboard" element={
                   <ProtectedRoute>
@@ -189,6 +191,11 @@ function App() {
                 <Route path="/finance-dashboard" element={
                   <ProtectedRoute>
                     <StGabrielFinanceDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/monitor" element={
+                  <ProtectedRoute>
+                    <SystemMonitorDashboard />
                   </ProtectedRoute>
                 } />
                 {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}
@@ -224,6 +231,21 @@ function App() {
                 <Route path="/career" element={
                   <ProtectedRoute>
                     <Career />
+                  </ProtectedRoute>
+                } />
+                <Route path="/council" element={
+                  <ProtectedRoute>
+                    <CouncilOracle />
+                  </ProtectedRoute>
+                } />
+                <Route path="/time-capsules" element={
+                  <ProtectedRoute>
+                    <TimeCapsuleVault />
+                  </ProtectedRoute>
+                } />
+                <Route path="/rituals" element={
+                  <ProtectedRoute>
+                    <RitualAltar />
                   </ProtectedRoute>
                 } />
                 <Route path="/career/public/:token" element={<PublicCareerChat />} />

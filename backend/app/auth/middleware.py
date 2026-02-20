@@ -56,5 +56,11 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             print("DEBUG: No authorization header")
             request.state.current_user = None
 
-        response = await call_next(request)
-        return response
+        try:
+            response = await call_next(request)
+            return response
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"CRITICAL MIDDLEWARE ERROR: {e}", flush=True)
+            raise e

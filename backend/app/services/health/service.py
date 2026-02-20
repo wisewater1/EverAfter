@@ -3,7 +3,8 @@ from .strategies import (
     StandardHeartRateStrategy,
     AthleteHeartRateStrategy,
     GlucoseStrategy,
-    DelphiPredictionStrategy
+    DelphiPredictionStrategy,
+    DeepDiveInsightStrategy
 )
 from .decorators import LoggingDecorator, SafetyAlertDecorator, PrivacyDecorator
 from datetime import datetime
@@ -103,6 +104,19 @@ class HealthLogicService:
         context_data = {"metrics_history": history}
         
         # For now, we return a single prediction result in a list
+        prediction = await strategy.predict(user_id, context_data)
+        return [prediction]
+
+    async def get_deep_dive_insights(
+        self,
+        user_id: str,
+        aggregated_metrics: List[Dict[str, Any]]
+    ) -> List[PredictionResult]:
+        """
+        Specialized method to get holistic health insights across varied metrics.
+        """
+        strategy = DeepDiveInsightStrategy()
+        context_data = {"aggregated_metrics": aggregated_metrics}
         prediction = await strategy.predict(user_id, context_data)
         return [prediction]
 

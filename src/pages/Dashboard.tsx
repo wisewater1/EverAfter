@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Activity, Bot, Brain, Heart, Link2, ShoppingCart, LogOut } from 'lucide-react';
+import { Menu, Activity, Bot, Brain, Heart, Link2, ShoppingCart, LogOut, Users, Briefcase } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import MobileMenu from '../components/MobileMenu';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
-import SaintsDashboard from '../components/SaintsDashboard';
 import FamilyEngrams from '../components/FamilyEngrams';
 import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
+import CouncilRoom from '../components/saints/CouncilRoom';
 import SocietyFeed from '../components/SocietyFeed';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat'>('engrams');
+  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'council' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -57,6 +57,7 @@ export default function Dashboard() {
   const navItems = [
     { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
+    { id: 'council', label: 'Council', icon: Users },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -71,6 +72,7 @@ export default function Dashboard() {
         onNavigateToLegacy={() => navigate('/legacy-vault')}
         onOpenConnections={() => openConnectionsPanel()}
         onNavigateToMarketplace={() => navigate('/marketplace')}
+        onNavigateToCareer={() => navigate('/career')}
         onSignOut={handleSignOut}
         activeConnectionsCount={activeConnectionsCount}
       />
@@ -108,6 +110,14 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <Heart className="w-4 h-4 relative z-10 text-purple-400 group-hover:text-purple-300" />
                 <span className="hidden sm:inline relative z-10">Legacy Vault</span>
+              </button>
+              <button
+                onClick={() => navigate('/career')}
+                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-indigo-500/30 hover:border-indigo-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/30 hover:bg-slate-900/60 group overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <Briefcase className="w-4 h-4 relative z-10 text-indigo-400 group-hover:text-indigo-300" />
+                <span className="hidden sm:inline relative z-10">Career</span>
               </button>
               <button
                 onClick={() => openConnectionsPanel()}
@@ -257,12 +267,16 @@ export default function Dashboard() {
           {selectedView === 'engrams' && (
             <>
               <TrajectoryDashboard userId={user.id} />
-              <SaintsDashboard />
               <FamilyEngrams />
               <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
               <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
               <div className="h-[60vh]"></div>
             </>
+          )}
+          {selectedView === 'council' && (
+            <div className="flex-1 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl h-[700px]">
+              <CouncilRoom />
+            </div>
           )}
           {selectedView === 'chat' && (
             <>

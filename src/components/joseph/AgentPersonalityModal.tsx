@@ -36,7 +36,8 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                     memberId: member.id,
                     birthYear: birthYear,
                     birthPlace: member.birthPlace,
-                    gender: member.gender
+                    gender: member.gender,
+                    research_integrated: ["generative_agents", "genagents", "agentic_collab"]
                 }
             });
 
@@ -45,16 +46,17 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
             const updated = activateAgent(member.id);
             if (updated) {
                 // Emit event to the saint bridge — Michael will pick it up
-                emitSaintEvent({
-                    from: 'joseph',
-                    to: 'michael',
-                    type: 'agent_created',
-                    payload: {
+                emitSaintEvent(
+                    'joseph',
+                    'michael',
+                    'family/agent_created',
+                    {
                         memberName: `${member.firstName} ${member.lastName}`,
                         agentId: member.id,
                         timestamp: new Date().toISOString(),
                     },
-                });
+                    { confidence: 1.0, urgency: 'low' }
+                );
                 onActivated(updated);
             }
         } catch (error) {

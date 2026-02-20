@@ -1,19 +1,18 @@
 // ── Inter-Saint Communication Bridge ───────────────────────
 // Central event bus that allows saints to communicate seamlessly.
-// St. Michael monitors all events for security. St. Joseph emits
-// family changes. St. Raphael emits health data access events.
+// NOW UPGRADED to use the "Divine Protocol" (SEP).
 
-export interface SaintEvent {
-    id: string;
-    from: string;       // 'joseph' | 'michael' | 'raphael' | 'system'
-    to: string;         // target saint or 'all'
-    type: string;       // event type
-    payload: Record<string, unknown>;
-    timestamp: string;
-}
+import {
+    SaintEventEnvelope,
+    SaintID,
+    createSaintEvent,
+    SaintEventEnvelopeSchema
+} from './saints/sep';
+
+export type { SaintEventEnvelope, SaintID };
 
 export interface SaintStatus {
-    id: string;
+    id: SaintID;
     name: string;
     status: 'online' | 'offline' | 'warning';
     lastActivity: string;
@@ -21,16 +20,16 @@ export interface SaintStatus {
     securityLevel: 'green' | 'yellow' | 'red';
 }
 
-type EventHandler = (event: SaintEvent) => void;
+type EventHandler = (event: SaintEventEnvelope) => void;
 
 // ── In-memory event log + subscribers ──────────────────────
 
-const EVENT_LOG_KEY = 'everafter_saint_events';
+const EVENT_LOG_KEY = 'everafter_saint_events_v2';
 const MAX_LOG_SIZE = 100;
 
 let _handlers: Map<string, EventHandler[]> = new Map();
 
-function loadEventLog(): SaintEvent[] {
+function loadEventLog(): SaintEventEnvelope[] {
     try {
         const stored = localStorage.getItem(EVENT_LOG_KEY);
         if (stored) return JSON.parse(stored);
@@ -38,51 +37,73 @@ function loadEventLog(): SaintEvent[] {
     return [];
 }
 
-function saveEventLog(events: SaintEvent[]): void {
+function saveEventLog(events: SaintEventEnvelope[]): void {
     localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(events.slice(-MAX_LOG_SIZE)));
 }
 
 // ── Public API ─────────────────────────────────────────────
 
-export function emitSaintEvent(event: Omit<SaintEvent, 'id' | 'timestamp'>): SaintEvent {
-    const full: SaintEvent = {
-        ...event,
-        id: `se_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        timestamp: new Date().toISOString(),
-    };
+/**
+ * Emits a standardized Saint Event.
+ * @param event Partial event data. ID and Timestamp are auto-generated.
+ */
+export function emitSaintEvent<T extends Record<string, unknown>>(
+    source: SaintID,
+    target: SaintID | 'broadcast' | 'all',
+    topic: string,
+    payload: T,
+    options?: { confidence?: number; urgency?: 'low' | 'normal' | 'high' | 'critical' }
+): SaintEventEnvelope {
+
+    // Normalize 'all' to 'broadcast' for new protocol
+    const finalTarget = target === 'all' ? 'broadcast' : target;
+
+    const fullEvent = createSaintEvent(source, finalTarget, topic, payload, options);
+
+    // Validate schema (optional runtime check, good for debugging)
+    const result = SaintEventEnvelopeSchema.safeParse(fullEvent);
+    if (!result.success) {
+        console.error("Divine Protocol Violation:", result.error);
+        // We trigger it anyway to not break app, but log error
+    }
 
     // Persist to log
     const log = loadEventLog();
-    log.push(full);
+    log.push(fullEvent);
     saveEventLog(log);
 
     // Notify subscribers
-    const targetHandlers = _handlers.get(event.to) || [];
+    // 1. Target specific
+    const targetHandlers = _handlers.get(finalTarget) || [];
+    // 2. Broadcast listeners
+    const broadcastHandlers = _handlers.get('broadcast') || [];
+    // 3. Legacy 'all' listeners
     const allHandlers = _handlers.get('all') || [];
-    [...targetHandlers, ...allHandlers].forEach(h => {
-        try { h(full); } catch (e) { console.error('Saint bridge handler error:', e); }
+
+    [...targetHandlers, ...broadcastHandlers, ...allHandlers].forEach(h => {
+        try { h(fullEvent); } catch (e) { console.error('Saint bridge handler error:', e); }
     });
 
     // Michael always gets a copy (security monitoring)
-    if (event.to !== 'michael' && event.from !== 'michael') {
+    if (source !== 'michael' && finalTarget !== 'michael') {
         const michaelHandlers = _handlers.get('michael') || [];
         michaelHandlers.forEach(h => {
-            try { h(full); } catch (e) { console.error('Michael bridge handler error:', e); }
+            try { h(fullEvent); } catch (e) { console.error('Michael bridge handler error:', e); }
         });
     }
 
     // Anthony always gets a copy (audit logging)
-    if (event.to !== 'anthony' && event.from !== 'anthony') {
+    if (source !== 'anthony' && finalTarget !== 'anthony') {
         const anthonyHandlers = _handlers.get('anthony') || [];
         anthonyHandlers.forEach(h => {
-            try { h(full); } catch (e) { console.error('Anthony bridge handler error:', e); }
+            try { h(fullEvent); } catch (e) { console.error('Anthony bridge handler error:', e); }
         });
     }
 
-    return full;
+    return fullEvent;
 }
 
-export function onSaintEvent(saintId: string, handler: EventHandler): () => void {
+export function onSaintEvent(saintId: SaintID | 'broadcast' | 'all', handler: EventHandler): () => void {
     if (!_handlers.has(saintId)) _handlers.set(saintId, []);
     _handlers.get(saintId)!.push(handler);
 
@@ -97,16 +118,16 @@ export function onSaintEvent(saintId: string, handler: EventHandler): () => void
 }
 
 export function subscribeToSaintEvents(handler: EventHandler): () => void {
-    return onSaintEvent('all', handler);
+    return onSaintEvent('broadcast', handler);
 }
 
-export function getEventLog(filter?: { from?: string; to?: string; type?: string }): SaintEvent[] {
+export function getEventLog(filter?: { from?: string; to?: string; type?: string }): SaintEventEnvelope[] {
     const log = loadEventLog();
     if (!filter) return log;
     return log.filter(e => {
-        if (filter.from && e.from !== filter.from) return false;
-        if (filter.to && e.to !== filter.to) return false;
-        if (filter.type && e.type !== filter.type) return false;
+        if (filter.from && e.source !== filter.from) return false;
+        if (filter.to && e.target !== filter.to) return false;
+        if (filter.type && e.topic !== filter.type) return false;
         return true;
     });
 }
@@ -116,7 +137,7 @@ export function getSaintStatuses(): SaintStatus[] {
     const log = loadEventLog();
 
     const lastEvent = (saint: string) => {
-        const events = log.filter(e => e.from === saint);
+        const events = log.filter(e => e.source === saint);
         return events.length > 0 ? events[events.length - 1].timestamp : now;
     };
 
@@ -173,38 +194,39 @@ export function getSaintStatuses(): SaintStatus[] {
     ];
 }
 
-// ── Pre-built Event Types ──────────────────────────────────
+// ── Pre-built Event Types (Legacy Mapped to New Topics) ────
 
 export const SAINT_EVENT_TYPES = {
     // Joseph events
-    MEMBER_ADDED: 'member_added',
-    MEMBER_UPDATED: 'member_updated',
-    AGENT_CREATED: 'agent_created',
-    AGENT_DEACTIVATED: 'agent_deactivated',
+    MEMBER_ADDED: 'family/member_added',
+    MEMBER_UPDATED: 'family/member_updated',
+    AGENT_CREATED: 'family/agent_created',
+    AGENT_DEACTIVATED: 'family/agent_deactivated',
 
     // Michael events
-    SECURITY_ALERT: 'security_alert',
-    SCAN_COMPLETE: 'scan_complete',
-    THREAT_DETECTED: 'threat_detected',
-    COMPLIANCE_CHECK: 'compliance_check',
+    SECURITY_ALERT: 'security/alert',
+    SCAN_COMPLETE: 'security/scan_complete',
+    THREAT_DETECTED: 'security/threat_detected',
+    COMPLIANCE_CHECK: 'security/compliance_check',
 
     // Raphael events
-    HEALTH_DATA_ACCESSED: 'health_data_accessed',
-    HEALTH_PREDICTION: 'health_prediction',
+    HEALTH_DATA_ACCESSED: 'health/data_accessed',
+    HEALTH_PREDICTION: 'health/prediction',
 
     // Anthony events
-    AUDIT_FLAG: 'audit_flag',
-    INTEGRITY_CHECK: 'integrity_check',
-    ITEM_FOUND: 'item_found',
+    AUDIT_FLAG: 'audit/flag',
+    INTEGRITY_CHECK: 'audit/integrity_check',
+    ITEM_FOUND: 'audit/item_found',
 
     // Gabriel events
-    BUDGET_ANOMALY: 'budget_anomaly',
-    COUNCIL_DECISION: 'council_decision',
+    BUDGET_ANOMALY: 'finance/budget_anomaly',
+    COUNCIL_DECISION: 'finance/council_decision',
 
     // Cross-Saint
-    CROSS_SAINT_ALERT: 'cross_saint_alert',
+    CROSS_SAINT_ALERT: 'system/cross_saint_alert',
 
     // System events
-    SYSTEM_STARTUP: 'system_startup',
-    SYSTEM_ERROR: 'system_error',
+    SYSTEM_STARTUP: 'system/startup',
+    SYSTEM_ERROR: 'system/error',
 } as const;
+

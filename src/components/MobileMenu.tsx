@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Heart, Link2, ShoppingCart, LogOut, Brain, ChevronRight } from 'lucide-react';
+import { X, Heart, Link2, ShoppingCart, LogOut, Brain, ChevronRight, Briefcase } from 'lucide-react';
 
 interface MobileMenuProps {
     isOpen: boolean;
@@ -7,6 +7,7 @@ interface MobileMenuProps {
     onNavigateToLegacy: () => void;
     onOpenConnections: () => void;
     onNavigateToMarketplace: () => void;
+    onNavigateToCareer: () => void;
     onSignOut: () => void;
     activeConnectionsCount: number;
 }
@@ -17,6 +18,7 @@ export default function MobileMenu({
     onNavigateToLegacy,
     onOpenConnections,
     onNavigateToMarketplace,
+    onNavigateToCareer,
     onSignOut,
     activeConnectionsCount
 }: MobileMenuProps) {
@@ -65,6 +67,13 @@ export default function MobileMenu({
                         onClick={() => { onNavigateToLegacy(); onClose(); }}
                         color="text-purple-400"
                         bgColor="bg-purple-500/10"
+                    />
+                    <MenuItem
+                        icon={Briefcase}
+                        label="Career Agent"
+                        onClick={() => { onNavigateToCareer(); onClose(); }}
+                        color="text-indigo-400"
+                        bgColor="bg-indigo-500/10"
                     />
                     <MenuItem
                         icon={ShoppingCart}

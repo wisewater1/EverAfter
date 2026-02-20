@@ -4,6 +4,9 @@ from sqlalchemy import select
 from datetime import datetime, timedelta
 import secrets
 import base64
+import smtplib
+from email.message import EmailMessage
+import os
 
 
 class InvitationService:
@@ -64,8 +67,8 @@ class InvitationService:
         # Generate invitation URL
         invitation_url = self._generate_invitation_url(token)
 
-        # TODO: Send email via email service
-        # await self._send_invitation_email(invitee_email, invitation_url, invitation_message)
+        # Send email via email service
+        await self._send_invitation_email(invitee_email, invitation_url, invitation_message)
 
         return {
             "invitation_id": str(invitation.id),
@@ -99,8 +102,36 @@ Thank you for participating in this special project!
     def _generate_invitation_url(self, token: str) -> str:
         """Generate invitation URL"""
         # In production, use actual domain
-        base_url = "https://everafter.app"
+        base_url = os.getenv("FRONTEND_URL", "https://everafter.app")
         return f"{base_url}/respond/{token}"
+
+    async def _send_invitation_email(self, invitee_email: str, invitation_url: str, message: str):
+        """Send the invitation email using SMTP"""
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        smtp_username = os.getenv("SMTP_USERNAME")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+
+        if not all([smtp_server, smtp_username, smtp_password]):
+            print(f"SMTP not configured. Would have sent following to {invitee_email}:\n{message}\nLink: {invitation_url}")
+            return
+
+        msg = EmailMessage()
+        msg.set_content(f"{message}\n\nPlease click the link to start your journey:\n{invitation_url}")
+        msg['Subject'] = 'You have been invited to share your personality on EverAfter'
+        msg['From'] = smtp_username
+        msg['To'] = invitee_email
+
+        try:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+            print(f"Successfully sent invitation email to {invitee_email}")
+        except Exception as e:
+            print(f"Failed to send email to {invitee_email}: {e}")
+            # Don't throw, we want the token creation to succeed even if email fails
+
 
     async def accept_invitation(self, token: str) -> Dict:
         """

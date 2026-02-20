@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shield, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { subscribeToSaintEvents, getSaintStatuses, SaintEvent } from '../../lib/saintBridge';
+import { subscribeToSaintEvents, getSaintStatuses, SaintEventEnvelope } from '../../lib/saintBridge';
 
 export default function SecurityIntegrityBadge({ className = '' }: { className?: string }) {
     const navigate = useNavigate();
@@ -17,19 +17,19 @@ export default function SecurityIntegrityBadge({ className = '' }: { className?:
         if (michael) setSecurityLevel(michael.securityLevel);
 
         // Subscribe to updates
-        const unsubscribe = subscribeToSaintEvents((event: SaintEvent) => {
-            if (event.from === 'michael' && event.type === 'security_alert') {
+        const unsubscribe = subscribeToSaintEvents((event: SaintEventEnvelope) => {
+            if (event.source === 'michael' && event.topic === 'security/alert') {
                 setSecurityLevel('red');
             }
-            if (event.from === 'michael' && event.type === 'scan_complete') {
+            if (event.source === 'michael' && event.topic === 'security/scan_complete') {
                 // In a real app we'd check the payload result
                 if (Math.random() > 0.9) setSecurityLevel('yellow');
                 else setSecurityLevel('green');
             }
-            if (event.from === 'anthony' && (event.type === 'audit_flag' || event.type === 'integrity_check')) {
+            if (event.source === 'anthony' && (event.topic === 'audit/flag' || event.topic === 'audit/integrity_check')) {
                 setLastAudit(event.timestamp);
                 // Simulate score fluctuation
-                if (event.type === 'audit_flag') setIntegrityScore(prev => Math.max(0, prev - 5));
+                if (event.topic === 'audit/flag') setIntegrityScore(prev => Math.max(0, prev - 5));
             }
         });
 
@@ -55,7 +55,7 @@ export default function SecurityIntegrityBadge({ className = '' }: { className?:
     };
 
     return (
-        <div className={`flex items-center gap-3 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-1.5 shadow-sm ${className}`}>
+        <div className={`flex items-center gap-3 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-1.5 shadow-sm whitespace-nowrap ${className}`}>
 
             {/* Michael Section */}
             <button

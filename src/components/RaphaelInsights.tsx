@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { TrendingUp, TrendingDown, Activity, Heart, Moon, Footprints, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Heart, Moon, Footprints, AlertCircle, CheckCircle, Sparkles, Brain } from 'lucide-react';
 
 interface HealthInsight {
   category: string;
@@ -67,11 +67,58 @@ export default function RaphaelInsights() {
         });
 
         generateInsights(metrics);
+        if (metrics.length > 0) {
+          fetchDeepDiveInsights(metrics);
+        }
       }
     } catch (error) {
       console.error('Error fetching health data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDeepDiveInsights = async (metrics: any[]) => {
+    if (!user) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const formattedMetrics = metrics.map(m => ({
+        type: m.metric_type,
+        value: m.metric_value,
+        timestamp: m.recorded_at
+      }));
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/health/deep_dive/${user.id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formattedMetrics)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const deepDive = data[0];
+          setInsights(prev => {
+            // Avoid duplicates if re-fetching
+            const filtered = prev.filter(i => i.category !== 'Holistic Deep Dive');
+            return [{
+              category: 'Holistic Deep Dive',
+              title: 'St. Raphael AI Analysis',
+              description: deepDive.contributing_factors[0],
+              trend: 'neutral',
+              priority: 'high',
+              icon: <Brain className="w-5 h-5 text-fuchsia-400" />
+            }, ...filtered];
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch deep dive insights", error);
     }
   };
 

@@ -1,16 +1,40 @@
 import { useState, useEffect } from 'react';
 import { Activity, Server, Shield, Heart, Users, Search, Code, ChevronRight } from 'lucide-react';
-import { subscribeToSaintEvents, SaintEvent } from '../../lib/saintBridge';
+import { subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
 
-const MOCK_EVENTS: SaintEvent[] = [
-    { id: '1', from: 'michael', to: 'raphael', type: 'scan_complete', payload: { target: 'Health Module', status: 'secure' }, timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
-    { id: '2', from: 'raphael', to: 'joseph', type: 'health_update', payload: { user: 'wisea', metric: 'heart_rate', value: 72 }, timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
-    { id: '3', from: 'system', to: 'all', type: 'boot', payload: { version: '2.1.0', environment: 'production' }, timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString() },
+const MOCK_EVENTS: SaintEventEnvelope[] = [
+    {
+        id: '1',
+        source: 'michael',
+        target: 'raphael',
+        topic: 'security/scan_complete',
+        payload: { target: 'Health Module', status: 'secure' },
+        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+        confidence: 1.0
+    },
+    {
+        id: '2',
+        source: 'raphael',
+        target: 'joseph',
+        topic: 'health/update',
+        payload: { user: 'wisea', metric: 'heart_rate', value: 72 },
+        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+        confidence: 0.95
+    },
+    {
+        id: '3',
+        source: 'system',
+        target: 'broadcast',
+        topic: 'system/startup',
+        payload: { version: '2.1.0', environment: 'production' },
+        timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+        confidence: 1.0
+    },
 ];
 
 export default function EventStream() {
-    const [events, setEvents] = useState<SaintEvent[]>(MOCK_EVENTS);
-    const [selectedEvent, setSelectedEvent] = useState<SaintEvent | null>(MOCK_EVENTS[0]);
+    const [events, setEvents] = useState<SaintEventEnvelope[]>(MOCK_EVENTS);
+    const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(MOCK_EVENTS[0]);
 
     useEffect(() => {
         const unsubscribe = subscribeToSaintEvents((event) => {
@@ -42,7 +66,7 @@ export default function EventStream() {
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {events.map((event, idx) => {
-                        const Icon = getIcon(event.from);
+                        const Icon = getIcon(event.source);
                         const isSelected = selectedEvent === event;
                         return (
                             <button
@@ -56,14 +80,17 @@ export default function EventStream() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-0.5">
                                         <span className={`text-xs font-semibold uppercase tracking-wider ${isSelected ? 'text-amber-300' : 'text-slate-400'}`}>
-                                            {event.type}
+                                            {event.topic}
                                         </span>
-                                        <span className="text-[10px] text-slate-600 font-mono">
-                                            {new Date(event.timestamp || Date.now()).toLocaleTimeString()}
+                                        <span className="text-slate-600 text-[10px] uppercase font-bold text-right ml-2 opacity-60">
+                                            {(event.confidence * 100).toFixed(0)}% CONF
                                         </span>
                                     </div>
-                                    <div className="text-xs text-slate-500 truncate font-mono">
-                                        {event.from} &rarr; {event.to}
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 font-mono mt-1">
+                                        <span>{new Date(event.timestamp || Date.now()).toLocaleTimeString()}</span>
+                                    </div>
+                                    <div className="text-xs text-slate-500 truncate font-mono mt-1">
+                                        {event.source} &rarr; {event.target}
                                     </div>
                                 </div>
                                 {isSelected && <ChevronRight className="w-4 h-4 text-amber-500 self-center" />}
@@ -82,7 +109,7 @@ export default function EventStream() {
                         <div className="p-6 border-b border-slate-800 bg-slate-900/30 backdrop-blur-sm z-10">
                             <div className="flex items-center gap-4 mb-4">
                                 <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium uppercase tracking-wider">
-                                    {selectedEvent.type}
+                                    {selectedEvent.topic}
                                 </span>
                                 <span className="text-slate-500 text-xs font-mono">ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
                             </div>

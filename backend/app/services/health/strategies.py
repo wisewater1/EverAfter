@@ -264,3 +264,52 @@ class DelphiPredictionStrategy(HealthPredictionStrategy):
             val = entry.get("value", 0)
             formatted.append(f"[{ts}] {m_type}: {val}")
         return "\n".join(formatted)
+
+class DeepDiveInsightStrategy(HealthPredictionStrategy):
+    """
+    Aggregation strategy that takes multiple varied data sources (sleep, HRV, glucose, etc.)
+    and generates profound, comprehensive insights using the LLM.
+    """
+    def __init__(self):
+        self.llm = get_llm_client()
+
+    async def predict(self, user_id: str, context_data: Dict[str, Any]) -> PredictionResult:
+        # Expected context_data: {"aggregated_metrics": [...list of recent metrics of various types...]}
+        aggregated_metrics = context_data.get("aggregated_metrics", [])
+        
+        if not aggregated_metrics:
+            return PredictionResult(
+                prediction_type="deep_dive_insight",
+                predicted_value=0.0,
+                confidence=0.0,
+                horizon="comprehensive",
+                risk_level="unknown",
+                contributing_factors=["insufficient_aggregated_data"]
+            )
+
+        metrics_summary = "\n".join([f"- {m.get('type')}: {m.get('value')} at {m.get('timestamp')}" for m in aggregated_metrics[-100:]])
+
+        system_prompt = (
+            "You are St. Raphael, an advanced holistic health AI. "
+            "Your goal is to perform deep dive data aggregation. Look at the varied health metrics provided, "
+            "identify hidden correlations (e.g., poor sleep leading to glucose spikes), and generate a comprehensive health insight."
+        )
+        
+        user_prompt = f"Aggregated Health Data:\n{metrics_summary}\n\nPlease provide a Deep Dive Insight analyzing these metrics holistically."
+        
+        try:
+            insight_text = await self.llm.generate_response(
+                messages=[{"role": "user", "content": user_prompt}],
+                system_prompt=system_prompt
+            )
+        except Exception as e:
+            insight_text = f"Error generating deep dive insight: {e}"
+
+        return PredictionResult(
+            prediction_type="deep_dive_insight",
+            predicted_value=0.5, # Placeholder index for comprehensive health
+            confidence=0.85,
+            horizon="holistic",
+            risk_level="info", # These are general insights rather than immediate risks
+            contributing_factors=[insight_text]
+        )

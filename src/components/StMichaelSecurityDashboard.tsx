@@ -3,8 +3,9 @@ import { Shield, Lock, Activity, Eye, CheckCircle, Search, RefreshCw, ArrowLeft,
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getSecurityIntegrity, getAuditHistory, runCAIAudit, IntegrityReport, SecurityAlert, AuditRecord } from '../lib/michael/security';
-import { getSaintStatuses, getEventLog, SaintStatus, SaintEvent } from '../lib/saintBridge';
+import { getSaintStatuses, getEventLog, SaintStatus, SaintEventEnvelope } from '../lib/saintBridge';
 import SaintChat from './SaintChat';
+import SystemRelationshipsGraph from './saints/SystemRelationshipsGraph';
 import ThreatDetection from './michael/ThreatDetection';
 import VulnerabilityScanner from './michael/VulnerabilityScanner';
 import FileIntegrityMonitor from './michael/FileIntegrityMonitor';
@@ -334,7 +335,7 @@ export default function StMichaelSecurityDashboard() {
 
 function SaintsNetworkPanel() {
     const [statuses] = useState<SaintStatus[]>(() => getSaintStatuses());
-    const [events] = useState<SaintEvent[]>(() => getEventLog().slice(-20).reverse());
+    const [systemStatus, setSystemStatus] = useState<any>(null); // Use any for simplicity or import type
 
     const statusColor: Record<string, string> = {
         online: 'text-emerald-400', offline: 'text-slate-500', warning: 'text-amber-400',
@@ -343,6 +344,26 @@ function SaintsNetworkPanel() {
         green: 'bg-emerald-500', yellow: 'bg-amber-500', red: 'bg-rose-500',
     };
 
+
+    // Fetch system status for the graph
+    useEffect(() => {
+        const fetchStatus = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/monitoring/status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("System Status API Data:", data); // DEBUG
+                    setSystemStatus(data);
+                }
+            } catch (e) {
+                console.error("Failed to fetch system status", e);
+            }
+        };
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 30000); // Update every 30s
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className="space-y-6">
             <div className="bg-gradient-to-r from-sky-500/10 to-blue-500/10 border border-sky-500/20 rounded-3xl p-6">
@@ -350,7 +371,7 @@ function SaintsNetworkPanel() {
                 <p className="text-xs text-slate-400">St. Michael oversees all saints in real-time. Security events from every saint flow here.</p>
             </div>
 
-            {/* Saint Status Cards */}
+            {/* Saint Status Cards - Using existing logic for now, could be updated to use systemStatus too */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {statuses.map(saint => (
                     <div key={saint.id} className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 hover:border-sky-500/20 transition-all">
@@ -381,28 +402,9 @@ function SaintsNetworkPanel() {
                 ))}
             </div>
 
-            {/* Cross-Saint Event Log */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden">
-                <div className="p-6 border-b border-white/5">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Cross-Saint Event Log</h3>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto p-6 space-y-2 font-mono text-[11px]">
-                    {events.length === 0 ? (
-                        <div className="text-center py-12 text-slate-600">
-                            <Network className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                            <p className="text-sm">No cross-saint events yet. Actions on any saint will appear here.</p>
-                        </div>
-                    ) : events.map(event => (
-                        <div key={event.id} className="flex gap-4 p-2 hover:bg-white/5 rounded transition-colors">
-                            <span className="text-slate-700 w-20 shrink-0">{new Date(event.timestamp).toLocaleTimeString([], { hour12: false })}</span>
-                            <span className="text-sky-500/80 w-16 shrink-0 uppercase font-bold">[{event.from}]</span>
-                            <span className="text-slate-500 w-12 shrink-0">→ {event.to}</span>
-                            <span className="text-amber-400/60 w-24 shrink-0 uppercase">{event.type}</span>
-                            <span className="text-slate-400 flex-1 truncate">{JSON.stringify(event.payload).slice(0, 80)}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {/* Cross-Saint Visualization */}
+            <SystemRelationshipsGraph data={systemStatus} />
+            {/* Extended Event Stream below if needed, or hidden for now */}
         </div>
     );
 }

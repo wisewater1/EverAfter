@@ -10,6 +10,8 @@ from app.core.config import settings
 engine = None
 AsyncSessionLocal = None
 
+from sqlalchemy import event
+
 def get_engine():
     global engine, AsyncSessionLocal
     if engine is None:
@@ -18,9 +20,18 @@ def get_engine():
             echo=settings.ENVIRONMENT == "development",
             future=True,
             pool_pre_ping=True,
-            pool_size=5,
-            max_overflow=0,
+            pool_size=20,
+            max_overflow=10,
         )
+        
+        if "sqlite" in settings.DATABASE_URL:
+            @event.listens_for(engine.sync_engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.close()
+
         AsyncSessionLocal = async_sessionmaker(
             engine,
             class_=AsyncSession,

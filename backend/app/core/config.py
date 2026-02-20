@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     TOKEN_EXPIRE_MINUTES: int = 43200
+    
+    API_V1_STR: str = "/api/v1"
+    PROJECT_NAME: str = "EverAfter Autonomous AI API"
+
+    @property
+    def BACKEND_CORS_ORIGINS(self) -> List[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     HF_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
     OPENAI_API_KEY: str = ""

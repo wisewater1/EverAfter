@@ -461,7 +461,7 @@ class APIClient {
     }
   }
 
-  async chatWithSaint(saintId: string, message: string): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
+  async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
     const token = await this.getAuthToken();
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
@@ -472,7 +472,7 @@ class APIClient {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message, coordination_mode: coordinationMode })
       });
 
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
@@ -531,7 +531,8 @@ class APIClient {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(agentData)
+        body: JSON.stringify(agentData),
+        signal: AbortSignal.timeout(15000) // 15s timeout
       });
 
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
@@ -558,6 +559,48 @@ class APIClient {
     } catch (error) {
       console.error("Get Chat History Error:", error);
       throw error;
+    }
+  }
+
+  async deliberate(query: string, context?: string, coordinationMode: boolean = false): Promise<{ transcript: any[], consensus: string, action_items: string[] }> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/council/deliberate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ query, context, coordination_mode: coordinationMode }),
+        signal: AbortSignal.timeout(60000) // 60s timeout for LLM
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Council Deliberation Error:", error);
+      throw error;
+    }
+  }
+  async getActiveMissions(): Promise<any[]> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/missions/active`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Missions Error:", error);
+      // Return empty object/list on error to prevent UI crash
+      return {};
     }
   }
 }

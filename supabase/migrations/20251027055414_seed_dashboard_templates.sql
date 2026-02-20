@@ -215,39 +215,45 @@ VALUES (
   '{"cols": 12, "rowHeight": 80}'::jsonb,
   '[
     {
+      "type": "deep_dive_insight",
+      "title": "St. Raphael's Holistic Analysis",
+      "position": {"x": 0, "y": 0, "w": 12, "h": 6},
+      "config": {}
+    },
+    {
       "type": "health_summary",
       "title": "Health Summary",
-      "position": {"x": 0, "y": 0, "w": 12, "h": 2},
+      "position": {"x": 0, "y": 6, "w": 12, "h": 2},
       "config": {"showAll": true}
     },
     {
       "type": "glucose_compact",
       "title": "Glucose",
-      "position": {"x": 0, "y": 2, "w": 3, "h": 2},
+      "position": {"x": 0, "y": 8, "w": 3, "h": 2},
       "config": {"metric": "current", "showTrend": true}
     },
     {
       "type": "heart_rate_compact",
       "title": "Heart Rate",
-      "position": {"x": 3, "y": 2, "w": 3, "h": 2},
+      "position": {"x": 3, "y": 8, "w": 3, "h": 2},
       "config": {"metric": "current", "showZone": true}
     },
     {
       "type": "activity_compact",
       "title": "Activity",
-      "position": {"x": 6, "y": 2, "w": 3, "h": 2},
+      "position": {"x": 6, "y": 8, "w": 3, "h": 2},
       "config": {"metric": "steps", "showGoal": true}
     },
     {
       "type": "sleep_compact",
       "title": "Sleep",
-      "position": {"x": 9, "y": 2, "w": 3, "h": 2},
+      "position": {"x": 9, "y": 8, "w": 3, "h": 2},
       "config": {"metric": "score", "showDuration": true}
     },
     {
       "type": "multi_metric_timeline",
       "title": "Health Timeline",
-      "position": {"x": 0, "y": 4, "w": 12, "h": 4},
+      "position": {"x": 0, "y": 10, "w": 12, "h": 4},
       "config": {"metrics": ["glucose", "heart_rate", "steps", "sleep"], "timeRange": "24h"}
     }
   ]'::jsonb,

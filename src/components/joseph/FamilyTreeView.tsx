@@ -6,6 +6,7 @@ import {
 } from '../../lib/joseph/genealogy';
 import AddFamilyMemberModal from './AddFamilyMemberModal';
 import AgentPersonalityModal from './AgentPersonalityModal';
+import PersonalityRadar from './PersonalityRadar';
 
 export default function FamilyTreeView() {
     const [tree, setTree] = useState<FamilyTreeNode[]>(() => buildFamilyTree());
@@ -13,6 +14,7 @@ export default function FamilyTreeView() {
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [agentTarget, setAgentTarget] = useState<FamilyMember | null>(null);
+    const [personalityTarget, setPersonalityTarget] = useState<FamilyMember | null>(null);
 
     const refreshTree = useCallback(() => setTree(buildFamilyTree()), []);
 
@@ -45,13 +47,13 @@ export default function FamilyTreeView() {
                     <button
                         onClick={() => setSelectedMember(member)}
                         className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${isDeceased
-                                ? 'bg-slate-800/20 border-slate-700/30 hover:border-slate-600'
-                                : 'bg-slate-800/50 border-white/5 hover:border-amber-500/30 hover:shadow-amber-500/5'
+                            ? 'bg-slate-800/20 border-slate-700/30 hover:border-slate-600'
+                            : 'bg-slate-800/50 border-white/5 hover:border-amber-500/30 hover:shadow-amber-500/5'
                             }`}
                     >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold relative ${member.gender === 'male'
-                                ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                             }`}>
                             {member.firstName[0]}{member.lastName[0]}
                             {hasAI && (
@@ -63,10 +65,27 @@ export default function FamilyTreeView() {
                         <div className="text-left">
                             <div className={`text-sm font-medium ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
                                 {member.firstName} {member.lastName}
+                                {hasAI && (
+                                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+                                        Active
+                                    </span>
+                                )}
                                 {isDeceased && <span className="ml-1 text-slate-600">†</span>}
                             </div>
-                            <div className="text-[10px] text-slate-500 uppercase tracking-wider">
-                                {getGenerationLabel(member.generation)}
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+                                    {getGenerationLabel(member.generation)}
+                                </span>
+                                {member.occupation && (
+                                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400/70 rounded-md border border-amber-500/10">
+                                        {member.occupation}
+                                    </span>
+                                )}
+                                {member.sources && member.sources.length > 0 && (
+                                    <span className="text-[9px] text-slate-600" title={`${member.sources.length} source(s)`}>
+                                        📎{member.sources.length}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </button>
@@ -84,8 +103,8 @@ export default function FamilyTreeView() {
                                 className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800/50 border border-white/5 hover:border-rose-500/30 transition-all duration-200 hover:scale-[1.02]"
                             >
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold relative ${spouse.gender === 'male'
-                                        ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                     }`}>
                                     {spouse.firstName[0]}{spouse.lastName[0]}
                                     {spouse.aiPersonality?.isActive && (
@@ -97,6 +116,11 @@ export default function FamilyTreeView() {
                                 <div className="text-left">
                                     <div className={`text-sm font-medium ${spouse.deathDate ? 'text-slate-400' : 'text-white'}`}>
                                         {spouse.firstName} {spouse.lastName}
+                                        {spouse.aiPersonality?.isActive && (
+                                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+                                                Active
+                                            </span>
+                                        )}
                                         {spouse.deathDate && <span className="ml-1 text-slate-600">†</span>}
                                     </div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">
@@ -153,8 +177,8 @@ export default function FamilyTreeView() {
                     <div className="flex items-center justify-between p-6 border-b border-white/5">
                         <div className="flex items-center gap-3">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember.gender === 'male'
-                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                 }`}>
                                 {selectedMember.firstName[0]}{selectedMember.lastName[0]}
                             </div>
@@ -205,6 +229,19 @@ export default function FamilyTreeView() {
                             ))}
                         </div>
 
+                        {/* Personality Analysis Button */}
+                        <div className="pt-2">
+                            <button
+                                onClick={() => {
+                                    setPersonalityTarget(selectedMember);
+                                }}
+                                className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-medium"
+                            >
+                                <Brain className="w-4 h-4" />
+                                Analyze Personality
+                            </button>
+                        </div>
+
                         {/* AI Agent Section */}
                         <div className="border-t border-white/5 pt-5">
                             {selectedMember.aiPersonality?.isActive ? (
@@ -212,6 +249,9 @@ export default function FamilyTreeView() {
                                     <div className="flex items-center gap-2 mb-2">
                                         <Zap className="w-4 h-4 text-violet-400" />
                                         <span className="text-sm font-medium text-violet-300">AI Agent Active</span>
+                                        <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)] animate-pulse">
+                                            ● Live
+                                        </span>
                                     </div>
                                     <p className="text-xs text-slate-400 mb-3">{selectedMember.aiPersonality.voiceDescription}</p>
                                     <button
@@ -247,6 +287,13 @@ export default function FamilyTreeView() {
                     member={agentTarget}
                     onClose={() => setAgentTarget(null)}
                     onActivated={() => { refreshTree(); setAgentTarget(null); setSelectedMember(null); }}
+                />
+            )}
+            {personalityTarget && (
+                <PersonalityRadar
+                    memberId={personalityTarget.id}
+                    memberName={`${personalityTarget.firstName} ${personalityTarget.lastName}`}
+                    onClose={() => setPersonalityTarget(null)}
                 />
             )}
         </div>

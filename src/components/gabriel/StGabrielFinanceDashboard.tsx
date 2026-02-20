@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign } from 'lucide-react';
+import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign, Menu, ChevronLeft, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BudgetEnvelopes from './BudgetEnvelopes';
 import TransactionLedger from './TransactionLedger';
 import CouncilChat from './CouncilChat';
 import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
+import SaintsGuardian from '../saints/SaintsGuardian';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function StGabrielFinanceDashboard() {
                             <Wallet className="w-6 h-6 text-emerald-500" />
                         </div>
                         <div>
-                            <h1 className="text-lg font-semibold text-white tracking-tight">St. Gabriel</h1>
+                            <h1 className="text-lg font-semibold text-white tracking-tight">St. Gabriel Finance</h1>
                             <p className="text-xs text-slate-500 font-medium">Financial Steward</p>
                         </div>
                     </div>
@@ -96,6 +97,9 @@ export default function StGabrielFinanceDashboard() {
 
                 {/* Content */}
                 <main className="flex-1 overflow-auto p-6 bg-slate-950 relative">
+                    {/* Saints Guardian Widget */}
+                    <SaintsGuardian />
+
                     {activeView === 'budget' && <BudgetEnvelopes />}
                     {activeView === 'ledger' && <TransactionLedger />}
                     {activeView === 'reports' && (

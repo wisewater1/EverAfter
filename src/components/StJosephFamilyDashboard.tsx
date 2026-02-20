@@ -3,7 +3,8 @@ import {
     Users, Home, Calendar, ShoppingCart,
     CheckSquare, Clock, MapPin, Info, MessageSquare, Plus,
     Activity, AlertCircle, RefreshCw, ArrowLeft,
-    GitBranch, UserCheck, History, MessageCircle
+    GitBranch, UserCheck, History, MessageCircle, Search,
+    Scale, Archive, Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,16 +19,20 @@ import FamilyTreeView from './joseph/FamilyTreeView';
 import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
 import FamilyMembersGrid from './joseph/FamilyMembersGrid';
 import FamilyTimeline from './joseph/FamilyTimeline';
+import GeneWebTools from './joseph/GeneWebTools';
+import SocietyFeed from './SocietyFeed';
 
-type TabKey = 'tree' | 'members' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat';
+type TabKey = 'tree' | 'members' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy';
 
 const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', icon: GitBranch },
     { key: 'members', label: 'Members', icon: UserCheck },
+    { key: 'society', label: 'Autonomous Society', icon: Activity },
     { key: 'timeline', label: 'Timeline', icon: History },
     { key: 'tasks', label: 'Tasks', icon: CheckSquare },
     { key: 'shopping', label: 'Shopping', icon: ShoppingCart },
     { key: 'calendar', label: 'Calendar', icon: Calendar },
+    { key: 'genealogy', label: 'Genealogy', icon: Search },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
@@ -82,11 +87,11 @@ export default function StJosephFamilyDashboard() {
             {/* Header */}
             <div className="max-w-7xl mx-auto mb-8">
                 <button
-                    onClick={() => navigate('/saints')}
+                    onClick={() => navigate('/dashboard')}
                     className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors group"
                 >
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-sm font-medium">Back to Saints</span>
+                    <span className="text-sm font-medium">Back to Dashboard</span>
                 </button>
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -100,7 +105,18 @@ export default function StJosephFamilyDashboard() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center md:justify-end flex-1 px-4">
+                    <div className="flex items-center justify-center md:justify-end shrink-0 px-4 md:ml-auto gap-4">
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => navigate('/council')} className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all group" title="Council of Saints">
+                                <Scale className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button onClick={() => navigate('/time-capsules')} className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all group" title="Time Capsule Vault">
+                                <Archive className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button onClick={() => navigate('/rituals')} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20 transition-all group" title="Ritual Altar">
+                                <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            </button>
+                        </div>
                         <SecurityIntegrityBadge />
                     </div>
 
@@ -123,7 +139,7 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society') && (
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'tree' && <FamilyTreeView />}
                     {activeTab === 'members' && <FamilyMembersGrid />}
@@ -134,6 +150,24 @@ export default function StJosephFamilyDashboard() {
                                 Family History
                             </h3>
                             <FamilyTimeline />
+                        </div>
+                    )}
+                    {activeTab === 'society' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-indigo-400" />
+                                Autonomous Society Feed
+                            </h3>
+                            <SocietyFeed />
+                        </div>
+                    )}
+                    {activeTab === 'genealogy' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
+                                <Search className="w-5 h-5 text-violet-400" />
+                                GeneWeb Genealogy Tools
+                            </h3>
+                            <GeneWebTools />
                         </div>
                     )}
                 </div>

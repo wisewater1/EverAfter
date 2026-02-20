@@ -6,4 +6,4 @@
   ☒ Create CareerDashboard.tsx component
   ☒ Create CareerGoalManager.tsx component
   ☒ Update API client and edge-functions.ts
-  ☐ Add routes and navigation for Career page
+  ☒ Add routes and navigation for Career page

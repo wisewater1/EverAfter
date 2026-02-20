@@ -12,6 +12,8 @@ import sys
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+from app.core.config import settings
+
 logging.basicConfig(level=logging.INFO)
 
 logging.basicConfig(level=logging.INFO)

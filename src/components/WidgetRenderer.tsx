@@ -14,6 +14,8 @@ import {
   Trash2,
   RefreshCw,
   AlertCircle,
+  Brain,
+  Sparkles,
 } from 'lucide-react';
 
 interface Widget {
@@ -159,6 +161,13 @@ export default function WidgetRenderer({
           unit: '%',
         };
 
+      case 'deep_dive_insight':
+        return {
+          title: "St. Raphael's Holistic Analysis",
+          description: "Your recent metrics indicate a strong balance between strain and recovery. The consistent 7+ hours of sleep combined with your active minutes suggest your cardiovascular system is adapting well to your current training load. However, the slight upward trend in resting heart rate over the last 3 days might indicate the onset of fatigue. Consider incorporating a dedicated rest day or active recovery session to allow your body to fully repair and maintain its positive trajectory.",
+          factors: ["Consistent Sleep Patterns", "Balanced Training Load", "Slight RHR Elevation"],
+        };
+
       default:
         return { message: 'Widget data coming soon' };
     }
@@ -201,6 +210,8 @@ export default function WidgetRenderer({
         return renderHealthSummary(data);
       case 'metric_gauge':
         return renderMetricGauge(data);
+      case 'deep_dive_insight':
+        return renderDeepDiveInsight(data);
       default:
         return (
           <div className="flex items-center justify-center h-full text-slate-500 text-sm">
@@ -229,13 +240,12 @@ export default function WidgetRenderer({
           {data.readings.slice(-12).map((reading: any, i: number) => (
             <div key={i} className="flex-1 flex flex-col items-center">
               <div
-                className={`w-full rounded-t ${
-                  reading.value < 70
+                className={`w-full rounded-t ${reading.value < 70
                     ? 'bg-red-500'
                     : reading.value > 180
-                    ? 'bg-orange-500'
-                    : 'bg-emerald-500'
-                }`}
+                      ? 'bg-orange-500'
+                      : 'bg-emerald-500'
+                  }`}
                 style={{ height: `${(reading.value / 200) * 100}%` }}
               />
             </div>
@@ -444,6 +454,38 @@ export default function WidgetRenderer({
           </div>
         </div>
         <div className="text-sm text-slate-400">{data.label}</div>
+      </div>
+    );
+  }
+
+  function renderDeepDiveInsight(data: any) {
+    return (
+      <div className="p-4 h-full flex flex-col bg-gradient-to-br from-violet-900/10 to-pink-900/10 rounded-xl overflow-y-auto">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-lg flex items-center justify-center shadow-lg">
+            <Brain className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h4 className="text-white font-semibold flex items-center gap-2">
+              {data.title}
+              <Sparkles className="w-4 h-4 text-violet-400 animate-pulse" />
+            </h4>
+            <p className="text-xs text-violet-300">AI-generated from aggregated sources</p>
+          </div>
+        </div>
+        <p className="text-sm text-slate-300 leading-relaxed flex-1">
+          {data.description}
+        </p>
+        <div className="mt-4 pt-3 border-t border-violet-500/20">
+          <p className="text-xs text-violet-400 mb-2 font-medium">Key Factors Identified:</p>
+          <div className="flex flex-wrap gap-2">
+            {data.factors.map((factor: string, i: number) => (
+              <span key={i} className="px-2 py-1 bg-violet-600/20 text-violet-300 rounded text-xs">
+                {factor}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

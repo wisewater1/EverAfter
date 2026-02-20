@@ -80,7 +80,17 @@ export default {
         'smooth': '300ms',
         'slow': '500ms',
       },
+      animation: {
+        'scan': 'scan 2s linear infinite',
+      },
+      keyframes: {
+        scan: {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '50%': { opacity: '1' },
+          '100%': { transform: 'translateX(100%)', opacity: '0' },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };

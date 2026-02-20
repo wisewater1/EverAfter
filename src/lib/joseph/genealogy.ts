@@ -1,5 +1,6 @@
 // Genealogy data layer for St. Joseph Family Tree
-// With localStorage persistence and AI Agent personality generation
+// With localStorage persistence, AI Agent personality generation,
+// and GeneWeb-inspired genealogy tools (GEDCOM, relationship paths, source citations)
 
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
@@ -25,6 +26,13 @@ export interface FamilyMember {
     bio?: string;
     generation: number;
     aiPersonality?: AIPersonality;
+    // GeneWeb-inspired fields
+    occupation?: string;
+    notes?: string[];
+    sources?: SourceCitation[];
+    // Agency & Integration
+    githubUsername?: string;
+    githubTraits?: any[];
 }
 
 export interface Relationship {
@@ -52,12 +60,50 @@ export interface FamilyTreeNode {
     children: FamilyTreeNode[];
 }
 
+// ── GeneWeb-Inspired Interfaces ────────────────────────────
+
+export interface SourceCitation {
+    id: string;
+    title: string;
+    repository?: string;
+    page?: string;
+    date?: string;
+    url?: string;
+    notes?: string;
+    type: 'birth_certificate' | 'census' | 'church_record' | 'immigration' | 'military' | 'newspaper' | 'photo' | 'other';
+}
+
+export interface SearchFilters {
+    name?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    place?: string;
+    occupation?: string;
+    generation?: number;
+    hasAI?: boolean;
+    isDeceased?: boolean;
+}
+
+export interface RelationshipPathStep {
+    memberId: string;
+    memberName: string;
+    relationship: string; // e.g. 'parent', 'child', 'spouse'
+}
+
+export interface ConsanguinityResult {
+    person1: string;
+    person2: string;
+    sharedAncestors: { ancestor: FamilyMember; pathLength1: number; pathLength2: number }[];
+    coefficient: number;
+}
+
 // ── LocalStorage Keys ──────────────────────────────────────
 
 const STORAGE_KEYS = {
     members: 'everafter_family_members',
     relationships: 'everafter_family_relationships',
     events: 'everafter_family_events',
+    sources: 'everafter_family_sources',
 };
 
 // ── Default Mock Data ──────────────────────────────────────
@@ -133,11 +179,13 @@ function saveToStorage<T>(key: string, data: T[]): void {
 let _members: FamilyMember[] | null = null;
 let _relationships: Relationship[] | null = null;
 let _events: FamilyEvent[] | null = null;
+let _sources: SourceCitation[] | null = null;
 
 function ensureLoaded() {
     if (!_members) _members = loadFromStorage(STORAGE_KEYS.members, DEFAULT_MEMBERS);
     if (!_relationships) _relationships = loadFromStorage(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
     if (!_events) _events = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
+    if (!_sources) _sources = loadFromStorage<SourceCitation>(STORAGE_KEYS.sources, []);
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -359,4 +407,444 @@ export function formatDate(dateStr: string): string {
     return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
     });
+}
+
+// ══════════════════════════════════════════════════════════════
+// ── GeneWeb-Inspired Functions ─────────────────────────────
+// ══════════════════════════════════════════════════════════════
+
+// ── Source Citation Management ─────────────────────────────
+
+export function getSources(): SourceCitation[] {
+    ensureLoaded();
+    return [..._sources!];
+}
+
+export function addSource(source: Omit<SourceCitation, 'id'>): SourceCitation {
+    ensureLoaded();
+    const newSource: SourceCitation = { ...source, id: `src_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` };
+    _sources!.push(newSource);
+    saveToStorage(STORAGE_KEYS.sources, _sources!);
+    return newSource;
+}
+
+export function attachSourceToMember(memberId: string, sourceId: string): void {
+    ensureLoaded();
+    const member = _members!.find(m => m.id === memberId);
+    const source = _sources!.find(s => s.id === sourceId);
+    if (member && source) {
+        if (!member.sources) member.sources = [];
+        if (!member.sources.find(s => s.id === sourceId)) {
+            member.sources.push(source);
+            saveToStorage(STORAGE_KEYS.members, _members!);
+        }
+    }
+}
+
+export function getMemberSources(memberId: string): SourceCitation[] {
+    const member = getMemberById(memberId);
+    return member?.sources || [];
+}
+
+// ── Relationship Path Computation (BFS) ────────────────────
+
+export function findRelationshipPath(fromId: string, toId: string): RelationshipPathStep[] | null {
+    ensureLoaded();
+    if (fromId === toId) return [];
+
+    // Build adjacency map: memberId -> [{neighborId, relType}]
+    const adj = new Map<string, { id: string; rel: string }[]>();
+    for (const r of _relationships!) {
+        if (!adj.has(r.fromId)) adj.set(r.fromId, []);
+        if (!adj.has(r.toId)) adj.set(r.toId, []);
+
+        if (r.type === 'parent') {
+            adj.get(r.fromId)!.push({ id: r.toId, rel: 'child' });
+            adj.get(r.toId)!.push({ id: r.fromId, rel: 'parent' });
+        } else if (r.type === 'spouse') {
+            adj.get(r.fromId)!.push({ id: r.toId, rel: 'spouse' });
+            adj.get(r.toId)!.push({ id: r.fromId, rel: 'spouse' });
+        } else if (r.type === 'sibling') {
+            adj.get(r.fromId)!.push({ id: r.toId, rel: 'sibling' });
+            adj.get(r.toId)!.push({ id: r.fromId, rel: 'sibling' });
+        }
+    }
+
+    // BFS
+    const visited = new Set<string>([fromId]);
+    const queue: { id: string; path: RelationshipPathStep[] }[] = [{ id: fromId, path: [] }];
+
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        const neighbors = adj.get(current.id) || [];
+
+        for (const neighbor of neighbors) {
+            if (visited.has(neighbor.id)) continue;
+            visited.add(neighbor.id);
+
+            const member = getMemberById(neighbor.id);
+            const step: RelationshipPathStep = {
+                memberId: neighbor.id,
+                memberName: member ? `${member.firstName} ${member.lastName}` : neighbor.id,
+                relationship: neighbor.rel,
+            };
+            const path = [...current.path, step];
+
+            if (neighbor.id === toId) return path;
+            queue.push({ id: neighbor.id, path });
+        }
+    }
+
+    return null; // No path found
+}
+
+export function describeRelationship(path: RelationshipPathStep[]): string {
+    if (path.length === 0) return 'Same person';
+    if (path.length === 1) {
+        const r = path[0].relationship;
+        return r.charAt(0).toUpperCase() + r.slice(1);
+    }
+
+    // Count generations up (parent) and down (child)
+    let up = 0, down = 0;
+    let hasSpouse = false;
+    for (const step of path) {
+        if (step.relationship === 'parent') up++;
+        else if (step.relationship === 'child') down++;
+        else if (step.relationship === 'spouse') hasSpouse = true;
+    }
+
+    // Direct line
+    if (down === 0 && up > 0) {
+        if (up === 1) return hasSpouse ? 'Parent-in-law' : 'Parent';
+        if (up === 2) return hasSpouse ? 'Grandparent-in-law' : 'Grandparent';
+        return `${'Great-'.repeat(up - 2)}Grandparent`;
+    }
+    if (up === 0 && down > 0) {
+        if (down === 1) return hasSpouse ? 'Child-in-law' : 'Child';
+        if (down === 2) return hasSpouse ? 'Grandchild-in-law' : 'Grandchild';
+        return `${'Great-'.repeat(down - 2)}Grandchild`;
+    }
+
+    // Cousin calculation
+    if (up > 0 && down > 0) {
+        const minGen = Math.min(up, down);
+        const removed = Math.abs(up - down);
+        if (minGen === 1 && removed === 0) return 'Sibling';
+
+        const cousinNum = minGen - 1;
+        const ordinals = ['', '1st', '2nd', '3rd', '4th', '5th'];
+        const ordinal = ordinals[cousinNum] || `${cousinNum}th`;
+        const removedStr = removed > 0 ? ` ${removed}× removed` : '';
+
+        if (cousinNum === 0) {
+            return removed === 1 ? 'Uncle/Aunt or Nephew/Niece' : `Relative (${removed} gen apart)`;
+        }
+        return `${ordinal} Cousin${removedStr}`;
+    }
+
+    return `Related (${path.length} steps)`;
+}
+
+// ── Consanguinity Detection ────────────────────────────────
+
+export function detectConsanguinity(): ConsanguinityResult[] {
+    ensureLoaded();
+    const results: ConsanguinityResult[] = [];
+
+    function getAncestors(memberId: string): Map<string, number> {
+        const ancestors = new Map<string, number>();
+        const queue: { id: string; depth: number }[] = [{ id: memberId, depth: 0 }];
+        while (queue.length > 0) {
+            const { id, depth } = queue.shift()!;
+            const parents = getParents(id);
+            for (const parent of parents) {
+                if (!ancestors.has(parent.id) || ancestors.get(parent.id)! > depth + 1) {
+                    ancestors.set(parent.id, depth + 1);
+                    queue.push({ id: parent.id, depth: depth + 1 });
+                }
+            }
+        }
+        return ancestors;
+    }
+
+    // Check all spouse pairs for shared ancestors
+    const spouseRels = _relationships!.filter(r => r.type === 'spouse');
+    for (const rel of spouseRels) {
+        const ancestors1 = getAncestors(rel.fromId);
+        const ancestors2 = getAncestors(rel.toId);
+
+        const shared: ConsanguinityResult['sharedAncestors'] = [];
+        for (const [ancestorId, dist1] of ancestors1) {
+            if (ancestors2.has(ancestorId)) {
+                const ancestor = getMemberById(ancestorId);
+                if (ancestor) {
+                    shared.push({ ancestor, pathLength1: dist1, pathLength2: ancestors2.get(ancestorId)! });
+                }
+            }
+        }
+
+        if (shared.length > 0) {
+            // Wright's coefficient of inbreeding
+            let coefficient = 0;
+            for (const s of shared) {
+                coefficient += Math.pow(0.5, s.pathLength1 + s.pathLength2 + 1);
+            }
+            results.push({
+                person1: rel.fromId,
+                person2: rel.toId,
+                sharedAncestors: shared,
+                coefficient,
+            });
+        }
+    }
+
+    return results;
+}
+
+// ── Advanced Search ────────────────────────────────────────
+
+export function searchMembers(filters: SearchFilters): FamilyMember[] {
+    ensureLoaded();
+    return _members!.filter(m => {
+        if (filters.name) {
+            const q = filters.name.toLowerCase();
+            const fullName = `${m.firstName} ${m.lastName}`.toLowerCase();
+            if (!fullName.includes(q)) return false;
+        }
+        if (filters.place) {
+            if (!m.birthPlace?.toLowerCase().includes(filters.place.toLowerCase())) return false;
+        }
+        if (filters.occupation) {
+            if (!m.occupation?.toLowerCase().includes(filters.occupation.toLowerCase())) return false;
+        }
+        if (filters.generation !== undefined) {
+            if (m.generation !== filters.generation) return false;
+        }
+        if (filters.hasAI !== undefined) {
+            if (!!m.aiPersonality?.isActive !== filters.hasAI) return false;
+        }
+        if (filters.isDeceased !== undefined) {
+            if (!!m.deathDate !== filters.isDeceased) return false;
+        }
+        if (filters.dateFrom) {
+            if (!m.birthDate || m.birthDate < filters.dateFrom) return false;
+        }
+        if (filters.dateTo) {
+            if (!m.birthDate || m.birthDate > filters.dateTo) return false;
+        }
+        return true;
+    });
+}
+
+// ── GEDCOM Export ──────────────────────────────────────────
+
+export function exportToGEDCOM(): string {
+    ensureLoaded();
+    const lines: string[] = [];
+
+    // Header
+    lines.push('0 HEAD');
+    lines.push('1 SOUR EverAfter');
+    lines.push('2 VERS 1.0');
+    lines.push('2 NAME EverAfter Family AI');
+    lines.push('1 GEDC');
+    lines.push('2 VERS 5.5.1');
+    lines.push('2 FORM LINEAGE-LINKED');
+    lines.push('1 CHAR UTF-8');
+
+    // Individual records
+    for (const m of _members!) {
+        lines.push(`0 @I${m.id}@ INDI`);
+        lines.push(`1 NAME ${m.firstName} /${m.lastName}/`);
+        lines.push(`1 SEX ${m.gender === 'male' ? 'M' : m.gender === 'female' ? 'F' : 'U'}`);
+        if (m.birthDate) {
+            lines.push('1 BIRT');
+            lines.push(`2 DATE ${formatGEDCOMDate(m.birthDate)}`);
+            if (m.birthPlace) lines.push(`2 PLAC ${m.birthPlace}`);
+        }
+        if (m.deathDate) {
+            lines.push('1 DEAT');
+            lines.push(`2 DATE ${formatGEDCOMDate(m.deathDate)}`);
+        }
+        if (m.occupation) lines.push(`1 OCCU ${m.occupation}`);
+        if (m.bio) lines.push(`1 NOTE ${m.bio}`);
+        if (m.sources) {
+            for (const src of m.sources) {
+                lines.push(`1 SOUR @S${src.id}@`);
+            }
+        }
+    }
+
+    // Family records (spouse pairs with children)
+    const processedPairs = new Set<string>();
+    const spouseRels = _relationships!.filter(r => r.type === 'spouse');
+    let famIdx = 1;
+
+    for (const sr of spouseRels) {
+        const pairKey = [sr.fromId, sr.toId].sort().join('-');
+        if (processedPairs.has(pairKey)) continue;
+        processedPairs.add(pairKey);
+
+        const husb = _members!.find(m => m.id === sr.fromId && m.gender === 'male') || getMemberById(sr.fromId);
+        const wife = _members!.find(m => m.id === sr.toId && m.gender === 'female') || getMemberById(sr.toId);
+
+        lines.push(`0 @F${famIdx}@ FAM`);
+        if (husb) lines.push(`1 HUSB @I${husb.id}@`);
+        if (wife) lines.push(`1 WIFE @I${wife.id}@`);
+        if (sr.marriageDate) {
+            lines.push('1 MARR');
+            lines.push(`2 DATE ${formatGEDCOMDate(sr.marriageDate)}`);
+        }
+
+        // Find children of this couple
+        const parent1Children = new Set(getChildren(sr.fromId).map(c => c.id));
+        const parent2Children = new Set(getChildren(sr.toId).map(c => c.id));
+        for (const childId of parent1Children) {
+            if (parent2Children.has(childId)) {
+                lines.push(`1 CHIL @I${childId}@`);
+            }
+        }
+        famIdx++;
+    }
+
+    // Source records
+    for (const src of _sources!) {
+        lines.push(`0 @S${src.id}@ SOUR`);
+        lines.push(`1 TITL ${src.title}`);
+        if (src.repository) lines.push(`1 REPO ${src.repository}`);
+        if (src.date) lines.push(`1 DATE ${src.date}`);
+        if (src.notes) lines.push(`1 NOTE ${src.notes}`);
+    }
+
+    lines.push('0 TRLR');
+    return lines.join('\n');
+}
+
+function formatGEDCOMDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ── GEDCOM Import ──────────────────────────────────────────
+
+export interface GEDCOMPreview {
+    individuals: { id: string; name: string; birthDate?: string; gender: Gender }[];
+    families: number;
+    sources: number;
+}
+
+export function previewGEDCOM(content: string): GEDCOMPreview {
+    const lines = content.split(/\r?\n/);
+    const individuals: GEDCOMPreview['individuals'] = [];
+    let families = 0;
+    let sources = 0;
+    let currentIndi: { id: string; name: string; birthDate?: string; gender: Gender } | null = null;
+    let inBirt = false;
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        const match = trimmed.match(/^(\d+)\s+(.+)/);
+        if (!match) continue;
+        const level = parseInt(match[1]);
+        const rest = match[2];
+
+        if (level === 0) {
+            if (currentIndi) individuals.push(currentIndi);
+            currentIndi = null;
+            inBirt = false;
+
+            if (rest.includes('INDI')) {
+                const idMatch = rest.match(/@([^@]+)@/);
+                currentIndi = { id: idMatch?.[1] || `indi_${individuals.length}`, name: '', gender: 'other' };
+            } else if (rest.includes('FAM')) {
+                families++;
+            } else if (rest.includes('SOUR') && !rest.startsWith('SOUR')) {
+                sources++;
+            }
+        } else if (currentIndi) {
+            if (level === 1 && rest.startsWith('NAME')) {
+                currentIndi.name = rest.replace('NAME ', '').replace(/\//g, '').trim();
+            } else if (level === 1 && rest.startsWith('SEX')) {
+                const sex = rest.replace('SEX ', '').trim();
+                currentIndi.gender = sex === 'M' ? 'male' : sex === 'F' ? 'female' : 'other';
+            } else if (level === 1 && rest === 'BIRT') {
+                inBirt = true;
+            } else if (level === 2 && inBirt && rest.startsWith('DATE')) {
+                currentIndi.birthDate = rest.replace('DATE ', '').trim();
+                inBirt = false;
+            } else if (level === 1 && !rest.startsWith('BIRT')) {
+                inBirt = false;
+            }
+        }
+    }
+    if (currentIndi) individuals.push(currentIndi);
+
+    return { individuals, families, sources };
+}
+
+export function importFromGEDCOM(content: string): { imported: number; skipped: number } {
+    ensureLoaded();
+    const preview = previewGEDCOM(content);
+    let imported = 0;
+    let skipped = 0;
+
+    for (const indi of preview.individuals) {
+        // Skip if a member with same name already exists
+        const nameParts = indi.name.split(' ');
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName = nameParts.slice(1).join(' ') || 'Unknown';
+
+        const exists = _members!.some(
+            m => m.firstName.toLowerCase() === firstName.toLowerCase() && m.lastName.toLowerCase() === lastName.toLowerCase()
+        );
+
+        if (exists) {
+            skipped++;
+            continue;
+        }
+
+        const newMember: FamilyMember = {
+            id: `ged_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            firstName,
+            lastName,
+            gender: indi.gender,
+            birthDate: indi.birthDate ? parseGEDCOMDate(indi.birthDate) : undefined,
+            generation: 0, // User can adjust later
+        };
+
+        _members!.push(newMember);
+        imported++;
+    }
+
+    if (imported > 0) {
+        saveToStorage(STORAGE_KEYS.members, _members!);
+    }
+
+    return { imported, skipped };
+}
+
+function parseGEDCOMDate(dateStr: string): string | undefined {
+    try {
+        const months: Record<string, string> = {
+            JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
+            JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
+        };
+        const parts = dateStr.trim().split(/\s+/);
+        if (parts.length === 3) {
+            const day = parts[0].padStart(2, '0');
+            const month = months[parts[1].toUpperCase()] || '01';
+            const year = parts[2];
+            return `${year}-${month}-${day}`;
+        }
+        if (parts.length === 2) {
+            const month = months[parts[0].toUpperCase()] || '01';
+            return `${parts[1]}-${month}-01`;
+        }
+        if (parts.length === 1 && /^\d{4}$/.test(parts[0])) {
+            return `${parts[0]}-01-01`;
+        }
+    } catch { /* ignore parse errors */ }
+    return undefined;
 }
