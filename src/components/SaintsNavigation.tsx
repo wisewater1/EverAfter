@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Heart, Shield, Users, Sparkles, Lock, Calendar, Wallet } from 'lucide-react';
+import { Heart, Shield, Users, Lock, Search, Wallet } from 'lucide-react';
 
 interface Saint {
   id: string;
@@ -60,7 +60,7 @@ export default function SaintsNavigation() {
       id: 'anthony',
       name: 'St. Anthony',
       role: 'Guidance',
-      icon: Calendar,
+      icon: Search,
       color: 'rose',
       gradient: 'from-rose-500 to-pink-600',
       available: true,

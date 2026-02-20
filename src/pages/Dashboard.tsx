@@ -13,6 +13,7 @@ import SaintsNavigation from '../components/SaintsNavigation';
 import CouncilRoom from '../components/saints/CouncilRoom';
 import SocietyFeed from '../components/SocietyFeed';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
+import HolisticTimeline from '../components/HolisticTimeline';
 
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
@@ -255,10 +256,11 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-48 safe-bottom w-full">
+      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[250px] safe-bottom w-full">
         <div className="space-y-8">
           {selectedView === 'activities' && (
             <div className="space-y-8">
+              <HolisticTimeline />
               <SocietyFeed />
               <UnifiedActivityCenter />
               <div className="h-[60vh]"></div>

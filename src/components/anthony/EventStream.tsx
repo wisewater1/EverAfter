@@ -36,6 +36,29 @@ export default function EventStream() {
     const [events, setEvents] = useState<SaintEventEnvelope[]>(MOCK_EVENTS);
     const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(MOCK_EVENTS[0]);
 
+    // Redact sensitive data before displaying
+    const redactSensitiveData = (obj: any): any => {
+        if (!obj) return obj;
+        if (typeof obj !== 'object') return obj;
+
+        if (Array.isArray(obj)) {
+            return obj.map(redactSensitiveData);
+        }
+
+        const redacted = { ...obj };
+        const sensitiveKeys = ['password', 'token', 'secret', 'key', 'auth', 'cookie', 'session', 'credential', 'api_key', 'private_key'];
+
+        for (const key in redacted) {
+            if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+                redacted[key] = '[REDACTED]';
+            } else if (typeof redacted[key] === 'object') {
+                redacted[key] = redactSensitiveData(redacted[key]);
+            }
+        }
+
+        return redacted;
+    };
+
     useEffect(() => {
         const unsubscribe = subscribeToSaintEvents((event) => {
             setEvents(prev => [event, ...prev.slice(0, 49)]); // Keep last 50
@@ -111,7 +134,7 @@ export default function EventStream() {
                                 <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium uppercase tracking-wider">
                                     {selectedEvent.topic}
                                 </span>
-                                <span className="text-slate-500 text-xs font-mono">ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+                                <span className="text-slate-500 text-xs font-mono">ID: {selectedEvent.id.toUpperCase()}</span>
                             </div>
                             <h3 className="text-2xl font-light text-white mb-1">Event Payload</h3>
                             <p className="text-slate-400 text-sm">
@@ -120,7 +143,7 @@ export default function EventStream() {
                         </div>
                         <div className="flex-1 overflow-auto bg-[#0d1117] p-6 relative z-10">
                             <pre className="font-mono text-sm text-green-400 leading-relaxed">
-                                {JSON.stringify(selectedEvent, null, 2)}
+                                {JSON.stringify(redactSensitiveData(selectedEvent), null, 2)}
                             </pre>
                         </div>
                         <div className="p-4 bg-slate-900/50 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500 z-10">
@@ -128,7 +151,7 @@ export default function EventStream() {
                                 <Code className="w-3 h-3" />
                                 <span>Raw JSON Format</span>
                             </div>
-                            <span>{new TextEncoder().encode(JSON.stringify(selectedEvent)).length} bytes</span>
+                            <span>{new TextEncoder().encode(JSON.stringify(redactSensitiveData(selectedEvent))).length} bytes</span>
                         </div>
                     </>
                 ) : (

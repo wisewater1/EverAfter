@@ -258,7 +258,7 @@ export default function CouncilRoom() {
                         {COUNCIL_MEMBERS.map((saint, i) => {
                             const total = COUNCIL_MEMBERS.length;
                             const angle = (i * (360 / total)) - 90; // Start from top
-                            const radius = 140; // px
+                            const radius = 180; // px
                             // Calculate position
                             const x = radius * Math.cos(angle * (Math.PI / 180));
                             const y = radius * Math.sin(angle * (Math.PI / 180));
@@ -272,7 +272,7 @@ export default function CouncilRoom() {
                                     style={{
                                         left: '50%',
                                         top: '50%',
-                                        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) ${isActive ? 'scale-110' : 'scale-100'}`
+                                        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${isActive ? 1.1 : 1})`
                                     }}
                                 >
                                     {/* Connection Line to Center (only when active) */}

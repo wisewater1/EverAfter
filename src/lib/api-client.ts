@@ -599,8 +599,105 @@ class APIClient {
       return await response.json();
     } catch (error) {
       console.error("Get Missions Error:", error);
-      // Return empty object/list on error to prevent UI crash
-      return {};
+      // Return empty array on error to prevent UI crash
+      return [];
+    }
+  }
+
+  async getPendingIntercessions(): Promise<any[]> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/intercessions/pending`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Pending Intercessions Error:", error);
+      return [];
+    }
+  }
+
+  async processIntercession(intercessionId: string, action: 'approve' | 'deny'): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/intercessions/${intercessionId}/${action}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error(`Process Intercession Error (${action}):`, error);
+      throw error;
+    }
+  }
+
+  async getSaintCognitionStatus(saintId: string): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/cognition/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Saint Cognition Status Error:", error);
+      throw error;
+    }
+  }
+
+  async getSocietyFeed(): Promise<any[]> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/social/feed`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Society Feed Error:", error);
+      return [];
+    }
+  }
+
+  async triggerSocietyEvent(): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/social/interact/random`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Trigger Society Event Error:", error);
+      throw error;
     }
   }
 }

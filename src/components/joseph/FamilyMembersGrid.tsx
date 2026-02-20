@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Search, User, Heart, X, Brain } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, User, Heart, X, Brain, Activity } from 'lucide-react';
+import { apiClient } from '../../lib/api-client';
 import {
     getFamilyMembers, FamilyMember, getSpouse,
     getChildren, formatDate, getGenerationLabel,
@@ -9,6 +10,15 @@ import PersonalityRadar from './PersonalityRadar';
 import SaintChat from '../SaintChat';
 import SocietyFeed from '../SocietyFeed';
 
+interface InteractionEvent {
+    id: string;
+    summary: string;
+    initiator_id: string;
+    receiver_id: string;
+    created_at: string;
+    rapport: number;
+}
+
 export default function FamilyMembersGrid() {
     const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
     const [search, setSearch] = useState('');
@@ -16,7 +26,24 @@ export default function FamilyMembersGrid() {
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
     const [personalityMember, setPersonalityMember] = useState<FamilyMember | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
-    const [activeTab, setActiveTab] = useState<'tree' | 'society'>('tree');
+    const [societyEvents, setSocietyEvents] = useState<InteractionEvent[]>([]);
+
+    useEffect(() => {
+        const fetchFeed = async () => {
+            try {
+                const data = await apiClient.getSocietyFeed();
+                if (Array.isArray(data)) {
+                    setSocietyEvents(data);
+                }
+            } catch (error) {
+                console.error('Error fetching social feed:', error);
+            }
+        };
+
+        fetchFeed();
+        const interval = setInterval(fetchFeed, 30000); // Polling every 30s
+        return () => clearInterval(interval);
+    }, []);
 
     // Real activation - call backend to register dynamic agent
     const handleActivate = async (member: FamilyMember) => {
@@ -63,27 +90,10 @@ export default function FamilyMembersGrid() {
     const generations = [...new Set(members.map(m => m.generation))].sort();
 
     return (
-        <div className="space-y-6">
-            {/* Tab Switcher */}
-            <div className="flex items-center gap-8 border-b border-white/5 mb-8">
-                <button
-                    onClick={() => setActiveTab('tree')}
-                    className={`pb-4 text-sm font-semibold transition-all relative ${activeTab === 'tree' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                    Family Tree
-                    {activeTab === 'tree' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />}
-                </button>
-                <button
-                    onClick={() => setActiveTab('society')}
-                    className={`pb-4 text-sm font-semibold transition-all relative ${activeTab === 'society' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                    Autonomous Society
-                    {activeTab === 'society' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />}
-                </button>
-            </div>
-
-            {activeTab === 'tree' ? (
-                <div className="space-y-6">
+        <>
+            <div className="flex flex-col lg:flex-row gap-6">
+                {/* Main Family Tree Grid */}
+                <div className="flex-1 space-y-6 lg:border-r lg:border-white/5 lg:pr-6">
                     {/* Search & Filters */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1 relative">
@@ -128,14 +138,39 @@ export default function FamilyMembersGrid() {
                             const children = getChildren(member.id);
                             const isDeceased = !!member.deathDate;
 
+                            // Check active interactions
+                            const activeInteractions = societyEvents.filter(e =>
+                                e.initiator_id === member.id || e.receiver_id === member.id
+                            );
+                            // Only consider interactions in the last 5 minutes as 'Live'
+                            const now = new Date();
+                            const liveInteractions = activeInteractions.filter(e => {
+                                const eventDate = new Date(e.created_at);
+                                const diffMs = now.getTime() - eventDate.getTime();
+                                return diffMs < 5 * 60 * 1000;
+                            });
+
+                            const isLive = liveInteractions.length > 0;
+                            const currentInteraction = isLive ? liveInteractions[0] : null;
+
                             return (
                                 <div
                                     key={member.id}
                                     className={`text-left p-5 rounded-2xl border transition-all duration-200 hover:shadow-xl group relative ${isDeceased
                                         ? 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'
-                                        : 'bg-slate-800/60 border-white/5 hover:border-indigo-500/30 hover:shadow-indigo-500/5'
+                                        : isLive
+                                            ? 'bg-slate-800/80 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20'
+                                            : 'bg-slate-800/60 border-white/5 hover:border-indigo-500/30 hover:shadow-indigo-500/5'
                                         }`}
                                 >
+                                    {isLive && (
+                                        <div className="absolute -top-2 -right-2 z-10">
+                                            <span className="relative flex h-4 w-4">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500 border-2 border-slate-900"></span>
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex items-start gap-3 cursor-pointer" onClick={() => setSelectedMember(member)}>
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${member.gender === 'male'
                                             ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
@@ -157,6 +192,12 @@ export default function FamilyMembersGrid() {
                                             <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">
                                                 {getGenerationLabel(member.generation)}
                                             </div>
+                                            {isLive && currentInteraction && (
+                                                <div className="mt-2 text-[10px] bg-cyan-500/10 text-cyan-300 px-2 py-1 rounded border border-cyan-500/20 truncate" title={currentInteraction.summary}>
+                                                    <Activity className="w-3 h-3 inline pb-0.5 mr-1" />
+                                                    {currentInteraction.summary}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -229,96 +270,105 @@ export default function FamilyMembersGrid() {
                         </div>
                     )}
                 </div>
-            ) : (
+            </div>
+
+            {/* Sidebar Flow - Society Feed */}
+            <div className="w-full lg:w-80 shrink-0">
                 <SocietyFeed />
-            )}
+            </div>
 
             {/* Inline Detail Modal */}
-            {selectedMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm" onClick={() => setSelectedMember(null)}>
-                    <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember.gender === 'male'
-                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                    }`}>
-                                    {selectedMember.firstName[0]}{selectedMember.lastName[0]}
+            {
+                selectedMember && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm" onClick={() => setSelectedMember(null)}>
+                        <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember?.gender === 'male'
+                                        ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                        }`}>
+                                        {selectedMember?.firstName[0]}{selectedMember?.lastName[0]}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-light text-white">{selectedMember?.firstName} {selectedMember?.lastName}</h3>
+                                        <p className="text-xs text-slate-500 uppercase tracking-wider">
+                                            {selectedMember ? getGenerationLabel(selectedMember.generation) : ''}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-lg font-light text-white">{selectedMember.firstName} {selectedMember.lastName}</h3>
-                                    <p className="text-xs text-slate-500 uppercase tracking-wider">
-                                        {getGenerationLabel(selectedMember.generation)}
-                                    </p>
-                                </div>
+                                <button onClick={() => setSelectedMember(null)} className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <button onClick={() => setSelectedMember(null)} className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
 
-                        {selectedMember.birthDate && (
-                            <p className="text-sm text-slate-300 mb-1">
-                                <span className="text-slate-500">Born:</span> {formatDate(selectedMember.birthDate)}
-                                {selectedMember.birthPlace && ` · ${selectedMember.birthPlace}`}
-                            </p>
-                        )}
-                        {selectedMember.deathDate && (
-                            <p className="text-sm text-slate-300 mb-1">
-                                <span className="text-slate-500">Passed:</span> {formatDate(selectedMember.deathDate)}
-                            </p>
-                        )}
-                        {selectedMember.bio && (
-                            <p className="text-sm text-slate-400 mt-3 leading-relaxed bg-white/5 p-3 rounded-xl border border-white/5">
-                                {selectedMember.bio}
-                            </p>
-                        )}
+                            {selectedMember?.birthDate && (
+                                <p className="text-sm text-slate-300 mb-1">
+                                    <span className="text-slate-500">Born:</span> {formatDate(selectedMember.birthDate)}
+                                    {selectedMember.birthPlace && ` · ${selectedMember.birthPlace}`}
+                                </p>
+                            )}
+                            {selectedMember?.deathDate && (
+                                <p className="text-sm text-slate-300 mb-1">
+                                    <span className="text-slate-500">Passed:</span> {formatDate(selectedMember.deathDate)}
+                                </p>
+                            )}
+                            {selectedMember?.bio && (
+                                <p className="text-sm text-slate-400 mt-3 leading-relaxed bg-white/5 p-3 rounded-xl border border-white/5">
+                                    {selectedMember.bio}
+                                </p>
+                            )}
 
-                        <div className="mt-6 flex justify-end">
-                            <button
-                                onClick={() => {
-                                    setSelectedMember(null);
-                                    setPersonalityMember(selectedMember);
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-500/25"
-                            >
-                                <Brain className="w-4 h-4" />
-                                <span>Analyze Personality</span>
-                            </button>
+                            <div className="mt-6 flex justify-end">
+                                <button
+                                    onClick={() => {
+                                        setSelectedMember(null);
+                                        setPersonalityMember(selectedMember);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-lg shadow-indigo-500/25"
+                                >
+                                    <Brain className="w-4 h-4" />
+                                    <span>Analyze Personality</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Personality Radar Modal */}
-            {personalityMember && (
-                <PersonalityRadar
-                    memberId={personalityMember.id}
-                    memberName={`${personalityMember.firstName} ${personalityMember.lastName}`}
-                    onClose={() => setPersonalityMember(null)}
-                />
-            )}
+            {
+                personalityMember && (
+                    <PersonalityRadar
+                        memberId={personalityMember.id}
+                        memberName={`${personalityMember?.firstName} ${personalityMember?.lastName}`}
+                        onClose={() => setPersonalityMember(null)}
+                    />
+                )
+            }
 
             {/* Saint Chat Modal */}
-            {chatMember && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-                    <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-4xl h-[80vh] overflow-hidden shadow-2xl relative">
-                        <button
-                            onClick={() => setChatMember(null)}
-                            className="absolute top-4 right-4 z-10 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <SaintChat
-                            saintId={chatMember.id}
-                            saintName={`${chatMember.firstName} ${chatMember.lastName}`}
-                            saintTitle="Family Member"
-                            saintIcon={User}
-                            onClose={() => setChatMember(null)}
-                        />
+            {
+                chatMember && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+                        <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-4xl h-[80vh] overflow-hidden shadow-2xl relative">
+                            <button
+                                onClick={() => setChatMember(null)}
+                                className="absolute top-4 right-4 z-10 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <SaintChat
+                                saintId={chatMember.id}
+                                saintName={`${chatMember?.firstName} ${chatMember?.lastName}`}
+                                saintTitle="Family Member"
+                                saintIcon={User}
+                                onClose={() => setChatMember(null)}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </>
     );
 }

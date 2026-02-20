@@ -20,6 +20,9 @@ from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.saint_agent_service import saint_agent_service, get_all_saint_ids
 from app.services.saint_runtime import saint_runtime
+from app.services.saint_runtime.actions.engine import action_engine
+from app.models.saint import GuardianIntercession
+from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/saints", tags=["saints"])
 
@@ -78,6 +81,15 @@ class ChatMessage(BaseModel):
     content: str
     timestamp: Optional[str] = None
 
+class GuardianIntercessionResponse(BaseModel):
+    id: str
+    saint_id: str
+    description: str
+    tool_name: str
+    tool_kwargs: Dict[str, Any]
+    status: str
+    created_at: str
+
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
@@ -92,6 +104,94 @@ async def get_saints_status(
     """
     user_id = str(current_user.get("sub"))
     return await saint_agent_service.get_all_saint_statuses(session, user_id)
+
+@router.get("/intercessions/pending", response_model=List[GuardianIntercessionResponse])
+async def get_pending_intercessions(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all pending intercessions for the current user."""
+    user_id = str(current_user.get("sub"))
+    query = select(GuardianIntercession).where(
+        GuardianIntercession.user_id == user_id,
+        GuardianIntercession.status == "pending"
+    ).order_by(GuardianIntercession.created_at.desc())
+    
+    result = await session.execute(query)
+    intercessions = result.scalars().all()
+    
+    return [
+        GuardianIntercessionResponse(
+            id=str(intercession.id),
+            saint_id=intercession.saint_id,
+            description=intercession.description,
+            tool_name=intercession.tool_name,
+            tool_kwargs=intercession.tool_kwargs,
+            status=intercession.status,
+            created_at=intercession.created_at.isoformat()
+        ) for intercession in intercessions
+    ]
+
+@router.post("/intercessions/{intercession_id}/approve")
+async def approve_intercession(
+    intercession_id: str,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    """Approve and execute a pending intercession."""
+    user_id = str(current_user.get("sub"))
+    query = select(GuardianIntercession).where(
+        GuardianIntercession.id == intercession_id,
+        GuardianIntercession.user_id == user_id
+    )
+    result = await session.execute(query)
+    intercession = result.scalar_one_or_none()
+    
+    if not intercession:
+        raise HTTPException(status_code=404, detail="Intercession not found")
+        
+    if intercession.status != "pending":
+        raise HTTPException(status_code=400, detail="Intercession is already processed")
+        
+    intercession.status = "approved"
+    
+    # Execute the action
+    if action_engine and intercession.tool_name in action_engine.tools:
+        try:
+            exec_result = action_engine.tools[intercession.tool_name](
+                user_id=user_id,
+                **intercession.tool_kwargs
+            )
+            intercession.execution_result = exec_result
+            intercession.status = "executed"
+        except Exception as e:
+            intercession.execution_result = {"error": str(e)}
+            intercession.status = "failed"
+            
+    await session.commit()
+    return {"status": "success", "intercession_status": intercession.status}
+
+@router.post("/intercessions/{intercession_id}/deny")
+async def deny_intercession(
+    intercession_id: str,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    """Deny a pending intercession."""
+    user_id = str(current_user.get("sub"))
+    query = select(GuardianIntercession).where(
+        GuardianIntercession.id == intercession_id,
+        GuardianIntercession.user_id == user_id
+    )
+    result = await session.execute(query)
+    intercession = result.scalar_one_or_none()
+    
+    if not intercession:
+        raise HTTPException(status_code=404, detail="Intercession not found")
+        
+    intercession.status = "denied"
+    await session.commit()
+    return {"status": "success"}
 
 
 @router.post("/register_dynamic")

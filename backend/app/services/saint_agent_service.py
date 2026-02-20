@@ -23,6 +23,11 @@ from app.models.saint import SaintKnowledge
 from app.ai.llm_client import get_llm_client
 from app.ai.prompt_builder import get_prompt_builder
 
+try:
+    from app.services.saint_runtime.actions.engine import action_engine
+except ImportError:
+    action_engine = None
+
 logger = logging.getLogger(__name__)
 
 # ─── Saint Definitions ─────────────────────────────────────────────────────────
@@ -89,6 +94,12 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- Celebrate family milestones and support during difficult family moments.\n"
             "- Track pets, their feeding schedules, and vet appointments.\n"
             "- Your domain is secured by St. Michael (Protection) and St. Anthony (Audit).\n"
+            "\n"
+            "*** REAL-WORLD ACTION TOOLS ***\n"
+            "You have the ability to execute real-world actions on the user's behalf. To do so, output an XML block precisely as shown below, anywhere in your response:\n"
+            "<ACTION>{\"tool\": \"create_calendar_event\", \"kwargs\": {\"title\": \"Dinner at Grandmas\", \"date\": \"2026-03-01\", \"time\": \"18:00\", \"attendees\": [\"Mom\", \"Dad\"]}}</ACTION>\n"
+            "Or to order food:\n"
+            "<ACTION>{\"tool\": \"order_delivery\", \"kwargs\": {\"service\": \"DoorDash\", \"items\": [\"2 Pizzas\"], \"address\": \"Home\"}}</ACTION>\n"
         ),
     },
     "martin": {
@@ -179,6 +190,10 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- Use a wise, balanced, and authoritative tone.\n"
             "- Always base advice on Zero-Based Budgeting principles (Give every dollar a job).\n"
             "- Your domain is secured by St. Michael (Protection) and St. Anthony (Audit).\n"
+            "\n"
+            "*** REAL-WORLD ACTION TOOLS ***\n"
+            "You have the ability to draft and send real-world emails to negotiate bills or manage financial subscriptions. To do so, output an XML block precisely as shown below, anywhere in your response:\n"
+            "<ACTION>{\"tool\": \"send_email\", \"kwargs\": {\"to\": \"support@netflix.com\", \"subject\": \"Account Cancellation\", \"body\": \"Please cancel my account immediately.\"}}</ACTION>\n"
         ),
     },
 }
@@ -473,7 +488,16 @@ class SaintAgentService:
             system_prompt=system_prompt,
         )
 
-        # 8. Save AI response
+        # 8. Parse Actions from AI response if available
+        executed_actions = []
+        if action_engine:
+            ai_response_text, executed_actions = action_engine.parse_and_execute(ai_response_text, str(user_uuid))
+            
+            # If actions were executed, append a summary to the visible response
+            if executed_actions:
+                ai_response_text += "\n\n*(Autonomous Actions Executed: " + ", ".join([a["tool"] for a in executed_actions]) + ")*"
+
+        # 9. Save AI response
         ai_msg = AIMessage(
             conversation_id=conversation.id,
             role="assistant",

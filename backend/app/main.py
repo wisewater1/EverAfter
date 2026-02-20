@@ -25,6 +25,7 @@ async def lifespan(app: FastAPI):
     print("Startup: Initializing resources...")
     from app.services.saint_runtime import saint_runtime
     asyncio.create_task(saint_runtime.listen_for_events())
+    asyncio.create_task(saint_runtime.run_vigils())
     yield
     # Shutdown
     print("Shutdown: Cleaning up resources...")
@@ -44,6 +45,9 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+app.add_middleware(JWTAuthMiddleware)
+
 app.include_router(engrams.router)
 app.include_router(chat.router)
 app.include_router(tasks.router)

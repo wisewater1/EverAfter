@@ -125,17 +125,22 @@ class AkashicRecord:
                 
             memory = self.memories[idx]
             
-            # Apply Filters
+            # Apply Filters (Omni-Context aware)
             if filters:
-                match = True
                 meta = memory.get("metadata", {})
-                for k, v in filters.items():
-                    # Simple equality check for now
-                    if meta.get(k) != v:
-                        match = False
-                        break
-                if not match:
-                    continue
+                
+                # Neural Graph Omni-Context: Allow all global events to bypass strict saint_id silos
+                is_global_event = meta.get("type", "") in ["health_event", "finance_event", "life_event", "career_event"]
+                
+                if not is_global_event:
+                    match = True
+                    for k, v in filters.items():
+                        # Simple equality check for isolated memories
+                        if meta.get(k) != v:
+                            match = False
+                            break
+                    if not match:
+                        continue
 
             result = memory.copy()
             result['score'] = float(score)

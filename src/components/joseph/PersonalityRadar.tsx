@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../../lib/api-client';
 import { X, Brain, Info } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 
@@ -25,20 +25,20 @@ export default function PersonalityRadar({ memberId, memberName, onClose }: Pers
         setError(null);
         try {
             // Fetch real cognitive state from Saint Runtime
-            const response = await axios.get(`/api/v1/saints/${memberId}/cognition/status`);
+            const cognitionData = await apiClient.getSaintCognitionStatus(memberId);
 
             // Map the API response to the component state
             setData({
-                scores: response.data.personality_scores,
+                scores: cognitionData.personality_scores,
                 confidence: 94, // We could calculate this from memory count
                 evidence: {
                     "Openness": [{ source: "Memory Stream", snippet: "Analyzed recent observations." }],
-                    "Conscientiousness": [{ source: "Reflection Engine", snippet: response.data.last_reflection ? `Reflected at ${new Date(response.data.last_reflection).toLocaleTimeString()}` : "No recent reflection." }]
+                    "Conscientiousness": [{ source: "Reflection Engine", snippet: cognitionData.last_reflection ? `Reflected at ${new Date(cognitionData.last_reflection).toLocaleTimeString()}` : "No recent reflection." }]
                 }
             });
 
             // Update research status indicators based on real data
-            if (response.data.last_reflection) {
+            if (cognitionData.last_reflection) {
                 // Trigger a visual update or toast if needed
             }
         } catch (err) {

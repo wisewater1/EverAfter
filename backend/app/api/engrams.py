@@ -15,6 +15,7 @@ from app.models.engram import Engram, EngramDailyResponse, EngramAsset
 from app.engrams.personality import get_personality_analyzer
 from app.services.health.service import health_service
 from app.services.embeddings import get_embeddings_service
+from app.services.personality_synthesizer import generate_value_driven_personality
 
 router = APIRouter(prefix="/api/v1/engrams", tags=["engrams"])
 
@@ -31,15 +32,42 @@ async def list_engrams(
             detail="User ID (sub) not found in token"
         )
     
-    user_id = UUID(sub)
-    # Get user's own engrams OR archetypal engrams (like St. Raphael)
-    query = select(Engram).where(
-        (Engram.user_id == user_id) | (Engram.name == 'St. Raphael')
-    ).order_by(Engram.created_at.desc())
+    try:
+        user_id = UUID(sub)
+        # Get user's own engrams OR archetypal engrams (like St. Raphael)
+        query = select(Engram).where(
+            (Engram.user_id == user_id) | (Engram.name == 'St. Raphael')
+        ).order_by(Engram.created_at.desc())
+    except ValueError:
+        # Local development fallback when sub is "demo-user-001"
+        query = select(Engram).order_by(Engram.created_at.desc())
+
     result = await session.execute(query)
     engrams = result.scalars().all()
 
-    return engrams
+    # The EngramResponse schema requires 'relationship' and 'engram_type',
+    # but the SQLAlchemy model (ArchetypalAI) doesn't have them. 
+    # Must populate them manually to avoid Pydantic Field required errors.
+    response_list = []
+    for engram in engrams:
+        # We use a dict and provide the required defaults manually if they don't exist
+        engram_dict = {
+            "id": engram.id,
+            "user_id": engram.user_id,
+            "name": engram.name,
+            "description": engram.description,
+            "avatar_url": engram.avatar_url,
+            "personality_summary": engram.personality_traits or {},
+            "total_questions_answered": engram.total_memories or 0,
+            "is_ai_active": True if engram.training_status == 'trained' else False,
+            "created_at": engram.created_at,
+            "updated_at": engram.updated_at,
+            "relationship": "family",  # Default required field
+            "engram_type": "family_member" # Default required field
+        }
+        response_list.append(engram_dict)
+
+    return response_list
 
 
 @router.post("/create", response_model=EngramResponse, status_code=status.HTTP_201_CREATED)
@@ -48,6 +76,13 @@ async def create_engram(
     session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
+    # Generate deep JSON personality matrix based on user's basic description
+    personality_matrix = await generate_value_driven_personality(
+        name=engram_data.name,
+        description=engram_data.description,
+        relationship=engram_data.relationship
+    )
+
     new_engram = Engram(
         user_id=engram_data.user_id,
         engram_type=engram_data.engram_type,
@@ -55,7 +90,8 @@ async def create_engram(
         email=engram_data.email,
         relationship=engram_data.relationship,
         avatar_url=engram_data.avatar_url,
-        description=engram_data.description or ""
+        description=engram_data.description or "",
+        personality_traits=personality_matrix  # <--- INJECT LLM PERSONALITY
     )
 
     session.add(new_engram)

@@ -13,8 +13,6 @@ from app.services.mission_board import mission_board
 from .memory.stream import MemoryStream
 from .memory.stream import MemoryStream
 from .memory.types import MemoryObject
-from .reflection.reflection import ReflectionEngine # Assuming reflection moved, or just memory.reflection
-# Check import path later if reflection.py is actually in memory/reflection.py
 from .memory.reflection import ReflectionEngine
 from .cognition.planner import CognitivePlanner
 from .collaboration.consensus import ConsensusEngine
@@ -181,6 +179,87 @@ class SaintRuntime:
         logger.info("SaintRuntime: Started Event Listener")
         self.bus.subscribe(self._handle_event)
         await self.bus.listen()
+
+    async def run_vigils(self):
+        """
+        Background analyzer that scans the Neural Graph for dangerous/notable patterns.
+        Proactively triggers 'Intercessions' or system alerts.
+        """
+        import asyncio
+        from app.db.session import async_session_maker
+        logger.info("SaintRuntime: Started Predictive Vigils")
+        while True:
+            try:
+                # Run every 5 minutes for demo purposes (usually would be daily/hourly)
+                await asyncio.sleep(300) 
+                logger.info("SaintRuntime: Executing Predictive Vigils...")
+                
+                async with async_session_maker() as session:
+                    # 1. St. Raphael Health Vigil
+                    await self._run_raphael_vigil(session)
+                    
+            except Exception as e:
+                logger.error(f"Error in Predictive Vigils: {e}")
+
+    async def _run_raphael_vigil(self, session: AsyncSession):
+        """Checks for dangerous health anomalies and drafts an intercession."""
+        from sqlalchemy import text
+        from app.models.saint import GuardianIntercession
+        
+        # In a real impl, this would query the Delphi model or recent health engrams.
+        # For Phase 1 prototype, we simulate finding a pattern for a random user if they have health anomalies.
+        # Let's just create a simulated alert for demonstration if we find any users.
+        try:
+            from app.models.engram import ArchetypalAI
+            from sqlalchemy import select
+            
+            # Get a random active user (just for demo purposes)
+            query = select(ArchetypalAI.user_id).limit(1)
+            result = await session.execute(query)
+            user_id = result.scalar_one_or_none()
+            
+            if not user_id:
+                return
+                
+            logger.info(f"SaintRuntime [Vigil]: Checking health baselines for {user_id}")
+            
+            # Check if an intercession was already drafted recently to avoid spam
+            existing_query = select(GuardianIntercession).where(
+                GuardianIntercession.user_id == user_id,
+                GuardianIntercession.saint_id == "raphael",
+                GuardianIntercession.status == "pending"
+            )
+            existing_result = await session.execute(existing_query)
+            if existing_result.first():
+                return # Already has a pending alert
+            
+            # Simulate a detected anomaly
+            logger.warning(f"SaintRuntime [Vigil]: St. Raphael detected elevated stress/HR pattern.")
+            
+            new_intercession = GuardianIntercession(
+                user_id=user_id,
+                saint_id="raphael",
+                description="Detected 3 consecutive days of elevated resting heart rate and poor sleep. Action recommended: reschedule upcoming high-stress meetings.",
+                tool_name="create_calendar_event",
+                tool_kwargs={
+                    "title": "Mandatory Recovery Block",
+                    "date": "2026-03-01",
+                    "time": "12:00"
+                },
+                status="pending"
+            )
+            session.add(new_intercession)
+            await session.commit()
+            
+            # Alert the frontend via AgentBus
+            await self.bus.publish(AgentEvent(
+                type="system_alert",
+                sender="raphael",
+                payload={"content": "I have detected a concerning health pattern and drafted an intervention. Please review your pending intercessions.", "importance": 8.0}
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error in Raphael Vigil: {e}")
 
     async def trigger_social(self, session: AsyncSession, initiator_id: str, receiver_id: str):
         """

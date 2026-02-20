@@ -46,6 +46,23 @@ class HealthLogicService:
 
         # 4. Execute
         report = await self.context.execute_analysis(data, decorators)
+        
+        # Emit Critical Metric to Neural Graph
+        if report.status in ["warning", "critical"]:
+            from app.services.saint_runtime.memory.stream import MemoryStream
+            from app.services.saint_runtime.memory.types import MemoryObject
+            stream = MemoryStream()
+            
+            desc = f"St. Raphael noted a {report.status} health event: {metric_type} was {value}{self._get_unit(metric_type)}. {report.recommendations[0] if report.recommendations else ''}"
+            mem = MemoryObject(
+                description=desc,
+                type="health_event",
+                importance=9.0 if report.status == "critical" else 7.0,
+                saint_id="raphael",
+                related_entities=["health", metric_type]
+            )
+            stream.add_memory(mem)
+            
         return report
 
     def _select_strategy(self, metric_type: str, profile: Optional[Dict[str, Any]]):
@@ -118,6 +135,22 @@ class HealthLogicService:
         strategy = DeepDiveInsightStrategy()
         context_data = {"aggregated_metrics": aggregated_metrics}
         prediction = await strategy.predict(user_id, context_data)
+        
+        # Emit Holistic Analysis to Neural Graph
+        from app.services.saint_runtime.memory.stream import MemoryStream
+        from app.services.saint_runtime.memory.types import MemoryObject
+        stream = MemoryStream()
+        
+        desc = f"St. Raphael generated a new holistic health deep-dive: {prediction.description}"
+        mem = MemoryObject(
+            description=desc,
+            type="health_event",
+            importance=8.0,
+            saint_id="raphael",
+            related_entities=["health", "wellness", "holistic_analysis"]
+        )
+        stream.add_memory(mem)
+        
         return [prediction]
 
 # Singleton instance

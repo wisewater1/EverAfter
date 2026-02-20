@@ -50,5 +50,43 @@
       "related_entities": []
     },
     "timestamp": "2026-02-19T12:13:27.493006"
+  },
+  {
+    "id": "05225570-43b0-499a-a510-faef91b5e98f",
+    "content": "St. Raphael noted a warning health event: heart_rate was 180.0bpm. Rest and re-measure. Consider stress or caffeine intake.",
+    "metadata": {
+      "id": "ac59965d-af60-4561-96a1-8206b3ac2660",
+      "description": "St. Raphael noted a warning health event: heart_rate was 180.0bpm. Rest and re-measure. Consider stress or caffeine intake.",
+      "created_at": "2026-02-20 12:01:09.149456",
+      "last_accessed": "2026-02-20 12:01:09.149456",
+      "importance": 7.0,
+      "type": "health_event",
+      "embedding": null,
+      "saint_id": "raphael",
+      "related_entities": [
+        "health",
+        "heart_rate"
+      ]
+    },
+    "timestamp": "2026-02-20T06:01:09.181742"
+  },
+  {
+    "id": "152eee61-cbe3-42a3-ba61-092e04a3e293",
+    "content": "St. Raphael noted a warning health event: heart_rate was 180.0bpm. Rest and re-measure. Consider stress or caffeine intake.",
+    "metadata": {
+      "id": "5383f705-3686-4492-8e44-dec297da44f1",
+      "description": "St. Raphael noted a warning health event: heart_rate was 180.0bpm. Rest and re-measure. Consider stress or caffeine intake.",
+      "created_at": "2026-02-20 12:02:04.814001",
+      "last_accessed": "2026-02-20 12:02:04.814001",
+      "importance": 7.0,
+      "type": "health_event",
+      "embedding": null,
+      "saint_id": "raphael",
+      "related_entities": [
+        "health",
+        "heart_rate"
+      ]
+    },
+    "timestamp": "2026-02-20T06:02:04.835461"
   }
 ]

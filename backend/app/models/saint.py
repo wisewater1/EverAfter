@@ -6,7 +6,7 @@ about the user across conversations. This enables saints to remember
 facts, preferences, and context specific to their domain.
 """
 
-from sqlalchemy import Column, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, Float, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -24,5 +24,23 @@ class SaintKnowledge(Base):
     knowledge_value = Column(Text, nullable=False)  # The actual information
     category = Column(String, nullable=False, default="general")  # domain-specific category
     confidence = Column(Float, default=1.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class GuardianIntercession(Base):
+    """
+    Stores pending and executed real-world actions (Intercessions)
+    proposed by Saints that require human-in-the-loop approval.
+    """
+    __tablename__ = "guardian_intercessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    saint_id = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=False) # e.g., "Drafted an email to Netflix"
+    tool_name = Column(String, nullable=False)
+    tool_kwargs = Column(JSON, nullable=False)
+    status = Column(String, nullable=False, default="pending") # pending, approved, denied, executed, failed
+    execution_result = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

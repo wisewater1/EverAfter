@@ -174,6 +174,27 @@ class FinanceService:
         self.session.add(tx)
         await self.session.commit()
         await self.session.refresh(tx)
+        
+        # Emit Significant Financial Event to Neural Graph
+        if abs(tx.amount) >= 500:
+            from app.services.saint_runtime.memory.stream import MemoryStream
+            from app.services.saint_runtime.memory.types import MemoryObject
+            stream = MemoryStream()
+            
+            action = "spent" if tx.amount < 0 else "received"
+            desc = f"St. Gabriel recorded a significant financial event: {action} ${abs(tx.amount)} at {tx.payee}."
+            if tx.description:
+                desc += f" Note: {tx.description}"
+                
+            mem = MemoryObject(
+                description=desc,
+                type="finance_event",
+                importance=8.0,
+                saint_id="gabriel",
+                related_entities=["finance", "transaction", tx.payee]
+            )
+            stream.add_memory(mem)
+
         return tx
 
     async def transfer_funds(self, user_id: str, from_cat_id: UUID, to_cat_id: UUID, amount: float, month: str):

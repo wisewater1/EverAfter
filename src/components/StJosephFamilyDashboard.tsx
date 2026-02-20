@@ -2,7 +2,7 @@ import { useState, useEffect, type ComponentType } from 'react';
 import {
     Users, Home, Calendar, ShoppingCart,
     CheckSquare, Clock, MapPin, Info, MessageSquare, Plus,
-    Activity, AlertCircle, RefreshCw, ArrowLeft,
+    Activity, RefreshCw, ArrowLeft,
     GitBranch, UserCheck, History, MessageCircle, Search,
     Scale, Archive, Sparkles
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import FamilyMembersGrid from './joseph/FamilyMembersGrid';
 import FamilyTimeline from './joseph/FamilyTimeline';
 import GeneWebTools from './joseph/GeneWebTools';
 import SocietyFeed from './SocietyFeed';
+import CouncilAlerts from './CouncilAlerts';
 
 type TabKey = 'tree' | 'members' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy';
 
@@ -95,46 +96,46 @@ export default function StJosephFamilyDashboard() {
                 </button>
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center p-4 shadow-lg shadow-amber-500/10">
+                    <div className="flex items-center gap-4 shrink-0">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center p-4 shadow-lg shadow-amber-500/10 shrink-0">
                             <Users className="w-full h-full text-amber-400" />
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-light text-white tracking-tight">St. Joseph</h1>
-                            <p className="text-amber-500/60 font-medium uppercase tracking-[0.2em] text-[10px]">The Family Guardian</p>
+                        <div className="min-w-0">
+                            <h1 className="text-3xl font-light text-white tracking-tight whitespace-nowrap">St. Joseph</h1>
+                            <p className="text-amber-500/60 font-medium uppercase tracking-[0.2em] text-[10px] whitespace-nowrap">The Family Guardian</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center md:justify-end shrink-0 px-4 md:ml-auto gap-4">
+                    <div className="flex items-center justify-center md:justify-end shrink-0 md:ml-auto gap-4">
                         <div className="flex items-center gap-2">
-                            <button onClick={() => navigate('/council')} className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all group" title="Council of Saints">
+                            <button onClick={() => navigate('/council')} className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all group shrink-0" title="Council of Saints">
                                 <Scale className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             </button>
-                            <button onClick={() => navigate('/time-capsules')} className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all group" title="Time Capsule Vault">
+                            <button onClick={() => navigate('/time-capsules')} className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all group shrink-0" title="Time Capsule Vault">
                                 <Archive className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             </button>
-                            <button onClick={() => navigate('/rituals')} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20 transition-all group" title="Ritual Altar">
+                            <button onClick={() => navigate('/rituals')} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20 transition-all group shrink-0" title="Ritual Altar">
                                 <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             </button>
                         </div>
                         <SecurityIntegrityBadge />
                     </div>
+                </div>
 
-                    <div className="flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto">
-                        {TABS.map(({ key, label, icon: TabIcon }) => (
-                            <button
-                                key={key}
-                                onClick={() => setActiveTab(key)}
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${activeTab === key
-                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                <TabIcon className="w-3.5 h-3.5" />
-                                {label}
-                            </button>
-                        ))}
-                    </div>
+                <div className="mt-6 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full custom-scrollbar">
+                    {TABS.map(({ key, label, icon: TabIcon }) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 ${activeTab === key
+                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                }`}
+                        >
+                            <TabIcon className="w-3.5 h-3.5 shrink-0" />
+                            {label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -387,18 +388,8 @@ export default function StJosephFamilyDashboard() {
                             </div>
                         </div>
 
-                        {/* Alert / Warning Area (Home Management) */}
-                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-3xl p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <AlertCircle className="w-4 h-4 text-rose-500" />
-                                <h4 className="text-xs font-bold text-rose-500/60 uppercase tracking-widest">Urgent</h4>
-                            </div>
-                            <div className="space-y-3">
-                                <div className="text-xs text-slate-400 bg-white/5 p-3 rounded-xl border border-white/5">
-                                    Kitchen sink leak reported (maintenance task).
-                                </div>
-                            </div>
-                        </div>
+                        {/* Council Alerts & Intercessions */}
+                        <CouncilAlerts />
 
                     </div>
 
