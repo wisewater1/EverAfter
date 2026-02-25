@@ -19,6 +19,11 @@ import PredictiveHealthInsights from './PredictiveHealthInsights';
 import HeartDeviceRecommendations from './HeartDeviceRecommendations';
 import ComprehensiveAnalyticsDashboard from './ComprehensiveAnalyticsDashboard';
 import AppointmentManager from './AppointmentManager';
+import CausalTwinDashboard from './causal-twin/CausalTwinDashboard';
+import WhatIfSimulator from './causal-twin/WhatIfSimulator';
+import ExperimentLab from './causal-twin/ExperimentLab';
+import EvidenceLedgerView from './causal-twin/EvidenceLedgerView';
+import ModelHealthPanel from './causal-twin/ModelHealthPanel';
 
 type TabView =
   | 'overview'
@@ -36,7 +41,12 @@ type TabView =
   | 'predictive'
   | 'heart-devices'
   | 'comprehensive-analytics'
-  | 'appointments';
+  | 'appointments'
+  | 'causal-twin'
+  | 'what-if'
+  | 'experiments'
+  | 'evidence-ledger'
+  | 'model-health';
 
 export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramId?: string }) {
   const navigate = useNavigate();
@@ -52,6 +62,11 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
     { id: 'devices' as TabView, label: 'Devices', icon: Cpu },
     { id: 'heart-devices' as TabView, label: 'Heart Monitors', icon: Stethoscope },
     { id: 'predictive' as TabView, label: 'Predictions', icon: Brain },
+    { id: 'causal-twin' as TabView, label: 'Causal Twin', icon: Activity },
+    { id: 'what-if' as TabView, label: 'What If', icon: Zap },
+    { id: 'experiments' as TabView, label: 'Experiments', icon: Cpu },
+    { id: 'evidence-ledger' as TabView, label: 'Evidence', icon: FolderOpen },
+    { id: 'model-health' as TabView, label: 'Model Health', icon: Stethoscope },
     { id: 'insights' as TabView, label: 'Insights', icon: TrendingUp },
     { id: 'analytics' as TabView, label: 'Analytics', icon: BarChart3 },
     { id: 'medications' as TabView, label: 'Medications', icon: Pill },
@@ -158,6 +173,26 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
 
         {activeTab === 'insights' && (
           <RaphaelInsightsPanel />
+        )}
+
+        {activeTab === 'causal-twin' && (
+          <CausalTwinDashboard />
+        )}
+
+        {activeTab === 'what-if' && (
+          <WhatIfSimulator />
+        )}
+
+        {activeTab === 'experiments' && (
+          <ExperimentLab />
+        )}
+
+        {activeTab === 'evidence-ledger' && (
+          <EvidenceLedgerView />
+        )}
+
+        {activeTab === 'model-health' && (
+          <ModelHealthPanel />
         )}
 
         {activeTab === 'analytics' && (

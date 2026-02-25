@@ -51,7 +51,7 @@ export default function Marketplace() {
 
   const activeConnectionsCount = getActiveConnectionsCount();
 
-  const categories = ['all', 'Finance', 'Wellness', 'Personal Development', 'Career', 'Creativity', 'Relationships'];
+  const categories = ['all', 'Finance', 'Wellness', 'Personal Development', 'Career', 'Creativity', 'Relationships', 'Aesthetics'];
 
   useEffect(() => {
     loadTemplates();
@@ -296,11 +296,10 @@ export default function Marketplace() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
-                    selectedCategory === category
+                  className={`px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap flex items-center gap-2 ${selectedCategory === category
                       ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20'
                       : 'bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                  }`}
+                    }`}
                 >
                   {category === 'all' && <Filter className="w-4 h-4" />}
                   {category.charAt(0).toUpperCase() + category.slice(1)}

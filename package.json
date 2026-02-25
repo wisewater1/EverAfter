@@ -17,8 +17,10 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:health": "cd health-api && npm test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run test && npm run test:health && npm run test:e2e",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,css,json}\"",
     "type-check": "tsc --noEmit"

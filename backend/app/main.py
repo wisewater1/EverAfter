@@ -11,9 +11,12 @@ print("====================================================")
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.middleware import JWTAuthMiddleware
-from app.api import engrams, chat, tasks, autonomous_tasks, personality, health, social, saints, finance, monitoring, akashic, council, time_capsule, rituals
+from app.api import (
+    engrams, chat, tasks, autonomous_tasks, personality, health, social, saints, 
+    finance, monitoring, akashic, council, time_capsule, rituals, sacred_state,
+    integrity, marketplace_assets, causal_twin
+)
 from contextlib import asynccontextmanager
-import asyncio
 # ... (imports omit)
 
 # ... (middleware omit)
@@ -62,8 +65,12 @@ app.include_router(akashic.router)
 app.include_router(council.router)
 app.include_router(time_capsule.router)
 app.include_router(rituals.router)
+app.include_router(sacred_state.router)
 from app.api import integration
 app.include_router(integration.router, prefix="/integration", tags=["integration"])
+app.include_router(integrity.router, prefix="/api/v1/integrity", tags=["integrity"])
+app.include_router(marketplace_assets.router, prefix="/api/v1/marketplace", tags=["marketplace"])
+app.include_router(causal_twin.router)
 
 
 

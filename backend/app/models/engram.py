@@ -38,6 +38,7 @@ class DailyQuestionResponse(Base):
     ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"))
     question_category = Column(String)
     embedding_generated = Column(Boolean, default=False)
+    training_permitted = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

@@ -7,8 +7,13 @@ import {
 import AddFamilyMemberModal from './AddFamilyMemberModal';
 import AgentPersonalityModal from './AgentPersonalityModal';
 import PersonalityRadar from './PersonalityRadar';
+import TraitBadges from './TraitBadges';
 
-export default function FamilyTreeView() {
+interface FamilyTreeViewProps {
+    onTrainMember?: (engramId: string) => void;
+}
+
+export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
     const [tree, setTree] = useState<FamilyTreeNode[]>(() => buildFamilyTree());
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(['gp1', 'gp3', 'p1']));
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -70,7 +75,20 @@ export default function FamilyTreeView() {
                                         Active
                                     </span>
                                 )}
+                                {member.engramId && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onTrainMember?.(member.engramId!);
+                                        }}
+                                        className="ml-2 inline-flex items-center p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
+                                        title="Train Engram"
+                                    >
+                                        <Brain className="w-3 h-3" />
+                                    </button>
+                                )}
                                 {isDeceased && <span className="ml-1 text-slate-600">†</span>}
+                                <TraitBadges traits={member.aiPersonality?.traits} limit={1} className="inline-flex ml-2 !mt-0 align-middle" />
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider">
@@ -121,7 +139,20 @@ export default function FamilyTreeView() {
                                                 Active
                                             </span>
                                         )}
+                                        {spouse.engramId && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onTrainMember?.(spouse.engramId!);
+                                                }}
+                                                className="ml-2 inline-flex items-center p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
+                                                title="Train Engram"
+                                            >
+                                                <Brain className="w-3 h-3" />
+                                            </button>
+                                        )}
                                         {spouse.deathDate && <span className="ml-1 text-slate-600">†</span>}
+                                        <TraitBadges traits={spouse.aiPersonality?.traits} limit={1} className="inline-flex ml-2 !mt-0 align-middle" />
                                     </div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">
                                         {getGenerationLabel(spouse.generation)}

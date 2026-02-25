@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+import asyncio
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Dict, Any
 from uuid import UUID
 
 from app.db.session import get_async_session
@@ -16,6 +18,8 @@ from app.engrams.personality import get_personality_analyzer
 from app.services.health.service import health_service
 from app.services.embeddings import get_embeddings_service
 from app.services.personality_synthesizer import generate_value_driven_personality
+from app.services.mentorship_service import get_mentorship_service
+from app.services.saint_runtime import saint_runtime
 
 router = APIRouter(prefix="/api/v1/engrams", tags=["engrams"])
 
@@ -228,6 +232,38 @@ async def create_response(
     return new_response
 
 
+@router.post("/{engram_id}/bulk-ingest", response_model=Dict[str, Any])
+async def bulk_ingest_vignette(
+    engram_id: UUID,
+    payload: Dict[str, str] = Body(...),
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    vignette = payload.get("vignette", "")
+    if not vignette:
+        raise HTTPException(status_code=400, detail="No vignette provided")
+
+    # Simple logic: Split by paragraphs or sentences
+    paragraphs = [p.strip() for p in vignette.split("\n\n") if p.strip()]
+    
+    responses_count = 0
+    for i, para in enumerate(paragraphs):
+        new_response = EngramDailyResponse(
+            engram_id=engram_id,
+            user_id=str(current_user.get("sub")),
+            question_text=f"Legacy Vignette Segment {i+1}",
+            response_text=para,
+            question_category="vignette",
+            day_number=999, # Sentinel for non-daily memories
+            mood="reflective"
+        )
+        session.add(new_response)
+        responses_count += 1
+
+    await session.commit()
+    return {"status": "success", "segments_ingested": responses_count}
+
+
 @router.post("/{engram_id}/analyze", response_model=PersonalityAnalysisResponse)
 async def analyze_personality(
     engram_id: UUID,
@@ -279,3 +315,85 @@ async def activate_ai(
     await session.refresh(engram)
 
     return engram
+@router.post("/{engram_id}/mentorship/start", response_model=EngramResponse)
+async def start_mentorship(
+    engram_id: UUID,
+    mentor_id: str = "raphael",
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    service = get_mentorship_service(saint_runtime)
+    
+    # Run mentorship session in the background
+    asyncio.create_task(service.start_mentorship_session(session, mentor_id, str(engram_id)))
+    
+    # Return immediately while training runs in background
+    query = select(Engram).where(Engram.id == engram_id)
+    result = await session.execute(query)
+    return result.scalar_one()
+
+
+@router.post("/batch-sync", response_model=Dict[str, str])
+async def batch_sync_engrams(
+    members: List[Dict[str, Any]] = Body(...),
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Syncs multiple family members to the engram backend.
+    Returns a mapping of local member IDs to backend engram IDs.
+    """
+    user_id_str = current_user.get("sub")
+    if not user_id_str:
+        raise HTTPException(status_code=401, detail="User ID not found")
+    
+    try:
+        user_uuid = UUID(user_id_str)
+    except ValueError:
+        # Fallback for demo-user-001
+        user_uuid = uuid.uuid4() 
+
+    id_mapping = {}
+    
+    # Get existing engrams for this user to avoid duplicates
+    existing_query = select(Engram).where(Engram.user_id == user_uuid)
+    existing_res = await session.execute(existing_query)
+    existing_engrams = {e.name: e for e in existing_res.scalars().all()}
+
+    for member in members:
+        local_id = member.get("id")
+        first_name = member.get("firstName", "")
+        last_name = member.get("lastName", "")
+        full_name = f"{first_name} {last_name}".strip()
+        
+        if not full_name:
+            continue
+
+        if full_name in existing_engrams:
+            # Already exists, just map it
+            id_mapping[local_id] = str(existing_engrams[full_name].id)
+            continue
+
+        # Use a lightweight default personality to avoid sequential LLM timeouts
+        # LLM generation can be triggered later during first training
+        personality_matrix = {
+            "Core Values": {"Family": "Deeply committed to the St. Joseph lineage."},
+            "Communication Style": {"Standard": "Waiting for personality synthesis..."},
+            "Status": "Initializing"
+        }
+
+        new_engram = Engram(
+            user_id=user_uuid,
+            name=full_name,
+            description=member.get("bio") or f"A member of the family tree: {full_name}",
+            avatar_url=member.get("photo"),
+            personality_traits=personality_matrix,
+            training_status='trained' if member.get("aiPersonality", {}).get("isActive") else 'untrained'
+        )
+        
+        session.add(new_engram)
+        await session.flush() # Get the ID
+        id_mapping[local_id] = str(new_engram.id)
+
+    await session.commit()
+    return id_mapping

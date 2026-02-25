@@ -4,7 +4,7 @@ import { Queue } from 'bullmq';
 import { createAuditLog } from '../../lib/audit';
 
 const router = express.Router();
-const ingestQueue = new Queue('ingest:terra', {
+const ingestQueue = new Queue('ingest-terra', {
   connection: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },

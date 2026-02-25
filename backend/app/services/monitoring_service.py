@@ -13,6 +13,7 @@ import psutil
 import os
 
 from app.models.finance import Transaction, BudgetEnvelope
+from app.services.vulnerability_service import vulnerability_service
 
 class SaintsMonitoringService:
     def __init__(self, session: AsyncSession):
@@ -43,13 +44,18 @@ class SaintsMonitoringService:
         cpu_usage = metrics["resources"]["cpu_current"]
         memory_usage = metrics["resources"]["memory_current"]
         
-        status = "active"
-        integrity = 100
-        message = "Perimeter secure. All systems nominal."
+        # 2. Run Vulnerability & Akashic Scan (Lightweight version for status)
+        # In a real app, user_id would be passed from the request context
+        # We'll use a placeholder or skip the DB scan if user_id is missing
+        scan_results = await vulnerability_service.perform_full_security_scan(user_id=None)
+        
+        status = scan_results["status"]
+        integrity = scan_results["system_integrity"]
+        message = scan_results["findings"][0]["message"] if scan_results["findings"] else "Perimeter secure. All systems nominal."
 
         if cpu_usage > 80 or memory_usage > 85:
             status = "warning"
-            integrity = 85
+            integrity -= 10
             message = "High system load detected. Vigilance increased."
         
         return {
@@ -58,8 +64,11 @@ class SaintsMonitoringService:
             "integrity": f"{integrity}%",
             "metrics": {
                 "cpu": f"{cpu_usage}%",
-                "memory": f"{memory_usage}%"
+                "memory": f"{memory_usage}%",
+                "vulnerabilities_tracked": len(scan_results["vulnerabilities"]),
+                "security_findings": scan_results["findings_count"]
             },
+            "recent_findings": scan_results["findings"][:3],
             "message": message
         }
 

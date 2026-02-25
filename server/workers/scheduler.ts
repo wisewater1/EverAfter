@@ -9,17 +9,17 @@ const redisConnection = {
   url: process.env.REDIS_URL || 'redis://localhost:6379',
 };
 
-const agentScheduleQueue = new Queue('agent:schedule', {
+const agentScheduleQueue = new Queue('agent-schedule', {
   connection: redisConnection,
 });
 
-const agentRunQueue = new Queue('agent:run', {
+const agentRunQueue = new Queue('agent-run', {
   connection: redisConnection,
 });
 
 export function startScheduler() {
   const scheduleWorker = new Worker(
-    'agent:schedule',
+    'agent-schedule',
     async (job) => {
       console.log(`⏰ Processing scheduled job: ${job.name}`);
 
@@ -65,7 +65,7 @@ export function startScheduler() {
   );
 
   const runWorker = new Worker(
-    'agent:run',
+    'agent-run',
     async (job) => {
       console.log(`🤖 Running Raphael for user ${job.data.userId}`);
 

@@ -25,7 +25,7 @@ export class TerraClient {
     this.devId = process.env.TERRA_DEV_ID || '';
 
     if (!this.apiKey || !this.devId) {
-      throw new Error('TERRA_API_KEY and TERRA_DEV_ID must be set');
+      console.warn('⚠️ TERRA_API_KEY or TERRA_DEV_ID not set. Terra integration will not work.');
     }
   }
 

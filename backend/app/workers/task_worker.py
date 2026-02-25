@@ -29,6 +29,9 @@ class TaskWorker:
 
     async def start(self):
         """Start the background worker"""
+        if sys.platform == 'win32':
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+            
         self.is_running = True
         logger.info(f"Task worker started using loop: {type(asyncio.get_event_loop())}")
 

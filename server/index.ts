@@ -1,10 +1,14 @@
+import 'dotenv/config';
+
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+
 import terraRouter from './api/connections/terra';
 import bridgesRouter from './api/connections/bridges';
 import webhooksRouter from './api/connections/webhooks';
 import raphaelRouter from './api/raphael';
+import iotRouter from './api/connections/iot_webhooks';
 import { startScheduler } from './workers/scheduler';
 
 const app = express();
@@ -22,6 +26,7 @@ app.use('/api', terraRouter);
 app.use('/api', bridgesRouter);
 app.use('/api', webhooksRouter);
 app.use('/api', raphaelRouter);
+app.use('/api/iot', iotRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'raphael-production' });

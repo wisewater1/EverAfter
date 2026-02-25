@@ -28,8 +28,15 @@ import ScrollIndicator from '../components/ScrollIndicator';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 import PhoneHealthConnect from '../components/PhoneHealthConnect';
 import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge';
+import CausalTwinDashboard from '../components/causal-twin/CausalTwinDashboard';
+import WhatIfSimulator from '../components/causal-twin/WhatIfSimulator';
+import ExperimentLab from '../components/causal-twin/ExperimentLab';
+import EvidenceLedgerView from '../components/causal-twin/EvidenceLedgerView';
+import ModelHealthPanel from '../components/causal-twin/ModelHealthPanel';
 
-type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions';
+import { Beaker, FileText, Radio } from 'lucide-react';
+
+type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions' | 'causal-twin' | 'what-if' | 'experiments' | 'evidence' | 'model-health';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -105,6 +112,11 @@ export default function HealthDashboard() {
     { id: 'connections' as TabView, label: 'Connections', icon: Link2 }, // MOVED TO SECOND POSITION
     { id: 'devices-analytics' as TabView, label: 'Devices & Analytics', icon: LayoutGrid },
     { id: 'predictions' as TabView, label: 'Predictions', icon: Brain },
+    { id: 'causal-twin' as TabView, label: 'Causal Twin', icon: Activity },
+    { id: 'what-if' as TabView, label: 'What If', icon: Target },
+    { id: 'experiments' as TabView, label: 'Experiments', icon: Beaker },
+    { id: 'evidence' as TabView, label: 'Evidence', icon: FileText },
+    { id: 'model-health' as TabView, label: 'Model Health', icon: Radio },
     { id: 'medications' as TabView, label: 'Medications', icon: Heart }, // NOW INCLUDES FILES AS DOCUMENTS
     { id: 'goals' as TabView, label: 'Goals', icon: Target }, // NOW INCLUDES EMERGENCY AS SUB-SECTION
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
@@ -352,6 +364,11 @@ export default function HealthDashboard() {
             </div>
           )}
           {activeTab === 'chat' && <RaphaelChat />}
+          {activeTab === 'causal-twin' && <CausalTwinDashboard />}
+          {activeTab === 'what-if' && <WhatIfSimulator />}
+          {activeTab === 'experiments' && <ExperimentLab />}
+          {activeTab === 'evidence' && <EvidenceLedgerView />}
+          {activeTab === 'model-health' && <ModelHealthPanel />}
           {/* Legacy tab handlers preserved for direct state changes */}
           {activeTab === 'files' && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">

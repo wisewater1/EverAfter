@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from app.db.session import get_async_session
 from app.services.interaction_service import interaction_service
+from app.services.oasis_service import oasis_service
 from app.models.interaction import AgentInteraction
 from app.auth.dependencies import get_current_user
 from app.models.engram import Engram
@@ -113,3 +114,55 @@ async def get_society_feed(
         }
         for i in interactions
     ]
+
+@router.get("/clusters", response_model=Dict[str, List[str]])
+async def get_social_clusters(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Returns interest-based clusters of engrams (Analytical, Creative, etc.).
+    """
+    return await oasis_service.get_social_clusters(session)
+
+@router.post("/propagate/{engram_id}")
+async def trigger_legacy_propagation(
+    engram_id: str,
+    vignette: str,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Triggers a 'viral' spread of a legacy vignette through the social graph.
+    """
+    await oasis_service.trigger_vignette_propagation(session, engram_id, vignette)
+    return {"status": "propagation_started", "initiator": engram_id}
+
+
+@router.post("/boost")
+async def boost_society_interactions(
+    count: int = 5,
+    session: AsyncSession = Depends(get_async_session),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Randomly triggers multiple autonomous interactions to seed a vacant feed.
+    """
+    import random
+    query = select(Engram)
+    result = await session.execute(query)
+    engrams = result.scalars().all()
+
+    if len(engrams) < 2:
+        return {"status": "skipped", "reason": "Not enough engrams to interact"}
+
+    interactions_started = 0
+    for _ in range(count):
+        participants = random.sample(engrams, 2)
+        # We trigger the standard interaction service
+        await interaction_service.simulate_interaction(
+            session, str(participants[0].id), str(participants[1].id)
+        )
+        interactions_started += 1
+
+    return {"status": "success", "boosted_count": interactions_started}

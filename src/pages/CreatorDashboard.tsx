@@ -14,7 +14,9 @@ import {
   Package,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  Brain,
+  Sparkles
 } from 'lucide-react';
 
 interface CreatorProfile {
@@ -43,13 +45,22 @@ interface Template {
   created_at: string;
 }
 
+interface MineableEngram {
+  id: string;
+  question_text: string;
+  question_category: string;
+  training_permitted: boolean;
+  created_at: string;
+}
+
 export default function CreatorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [mineableEngrams, setMineableEngrams] = useState<MineableEngram[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'analytics' | 'mining'>('overview');
 
   useEffect(() => {
     if (!user) {
@@ -96,10 +107,38 @@ export default function CreatorDashboard() {
 
       if (templatesError) throw templatesError;
       setTemplates(templatesData || []);
+
+      // Fetch Mineable Engrams
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const mineableRes = await fetch(`${API_BASE_URL}/api/v1/marketplace/assets/mining`, {
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
+      if (mineableRes.ok) {
+        setMineableEngrams(await mineableRes.json());
+      }
     } catch (error) {
       console.error('Error loading creator data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleTrainingPermit = async (engramId: string, currentStatus: boolean) => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const res = await fetch(`${API_BASE_URL}/api/v1/marketplace/assets/mining/${engramId}/permit?permit=${!currentStatus}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
+      if (res.ok) {
+        setMineableEngrams(prev => prev.map(e => e.id === engramId ? { ...e, training_permitted: !currentStatus } : e));
+      }
+    } catch (error) {
+      console.error('Error toggling training permit:', error);
     }
   };
 
@@ -191,33 +230,30 @@ export default function CreatorDashboard() {
           <div className="flex gap-2 mb-6">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'overview'
-                  ? 'bg-sky-600 text-white'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'overview'
+                ? 'bg-sky-600 text-white'
+                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab('templates')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'templates'
-                  ? 'bg-sky-600 text-white'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'templates'
+                ? 'bg-sky-600 text-white'
+                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                }`}
             >
               Templates
             </button>
             <button
-              onClick={() => setActiveTab('analytics')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'analytics'
-                  ? 'bg-sky-600 text-white'
-                  : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-              }`}
+              onClick={() => setActiveTab('mining')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'mining'
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
+                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
+                }`}
             >
-              Analytics
+              Memory Mining
             </button>
           </div>
         </div>
@@ -322,6 +358,71 @@ export default function CreatorDashboard() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'mining' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Akashic Memory Mining</h3>
+                  <p className="text-sm text-slate-400">Monetize your digital legacy for AI training</p>
+                </div>
+              </div>
+              <p className="text-slate-300 text-sm leading-relaxed mb-4">
+                By permitting your engrams (memory responses) to be used for AI training, you contribute to the
+                evolution of the EverAfter ecosystem and earn credits. Your data is anonymized before use.
+              </p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/20 rounded-lg text-amber-400 text-xs font-bold uppercase tracking-wider">
+                <Sparkles className="w-3 h-3" />
+                Beta Feature: Earn 2x credits
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {mineableEngrams.length === 0 ? (
+                <div className="p-12 text-center bg-slate-900/30 rounded-2xl border border-slate-800">
+                  <Clock className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                  <p className="text-slate-400">No mineable engrams found. Start answering daily questions to build your legacy.</p>
+                </div>
+              ) : (
+                mineableEngrams.map((engram) => (
+                  <div key={engram.id} className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-xl p-5 flex items-center justify-between group hover:border-amber-500/30 transition-all">
+                    <div className="flex-1 mr-6">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2 py-0.5 bg-slate-700 text-slate-300 text-[10px] font-bold uppercase rounded">
+                          {engram.question_category}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {new Date(engram.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-white font-medium line-clamp-1">{engram.question_text}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right mr-2">
+                        <p className={`text-xs font-bold ${engram.training_permitted ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          {engram.training_permitted ? 'PERMITTED' : 'PAUSED'}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Estimated Value: 0.05 Cr
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => toggleTrainingPermit(engram.id, engram.training_permitted)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${engram.training_permitted ? 'bg-emerald-600' : 'bg-slate-700'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${engram.training_permitted ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

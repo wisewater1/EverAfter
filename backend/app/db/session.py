@@ -58,3 +58,7 @@ async def get_async_session():
             yield session
         finally:
             await session.close()
+
+# Aliases for backward compatibility
+get_session = get_async_session
+async_session_maker = AsyncSessionLocal

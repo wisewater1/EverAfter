@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import axios from 'axios';
 
 export interface IntegrityReport {
     overallScore: number;
@@ -10,12 +11,13 @@ export interface IntegrityReport {
 
 export interface SecurityAlert {
     id: string;
-    type: 'access' | 'integrity' | 'leak_prevention' | 'system' | 'cai_audit';
+    type: 'access' | 'integrity' | 'leak_prevention' | 'system' | 'cai_audit' | 'pii_leak';
     severity: 'low' | 'medium' | 'high' | 'critical';
     message: string;
     timestamp: string;
     resolved: boolean;
     cai_flag?: boolean;
+    details?: string;
 }
 
 export interface AuditRecord {
@@ -56,6 +58,37 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         // Check for "leak" prevention (St. Raphael data)
         // In a real scenario, this would query access logs for specific health metrics
         const privacyStatus = 100;
+
+        // 3. Fetch live status from backend
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+
+        try {
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+            const res = await axios.get(`${baseUrl}/api/v1/monitoring/status`, { headers });
+            const michael = res.data.michael;
+
+            // Map backend findings to frontend alerts
+            const findings = (michael.recent_findings || []).map((f: any) => ({
+                id: f.id,
+                type: f.type,
+                severity: f.severity,
+                message: f.message,
+                timestamp: f.timestamp,
+                resolved: false,
+                details: f.details
+            }));
+
+            return {
+                overallScore: parseInt(michael.integrity.replace('%', '')),
+                dataIntegrity,
+                privacyStatus,
+                lastScan: res.data.timestamp,
+                alerts: [...alerts, ...findings]
+            };
+        } catch (e) {
+            console.warn("Backend status unavailable, falling back to mock integrity");
+        }
 
         return {
             overallScore: Math.round((dataIntegrity + privacyStatus) / 2),
@@ -192,6 +225,27 @@ export function getThreatEvents(): ThreatEvent[] {
         { id: 'th6', title: 'Credential Access via Cache', description: 'Attempt to read cached credentials from local storage', severity: 'medium', category: 'credential_access', source: 'St. Michael Agent', timestamp: new Date(now - 14400000).toISOString(), mitigated: true, ruleId: 'T1003' },
         { id: 'th7', title: 'Lateral Movement Signal', description: 'Unusual cross-service communication pattern detected', severity: 'low', category: 'lateral_movement', source: 'Service Mesh', timestamp: new Date(now - 28800000).toISOString(), mitigated: false, ruleId: 'T1021' },
     ];
+}
+
+export async function getLiveVulnerabilities(): Promise<VulnerabilityEntry[]> {
+    try {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+        const res = await axios.get(`${baseUrl}/api/v1/monitoring/michael/vulnerabilities`, { headers });
+        return res.data;
+    } catch (e) {
+        console.error("Failed to fetch live CVEs", e);
+        return getVulnerabilities(); // Fallback
+    }
+}
+
+export async function triggerLiveScan(): Promise<any> {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+    const res = await axios.post(`${baseUrl}/api/v1/monitoring/michael/scan`, {}, { headers });
+    return res.data;
 }
 
 export function getVulnerabilities(): VulnerabilityEntry[] {

@@ -31,6 +31,7 @@ export interface FamilyMember {
     notes?: string[];
     sources?: SourceCitation[];
     // Agency & Integration
+    engramId?: string; // Links to backend persistence
     githubUsername?: string;
     githubTraits?: any[];
 }

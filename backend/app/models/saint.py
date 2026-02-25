@@ -6,7 +6,7 @@ about the user across conversations. This enables saints to remember
 facts, preferences, and context specific to their domain.
 """
 
-from sqlalchemy import Column, String, Text, Float, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, Float, DateTime, ForeignKey, JSON, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -44,3 +44,16 @@ class GuardianIntercession(Base):
     execution_result = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class IntegrityHistory(Base):
+    """
+    Tracks daily security integrity scores to calculate safe-user dividends.
+    """
+    __tablename__ = "integrity_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    score = Column(Float, nullable=False) # 0.0 to 1.0 or 0 to 100
+    findings_count = Column(Integer, default=0)
+    dividend_accumulated = Column(Float, default=0.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

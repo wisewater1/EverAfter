@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Activity, Bot, Brain, Heart, Link2, ShoppingCart, LogOut, Users, Briefcase } from 'lucide-react';
+import { Menu, Bot, Brain, Heart, Link2, ShoppingCart, LogOut, Users, Briefcase, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import MobileMenu from '../components/MobileMenu';
@@ -56,9 +56,9 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { id: 'activities', label: 'Activities', icon: Activity },
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'council', label: 'Council', icon: Users },
+    { id: 'rituals', label: 'Rituals', icon: Sparkles },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -74,6 +74,7 @@ export default function Dashboard() {
         onOpenConnections={() => openConnectionsPanel()}
         onNavigateToMarketplace={() => navigate('/marketplace')}
         onNavigateToCareer={() => navigate('/career')}
+        onNavigateToRituals={() => navigate('/rituals')}
         onSignOut={handleSignOut}
         activeConnectionsCount={activeConnectionsCount}
       />
@@ -166,7 +167,13 @@ export default function Dashboard() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setSelectedView(item.id as any)}
+                  onClick={() => {
+                    if (item.id === 'rituals') {
+                      navigate('/rituals');
+                    } else {
+                      setSelectedView(item.id as any);
+                    }
+                  }}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
                   className={`group relative flex-shrink-0 snap-start px-4 sm:px-5 py-4 transition-all duration-200 ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300 active:text-slate-200'
@@ -209,7 +216,13 @@ export default function Dashboard() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setSelectedView(item.id as any)}
+                  onClick={() => {
+                    if (item.id === 'rituals') {
+                      navigate('/rituals');
+                    } else {
+                      setSelectedView(item.id as any);
+                    }
+                  }}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
                   className={`group relative px-6 py-3.5 rounded-lg transition-all duration-200 ${isActive

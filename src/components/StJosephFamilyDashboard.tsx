@@ -4,7 +4,7 @@ import {
     CheckSquare, Clock, MapPin, Info, MessageSquare, Plus,
     Activity, RefreshCw, ArrowLeft,
     GitBranch, UserCheck, History, MessageCircle, Search,
-    Scale, Archive, Sparkles
+    Scale, Archive, Sparkles, Brain
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,8 +22,12 @@ import FamilyTimeline from './joseph/FamilyTimeline';
 import GeneWebTools from './joseph/GeneWebTools';
 import SocietyFeed from './SocietyFeed';
 import CouncilAlerts from './CouncilAlerts';
+import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
+import { getFamilyMembers } from '../lib/joseph/genealogy';
+import { apiClient } from '../lib/api-client';
+import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
 
-type TabKey = 'tree' | 'members' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy';
+type TabKey = 'tree' | 'members' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training';
 
 const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', icon: GitBranch },
@@ -34,6 +38,7 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'shopping', label: 'Shopping', icon: ShoppingCart },
     { key: 'calendar', label: 'Calendar', icon: Calendar },
     { key: 'genealogy', label: 'Genealogy', icon: Search },
+    { key: 'training', label: 'Training Lab', icon: Brain },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
@@ -46,6 +51,12 @@ export default function StJosephFamilyDashboard() {
     const [events, setEvents] = useState<FamilyEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
+    const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
+
+    const handleTrainMember = (engramId: string) => {
+        setTrainingTargetId(engramId);
+        setActiveTab('training');
+    };
 
     const loadData = async () => {
         if (!user) return;
@@ -68,8 +79,20 @@ export default function StJosephFamilyDashboard() {
         }
     };
 
+    const syncEngrams = async () => {
+        const members = getFamilyMembers();
+        try {
+            console.log('St. Joseph: Synchronizing family engrams...');
+            await apiClient.batchSyncEngrams(members);
+            console.log('St. Joseph: Family engrams synchronized.');
+        } catch (error) {
+            console.error('St. Joseph: Failed to sync engrams:', error);
+        }
+    };
+
     useEffect(() => {
         loadData();
+        syncEngrams();
     }, [user]);
 
     if (loading) {
@@ -140,10 +163,20 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training') && (
                 <div className="max-w-7xl mx-auto">
-                    {activeTab === 'tree' && <FamilyTreeView />}
-                    {activeTab === 'members' && <FamilyMembersGrid />}
+                    {activeTab === 'tree' && <FamilyTreeView onTrainMember={handleTrainMember} />}
+                    {activeTab === 'members' && (
+                        <div className="space-y-4">
+                            <FamilyHealthHeatmap />
+                            <FamilyMembersGrid onTrainMember={handleTrainMember} />
+                        </div>
+                    )}
+                    {activeTab === 'training' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <PersonalityTrainingCenter targetEngramId={trainingTargetId} />
+                        </div>
+                    )}
                     {activeTab === 'timeline' && (
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
                             <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">

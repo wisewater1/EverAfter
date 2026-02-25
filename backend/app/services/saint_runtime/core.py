@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.saint_agent_service import saint_agent_service
 from app.services.agent_bus import agent_bus, AgentEvent
 from app.services.mission_board import mission_board
+from app.services.oasis_service import oasis_service
 
 # Deep Integration Modules
 from .memory.stream import MemoryStream
@@ -198,6 +199,9 @@ class SaintRuntime:
                     # 1. St. Raphael Health Vigil
                     await self._run_raphael_vigil(session)
                     
+                    # 2. St. Michael Security Vigil
+                    await self._run_michael_vigil(session)
+                    
             except Exception as e:
                 logger.error(f"Error in Predictive Vigils: {e}")
 
@@ -258,16 +262,79 @@ class SaintRuntime:
                 payload={"content": "I have detected a concerning health pattern and drafted an intervention. Please review your pending intercessions.", "importance": 8.0}
             ))
             
+            # EMBODIMENT: Summon Raphael to the Altar
+            try:
+                from app.api.sacred_state import load_state, save_state
+                state = load_state()
+                if user_id in state:
+                    state[user_id]["active_guardian_id"] = "raphael"
+                    state[user_id]["biometric_mode"] = True
+                    state[user_id]["iot_scene_active"] = "healing_sanctuary"
+                    save_state(state)
+                    logger.info(f"SaintRuntime [Embodiment]: Summoned Raphael for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to trigger embodiment for Raphael: {e}")
+            
         except Exception as e:
             logger.error(f"Error in Raphael Vigil: {e}")
 
+    async def _run_michael_vigil(self, session: AsyncSession):
+        """Performs a periodic security scan and audits Akashic records."""
+        from app.services.vulnerability_service import vulnerability_service
+        try:
+            logger.info("SaintRuntime [Vigil]: St. Michael executing security audit...")
+            # We run the scan for a "system context" (user_id=None for now)
+            # In a multi-tenant setup, we'd loop through active users
+            vulnerability_service.session = session
+            scan_results = await vulnerability_service.perform_full_security_scan(user_id=None)
+            
+            # Record Integrity Dividend (System-wide or specific user if needed)
+            # For the vigil, we might track system integrity, but for monetization,
+            # dividends are usually per-user. The vigil runs system-wide.
+            # We'll record a 'system' entry for now, or record for a default admin user.
+            from app.services.integrity_service import integrity_service
+            # Note: In a real multi-tenant app, you'd iterate active users.
+            # For this demo, we'll record for the "System Guardian" context.
+            await integrity_service.record_daily_score(
+                session, 
+                user_id="00000000-0000-0000-0000-000000000000", # System ID
+                score=scan_results.get("integrity_score", 100),
+                findings_count=scan_results.get("findings_count", 0)
+            )
+
+            if scan_results["findings_count"] > 0:
+                logger.warning(f"SaintRuntime [Vigil]: St. Michael detected {scan_results['findings_count']} security findings!")
+                
+                # Alert the frontend via AgentBus
+                await self.bus.publish(AgentEvent(
+                    type="system_alert",
+                    sender="michael",
+                    payload={
+                        "importance": 9.0
+                    }
+                ))
+
+                # EMBODIMENT: Summon Michael to the Altar
+                try:
+                    from app.api.sacred_state import load_state, save_state
+                    state = load_state()
+                    # For demo, apply to all active user slots found in state
+                    for user_id in state.keys():
+                        state[user_id]["active_guardian_id"] = "michael"
+                        state[user_id]["iot_scene_active"] = "security_shield"
+                        save_state(state)
+                    logger.info(f"SaintRuntime [Embodiment]: Summoned Michael for security vigil.")
+                except Exception as e:
+                    logger.error(f"Failed to trigger embodiment for Michael: {e}")
+        except Exception as e:
+            logger.error(f"Error in Michael Vigil: {e}")
+
     async def trigger_social(self, session: AsyncSession, initiator_id: str, receiver_id: str):
         """
-        Trigger an autonomous interaction between two agents.
-        This uses the high-level InteractionService to simulate society.
+        Trigger an autonomous interaction between two agents using the OASIS Social Engine.
         """
+        logger.info(f"SaintRuntime: Triggering social interaction between {initiator_id} and {receiver_id} via OASIS")
         from app.services.interaction_service import interaction_service
-        logger.info(f"SaintRuntime: Triggering social interaction between {initiator_id} and {receiver_id}")
         return await interaction_service.simulate_interaction(session, initiator_id, receiver_id)
 
     async def _handle_event(self, event: AgentEvent):

@@ -700,6 +700,149 @@ class APIClient {
       throw error;
     }
   }
+
+  async getSocialClusters(): Promise<Record<string, string[]>> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/social/clusters`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Get Social Clusters Error:", error);
+      return {};
+    }
+  }
+
+  async triggerLegacyPropagation(engramId: string, vignette: string): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/social/propagate/${engramId}?vignette=${encodeURIComponent(vignette)}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Trigger Legacy Propagation Error:", error);
+      throw error;
+    }
+  }
+
+  async batchSyncEngrams(members: any[]): Promise<Record<string, string>> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/batch-sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(members)
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Batch Sync Engrams Error:", error);
+      return {};
+    }
+  }
+
+  async boostSociety(count: number = 5): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/social/boost?count=${count}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Boost Society Error:", error);
+      throw error;
+    }
+  }
+
+  async analyzePersonality(engramId: string): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/analyze`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Analyze Personality Error:", error);
+      throw error;
+    }
+  }
+
+  async startMentorship(engramId: string, mentorId: string): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/mentorship/start?mentor_id=${mentorId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Start Mentorship Error:", error);
+      throw error;
+    }
+  }
+
+  async ingestVignette(engramId: string, content: string): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/vignette`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Ingest Vignette Error:", error);
+      throw error;
+    }
+  }
 }
 
 export const apiClient = new APIClient();

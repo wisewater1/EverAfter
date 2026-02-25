@@ -64,8 +64,12 @@ export default function EternalCareInsurance() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'beneficiaries' | 'claims' | 'payments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'beneficiaries' | 'claims' | 'payments' | 'dividends'>('overview');
   const [showAddPolicy, setShowAddPolicy] = useState(false);
+  const [dividendData, setDividendData] = useState<{ total_accumulated: number, recent_history: any[] }>({
+    total_accumulated: 0,
+    recent_history: []
+  });
 
   useEffect(() => {
     if (user) {
@@ -85,6 +89,17 @@ export default function EternalCareInsurance() {
         supabase.from('insurance_claims').select('*'),
         supabase.from('insurance_payments').select('*').order('payment_date', { ascending: false })
       ]);
+
+      // Fetch Dividends from Custom API
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const dividendRes = await fetch(`${API_BASE_URL}/api/v1/integrity/dividends`, {
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
+      if (dividendRes.ok) {
+        setDividendData(await dividendRes.json());
+      }
 
       if (policiesRes.error) throw policiesRes.error;
       if (beneficiariesRes.error) throw beneficiariesRes.error;
@@ -256,11 +271,10 @@ export default function EternalCareInsurance() {
                   <button
                     key={policy.id}
                     onClick={() => setSelectedPolicy(policy)}
-                    className={`w-full p-4 rounded-xl border transition-all text-left ${
-                      selectedPolicy?.id === policy.id
-                        ? 'bg-gradient-to-br from-rose-500/20 to-pink-500/20 border-rose-500/30'
-                        : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600'
-                    }`}
+                    className={`w-full p-4 rounded-xl border transition-all text-left ${selectedPolicy?.id === policy.id
+                      ? 'bg-gradient-to-br from-rose-500/20 to-pink-500/20 border-rose-500/30'
+                      : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600'
+                      }`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -301,15 +315,14 @@ export default function EternalCareInsurance() {
                   </div>
 
                   <div className="flex items-center gap-4 border-b border-slate-700/50 mb-6">
-                    {(['overview', 'beneficiaries', 'claims', 'payments'] as const).map(tab => (
+                    {(['overview', 'beneficiaries', 'claims', 'payments', 'dividends'] as const).map(tab => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
-                          activeTab === tab
-                            ? 'text-rose-400 border-rose-500'
-                            : 'text-slate-400 border-transparent hover:text-slate-300'
-                        }`}
+                        className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${activeTab === tab
+                          ? 'text-rose-400 border-rose-500'
+                          : 'text-slate-400 border-transparent hover:text-slate-300'
+                          }`}
                       >
                         {tab.charAt(0).toUpperCase() + tab.slice(1)}
                       </button>
@@ -474,6 +487,61 @@ export default function EternalCareInsurance() {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {activeTab === 'dividends' && (
+                    <div className="space-y-6">
+                      <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                              <DollarSign className="w-6 h-6 text-emerald-400" />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-white">Integrity Dividends</h3>
+                              <p className="text-sm text-slate-400">Rewards for maintaining system security</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-3xl font-bold text-emerald-400">{formatCurrency(dividendData.total_accumulated)}</p>
+                            <p className="text-xs text-slate-500">Total Accumulated Payouts</p>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-slate-900/40 rounded-xl border border-slate-700/30">
+                          <p className="text-sm text-slate-300 leading-relaxed">
+                            Your Integrity Dividend is calculated daily based on your St. Michael integrity score.
+                            Users with no recent vulnerability findings and higher system safety ratings earn larger payouts.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-white px-1">Recent History</h3>
+                        {dividendData.recent_history.length === 0 ? (
+                          <div className="p-8 text-center text-slate-500 bg-slate-900/30 rounded-xl border border-slate-800">
+                            <Clock className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                            <p>No dividend history available yet. Rewards are calculated every 24 hours.</p>
+                          </div>
+                        ) : (
+                          dividendData.recent_history.map((item, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.score > 80 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                  {item.score}%
+                                </div>
+                                <div>
+                                  <p className="text-white font-medium">{formatDate(item.created_at)}</p>
+                                  <p className="text-xs text-slate-500">{item.findings_count} security findings</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-emerald-400 font-bold">+{formatCurrency(item.dividend_accumulated)}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

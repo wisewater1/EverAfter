@@ -48,6 +48,8 @@ import StJosephFamilyDashboard from './components/StJosephFamilyDashboard';
 import CouncilOracle from './components/council/CouncilOracle';
 import TimeCapsuleVault from './components/capsules/TimeCapsuleVault';
 import RitualAltar from './components/rituals/RitualAltar';
+import SacredOverlay from './components/rituals/SacredOverlay';
+import PersonalityTrainingCenter from './components/personality/PersonalityTrainingCenter';
 
 import StAnthonyAuditDashboard from './components/anthony/StAnthonyAuditDashboard';
 import StGabrielFinanceDashboard from './components/gabriel/StGabrielFinanceDashboard';
@@ -248,9 +250,15 @@ function App() {
                     <RitualAltar />
                   </ProtectedRoute>
                 } />
+                <Route path="/personality-training" element={
+                  <ProtectedRoute>
+                    <PersonalityTrainingCenter />
+                  </ProtectedRoute>
+                } />
                 <Route path="/career/public/:token" element={<PublicCareerChat />} />
               </Routes>
               <ConnectionsPanel />
+              <SacredOverlay />
             </Router>
             <HealthAlertListener />
             <NotificationToast />

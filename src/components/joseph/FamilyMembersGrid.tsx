@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Search, User, Heart, X, Brain, Activity } from 'lucide-react';
+import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import {
     getFamilyMembers, FamilyMember, getSpouse,
     getChildren, formatDate, getGenerationLabel,
-    activateAgent
+    activateAgent, updateFamilyMember
 } from '../../lib/joseph/genealogy';
 import PersonalityRadar from './PersonalityRadar';
 import SaintChat from '../SaintChat';
 import SocietyFeed from '../SocietyFeed';
+import TraitBadges from './TraitBadges';
+import axios from 'axios';
+import { supabase } from '../../lib/supabase';
+import CausalAncestryPanel from '../causal-twin/CausalAncestryPanel';
 
 interface InteractionEvent {
     id: string;
@@ -19,11 +23,84 @@ interface InteractionEvent {
     rapport: number;
 }
 
-export default function FamilyMembersGrid() {
+interface FamilyMembersGridProps {
+    onTrainMember?: (engramId: string) => void;
+}
+
+export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridProps) {
     const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
     const [search, setSearch] = useState('');
     const [filterGen, setFilterGen] = useState<number | null>(null);
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [ancestryTarget, setAncestryTarget] = useState<FamilyMember | null>(null);
+
+    const syncEngrams = async () => {
+        setIsSyncing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const headers = { Authorization: `Bearer ${session.access_token}` };
+            const res = await axios.get('/api/v1/engrams/', { headers });
+            const backendEngrams = res.data;
+
+            const updatedMembers = members.map(m => {
+                // If already has engramId, skip
+                if (m.engramId) return m;
+
+                // Try to find matching engram by name
+                const match = backendEngrams.find((e: any) =>
+                    e.name.toLowerCase() === `${m.firstName} ${m.lastName}`.toLowerCase()
+                );
+
+                if (match) {
+                    const updated = { ...m, engramId: match.id };
+                    updateFamilyMember(m.id, updated);
+                    return updated;
+                }
+                return m;
+            });
+
+            setMembers(updatedMembers);
+        } catch (err) {
+            console.error('Engram sync failed:', err);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    const provisionEngram = async (member: FamilyMember) => {
+        setIsSyncing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers = { Authorization: `Bearer ${session?.access_token}` };
+
+            // Register as dynamic agent
+            const res = await axios.post('/api/v1/saints/register_dynamic', {
+                name: `${member.firstName} ${member.lastName}`,
+                description: member.bio || `Family member engram for ${member.firstName}`,
+                system_prompt: `You are ${member.firstName} ${member.lastName}. ${member.bio || ""}`,
+                traits: {
+                    generation: member.generation,
+                    memberId: member.id
+                }
+            }, { headers });
+
+            const engramId = res.data.engram_id;
+            const updated = { ...member, engramId };
+            updateFamilyMember(member.id, updated);
+            setMembers(prev => prev.map(m => m.id === member.id ? updated : m));
+            return engramId;
+        } catch (err) {
+            console.error('Provisioning failed:', err);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    useEffect(() => {
+        syncEngrams();
+    }, []);
     const [personalityMember, setPersonalityMember] = useState<FamilyMember | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
     const [societyEvents, setSocietyEvents] = useState<InteractionEvent[]>([]);
@@ -189,6 +266,7 @@ export default function FamilyMembersGrid() {
                                                 )}
                                                 {isDeceased && <span className="ml-1 text-slate-600">†</span>}
                                             </div>
+                                            <TraitBadges traits={member.aiPersonality?.traits} />
                                             <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">
                                                 {getGenerationLabel(member.generation)}
                                             </div>
@@ -224,39 +302,79 @@ export default function FamilyMembersGrid() {
                                             </div>
                                         </div>
 
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPersonalityMember(member);
-                                            }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-xs font-medium transition-colors"
-                                        >
-                                            <Brain className="w-3 h-3" />
-                                            <span>Personality</span>
-                                        </button>
-
-                                        {member.aiPersonality?.isActive ? (
+                                        {/* Predict Trajectory button */}
+                                        {!isDeceased && (
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setChatMember(member);
+                                                    setAncestryTarget(member);
                                                 }}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-medium transition-colors"
+                                                className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 text-[10px] font-bold uppercase tracking-wider transition-all border border-teal-500/20"
                                             >
-                                                <Heart className="w-3 h-3" />
-                                                <span>Chat</span>
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleActivate(member);
-                                                }}
-                                                className="px-3 py-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10 text-xs font-medium transition-colors"
-                                            >
-                                                Activate
+                                                <Dna className="w-3 h-3" />
+                                                <span>🔮 Predict Trajectory</span>
                                             </button>
                                         )}
+                                        <div className="flex flex-wrap gap-2 pt-1 border-t border-white/5 mt-2">
+                                            {member.engramId ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onTrainMember?.(member.engramId!);
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-wider transition-all border border-amber-500/20"
+                                                >
+                                                    <Brain className="w-3 h-3" />
+                                                    <span>Train</span>
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        provisionEngram(member);
+                                                    }}
+                                                    disabled={isSyncing}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/40 text-slate-400 hover:bg-slate-800/60 text-[10px] font-bold uppercase tracking-wider transition-all border border-white/5 disabled:opacity-50"
+                                                >
+                                                    <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                                                    <span>Provision</span>
+                                                </button>
+                                            )}
+
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPersonalityMember(member);
+                                                }}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-[10px] font-bold uppercase tracking-wider transition-all"
+                                            >
+                                                <Activity className="w-3 h-3" />
+                                                <span>Stats</span>
+                                            </button>
+
+                                            {member.aiPersonality?.isActive ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setChatMember(member);
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-bold uppercase tracking-wider transition-all"
+                                                >
+                                                    <Heart className="w-3 h-3" />
+                                                    <span>Chat</span>
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleActivate(member);
+                                                    }}
+                                                    className="px-3 py-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10 text-[10px] font-bold uppercase tracking-wider transition-all"
+                                                >
+                                                    Activate
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -369,6 +487,13 @@ export default function FamilyMembersGrid() {
                     </div>
                 )
             }
+            {/* Causal Ancestry Panel */}
+            {ancestryTarget && (
+                <CausalAncestryPanel
+                    member={ancestryTarget}
+                    onClose={() => setAncestryTarget(null)}
+                />
+            )}
         </>
     );
 }
