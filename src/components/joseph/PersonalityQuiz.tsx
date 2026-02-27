@@ -140,10 +140,45 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
         return groups;
     }, [questions]);
 
+    // Check local storage for existing progress text
+    const getSavedProgressText = (memberId: string) => {
+        try {
+            const saved = localStorage.getItem(`everafter_quiz_progress_${memberId}`);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed.currentQ === 'number') {
+                    return `Resume Quiz (Saved at Q${parsed.currentQ + 1})`;
+                }
+            }
+        } catch { }
+        return null;
+    };
+
     /* ── Start quiz ──────────────────────────────────────── */
 
     const startQuiz = useCallback(async (member: FamilyMember) => {
         setSelectedMember(member);
+        const storageKey = `everafter_quiz_progress_${member.id}`;
+
+        // Check for saved progress first
+        try {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.sessionId && parsed.questions) {
+                    setSessionId(parsed.sessionId);
+                    setQuestions(parsed.questions);
+                    setAnswers(parsed.answers || {});
+                    setCurrentQ(parsed.currentQ || 0);
+                    setPhase('quiz');
+                    return; // Abort new backend fetch
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse saved quiz progress", e);
+        }
+
+        // Otherwise generate a new session
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE}/api/v1/personality-quiz/start`, {
@@ -161,6 +196,14 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                 setAnswers({});
                 setCurrentQ(0);
                 setPhase('quiz');
+
+                // Init blank save file
+                localStorage.setItem(storageKey, JSON.stringify({
+                    sessionId: data.session_id,
+                    questions: data.questions,
+                    answers: {},
+                    currentQ: 0
+                }));
             }
         } catch {
             console.error('Failed to start quiz session');
@@ -169,10 +212,25 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
     }, []);
 
     const selectAnswer = (value: number) => {
-        if (!currentQuestion) return;
-        setAnswers(prev => ({ ...prev, [currentQuestion.id]: value }));
-        if (currentQ < questions.length - 1) {
-            setTimeout(() => setCurrentQ(prev => prev + 1), 300);
+        if (!currentQuestion || !selectedMember) return;
+
+        const newAnswers = { ...answers, [currentQuestion.id]: value };
+        setAnswers(newAnswers);
+
+        const isLastQuestion = currentQ >= questions.length - 1;
+        const nextQ = isLastQuestion ? currentQ : currentQ + 1;
+
+        // Save progress locally
+        const storageKey = `everafter_quiz_progress_${selectedMember.id}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+            sessionId,
+            questions,
+            answers: newAnswers,
+            currentQ: nextQ
+        }));
+
+        if (!isLastQuestion) {
+            setTimeout(() => setCurrentQ(nextQ), 300);
         }
     };
 
@@ -190,6 +248,11 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                 const data = await res.json();
                 setProfile(data);
                 setPhase('results');
+
+                // Wipe local storage file since we submitted
+                if (selectedMember) {
+                    localStorage.removeItem(`everafter_quiz_progress_${selectedMember.id}`);
+                }
 
                 // Notify parent (e.g., TrainingCenter) so radar updates immediately
                 if (onProfileComplete) {
@@ -213,7 +276,7 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
             console.error('Submit failed:', err);
         }
         setLoading(false);
-    }, [sessionId, answers, selectedMember]);
+    }, [sessionId, answers, selectedMember, onProfileComplete]);
 
     const restart = () => {
         setPhase('select');
@@ -265,27 +328,31 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                     <p className="text-xs text-slate-500 mb-3">Select a family member:</p>
 
                     <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                        {members.filter(m => !m.deathDate).map(m => (
-                            <button
-                                key={m.id}
-                                onClick={() => startQuiz(m)}
-                                disabled={loading}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/[0.03] transition text-left group"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                    <Users className="w-4 h-4 text-purple-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-white font-medium">{m.firstName} {m.lastName}</p>
-                                    <p className="text-[10px] text-slate-600">
-                                        {m.aiPersonality?.traits?.length
-                                            ? `${m.aiPersonality.traits.join(', ')}`
-                                            : 'No profile yet'}
-                                    </p>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-purple-400 transition" />
-                            </button>
-                        ))}
+                        {members.filter(m => !m.deathDate).map(m => {
+                            const progressText = getSavedProgressText(m.id);
+
+                            return (
+                                <button
+                                    key={m.id}
+                                    onClick={() => startQuiz(m)}
+                                    disabled={loading}
+                                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/[0.03] transition text-left group"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Users className="w-4 h-4 text-purple-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-white font-medium">{m.firstName} {m.lastName}</p>
+                                        <p className={`text-[10px] ${progressText ? 'text-amber-400 font-bold' : 'text-slate-600'}`}>
+                                            {progressText || (m.aiPersonality?.traits?.length
+                                                ? `${m.aiPersonality.traits.join(', ')}`
+                                                : 'No profile yet')}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-purple-400 transition" />
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -354,7 +421,16 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                     {/* Navigation */}
                     <div className="px-5 pb-5 flex items-center justify-between">
                         <button
-                            onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
+                            onClick={() => {
+                                const nextQ = Math.max(0, currentQ - 1);
+                                setCurrentQ(nextQ);
+                                // Save local progress when going back too
+                                if (selectedMember) {
+                                    localStorage.setItem(`everafter_quiz_progress_${selectedMember.id}`, JSON.stringify({
+                                        sessionId, questions, answers, currentQ: nextQ
+                                    }));
+                                }
+                            }}
                             disabled={currentQ === 0}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-white disabled:opacity-30 transition"
                         >
@@ -430,8 +506,8 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeTab === tab.id
-                                            ? 'bg-indigo-500/20 text-indigo-300'
-                                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                        ? 'bg-indigo-500/20 text-indigo-300'
+                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                                         }`}
                                 >
                                     <Icon className="w-3.5 h-3.5" />
