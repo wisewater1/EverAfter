@@ -184,7 +184,7 @@ class APIClient {
       }
 
       // Use VITE_API_BASE_URL from env or default to localhost:8001
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && !window.location.hostname.includes('everafterai.net') ? `http://${window.location.hostname}:8001` : 'http://localhost:8001');
 
       try {
         const response = await fetch(`${API_BASE}/api/v1/chat/${engramId}/message`, {
@@ -423,7 +423,7 @@ class APIClient {
   async getSaintsStatus(): Promise<Exclude<EdgeFunctionResponse<any>['data'], undefined>> {
     return this.deduplicate('saints-status', async () => {
       const token = await this.getAuthToken();
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && !window.location.hostname.includes('everafterai.net') ? `http://${window.location.hostname}:8001` : 'http://localhost:8001');
 
       try {
         const response = await fetch(`${API_BASE}/api/v1/saints/status`, {
