@@ -51,7 +51,7 @@ async def trigger_random_agent_interaction(
         
         # Fallback to any engram if not enough active ones
         if len(active_engrams) < 2:
-             raise HTTPException(status_code=400, detail="Not enough agents in society to interact.")
+             raise HTTPException(status_code=400, detail="Not enough active agents in society to interact. Please activate or train more engrams.")
              
         # Pick two random unique ones
         participants = random.sample(active_engrams, 2)
@@ -154,7 +154,10 @@ async def boost_society_interactions(
     engrams = result.scalars().all()
 
     if len(engrams) < 2:
-        return {"status": "skipped", "reason": "Not enough engrams to interact"}
+        raise HTTPException(
+            status_code=400, 
+            detail="Need at least 2 active agents to seed the society simulation. Please activate more engrams."
+        )
 
     interactions_started = 0
     for _ in range(count):

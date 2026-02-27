@@ -54,6 +54,12 @@ const SocietyFeed: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
 
+    // Button loading states
+    const [isSeeding, setIsSeeding] = useState(false);
+    const [isPropagating, setIsPropagating] = useState(false);
+    const [isAccelerating, setIsAccelerating] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     // Physics Engine State
     const physicsRef = useRef<Record<string, { x: number, y: number, vx: number, vy: number, baseVy: number, targetHeight: number, arc: Archetype }>>({});
     const [positions, setPositions] = useState<Record<string, { x: number, y: number }>>({});
@@ -223,7 +229,15 @@ const SocietyFeed: React.FC = () => {
     );
 
     return (
-        <div className="w-full h-[calc(100vh-12rem)] flex flex-col space-y-4">
+        <div className="w-full h-[calc(100vh-12rem)] flex flex-col space-y-4 relative">
+            {/* Error Notification */}
+            {errorMsg && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-500/90 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 backdrop-blur border border-rose-400/50 flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
+                    <span>{errorMsg}</span>
+                    <button onClick={() => setErrorMsg(null)} className="ml-2 opacity-70 hover:opacity-100">×</button>
+                </div>
+            )}
+
             {/* Header / Tabs */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5 shrink-0">
                 <div className="flex items-center gap-3">
@@ -364,16 +378,24 @@ const SocietyFeed: React.FC = () => {
                                     <p className="text-[10px] text-slate-500 uppercase tracking-widest leading-relaxed">Agora is currently silent.</p>
                                     <button
                                         onClick={async () => {
+                                            if (isSeeding) return;
+                                            setIsSeeding(true);
+                                            setErrorMsg(null);
                                             try {
                                                 await apiClient.boostSociety(5);
-                                                refreshData();
-                                            } catch (error) {
+                                                await refreshData();
+                                            } catch (error: any) {
                                                 console.error("Failed to boost society:", error);
+                                                setErrorMsg(error.message || "Simulation failed. Are there enough active agents in the database?");
+                                            } finally {
+                                                setIsSeeding(false);
                                             }
                                         }}
-                                        className="mt-4 px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg text-[10px] font-bold transition-all uppercase tracking-tighter"
+                                        disabled={isSeeding}
+                                        className="mt-4 px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 disabled:opacity-50 text-cyan-400 border border-cyan-500/20 rounded-lg text-[10px] font-bold transition-all uppercase tracking-tighter flex items-center gap-2"
                                     >
-                                        Seed simulation
+                                        {isSeeding ? <div className="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" /> : null}
+                                        {isSeeding ? 'Simulating...' : 'Seed simulation'}
                                     </button>
                                 </div>
                             )}
@@ -383,23 +405,60 @@ const SocietyFeed: React.FC = () => {
                     {/* Propagation Trigger */}
                     <button
                         onClick={async () => {
-                            const initiator = agents.find(a => a.status === 'active');
-                            if (initiator) {
-                                await apiClient.triggerLegacyPropagation(initiator.id, "Family traditions are the glue of our legacy.");
+                            if (isPropagating || agents.length < 2) {
+                                if (agents.length < 2) setErrorMsg("Need at least 2 agents in the society to propagate legacies.");
+                                return;
+                            }
+                            setIsPropagating(true);
+                            setErrorMsg(null);
+                            try {
+                                const initiator = agents.find(a => a.status === 'active') || agents[0];
+                                if (initiator) {
+                                    await apiClient.triggerLegacyPropagation(initiator.id, "Family traditions are the glue of our legacy.");
+                                    await refreshData();
+                                }
+                            } catch (error: any) {
+                                console.error("Propagation Error:", error);
+                                setErrorMsg(error.message || "Failed to trigger propagation vignette.");
+                            } finally {
+                                setIsPropagating(false);
                             }
                         }}
-                        className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 p-4 rounded-2xl text-center group transition-all"
+                        disabled={isPropagating || agents.length < 2}
+                        className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all"
                     >
-                        <Share2 className="w-5 h-5 text-amber-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                        {isPropagating ? (
+                            <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-2" />
+                        ) : (
+                            <Share2 className="w-5 h-5 text-amber-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                        )}
                         <div className="text-xs font-bold text-amber-500 tracking-tight uppercase">Propagate Legacy</div>
                         <div className="text-[9px] text-amber-500/60 mt-1 uppercase font-black">Trigger Viral Vignette</div>
                     </button>
 
                     <button
-                        onClick={() => apiClient.triggerSocietyEvent()}
-                        className="bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 p-4 rounded-2xl text-center group transition-all"
+                        onClick={async () => {
+                            if (isAccelerating) return;
+                            setIsAccelerating(true);
+                            setErrorMsg(null);
+                            try {
+                                await apiClient.triggerSocietyEvent();
+                                await refreshData();
+                            } catch (error: any) {
+                                console.error("Event trigger error:", error);
+                                setErrorMsg(error.message || "Failed to trigger society event. Not enough active engrams?");
+                            } finally {
+                                setIsAccelerating(false);
+                            }
+                        }}
+                        disabled={isAccelerating}
+                        className="bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all"
                     >
-                        <Activity className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
+                        {isAccelerating ? (
+                            <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-2" />
+                        ) : (
+                            <Activity className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
+                        )}
                         <div className="text-xs font-bold text-cyan-400 tracking-tight uppercase">Accelerate Simulation</div>
                         <div className="text-[9px] text-cyan-500/60 mt-1 uppercase font-black">Tick rate: 1.5hz</div>
                     </button>
