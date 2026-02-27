@@ -183,7 +183,7 @@ export default function StJosephFamilyDashboard() {
 
                 <SaintsQuickNav />
 
-                <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full custom-scrollbar">
+                <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full max-w-[calc(100vw-2rem)] md:max-w-none custom-scrollbar pb-2">
                     {TABS.map(({ key, label, icon: TabIcon }) => (
                         <button
                             key={key}

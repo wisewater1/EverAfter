@@ -345,7 +345,7 @@ const SocietyFeed: React.FC = () => {
                 </div>
 
                 {/* Right: Insights & Controls */}
-                <div className="w-full md:w-80 flex flex-col space-y-4 shrink-0">
+                <div className="w-full md:w-80 max-w-full overflow-hidden flex flex-col space-y-4 shrink-0">
                     {/* Activity Feed Mini Card */}
                     <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-4 flex-1 flex flex-col min-h-0">
                         <div className="flex items-center gap-2 mb-3 text-cyan-400">
@@ -425,15 +425,15 @@ const SocietyFeed: React.FC = () => {
                             }
                         }}
                         disabled={isPropagating || agents.length < 2}
-                        className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all"
+                        className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all whitespace-normal break-words w-full"
                     >
                         {isPropagating ? (
                             <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-2" />
                         ) : (
                             <Share2 className="w-5 h-5 text-amber-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
                         )}
-                        <div className="text-xs font-bold text-amber-500 tracking-tight uppercase">Propagate Legacy</div>
-                        <div className="text-[9px] text-amber-500/60 mt-1 uppercase font-black">Trigger Viral Vignette</div>
+                        <div className="text-xs font-bold text-amber-500 tracking-tight uppercase leading-tight">Propagate Legacy</div>
+                        <div className="text-[9px] text-amber-500/60 mt-1 uppercase font-black leading-tight">Trigger Viral Vignette</div>
                     </button>
 
                     <button
@@ -452,15 +452,15 @@ const SocietyFeed: React.FC = () => {
                             }
                         }}
                         disabled={isAccelerating}
-                        className="bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all"
+                        className="bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all whitespace-normal break-words w-full"
                     >
                         {isAccelerating ? (
                             <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-2" />
                         ) : (
                             <Activity className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
                         )}
-                        <div className="text-xs font-bold text-cyan-400 tracking-tight uppercase">Accelerate Simulation</div>
-                        <div className="text-[9px] text-cyan-500/60 mt-1 uppercase font-black">Tick rate: 1.5hz</div>
+                        <div className="text-xs font-bold text-cyan-400 tracking-tight uppercase leading-tight">Accelerate Simulation</div>
+                        <div className="text-[9px] text-cyan-500/60 mt-1 uppercase font-black leading-tight">Tick rate: 1.5hz</div>
                     </button>
                 </div>
             </div>

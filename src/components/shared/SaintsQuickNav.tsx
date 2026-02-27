@@ -24,7 +24,7 @@ export default function SaintsQuickNav() {
     const location = useLocation();
 
     return (
-        <div className="flex items-center gap-1 bg-white/[0.02] border border-white/5 rounded-xl p-1 overflow-x-auto">
+        <div className="flex items-center gap-1 bg-white/[0.02] border border-white/5 rounded-xl p-1 overflow-x-auto w-full max-w-[calc(100vw-2rem)] md:max-w-none custom-scrollbar pb-2">
             {SAINTS.map(s => {
                 const Icon = s.icon;
                 const colors = COLOR_MAP[s.color] || COLOR_MAP.teal;
@@ -35,8 +35,8 @@ export default function SaintsQuickNav() {
                         key={s.path}
                         onClick={() => navigate(s.path)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${isActive
-                                ? `${colors.activeBg} ${colors.text} border ${colors.border}`
-                                : `text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]`
+                            ? `${colors.activeBg} ${colors.text} border ${colors.border}`
+                            : `text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]`
                             }`}
                     >
                         <Icon className="w-3 h-3 flex-shrink-0" />
