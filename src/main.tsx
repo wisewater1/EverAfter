@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 // Deployment sync trigger - Debugging blank screen
 
+console.log('EVERAFTER AI DIAGNOSTIC BUILD TRACE: 02-27-2026');
 console.log('EVERAFTER: main.tsx initializing... Build Time: ' + new Date().toISOString());
 
 window.onerror = (message, source, lineno, colno, error) => {
