@@ -119,6 +119,7 @@ class APIClient {
     const token = await this.getAuthToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
       'Authorization': `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
     };
 
@@ -177,6 +178,7 @@ class APIClient {
       const token = await this.getAuthToken();
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
       };
 
       if (token) {
@@ -184,7 +186,7 @@ class APIClient {
       }
 
       // Use VITE_API_BASE_URL from env or default to localhost:8001
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && !window.location.hostname.includes('everafterai.net') ? `http://${window.location.hostname}:8001` : 'http://localhost:8001');
+      const API_BASE = 'https://proud-days-tease.loca.lt';
 
       try {
         const response = await fetch(`${API_BASE}/api/v1/chat/${engramId}/message`, {
@@ -227,13 +229,14 @@ class APIClient {
     const token = await this.getAuthToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/health/predictions?lookbackDays=${lookbackDays}`, {
@@ -258,13 +261,14 @@ class APIClient {
     const token = await this.getAuthToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/engrams/`, {
@@ -289,13 +293,14 @@ class APIClient {
     const token = await this.getAuthToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/health/summary`, {
@@ -423,7 +428,7 @@ class APIClient {
   async getSaintsStatus(): Promise<Exclude<EdgeFunctionResponse<any>['data'], undefined>> {
     return this.deduplicate('saints-status', async () => {
       const token = await this.getAuthToken();
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && !window.location.hostname.includes('everafterai.net') ? `http://${window.location.hostname}:8001` : 'http://localhost:8001');
+      const API_BASE = 'https://proud-days-tease.loca.lt';
 
       try {
         const response = await fetch(`${API_BASE}/api/v1/saints/status`, {
@@ -443,7 +448,7 @@ class APIClient {
 
   async bootstrapSaint(saintId: string): Promise<{ engram_id: string, saint_id: string, name: string }> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/bootstrap`, {
@@ -463,13 +468,14 @@ class APIClient {
 
   async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ message, coordination_mode: coordinationMode })
@@ -498,7 +504,7 @@ class APIClient {
 
   async getSaintKnowledge(saintId: string, category?: string): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     let url = `${API_BASE}/api/v1/saints/${saintId}/knowledge`;
     if (category) {
@@ -522,13 +528,14 @@ class APIClient {
 
   async registerDynamicAgent(agentData: { name: string, description: string, system_prompt: string, traits: any }): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(agentData),
@@ -545,7 +552,7 @@ class APIClient {
 
   async getChatHistory(saintId: string): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/history`, {
@@ -564,13 +571,14 @@ class APIClient {
 
   async deliberate(query: string, context?: string, coordinationMode: boolean = false): Promise<{ transcript: any[], consensus: string, action_items: string[] }> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/council/deliberate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ query, context, coordination_mode: coordinationMode }),
@@ -586,7 +594,7 @@ class APIClient {
   }
   async getActiveMissions(): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/missions/active`, {
@@ -606,7 +614,7 @@ class APIClient {
 
   async getPendingIntercessions(): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/intercessions/pending`, {
@@ -625,7 +633,7 @@ class APIClient {
 
   async processIntercession(intercessionId: string, action: 'approve' | 'deny'): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/intercessions/${intercessionId}/${action}`, {
@@ -645,7 +653,7 @@ class APIClient {
 
   async getSaintCognitionStatus(saintId: string): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/cognition/status`, {
@@ -674,7 +682,7 @@ class APIClient {
 
   async getSocietyFeed(): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/social/feed`, {
@@ -693,7 +701,7 @@ class APIClient {
 
   async triggerSocietyEvent(): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/social/interact/random`, {
@@ -713,7 +721,7 @@ class APIClient {
 
   async getSocialClusters(): Promise<Record<string, string[]>> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/social/clusters`, {
@@ -732,7 +740,7 @@ class APIClient {
 
   async triggerLegacyPropagation(engramId: string, vignette: string): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/social/propagate/${engramId}?vignette=${encodeURIComponent(vignette)}`, {
@@ -752,14 +760,15 @@ class APIClient {
 
   async batchSyncEngrams(members: any[]): Promise<Record<string, string>> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/engrams/batch-sync`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true'
         },
         body: JSON.stringify(members)
       });
@@ -774,7 +783,7 @@ class APIClient {
 
   async boostSociety(count: number = 5): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/social/boost?count=${count}`, {
@@ -794,7 +803,7 @@ class APIClient {
 
   async analyzePersonality(engramId: string): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/analyze`, {
@@ -814,7 +823,7 @@ class APIClient {
 
   async startMentorship(engramId: string, mentorId: string): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/mentorship/start?mentor_id=${mentorId}`, {
@@ -834,14 +843,15 @@ class APIClient {
 
   async ingestVignette(engramId: string, content: string): Promise<any> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/vignette`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true'
         },
         body: JSON.stringify({ content })
       });
@@ -856,7 +866,7 @@ class APIClient {
   /** Get family tasks from the backend (falls back to static data). */
   async getFamilyTasks(_userId: string): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       const response = await fetch(`${API_BASE}/api/v1/family-home/tasks`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -876,7 +886,7 @@ class APIClient {
   /** Mark a task complete. */
   async completeTask(taskId: string): Promise<void> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       await fetch(`${API_BASE}/api/v1/family-home/tasks/${taskId}/complete`, {
         method: 'POST',
@@ -888,7 +898,7 @@ class APIClient {
   /** Get shopping list. */
   async getShoppingList(_userId: string): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       const response = await fetch(`${API_BASE}/api/v1/family-home/shopping`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -908,7 +918,7 @@ class APIClient {
   /** Mark a shopping item as bought. */
   async markItemBought(itemId: string): Promise<void> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       await fetch(`${API_BASE}/api/v1/family-home/shopping/${itemId}/bought`, {
         method: 'POST',
@@ -920,7 +930,7 @@ class APIClient {
   /** Get family calendar events. */
   async getFamilyCalendar(_userId: string): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       const response = await fetch(`${API_BASE}/api/v1/family-home/calendar`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -940,7 +950,7 @@ class APIClient {
   /** Get family bulletin messages. */
   async getFamilyBulletin(): Promise<any[]> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       const response = await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -959,11 +969,12 @@ class APIClient {
   /** Post a bulletin message. */
   async postBulletinMessage(text: string, author: string): Promise<void> {
     const token = await this.getAuthToken();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE = 'https://proud-days-tease.loca.lt';
     try {
       await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ text, author }),
       });
     } catch { /* best effort */ }
