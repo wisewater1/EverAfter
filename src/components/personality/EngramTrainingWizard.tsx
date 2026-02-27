@@ -54,12 +54,12 @@ interface QuizQuestion {
 
 const RELATIONSHIP_OPTIONS = [
     { value: 'self', label: 'Myself', icon: '🪞' },
-    { value: 'spouse', label: 'Spouse / Partner', icon: '�'�' },
+    { value: 'spouse', label: 'Spouse / Partner', icon: '💍' },
     { value: 'parent', label: 'Parent', icon: '👨‍👩‍👧' },
     { value: 'child', label: 'Child', icon: '👶' },
     { value: 'sibling', label: 'Sibling', icon: '🤝' },
     { value: 'grandparent', label: 'Grandparent', icon: '👴' },
-    { value: 'grandchild', label: 'Grandchild', icon: '�'' },
+    { value: 'grandchild', label: 'Grandchild', icon: '🧒' },
     { value: 'aunt_uncle', label: 'Aunt / Uncle', icon: '🏡' },
     { value: 'cousin', label: 'Cousin', icon: '🌿' },
     { value: 'friend', label: 'Close Friend', icon: '⭐' },
@@ -757,9 +757,11 @@ function generateLocalQuestions(): QuizQuestion[] {
         { id: 'C2', text: 'I keep my belongings neat and organized.', category: 'Discipline & Organization', number: 7 },
         { id: 'C3', text: 'When I make a promise, I always follow through.', category: 'Discipline & Organization', number: 8 },
         {
-            id: 'C4', text: 'I lack ambition and don't push myself to achieve more.', category: 'Discipline & Organization', number: 9 },
+            id: 'C4', text: "I lack ambition and don't push myself to achieve more.", category: 'Discipline & Organization', number: 9
+        },
         {
-                id: 'C5', text: 'Once I start a task, I persist until it's done.', category: 'Discipline & Organization', number: 10 },
+            id: 'C5', text: "Once I start a task, I persist until it's done.", category: 'Discipline & Organization', number: 10
+        },
         { id: 'E1', text: 'I feel energized after spending time with a large group of people.', category: 'Social Energy', number: 11 },
         { id: 'E2', text: 'I tend to take charge in social situations.', category: 'Social Energy', number: 12 },
         { id: 'E3', text: 'I prefer quiet evenings at home to large social gatherings.', category: 'Social Energy', number: 13 },
@@ -767,7 +769,8 @@ function generateLocalQuestions(): QuizQuestion[] {
         { id: 'E5', text: 'I often seek out excitement and adventure.', category: 'Social Energy', number: 15 },
         { id: 'A1', text: 'I try to be considerate and kind to everyone I meet.', category: 'Empathy & Cooperation', number: 16 },
         {
-            id: 'A2', text: 'People sometimes tell me I'm too trusting.', category: 'Empathy & Cooperation', number: 17 },
+            id: 'A2', text: "People sometimes tell me I'm too trusting.", category: 'Empathy & Cooperation', number: 17
+        },
         { id: 'A3', text: 'I go out of my way to help and support others.', category: 'Empathy & Cooperation', number: 18 },
         { id: 'A4', text: 'I rarely argue or push back, preferring to keep the peace.', category: 'Empathy & Cooperation', number: 19 },
         { id: 'A5', text: 'I feel strong empathy for people who are struggling.', category: 'Empathy & Cooperation', number: 20 },
@@ -785,7 +788,7 @@ function generateLocalQuestions(): QuizQuestion[] {
         { id: 'C6', text: 'I carefully weigh pros and cons before making important decisions.', category: 'Discipline & Organization', number: 31 },
         { id: 'C7', text: 'I strive to be the best at whatever I do.', category: 'Discipline & Organization', number: 32 },
         { id: 'C8', text: 'I tend to put things off until the last minute.', category: 'Discipline & Organization', number: 33 },
-        { id: 'C9', text: 'I stick to plans and don't deviate once I've decided.', category: 'Discipline & Organization', number: 34 },
+        { id: 'C9', text: "I stick to plans and don't deviate once I've decided.", category: 'Discipline & Organization', number: 34 },
         { id: 'C10', text: 'I pay close attention to detail in everything I do.', category: 'Discipline & Organization', number: 35 },
         { id: 'E6', text: 'I am a very active and energetic person.', category: 'Social Energy', number: 36 },
         { id: 'E7', text: 'I express my positive feelings freely and enthusiastically.', category: 'Social Energy', number: 37 },
@@ -794,7 +797,8 @@ function generateLocalQuestions(): QuizQuestion[] {
         { id: 'E10', text: 'I find social events stimulating rather than draining.', category: 'Social Energy', number: 40 },
         { id: 'A6', text: 'I believe most people have good intentions.', category: 'Empathy & Cooperation', number: 41 },
         {
-            id: 'A7', text: 'I avoid confrontations even when I know I'm right.', category: 'Empathy & Cooperation', number: 42 },
+            id: 'A7', text: "I avoid confrontations even when I know I'm right.", category: 'Empathy & Cooperation', number: 42
+        },
         { id: 'A8', text: 'I genuinely care about the well-being of others.', category: 'Empathy & Cooperation', number: 43 },
         { id: 'A9', text: 'I am sometimes seen as too soft or easily swayed.', category: 'Empathy & Cooperation', number: 44 },
         { id: 'A10', text: 'I enjoy collaborative work more than competing.', category: 'Empathy & Cooperation', number: 45 },
@@ -806,6 +810,14 @@ function generateLocalQuestions(): QuizQuestion[] {
     ];
     return bank;
 }
+
+const TRAIT_LABELS: Record<string, string> = {
+    openness: 'Openness',
+    conscientiousness: 'Conscientiousness',
+    extraversion: 'Extraversion',
+    agreeableness: 'Agreeableness',
+    neuroticism: 'Emotional Sensitivity',
+};
 
 function computeLocalProfile(name: string, id: string, answers: Record<string, number>, questions: QuizQuestion[]): PersonalityProfile {
     const traitMap: Record<string, string[]> = {
@@ -835,7 +847,7 @@ function computeLocalProfile(name: string, id: string, answers: Record<string, n
         openness: { name: 'The Visionary', emoji: '🔮', description: 'Imaginative, curious, and open to new experiences.' },
         conscientiousness: { name: 'The Steward', emoji: '🏰', description: 'Organized, reliable, and driven by duty and excellence.' },
         extraversion: { name: 'The Connector', emoji: '⚡', description: 'Energetic, warm, and thrives in the company of others.' },
-        agreeableness: { name: 'The Nurturer', emoji: '�'�', description: 'Compassionate, cooperative, and deeply empathetic.' },
+        agreeableness: { name: 'The Nurturer', emoji: '💛', description: 'Compassionate, cooperative, and deeply empathetic.' },
         neuroticism: { name: 'The Empath', emoji: '🌊', description: 'Sensitive, deep-feeling, and emotionally attuned.' },
     };
 
