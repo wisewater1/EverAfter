@@ -117,6 +117,12 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     loadQuestionResponses();
   }, [loadFamilyMembers, loadQuestionResponses]);
 
+  useEffect(() => {
+    if (preselectedAIId) {
+      setActiveTab('daily-questions');
+    }
+  }, [preselectedAIId]);
+
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

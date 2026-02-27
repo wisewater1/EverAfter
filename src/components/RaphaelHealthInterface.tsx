@@ -18,6 +18,8 @@ import HealthTips from './HealthTips';
 import CognitiveInsights from './CognitiveInsights';
 import PredictiveHealthInsights from './PredictiveHealthInsights';
 import { apiClient } from '../lib/api-client';
+import SaintsQuickNav from './shared/SaintsQuickNav';
+import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
 
 type HealthTab = 'chat' | 'overview' | 'insights' | 'predictions' | 'analytics' | 'medications' | 'appointments' | 'goals' | 'connections' | 'emergency';
 
@@ -110,6 +112,12 @@ export default function RaphaelHealthInterface() {
             <ExternalLink className="w-3 h-3" />
           </button>
         </div>
+      </div>
+
+      {/* Saints Quick Nav + Security Badge */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex-1"><SaintsQuickNav /></div>
+        <SecurityIntegrityBadge />
       </div>
 
       {/* Partner Integrations Banner */}

@@ -14,6 +14,26 @@ export interface AIPersonality {
     isActive: boolean;
 }
 
+export interface InfoStackEntry {
+    id: string;
+    category: 'trait' | 'date' | 'occupation' | 'health' | 'milestone' | 'relationship' | 'location' | 'interest' | 'quote' | 'appearance' | 'other';
+    label: string;
+    value: string;
+    source: 'ai_extracted' | 'manual' | 'imported';
+    confidence: number;
+    created_at: string;
+    updated_at: string;
+    locked: boolean;
+}
+
+export interface MediaPermissions {
+    allowAIProcessing: boolean;
+    allowImageAnalysis: boolean;
+    allowVideoAnalysis: boolean;
+    allowTextAnalysis: boolean;
+    grantedAt?: string;
+}
+
 export interface FamilyMember {
     id: string;
     firstName: string;
@@ -34,6 +54,9 @@ export interface FamilyMember {
     engramId?: string; // Links to backend persistence
     githubUsername?: string;
     githubTraits?: any[];
+    // Media Intelligence
+    infoStack?: InfoStackEntry[];
+    mediaPermissions?: MediaPermissions;
 }
 
 export interface Relationship {

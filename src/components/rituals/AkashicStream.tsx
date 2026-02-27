@@ -53,11 +53,11 @@ export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
 
     if (minimal) {
         return (
-            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto custom-scrollbar p-2">
+            <div className="flex flex-col gap-2 overflow-hidden p-3">
                 {records.slice(0, 3).map((record) => (
-                    <div key={record.id} className="text-[10px] text-cyan-400/70 italic border-l border-cyan-500/30 pl-2 py-1 animate-pulse">
-                        <span className="opacity-50 mr-2">[{new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
-                        {record.content.substring(0, 60)}...
+                    <div key={record.id} className="text-[10px] text-cyan-400/70 italic border-l border-cyan-500/30 pl-2 py-1 animate-pulse shrink-0 overflow-hidden flex items-center">
+                        <span className="opacity-50 mr-2 shrink-0">[{new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
+                        <span className="truncate">{record.content}</span>
                     </div>
                 ))}
             </div>

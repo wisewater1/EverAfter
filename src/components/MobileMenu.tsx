@@ -1,28 +1,20 @@
 import React from 'react';
-import { X, Heart, Link2, ShoppingCart, LogOut, Brain, ChevronRight, Briefcase, Sparkles } from 'lucide-react';
+import { X, Heart, LogOut, Brain, ChevronRight, Sparkles } from 'lucide-react';
 
 interface MobileMenuProps {
     isOpen: boolean;
     onClose: () => void;
     onNavigateToLegacy: () => void;
-    onOpenConnections: () => void;
-    onNavigateToMarketplace: () => void;
-    onNavigateToCareer: () => void;
     onNavigateToRituals: () => void;
     onSignOut: () => void;
-    activeConnectionsCount: number;
 }
 
 export default function MobileMenu({
     isOpen,
     onClose,
     onNavigateToLegacy,
-    onOpenConnections,
-    onNavigateToMarketplace,
-    onNavigateToCareer,
     onNavigateToRituals,
     onSignOut,
-    activeConnectionsCount
 }: MobileMenuProps) {
     if (!isOpen) return null;
 
@@ -56,14 +48,6 @@ export default function MobileMenu({
                 {/* Menu Items */}
                 <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
                     <MenuItem
-                        icon={Link2}
-                        label="Connections"
-                        onClick={() => { onOpenConnections(); onClose(); }}
-                        badge={activeConnectionsCount > 0 ? activeConnectionsCount : undefined}
-                        color="text-cyan-400"
-                        bgColor="bg-cyan-500/10"
-                    />
-                    <MenuItem
                         icon={Heart}
                         label="Legacy Vault"
                         onClick={() => { onNavigateToLegacy(); onClose(); }}
@@ -71,24 +55,10 @@ export default function MobileMenu({
                         bgColor="bg-purple-500/10"
                     />
                     <MenuItem
-                        icon={Briefcase}
-                        label="Career Agent"
-                        onClick={() => { onNavigateToCareer(); onClose(); }}
-                        color="text-indigo-400"
-                        bgColor="bg-indigo-500/10"
-                    />
-                    <MenuItem
                         icon={Sparkles}
                         label="Ritual Altar"
                         onClick={() => { onNavigateToRituals(); onClose(); }}
                         color="text-amber-300"
-                        bgColor="bg-amber-500/10"
-                    />
-                    <MenuItem
-                        icon={ShoppingCart}
-                        label="Marketplace"
-                        onClick={() => { onNavigateToMarketplace(); onClose(); }}
-                        color="text-amber-400"
                         bgColor="bg-amber-500/10"
                     />
                 </div>

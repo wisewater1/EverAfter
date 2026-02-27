@@ -71,6 +71,14 @@ app.include_router(integration.router, prefix="/integration", tags=["integration
 app.include_router(integrity.router, prefix="/api/v1/integrity", tags=["integrity"])
 app.include_router(marketplace_assets.router, prefix="/api/v1/marketplace", tags=["marketplace"])
 app.include_router(causal_twin.router)
+from app.api import health_predictions
+app.include_router(health_predictions.router)
+from app.api import media_uploads
+app.include_router(media_uploads.router)
+from app.api import personality_quiz
+app.include_router(personality_quiz.router)
+from app.api import family_home
+app.include_router(family_home.router)
 
 
 

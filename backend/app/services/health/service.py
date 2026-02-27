@@ -124,6 +124,19 @@ class HealthLogicService:
         prediction = await strategy.predict(user_id, context_data)
         return [prediction]
 
+    async def get_shared_predictions(
+        self,
+        user_id: str,
+        metrics_history: List[Dict[str, Any]],
+        profile: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Delegate to SharedHealthPredictor for unified predictions.
+        Used by both St. Raphael and St. Joseph.
+        """
+        from app.services.shared_health_predictor import shared_predictor
+        return await shared_predictor.predict_user(user_id, metrics_history, profile)
+
     async def get_deep_dive_insights(
         self,
         user_id: str,

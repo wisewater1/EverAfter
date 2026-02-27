@@ -48,13 +48,51 @@ export default function FamilyHealthHeatmap({ onSelectMember }: Props) {
                     birthYear: m.birthDate ? new Date(m.birthDate).getFullYear() : undefined,
                 }));
 
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/ancestry/family-map`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ members: payload }),
-            });
-            const data = await res.json();
-            setHeatmap(data.family_map || []);
+            // Try unified prediction endpoint first
+            let usedPrediction = false;
+            try {
+                const predRes = await fetch(`${API_BASE}/api/v1/health-predictions/predict-family`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ members: payload, consent_map: {} }),
+                });
+                if (predRes.ok) {
+                    const predData = await predRes.json();
+                    const dots: HealthDot[] = (predData.member_predictions || [])
+                        .filter((mp: any) => mp.consent_granted && mp.prediction)
+                        .map((mp: any) => {
+                            const p = mp.prediction;
+                            const riskColors: Record<string, string> = { low: '#10b981', moderate: '#f59e0b', high: '#ef4444', critical: '#dc2626' };
+                            return {
+                                member_id: mp.member_id,
+                                member_name: mp.member_name,
+                                wellness_score: Math.max(0, 100 - (p.predicted_value || 50)),
+                                risk_level: p.risk_level || 'moderate',
+                                colour: riskColors[p.risk_level] || '#f59e0b',
+                                top_risk: (p.risk_factors || []).slice(0, 2),
+                                trend: p.trend || 'unknown',
+                                confidence: p.uncertainty?.confidence_level || 'low',
+                            };
+                        });
+                    if (dots.length > 0) {
+                        setHeatmap(dots);
+                        usedPrediction = true;
+                    }
+                }
+            } catch {
+                // Prediction API unavailable — fall through to legacy
+            }
+
+            // Fallback: legacy ancestry endpoint
+            if (!usedPrediction) {
+                const res = await fetch(`${API_BASE}/api/v1/causal-twin/ancestry/family-map`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ members: payload }),
+                });
+                const data = await res.json();
+                setHeatmap(data.family_map || []);
+            }
         } catch (e) {
             console.error('Family heatmap failed:', e);
         }

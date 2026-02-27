@@ -7,7 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
 const METRIC_OPTIONS = ['sleep_quality', 'hrv', 'mood', 'energy', 'resting_hr', 'glucose_variability', 'recovery_score'];
 
-export default function ExperimentLab() {
+export default function ExperimentLab({ memberId }: { memberId?: string }) {
     const [experiments, setExperiments] = useState<any[]>([]);
     const [showCreate, setShowCreate] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -26,7 +26,8 @@ export default function ExperimentLab() {
     async function loadExperiments() {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments`);
+            const params = memberId ? `?member_id=${memberId}` : '';
+            const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`);
             const data = await res.json();
             setExperiments(data.experiments || []);
         } catch (e) { console.error(e); }
@@ -36,7 +37,8 @@ export default function ExperimentLab() {
     async function createExperiment() {
         setCreateError('');
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments`, {
+            const params = memberId ? `?member_id=${memberId}` : '';
+            const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

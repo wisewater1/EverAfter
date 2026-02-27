@@ -6,6 +6,7 @@ import TransactionLedger from './TransactionLedger';
 import CouncilChat from './CouncilChat';
 import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
 import SaintsGuardian from '../saints/SaintsGuardian';
+import SaintsQuickNav from '../shared/SaintsQuickNav';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
@@ -97,6 +98,11 @@ export default function StGabrielFinanceDashboard() {
 
                 {/* Content */}
                 <main className="flex-1 overflow-auto p-6 bg-slate-950 relative">
+                    {/* Saints Quick Nav */}
+                    <div className="mb-4">
+                        <SaintsQuickNav />
+                    </div>
+
                     {/* Saints Guardian Widget */}
                     <SaintsGuardian />
 

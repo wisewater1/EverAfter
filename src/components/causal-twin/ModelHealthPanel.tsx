@@ -3,7 +3,7 @@ import { Radio, TrendingUp, AlertTriangle, RefreshCw, CheckCircle, Activity } fr
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
-export default function ModelHealthPanel() {
+export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     const [health, setHealth] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -12,7 +12,8 @@ export default function ModelHealthPanel() {
     async function loadHealth() {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/model-health`);
+            const params = memberId ? `?member_id=${memberId}` : '';
+            const res = await fetch(`${API_BASE}/api/v1/causal-twin/model-health${params}`);
             const data = await res.json();
             setHealth(data);
         } catch (e) { console.error(e); }
@@ -87,8 +88,8 @@ export default function ModelHealthPanel() {
                             <div
                                 key={i}
                                 className={`flex-1 rounded-t-sm transition-all ${point.accuracy >= 0.8 ? 'bg-emerald-500/40' :
-                                        point.accuracy >= 0.6 ? 'bg-amber-500/40' :
-                                            'bg-red-500/40'
+                                    point.accuracy >= 0.6 ? 'bg-amber-500/40' :
+                                        'bg-red-500/40'
                                     } ${isRecent ? 'opacity-100' : 'opacity-60'}`}
                                 style={{ height: `${Math.max(height, 4)}%` }}
                                 title={`${(point.accuracy * 100).toFixed(1)}% — ${new Date(point.timestamp).toLocaleDateString()}`}
@@ -119,8 +120,8 @@ export default function ModelHealthPanel() {
                         {driftHistory.map((event: any) => (
                             <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                                 <div className={`w-2 h-2 rounded-full ${event.status === 'resolved' ? 'bg-emerald-400' :
-                                        event.status === 'recalibrating' ? 'bg-amber-400 animate-pulse' :
-                                            'bg-red-400'
+                                    event.status === 'recalibrating' ? 'bg-amber-400 animate-pulse' :
+                                        'bg-red-400'
                                     }`} />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs text-white">
@@ -131,7 +132,7 @@ export default function ModelHealthPanel() {
                                     </span>
                                 </div>
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${event.status === 'resolved' ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' :
-                                        'text-amber-400 bg-amber-500/10 border border-amber-500/20'
+                                    'text-amber-400 bg-amber-500/10 border border-amber-500/20'
                                     }`}>{event.status}</span>
                             </div>
                         ))}

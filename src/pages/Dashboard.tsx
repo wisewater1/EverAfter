@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bot, Brain, Heart, Link2, ShoppingCart, LogOut, Users, Briefcase, Sparkles } from 'lucide-react';
+import { Menu, Bot, Brain, Heart, LogOut, Users, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useConnections } from '../contexts/ConnectionsContext';
 import MobileMenu from '../components/MobileMenu';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import FamilyEngrams from '../components/FamilyEngrams';
@@ -17,13 +16,10 @@ import HolisticTimeline from '../components/HolisticTimeline';
 
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
-  const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'council' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const activeConnectionsCount = getActiveConnectionsCount();
 
   const handleSignOut = async () => {
     await signOut();
@@ -71,12 +67,8 @@ export default function Dashboard() {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         onNavigateToLegacy={() => navigate('/legacy-vault')}
-        onOpenConnections={() => openConnectionsPanel()}
-        onNavigateToMarketplace={() => navigate('/marketplace')}
-        onNavigateToCareer={() => navigate('/career')}
         onNavigateToRituals={() => navigate('/rituals')}
         onSignOut={handleSignOut}
-        activeConnectionsCount={activeConnectionsCount}
       />
 
       {/* Header */}
@@ -112,35 +104,6 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <Heart className="w-4 h-4 relative z-10 text-purple-400 group-hover:text-purple-300" />
                 <span className="hidden sm:inline relative z-10">Legacy Vault</span>
-              </button>
-              <button
-                onClick={() => navigate('/career')}
-                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-indigo-500/30 hover:border-indigo-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/30 hover:bg-slate-900/60 group overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <Briefcase className="w-4 h-4 relative z-10 text-indigo-400 group-hover:text-indigo-300" />
-                <span className="hidden sm:inline relative z-10">Career</span>
-              </button>
-              <button
-                onClick={() => openConnectionsPanel()}
-                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 hover:border-cyan-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/30 hover:bg-slate-900/60 group overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-teal-600/10 to-cyan-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <Link2 className="w-4 h-4 relative z-10 text-cyan-400 group-hover:text-cyan-300" />
-                <span className="hidden sm:inline relative z-10">Connections</span>
-                {activeConnectionsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold z-20 shadow-lg shadow-emerald-500/50">
-                    {activeConnectionsCount}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => navigate('/marketplace')}
-                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-amber-500/30 hover:border-amber-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-amber-500/10 hover:shadow-amber-500/30 hover:bg-slate-900/60 group overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-600/10 to-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <ShoppingCart className="w-4 h-4 relative z-10 text-amber-400 group-hover:text-amber-300" />
-                <span className="hidden sm:inline relative z-10">Marketplace</span>
               </button>
               <button
                 onClick={handleSignOut}

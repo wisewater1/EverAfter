@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, Brain, Beaker, FileText, Radio, Sparkles, TrendingUp, AlertTriangle, Lightbulb } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Brain, FileText, Radio, Sparkles, TrendingUp, Lightbulb } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 
@@ -28,7 +28,7 @@ interface MeasurementRec {
     category: string;
 }
 
-export default function CausalTwinDashboard() {
+export default function CausalTwinDashboard({ memberId }: { memberId?: string }) {
     const [predictions, setPredictions] = useState<Prediction[]>([]);
     const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
     const [measurements, setMeasurements] = useState<MeasurementRec[]>([]);
@@ -41,10 +41,11 @@ export default function CausalTwinDashboard() {
     async function loadDashboard() {
         setLoading(true);
         try {
+            const params = memberId ? `?member_id=${memberId}` : '';
             const [predRes, modelRes, measRes] = await Promise.all([
-                fetch(`${API_BASE}/api/v1/causal-twin/predictions`).then(r => r.json()),
-                fetch(`${API_BASE}/api/v1/causal-twin/model-health`).then(r => r.json()),
-                fetch(`${API_BASE}/api/v1/causal-twin/next-measurements`).then(r => r.json()),
+                fetch(`${API_BASE}/api/v1/causal-twin/predictions${params}`).then(r => r.json()),
+                fetch(`${API_BASE}/api/v1/causal-twin/model-health${params}`).then(r => r.json()),
+                fetch(`${API_BASE}/api/v1/causal-twin/next-measurements${params}`).then(r => r.json()),
             ]);
             setPredictions(predRes.predictions || []);
             setModelStatus(modelRes.model_status || null);

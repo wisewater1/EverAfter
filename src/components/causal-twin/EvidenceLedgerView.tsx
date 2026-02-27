@@ -12,7 +12,7 @@ const EVIDENCE_ICONS: Record<string, React.ReactNode> = {
     clinician_entered: <Shield className="w-3.5 h-3.5 text-purple-400" />,
 };
 
-export default function EvidenceLedgerView() {
+export default function EvidenceLedgerView({ memberId }: { memberId?: string }) {
     const [entries, setEntries] = useState<any[]>([]);
     const [quality, setQuality] = useState<any>(null);
     const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -23,7 +23,8 @@ export default function EvidenceLedgerView() {
     async function loadEvidence() {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/evidence`);
+            const params = memberId ? `?member_id=${memberId}` : '';
+            const res = await fetch(`${API_BASE}/api/v1/causal-twin/evidence${params}`);
             const data = await res.json();
             setEntries(data.entries || []);
             setQuality(data.quality_trend || null);
@@ -56,8 +57,8 @@ export default function EvidenceLedgerView() {
                         <span className="text-sm text-slate-400">Recommendation Quality</span>
                         <div className="flex items-center gap-2">
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${quality.trend === 'improving' ? 'text-emerald-400 bg-emerald-500/10' :
-                                    quality.trend === 'declining' ? 'text-red-400 bg-red-500/10' :
-                                        'text-slate-400 bg-slate-500/10'
+                                quality.trend === 'declining' ? 'text-red-400 bg-red-500/10' :
+                                    'text-slate-400 bg-slate-500/10'
                                 }`}>
                                 {quality.trend}
                             </span>
@@ -89,8 +90,8 @@ export default function EvidenceLedgerView() {
                                 key={entry.id}
                                 onClick={() => loadDetail(entry.id)}
                                 className={`w-full text-left p-4 rounded-2xl transition-all border ${selectedEntry?.id === entry.id
-                                        ? 'bg-teal-500/5 border-teal-500/20'
-                                        : 'bg-gradient-to-br from-[#1a1a24] to-[#13131a] border-white/5 hover:border-white/10'
+                                    ? 'bg-teal-500/5 border-teal-500/20'
+                                    : 'bg-gradient-to-br from-[#1a1a24] to-[#13131a] border-white/5 hover:border-white/10'
                                     } shadow-[4px_4px_8px_#08080c,-4px_-4px_8px_#1c1c28]`}
                             >
                                 <div className="flex items-start justify-between">

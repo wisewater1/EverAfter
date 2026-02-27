@@ -72,13 +72,17 @@ async def get_family_health_map(
 # COUNTERFACTUAL SIMULATION
 # ============================================================
 
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+
 @router.post("/simulate")
 async def simulate_scenario(
     request: SimulationRequest,
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Run a 'What If' counterfactual simulation."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    """Run a 'What If' counterfactual simulation for the user or a specific family member."""
+    # Use the requested member_id if provided, otherwise default to the primary user
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     result = await counterfactual_engine.simulate_scenarios(
         user_id=user_id,
         behavior_changes=request.behavior_changes,
@@ -92,10 +96,11 @@ async def simulate_scenario(
 
 @router.get("/predictions")
 async def get_active_predictions(
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get current active predictions for the user."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    """Get current active predictions for the user or a specific family member."""
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
 
     # Generate a default prediction set if none exist
     default = await counterfactual_engine.simulate_scenarios(
@@ -114,10 +119,11 @@ async def get_active_predictions(
 @router.post("/experiments")
 async def create_experiment(
     request: ExperimentCreate,
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new N-of-1 experiment."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     result = experiment_engine.create_experiment(
         user_id=user_id,
         name=request.name,
@@ -137,10 +143,11 @@ async def create_experiment(
 
 @router.get("/experiments")
 async def list_experiments(
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
     """List all experiments for the current user."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     experiments = experiment_engine.list_experiments(user_id)
     return {"experiments": experiments}
 
@@ -207,10 +214,11 @@ async def update_experiment(
 async def get_evidence_trail(
     evidence_type: Optional[str] = None,
     limit: int = 50,
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
     """Get the recommendation evidence audit trail."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
 
     entries = evidence_ledger.get_audit_trail(
         user_id=user_id, limit=limit, evidence_type=evidence_type
@@ -242,10 +250,11 @@ async def get_evidence_detail(
 
 @router.get("/model-health")
 async def get_model_health(
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
     """Get drift status, accuracy trend, and model state."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     model_status = drift_monitor.get_model_status(user_id)
     drift_history = drift_monitor.get_drift_history(user_id)
     return {
@@ -260,10 +269,11 @@ async def get_model_health(
 
 @router.get("/next-measurements")
 async def get_next_measurements(
+    member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
     """Get prioritized measurement recommendations."""
-    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     recommendations = measurement_recommender.rank_measurements(
         user_id=user_id,
         available_data=[],  # TODO: compute from user's connected sources

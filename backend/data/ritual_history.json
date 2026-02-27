@@ -1,0 +1,24 @@
+{
+  "demo-user-001": [
+    {
+      "title": "Morning Vigil of the Guardians",
+      "ritual_type": "morning_prayer",
+      "participants": [
+        "joseph"
+      ],
+      "completed_at": "2026-02-26T20:08:05.207950+00:00",
+      "steps_count": 4
+    },
+    {
+      "title": "The Mirror of Remembrance",
+      "ritual_type": "reflection",
+      "participants": [
+        "joseph",
+        "family:u1",
+        "gabriel"
+      ],
+      "completed_at": "2026-02-26T23:03:50.677274+00:00",
+      "steps_count": 3
+    }
+  ]
+}

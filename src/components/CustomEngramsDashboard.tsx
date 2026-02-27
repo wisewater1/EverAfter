@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target, AlertCircle, CheckCircle2, Camera, Palette, X } from 'lucide-react';
+import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CompactSaintsOverlay from './CompactSaintsOverlay';
+import EngramTrainingWizard from './personality/EngramTrainingWizard';
 // import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers'; // Reserved for future use
 
 interface ArchetypalAI {
@@ -55,6 +56,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
   const [nameExists, setNameExists] = useState(false);
   const [createStep, setCreateStep] = useState<'archetype' | 'details' | 'confirm'>('archetype');
   const [selectedArchetype, setSelectedArchetype] = useState<AIArchetype | null>(null);
+  const [trainingAI, setTrainingAI] = useState<ArchetypalAI | null>(null);
 
   const aiArchetypes: AIArchetype[] = [
     {
@@ -354,11 +356,10 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                   <div className="text-xs text-slate-400 mb-2">{ai.name}</div>
                   <div className="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-500 ${
-                        ai.ai_readiness_score >= 80
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                          : 'bg-gradient-to-r from-amber-500 to-orange-500'
-                      }`}
+                      className={`h-full transition-all duration-500 ${ai.ai_readiness_score >= 80
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                        }`}
                       style={{ width: `${ai.ai_readiness_score}%` }}
                     ></div>
                   </div>
@@ -443,11 +444,10 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                 </div>
                 <div className="w-full bg-slate-800/50 rounded-full h-3 overflow-hidden relative">
                   <div
-                    className={`h-full transition-all duration-500 ${
-                      ai.ai_readiness_score >= 80
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                        : 'bg-gradient-to-r from-amber-500 to-orange-500'
-                    }`}
+                    className={`h-full transition-all duration-500 ${ai.ai_readiness_score >= 80
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                      }`}
                     style={{ width: `${ai.ai_readiness_score}%` }}
                   ></div>
                   {/* Milestone marker at 50% */}
@@ -494,7 +494,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onSelectAI?.(ai.id);
+                      setTrainingAI(ai);
                     }}
                     className="w-full px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 group"
                     aria-label={`Start training ${ai.name}`}
@@ -518,7 +518,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onSelectAI?.(ai.id);
+                      setTrainingAI(ai);
                     }}
                     className="w-full px-6 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 group"
                     aria-label={`Continue training ${ai.name}`}
@@ -584,10 +584,9 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
               <div className="flex items-center gap-2">
                 {['archetype', 'details', 'confirm'].map((step, index) => (
                   <React.Fragment key={step}>
-                    <div className={`flex-1 h-1.5 rounded-full transition-all ${
-                      createStep === step ? 'bg-sky-500' :
+                    <div className={`flex-1 h-1.5 rounded-full transition-all ${createStep === step ? 'bg-sky-500' :
                       ['archetype', 'details', 'confirm'].indexOf(createStep) > index ? 'bg-emerald-500' : 'bg-slate-700'
-                    }`}></div>
+                      }`}></div>
                   </React.Fragment>
                 ))}
               </div>
@@ -648,11 +647,10 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                       onChange={(e) => setNewAI({ ...newAI, name: e.target.value })}
                       placeholder="e.g., Dante, Luna, Aurora"
                       maxLength={CHARACTER_LIMITS.name.max}
-                      className={`w-full bg-slate-900/50 border rounded-xl px-4 py-3 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                        validationErrors.some(e => e.field === 'name') || nameExists
-                          ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/20'
-                          : 'border-slate-700 hover:border-slate-600 focus:border-sky-500 focus:ring-sky-500/20'
-                      }`}
+                      className={`w-full bg-slate-900/50 border rounded-xl px-4 py-3 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${validationErrors.some(e => e.field === 'name') || nameExists
+                        ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/20'
+                        : 'border-slate-700 hover:border-slate-600 focus:border-sky-500 focus:ring-sky-500/20'
+                        }`}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       {checkingDuplicate ? (
@@ -691,11 +689,10 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                     placeholder="Brief description of this AI personality..."
                     rows={4}
                     maxLength={CHARACTER_LIMITS.description.max}
-                    className={`w-full bg-slate-900/50 border rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all resize-none ${
-                      validationErrors.some(e => e.field === 'description')
-                        ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/20'
-                        : 'border-slate-700 hover:border-slate-600 focus:border-sky-500 focus:ring-sky-500/20'
-                    }`}
+                    className={`w-full bg-slate-900/50 border rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all resize-none ${validationErrors.some(e => e.field === 'description')
+                      ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/20'
+                      : 'border-slate-700 hover:border-slate-600 focus:border-sky-500 focus:ring-sky-500/20'
+                      }`}
                   />
                   {validationErrors.filter(e => e.field === 'description').map((error, idx) => (
                     <p key={idx} className="mt-2 text-sm text-rose-400 flex items-center gap-2">
@@ -950,6 +947,17 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
             </div>
           </div>
         </div>
+      )}
+      {/* Training Wizard Modal */}
+      {trainingAI && (
+        <EngramTrainingWizard
+          ai={trainingAI}
+          userId={userId}
+          onClose={() => setTrainingAI(null)}
+          onMemorySaved={(updatedAI) => {
+            setAIs(prev => prev.map(a => a.id === updatedAI.id ? { ...a, ...updatedAI } : a));
+          }}
+        />
       )}
     </div>
   );

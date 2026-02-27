@@ -1,19 +1,15 @@
 import { useState, useEffect, type ComponentType } from 'react';
 import {
     Users, Home, Calendar, ShoppingCart,
-    CheckSquare, Clock, MapPin, Info, MessageSquare, Plus,
+    CheckSquare, Clock, MapPin, Info, MessageSquare,
     Activity, RefreshCw, ArrowLeft,
     GitBranch, UserCheck, History, MessageCircle, Search,
     Scale, Archive, Sparkles, Brain
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import {
-    getHouseholdSummary, getFamilyTasks,
-    getShoppingList, getFamilyCalendar,
-    HouseholdSummary, FamilyTask,
-    ShoppingItem, FamilyEvent
-} from '../lib/joseph/family';
+import { apiClient } from '../lib/api-client';
+import type { HouseholdSummary, FamilyTask, ShoppingItem, FamilyEvent } from '../lib/joseph/family';
 import SaintChat from './SaintChat';
 import FamilyTreeView from './joseph/FamilyTreeView';
 import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
@@ -23,22 +19,28 @@ import GeneWebTools from './joseph/GeneWebTools';
 import SocietyFeed from './SocietyFeed';
 import CouncilAlerts from './CouncilAlerts';
 import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
+import MediaIntelligencePanel from './joseph/MediaIntelligencePanel';
+import PersonalityQuiz from './joseph/PersonalityQuiz';
+import SharedPredictionPanel from './shared/SharedPredictionPanel';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
-import { apiClient } from '../lib/api-client';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
+import SaintsQuickNav from './shared/SaintsQuickNav';
 
-type TabKey = 'tree' | 'members' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training';
+type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training';
 
 const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', icon: GitBranch },
     { key: 'members', label: 'Members', icon: UserCheck },
-    { key: 'society', label: 'Autonomous Society', icon: Activity },
+    { key: 'quiz', label: 'Personality Quiz', icon: Brain },
+    { key: 'media', label: 'Media Intel', icon: Info },
+    { key: 'predictions', label: 'Predictions', icon: Activity },
+    { key: 'society', label: 'Society', icon: Users },
     { key: 'timeline', label: 'Timeline', icon: History },
     { key: 'tasks', label: 'Tasks', icon: CheckSquare },
     { key: 'shopping', label: 'Shopping', icon: ShoppingCart },
     { key: 'calendar', label: 'Calendar', icon: Calendar },
     { key: 'genealogy', label: 'Genealogy', icon: Search },
-    { key: 'training', label: 'Training Lab', icon: Brain },
+    { key: 'training', label: 'Training Lab', icon: Sparkles },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
@@ -49,6 +51,8 @@ export default function StJosephFamilyDashboard() {
     const [tasks, setTasks] = useState<FamilyTask[]>([]);
     const [shopping, setShopping] = useState<ShoppingItem[]>([]);
     const [events, setEvents] = useState<FamilyEvent[]>([]);
+    const [bulletin, setBulletin] = useState<{ id: string; text: string; author: string }[]>([]);
+    const [newBulletin, setNewBulletin] = useState('');
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
@@ -62,21 +66,53 @@ export default function StJosephFamilyDashboard() {
         if (!user) return;
         setLoading(true);
         try {
-            const [s, t, shop, e] = await Promise.all([
-                getHouseholdSummary(user.id),
-                getFamilyTasks(user.id),
-                getShoppingList(user.id),
-                getFamilyCalendar(user.id)
+            const [t, shop, e, bull] = await Promise.all([
+                apiClient.getFamilyTasks(user.id),
+                apiClient.getShoppingList(user.id),
+                apiClient.getFamilyCalendar(user.id),
+                apiClient.getFamilyBulletin(),
             ]);
-            setSummary(s);
-            setTasks(t);
-            setShopping(shop);
-            setEvents(e);
+            setTasks(t as FamilyTask[]);
+            setShopping(shop as ShoppingItem[]);
+            setEvents(e as FamilyEvent[]);
+            setBulletin(bull);
+            // Build summary from loaded data
+            setSummary({
+                activeTasks: (t as FamilyTask[]).filter(x => x.status === 'pending').length,
+                upcomingEvents: (e as FamilyEvent[]).length,
+                shoppingListCount: (shop as ShoppingItem[]).filter((x: any) => x.status === 'needed').length,
+                familyStatus: [
+                    { name: 'Alice', status: 'home' },
+                    { name: 'Bob', status: 'away' },
+                    { name: 'Charlie', status: 'busy' },
+                ],
+            });
         } catch (error) {
             console.error('Error loading family data:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCompleteTask = async (taskId: string) => {
+        await apiClient.completeTask(taskId);
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
+        setSummary(prev => prev ? { ...prev, activeTasks: Math.max(0, prev.activeTasks - 1) } : prev);
+    };
+
+    const handleMarkBought = async (itemId: string) => {
+        await apiClient.markItemBought(itemId);
+        setShopping(prev => prev.map(s => s.id === itemId ? { ...s, status: 'bought' } : s));
+        setSummary(prev => prev ? { ...prev, shoppingListCount: Math.max(0, prev.shoppingListCount - 1) } : prev);
+    };
+
+    const handlePostBulletin = async () => {
+        const text = newBulletin.trim();
+        if (!text) return;
+        const author = user?.email?.split('@')[0] || 'Me';
+        await apiClient.postBulletinMessage(text, author);
+        setBulletin(prev => [{ id: `local_${Date.now()}`, text, author }, ...prev]);
+        setNewBulletin('');
     };
 
     const syncEngrams = async () => {
@@ -145,7 +181,9 @@ export default function StJosephFamilyDashboard() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full custom-scrollbar">
+                <SaintsQuickNav />
+
+                <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full custom-scrollbar">
                     {TABS.map(({ key, label, icon: TabIcon }) => (
                         <button
                             key={key}
@@ -163,13 +201,29 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions') && (
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'tree' && <FamilyTreeView onTrainMember={handleTrainMember} />}
                     {activeTab === 'members' && (
                         <div className="space-y-4">
                             <FamilyHealthHeatmap />
                             <FamilyMembersGrid onTrainMember={handleTrainMember} />
+                        </div>
+                    )}
+                    {activeTab === 'quiz' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <PersonalityQuiz />
+                        </div>
+                    )}
+                    {activeTab === 'media' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <MediaIntelligencePanel />
+                        </div>
+                    )}
+                    {activeTab === 'predictions' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                            <SharedPredictionPanel saint="joseph" />
+                            <FamilyHealthHeatmap />
                         </div>
                     )}
                     {activeTab === 'training' && (
@@ -247,23 +301,34 @@ export default function StJosephFamilyDashboard() {
                                             <MessageSquare className="w-5 h-5 text-amber-400" />
                                             Family Bulletin
                                         </h3>
-                                        <button className="p-2 bg-amber-500/10 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-all">
-                                            <Plus className="w-4 h-4" />
+                                    </div>
+                                    {/* Compose */}
+                                    <div className="flex gap-2 mb-4">
+                                        <input
+                                            value={newBulletin}
+                                            onChange={e => setNewBulletin(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handlePostBulletin()}
+                                            placeholder="Post a message to the family..."
+                                            className="flex-1 px-4 py-2 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-500/50 transition-all"
+                                        />
+                                        <button
+                                            onClick={handlePostBulletin}
+                                            disabled={!newBulletin.trim()}
+                                            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-all"
+                                        >
+                                            Post
                                         </button>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                                            <p className="text-sm text-amber-200/80 leading-relaxed">
-                                                "Don't forget family dinner at Grandma's on Sunday! 6:00 PM."
-                                            </p>
-                                            <div className="mt-2 text-[10px] text-amber-500/40 uppercase font-bold text-right">— Alice</div>
-                                        </div>
-                                        <div className="p-4 bg-white/5 border border-white/5 rounded-2xl">
-                                            <p className="text-sm text-slate-300 leading-relaxed">
-                                                "Pick up the package at the front door if you get home first."
-                                            </p>
-                                            <div className="mt-2 text-[10px] text-slate-500 uppercase font-bold text-right">— Bob</div>
-                                        </div>
+                                    <div className="space-y-3">
+                                        {bulletin.map((msg, i) => (
+                                            <div key={msg.id} className={`p-4 ${i === 0 ? 'bg-amber-500/5 border border-amber-500/10' : 'bg-white/5 border border-white/5'} rounded-2xl`}>
+                                                <p className="text-sm text-slate-300 leading-relaxed">"{msg.text}"</p>
+                                                <div className="mt-2 text-[10px] text-slate-500 uppercase font-bold text-right">— {msg.author}</div>
+                                            </div>
+                                        ))}
+                                        {bulletin.length === 0 && (
+                                            <p className="text-center text-sm text-slate-600 py-4">No messages yet. Post the first one!</p>
+                                        )}
                                     </div>
                                 </div>
                             </>
@@ -279,10 +344,12 @@ export default function StJosephFamilyDashboard() {
                                     {tasks.map((task) => (
                                         <div key={task.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-amber-500/30 transition-all">
                                             <div className="flex items-center gap-4">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${task.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
-                                                    }`}>
+                                                <button
+                                                    onClick={() => task.status === 'pending' && handleCompleteTask(task.id)}
+                                                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${task.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 cursor-default' : 'bg-slate-800 text-slate-400 hover:bg-amber-500/20 hover:text-amber-400'}`}
+                                                >
                                                     <CheckSquare className="w-5 h-5" />
-                                                </div>
+                                                </button>
                                                 <div>
                                                     <div className={`text-sm font-medium ${task.status === 'completed' ? 'text-slate-500 line-through' : 'text-white'}`}>
                                                         {task.action}
@@ -290,11 +357,24 @@ export default function StJosephFamilyDashboard() {
                                                     <div className="text-[10px] text-slate-500">{task.description}</div>
                                                 </div>
                                             </div>
-                                            <div className="px-2 py-1 bg-white/5 rounded text-[9px] text-slate-500 font-bold uppercase">
-                                                {task.category}
+                                            <div className="flex items-center gap-2">
+                                                <div className="px-2 py-1 bg-white/5 rounded text-[9px] text-slate-500 font-bold uppercase">
+                                                    {task.category}
+                                                </div>
+                                                {task.status === 'pending' && (
+                                                    <button
+                                                        onClick={() => handleCompleteTask(task.id)}
+                                                        className="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded text-[9px] font-bold uppercase hover:bg-emerald-500/20 transition-all"
+                                                    >
+                                                        Done
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
+                                    {tasks.length === 0 && (
+                                        <p className="text-center text-sm text-slate-600 py-6">All tasks done! Great work!</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -311,12 +391,15 @@ export default function StJosephFamilyDashboard() {
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-2 h-2 rounded-full ${item.status === 'needed' ? 'bg-amber-400' : 'bg-slate-600'}`} />
                                                 <div>
-                                                    <div className="text-sm font-medium text-white">{item.name}</div>
+                                                    <div className={`text-sm font-medium ${item.status === 'bought' ? 'text-slate-500 line-through' : 'text-white'}`}>{item.name}</div>
                                                     <div className="text-[10px] text-slate-500">{item.quantity} · Added by {item.addedBy}</div>
                                                 </div>
                                             </div>
                                             {item.status === 'needed' && (
-                                                <button className="text-[10px] text-amber-500 font-bold uppercase hover:text-amber-400 transition-colors">
+                                                <button
+                                                    onClick={() => handleMarkBought(item.id)}
+                                                    className="text-[10px] text-amber-500 font-bold uppercase hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-amber-500/10"
+                                                >
                                                     Bought
                                                 </button>
                                             )}

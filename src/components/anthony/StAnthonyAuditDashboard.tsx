@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import SaintChat from '../SaintChat';
 import LostFoundLedger from './LostFoundLedger';
 import EventStream from './EventStream';
+import SaintsQuickNav from '../shared/SaintsQuickNav';
+import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
 
 export default function StAnthonyAuditDashboard() {
     const navigate = useNavigate();
@@ -36,6 +38,8 @@ export default function StAnthonyAuditDashboard() {
                     </div>
                 </div>
             </div>
+
+            <SaintsQuickNav />
 
             {/* Navigation Tabs */}
             <div className="flex items-center gap-6 border-b border-slate-800">

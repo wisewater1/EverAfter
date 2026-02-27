@@ -33,6 +33,7 @@ import WhatIfSimulator from '../components/causal-twin/WhatIfSimulator';
 import ExperimentLab from '../components/causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../components/causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../components/causal-twin/ModelHealthPanel';
+import SaintsQuickNav from '../components/shared/SaintsQuickNav';
 
 import { Beaker, FileText, Radio } from 'lucide-react';
 
@@ -163,6 +164,9 @@ export default function HealthDashboard() {
             </button>
           </div>
         </div>
+
+        {/* Saints Quick Nav */}
+        <SaintsQuickNav />
 
         {/* Tab Navigation - Premium Dark Glass UI */}
         <div className="mb-6 p-2 rounded-[28px] bg-gradient-to-br from-[#0d0d12]/95 via-[#13131a]/95 to-[#0d0d12]/95 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.03),inset_0_-1px_1px_rgba(0,0,0,0.5)] border border-white/[0.03] relative overflow-hidden">

@@ -10,6 +10,8 @@ import ThreatDetection from './michael/ThreatDetection';
 import VulnerabilityScanner from './michael/VulnerabilityScanner';
 import FileIntegrityMonitor from './michael/FileIntegrityMonitor';
 import CompliancePanel from './michael/CompliancePanel';
+import SaintsQuickNav from './shared/SaintsQuickNav';
+import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
 
 interface CAIState {
     integrityScore: number;
@@ -114,6 +116,8 @@ export default function StMichaelSecurityDashboard() {
                         {scanning ? 'Scanning...' : 'Full Scan'}
                     </button>
                 </div>
+
+                <SaintsQuickNav />
 
                 {/* Tab Navigation */}
                 <div className="flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 mb-8 overflow-x-auto">

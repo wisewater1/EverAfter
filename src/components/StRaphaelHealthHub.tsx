@@ -24,6 +24,9 @@ import WhatIfSimulator from './causal-twin/WhatIfSimulator';
 import ExperimentLab from './causal-twin/ExperimentLab';
 import EvidenceLedgerView from './causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from './causal-twin/ModelHealthPanel';
+import SharedPredictionPanel from './shared/SharedPredictionPanel';
+import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
+import SaintsQuickNav from './shared/SaintsQuickNav';
 
 type TabView =
   | 'overview'
@@ -113,9 +116,13 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
               <LayoutGrid className="w-4 h-4" />
               <span className="font-medium hidden sm:inline">Full Dashboard</span>
             </button>
+            <SecurityIntegrityBadge />
           </div>
         </div>
       </div>
+
+      {/* Saints Quick Nav */}
+      <SaintsQuickNav />
 
       {/* Tab Navigation */}
       <div className="p-3 rounded-3xl bg-gradient-to-br from-[#1a1a24]/80 to-[#13131a]/80 backdrop-blur-2xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
@@ -168,7 +175,10 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
         )}
 
         {activeTab === 'predictive' && (
-          <PredictiveHealthInsights />
+          <div className="space-y-6">
+            <SharedPredictionPanel saint="raphael" />
+            <PredictiveHealthInsights />
+          </div>
         )}
 
         {activeTab === 'insights' && (

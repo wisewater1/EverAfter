@@ -176,8 +176,8 @@ export async function storeHealthMetrics(
     const rows = dataPoints.map(dp => ({
         user_id: userId,
         metric_type: dp.metric_type,
-        value: dp.value,
-        unit: dp.unit,
+        metric_value: dp.value,
+        metric_unit: dp.unit,
         recorded_at: new Date().toISOString(),
         source,
     }));
@@ -204,7 +204,7 @@ export async function fetchHealthMetrics(
 
     const { data, error } = await supabase
         .from('health_metrics')
-        .select('metric_type, value, unit, recorded_at, source')
+        .select('metric_type, metric_value, metric_unit, recorded_at, source')
         .eq('user_id', userId)
         .gte('recorded_at', since.toISOString())
         .order('recorded_at', { ascending: true });
@@ -214,7 +214,13 @@ export async function fetchHealthMetrics(
         return [];
     }
 
-    return data || [];
+    return (data || []).map((row: any) => ({
+        metric_type: row.metric_type,
+        value: Number(row.metric_value),
+        unit: row.metric_unit,
+        recorded_at: row.recorded_at,
+        source: row.source
+    }));
 }
 
 /**

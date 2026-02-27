@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sliders, Play, TrendingUp, ArrowRight } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
@@ -13,7 +13,7 @@ const BEHAVIOR_SLIDERS = [
     { key: 'meditation_minutes', label: 'Meditation (min)', min: 0, max: 30, step: 5, default: 0 },
 ];
 
-export default function WhatIfSimulator() {
+export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
     const [values, setValues] = useState<Record<string, number>>(
         Object.fromEntries(BEHAVIOR_SLIDERS.map(s => [s.key, s.default]))
     );
@@ -24,7 +24,8 @@ export default function WhatIfSimulator() {
     async function runSimulation() {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/simulate`, {
+            const params = memberId ? `?member_id=${memberId}` : '';
+            const res = await fetch(`${API_BASE}/api/v1/causal-twin/simulate${params}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ behavior_changes: values }),
@@ -123,8 +124,8 @@ export default function WhatIfSimulator() {
                                 key={h}
                                 onClick={() => setSelectedHorizon(h)}
                                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${selectedHorizon === h
-                                        ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                                        : 'text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/5'
+                                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                                    : 'text-slate-500 hover:text-slate-300 border border-transparent hover:border-white/5'
                                     }`}
                             >
                                 {h.replace('d', ' days')}
