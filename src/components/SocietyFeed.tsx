@@ -402,66 +402,69 @@ const SocietyFeed: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Propagation Trigger */}
-                    <button
-                        onClick={async () => {
-                            if (isPropagating || agents.length < 2) {
-                                if (agents.length < 2) setErrorMsg("Need at least 2 agents in the society to propagate legacies.");
-                                return;
-                            }
-                            setIsPropagating(true);
-                            setErrorMsg(null);
-                            try {
-                                const initiator = agents.find(a => a.status === 'active') || agents[0];
-                                if (initiator) {
-                                    await apiClient.triggerLegacyPropagation(initiator.id, "Family traditions are the glue of our legacy.");
-                                    await refreshData();
+                    {/* Action Buttons Container (Side-by-side on mobile, stacked on desktop) */}
+                    <div className="flex flex-row md:flex-col gap-2 md:gap-4 w-full overflow-x-auto pb-2 custom-scrollbar shrink-0">
+                        {/* Propagation Trigger */}
+                        <button
+                            onClick={async () => {
+                                if (isPropagating || agents.length < 2) {
+                                    if (agents.length < 2) setErrorMsg("Need at least 2 agents in the society to propagate legacies.");
+                                    return;
                                 }
-                            } catch (error: any) {
-                                console.error("Propagation Error:", error);
-                                setErrorMsg(error.message || "Failed to trigger propagation vignette.");
-                            } finally {
-                                setIsPropagating(false);
-                            }
-                        }}
-                        disabled={isPropagating || agents.length < 2}
-                        className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all whitespace-normal break-words w-full"
-                    >
-                        {isPropagating ? (
-                            <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-2" />
-                        ) : (
-                            <Share2 className="w-5 h-5 text-amber-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                        )}
-                        <div className="text-xs font-bold text-amber-500 tracking-tight uppercase leading-tight">Propagate Legacy</div>
-                        <div className="text-[9px] text-amber-500/60 mt-1 uppercase font-black leading-tight">Trigger Viral Vignette</div>
-                    </button>
+                                setIsPropagating(true);
+                                setErrorMsg(null);
+                                try {
+                                    const initiator = agents.find(a => a.status === 'active') || agents[0];
+                                    if (initiator) {
+                                        await apiClient.triggerLegacyPropagation(initiator.id, "Family traditions are the glue of our legacy.");
+                                        await refreshData();
+                                    }
+                                } catch (error: any) {
+                                    console.error("Propagation Error:", error);
+                                    setErrorMsg(error.message || "Failed to trigger propagation vignette.");
+                                } finally {
+                                    setIsPropagating(false);
+                                }
+                            }}
+                            disabled={isPropagating || agents.length < 2}
+                            className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-50 p-2 sm:p-4 rounded-2xl text-center group transition-all flex-1 min-w-[140px] whitespace-nowrap sm:whitespace-normal"
+                        >
+                            {isPropagating ? (
+                                <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-2" />
+                            ) : (
+                                <Share2 className="w-5 h-5 text-amber-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                            )}
+                            <div className="text-xs font-bold text-amber-500 tracking-tight uppercase leading-tight">Propagate Legacy</div>
+                            <div className="text-[9px] text-amber-500/60 mt-1 uppercase font-black leading-tight">Trigger Viral Vignette</div>
+                        </button>
 
-                    <button
-                        onClick={async () => {
-                            if (isAccelerating) return;
-                            setIsAccelerating(true);
-                            setErrorMsg(null);
-                            try {
-                                await apiClient.triggerSocietyEvent();
-                                await refreshData();
-                            } catch (error: any) {
-                                console.error("Event trigger error:", error);
-                                setErrorMsg(error.message || "Failed to trigger society event. Not enough active engrams?");
-                            } finally {
-                                setIsAccelerating(false);
-                            }
-                        }}
-                        disabled={isAccelerating}
-                        className="bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 disabled:opacity-50 p-4 rounded-2xl text-center group transition-all whitespace-normal break-words w-full"
-                    >
-                        {isAccelerating ? (
-                            <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-2" />
-                        ) : (
-                            <Activity className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
-                        )}
-                        <div className="text-xs font-bold text-cyan-400 tracking-tight uppercase leading-tight">Accelerate Simulation</div>
-                        <div className="text-[9px] text-cyan-500/60 mt-1 uppercase font-black leading-tight">Tick rate: 1.5hz</div>
-                    </button>
+                        <button
+                            onClick={async () => {
+                                if (isAccelerating) return;
+                                setIsAccelerating(true);
+                                setErrorMsg(null);
+                                try {
+                                    await apiClient.triggerSocietyEvent();
+                                    await refreshData();
+                                } catch (error: any) {
+                                    console.error("Event trigger error:", error);
+                                    setErrorMsg(error.message || "Failed to trigger society event. Not enough active engrams?");
+                                } finally {
+                                    setIsAccelerating(false);
+                                }
+                            }}
+                            disabled={isAccelerating}
+                            className="bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 disabled:opacity-50 p-2 sm:p-4 rounded-2xl text-center group transition-all flex-1 min-w-[140px] whitespace-nowrap sm:whitespace-normal"
+                        >
+                            {isAccelerating ? (
+                                <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-2" />
+                            ) : (
+                                <Activity className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
+                            )}
+                            <div className="text-xs font-bold text-cyan-400 tracking-tight uppercase leading-tight">Accelerate Simulation</div>
+                            <div className="text-[9px] text-cyan-500/60 mt-1 uppercase font-black leading-tight">Tick rate: 1.5hz</div>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
