@@ -36,6 +36,20 @@ class IntegrityService:
         )
         
         session.add(new_entry)
+        
+        # St. Anthony Synergy: Record the dividend generation immutably
+        from app.services.ledger_service import LedgerService
+        ledger = LedgerService(session)
+        await ledger.log_event(
+            action="finance/integrity_dividend_awarded",
+            user_id=str(user_uuid),
+            metadata={
+                "score": score,
+                "findings": findings_count,
+                "dividend_amount": daily_dividend
+            }
+        )
+        
         await session.commit()
         logger.info(f"IntegrityService: Recorded score {score} for {user_id}. Dividend: ${daily_dividend:.2f}")
 

@@ -263,6 +263,10 @@ export default function StMichaelSecurityDashboard() {
                                                     </span>
                                                     <p className="text-sm text-slate-300 font-medium">{alert.message}</p>
                                                 </div>
+                                                <button onClick={() => navigate('/anthony?tab=ledger')} className="ml-auto flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:text-sky-300 bg-sky-500/10 px-2 py-1 rounded border border-sky-500/20 transition-colors whitespace-nowrap">
+                                                    <Eye size={12} />
+                                                    View Proof
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -281,7 +285,10 @@ export default function StMichaelSecurityDashboard() {
                                             <span className="text-slate-700 w-24 shrink-0">{new Date(audit.timestamp).toLocaleTimeString([], { hour12: false })}</span>
                                             <span className="text-sky-500/80 w-16 shrink-0 uppercase font-bold">[VERIFIED]</span>
                                             <span className="text-slate-400 flex-1 truncate">{audit.action}</span>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                            <button onClick={() => navigate('/anthony?tab=ledger')} className="text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 shrink-0">
+                                                <Eye size={12} /> View
+                                            </button>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1 shadow-[0_0_8px_rgba(16,185,129,0.5)] shrink-0" />
                                         </div>
                                     ))}
                                 </div>

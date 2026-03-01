@@ -281,12 +281,26 @@ class SaintRuntime:
     async def _run_michael_vigil(self, session: AsyncSession):
         """Performs a periodic security scan and audits Akashic records."""
         from app.services.vulnerability_service import vulnerability_service
+        from app.services.ledger_service import LedgerService
         try:
             logger.info("SaintRuntime [Vigil]: St. Michael executing security audit...")
             # We run the scan for a "system context" (user_id=None for now)
             # In a multi-tenant setup, we'd loop through active users
             vulnerability_service.session = session
             scan_results = await vulnerability_service.perform_full_security_scan(user_id=None)
+            
+            # Record verifiable proof of scan execution for Auditor (St. Anthony)
+            ledger = LedgerService(session)
+            await ledger.log_event(
+                action="security/michael_vigil_executed",
+                metadata={
+                    "scan_results": {
+                        "status": scan_results.get("status"),
+                        "findings_count": scan_results.get("findings_count"),
+                        "system_integrity": scan_results.get("system_integrity")
+                    }
+                }
+            )
             
             # Record Integrity Dividend (System-wide or specific user if needed)
             # For the vigil, we might track system integrity, but for monetization,
