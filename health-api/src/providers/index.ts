@@ -7,13 +7,13 @@ import { ouraProvider } from './oura.js';
 import { fitbitProvider } from './fitbit.js';
 import { dexcomProvider } from './dexcom.js';
 import { stravaProvider } from './strava.js';
+import { whoopProvider } from './whoop.js';
+import { garminProvider } from './garmin.js';
+import { withingsProvider } from './withings.js';
+import { polarProvider } from './polar.js';
 
 // Scaffold providers (pending implementation)
 import {
-  whoopProvider,
-  garminProvider,
-  withingsProvider,
-  polarProvider,
   googleFitProvider,
   abbottLibreProvider,
   appleHealthProvider,
@@ -33,12 +33,12 @@ export const PROVIDER_REGISTRY: Record<Provider, ProviderDriver> = {
   [Provider.FITBIT]: fitbitProvider,
   [Provider.DEXCOM]: dexcomProvider,
   [Provider.STRAVA]: stravaProvider,
-
-  // 🚧 Pending Implementation (scaffolded structure)
   [Provider.WHOOP]: whoopProvider,
   [Provider.GARMIN]: garminProvider,
   [Provider.WITHINGS]: withingsProvider,
   [Provider.POLAR]: polarProvider,
+
+  // 🚧 Pending Implementation (scaffolded structure)
   [Provider.GOOGLE_FIT]: googleFitProvider,
   [Provider.ABBOTT_LIBRE]: abbottLibreProvider,
 
@@ -72,6 +72,10 @@ export function isProviderImplemented(provider: Provider): boolean {
     Provider.FITBIT,
     Provider.DEXCOM,
     Provider.STRAVA,
+    Provider.WHOOP,
+    Provider.GARMIN,
+    Provider.WITHINGS,
+    Provider.POLAR,
   ];
   return implemented.includes(provider);
 }
@@ -87,5 +91,9 @@ export function listImplementedProviders(): Provider[] {
     Provider.FITBIT,
     Provider.DEXCOM,
     Provider.STRAVA,
+    Provider.WHOOP,
+    Provider.GARMIN,
+    Provider.WITHINGS,
+    Provider.POLAR,
   ];
 }

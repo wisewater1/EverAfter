@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { ArrowLeft, Search, FileText, Activity, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Search, FileText, Activity, MessageCircle, ShieldCheck, Network, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SaintChat from '../SaintChat';
 import LostFoundLedger from './LostFoundLedger';
 import EventStream from './EventStream';
+import ContinuousControls from './ContinuousControls';
+import DataFlowMap from './DataFlowMap';
+import JITAccess from './JITAccess';
 import SaintsQuickNav from '../shared/SaintsQuickNav';
 import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
 
 export default function StAnthonyAuditDashboard() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'ledger' | 'stream' | 'chat'>('ledger');
+    const [activeTab, setActiveTab] = useState<'readiness' | 'flow' | 'jit' | 'ledger' | 'stream' | 'chat'>('readiness');
 
     return (
         <div className="space-y-8 p-6 bg-slate-950 min-h-screen text-slate-200">
@@ -42,26 +45,50 @@ export default function StAnthonyAuditDashboard() {
             <SaintsQuickNav />
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-6 border-b border-slate-800">
+            <div className="flex items-center gap-6 border-b border-slate-800 overflow-x-auto custom-scrollbar">
+                <button
+                    onClick={() => setActiveTab('readiness')}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'readiness' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                >
+                    <ShieldCheck className="w-4 h-4" />
+                    Audit Readiness
+                    {activeTab === 'readiness' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
+                </button>
+                <button
+                    onClick={() => setActiveTab('flow')}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'flow' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                >
+                    <Network className="w-4 h-4" />
+                    Data Flow Map
+                    {activeTab === 'flow' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
+                </button>
                 <button
                     onClick={() => setActiveTab('ledger')}
-                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 ${activeTab === 'ledger' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'ledger' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
                 >
                     <FileText className="w-4 h-4" />
-                    Lost & Found Ledger
+                    Cryptographic Ledger
                     {activeTab === 'ledger' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
                 </button>
                 <button
                     onClick={() => setActiveTab('stream')}
-                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 ${activeTab === 'stream' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'stream' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
                 >
                     <Activity className="w-4 h-4" />
                     Event Stream
                     {activeTab === 'stream' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
                 </button>
                 <button
+                    onClick={() => setActiveTab('jit')}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'jit' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                >
+                    <Key className="w-4 h-4" />
+                    JIT Access
+                    {activeTab === 'jit' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
+                </button>
+                <button
                     onClick={() => setActiveTab('chat')}
-                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 ${activeTab === 'chat' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'chat' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
                 >
                     <MessageCircle className="w-4 h-4" />
                     Consult St. Anthony
@@ -70,7 +97,10 @@ export default function StAnthonyAuditDashboard() {
             </div>
 
             {/* Content Area */}
-            <div className="min-h-[600px]">
+            <div className="min-h-[600px] mt-8">
+                {activeTab === 'readiness' && <ContinuousControls />}
+                {activeTab === 'flow' && <DataFlowMap />}
+                {activeTab === 'jit' && <JITAccess />}
                 {activeTab === 'ledger' && <LostFoundLedger />}
                 {activeTab === 'stream' && <EventStream />}
                 {activeTab === 'chat' && (

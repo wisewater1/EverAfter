@@ -14,13 +14,12 @@ model User {
   createdAt DateTime @default(now())
 
   sources           Source[]
-  devices           Device[]
-  metrics           Metric[]
   consents          Consent[]
   engrams           EngramEntry[]
   audits            AuditLog[]
   emergencyContacts EmergencyContact[]
   agentRuns         AgentRun[]
+  jitRequests       JITAccessRequest[]
 
   @@map("users")
 }
@@ -124,11 +123,55 @@ model AuditLog {
   metadata   Json?
   ts         DateTime  @default(now())
 
+  // Cryptographic Verification Fields
+  prevHash   String?   // Hash of the chronologically previous AuditLog entry
+  signature  String?   // Digital signature of this entry's hash
+  signerId   String?   // Identifier of the key/service that signed the entry
+
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId, ts])
   @@index([action])
   @@map("audit_logs")
+}
+
+model ComplianceControl {
+  id            String   @id @default(cuid())
+  controlId     String   @unique
+  description   String
+  isPassing     Boolean  @default(true)
+  lastCheckedAt DateTime @default(now())
+  metadata      Json?
+
+  @@map("compliance_controls")
+}
+
+model JITAccessRequest {
+  id             String    @id @default(cuid())
+  userId         String
+  targetResource String
+  reason         String
+  status         String    @default("PENDING") // PENDING, APPROVED, REJECTED, EXPIRED, REVOKED
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+  approvedBy     String?
+  approvedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("jit_access_requests")
+}
+
+model RestoreDrill {
+  id             String   @id @default(cuid())
+  targetResource String
+  status         String   // SUCCESS, FAILED
+  durationMs     Int?
+  proofHash      String?  // Hash of the restore artifacts/proofs
+  createdAt      DateTime @default(now())
+
+  @@map("restore_drills")
 }
 
 model EmergencyContact {

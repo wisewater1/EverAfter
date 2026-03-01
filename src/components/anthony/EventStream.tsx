@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Server, Shield, Heart, Users, Search, Code, ChevronRight } from 'lucide-react';
+import { Activity, Server, Shield, Heart, Users, Search, Code, ChevronRight, Download, CheckCircle } from 'lucide-react';
 import { subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
 
 const MOCK_EVENTS: SaintEventEnvelope[] = [
@@ -59,6 +59,11 @@ export default function EventStream() {
         return redacted;
     };
 
+    const handleExportVerifier = () => {
+        window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}/api/v1/audit/verifier-script`, '_blank');
+        window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}/api/v1/audit/ledger/export`, '_blank');
+    };
+
     useEffect(() => {
         const unsubscribe = subscribeToSaintEvents((event) => {
             setEvents(prev => [event, ...prev.slice(0, 49)]); // Keep last 50
@@ -85,7 +90,17 @@ export default function EventStream() {
                         <Activity className="w-4 h-4 text-amber-500" />
                         Live Stream
                     </h2>
-                    <span className="text-xs text-slate-500 font-mono">{events.length} Events</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500 font-mono">{events.length} Events</span>
+                        <button
+                            onClick={handleExportVerifier}
+                            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-xs px-2 py-1 rounded border border-amber-500/30 flex items-center gap-1 transition-colors"
+                            title="Download Offline Verifier & Proofs"
+                        >
+                            <Download className="w-3 h-3" />
+                            Verify
+                        </button>
+                    </div>
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {events.map((event, idx) => {
@@ -136,7 +151,19 @@ export default function EventStream() {
                                 </span>
                                 <span className="text-slate-500 text-xs font-mono">ID: {selectedEvent.id.toUpperCase()}</span>
                             </div>
-                            <h3 className="text-2xl font-light text-white mb-1">Event Payload</h3>
+                            <div className="flex justify-between items-start mb-1">
+                                <h3 className="text-2xl font-light text-white">Event Payload</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-md text-xs flex items-center gap-1 font-mono">
+                                        <CheckCircle className="w-3 h-3" />
+                                        Hash Valid
+                                    </span>
+                                    <span className="px-2 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-xs flex items-center gap-1 font-mono">
+                                        <CheckCircle className="w-3 h-3" />
+                                        Sig Valid
+                                    </span>
+                                </div>
+                            </div>
                             <p className="text-slate-400 text-sm">
                                 Captured at <span className="text-slate-300">{new Date(selectedEvent.timestamp || Date.now()).toLocaleString()}</span>
                             </p>

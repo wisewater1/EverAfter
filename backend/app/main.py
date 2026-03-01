@@ -27,8 +27,10 @@ async def lifespan(app: FastAPI):
     # Startup
     print("Startup: Initializing resources...")
     from app.services.saint_runtime import saint_runtime
+    from app.services.compliance_service import compliance_autopilot
     asyncio.create_task(saint_runtime.listen_for_events())
     asyncio.create_task(saint_runtime.run_vigils())
+    asyncio.create_task(compliance_autopilot.run_continuous_audits())
     yield
     # Shutdown
     print("Shutdown: Cleaning up resources...")
@@ -79,6 +81,9 @@ from app.api import personality_quiz
 app.include_router(personality_quiz.router)
 from app.api import family_home
 app.include_router(family_home.router)
+
+from app.api.endpoints import audit
+app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
 
 
 

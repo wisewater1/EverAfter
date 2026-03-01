@@ -41,7 +41,8 @@ router.get('/me/sources', async (req: AuthenticatedRequest, res) => {
 // POST /me/connect/:provider - Generate OAuth URL
 router.post('/me/connect/:provider', async (req: AuthenticatedRequest, res) => {
   try {
-    const provider = req.params.provider.toUpperCase() as Provider;
+    const providerParam = typeof req.params.provider === 'string' ? req.params.provider : String(req.params.provider);
+    const provider = providerParam.toUpperCase() as Provider;
     const userId = req.userId!;
 
     if (!Object.values(Provider).includes(provider)) {
@@ -89,7 +90,8 @@ router.post('/me/connect/:provider', async (req: AuthenticatedRequest, res) => {
 // GET /oauth/:provider/callback - Handle OAuth callback
 router.get('/oauth/:provider/callback', async (req: AuthenticatedRequest, res) => {
   try {
-    const provider = req.params.provider.toUpperCase() as Provider;
+    const providerParam = typeof req.params.provider === 'string' ? req.params.provider : String(req.params.provider);
+    const provider = providerParam.toUpperCase() as Provider;
     const { code, state } = req.query;
 
     if (!code || !state) {
@@ -178,7 +180,8 @@ router.get('/oauth/:provider/callback', async (req: AuthenticatedRequest, res) =
 // POST /me/disconnect/:provider - Disconnect provider
 router.post('/me/disconnect/:provider', async (req: AuthenticatedRequest, res) => {
   try {
-    const provider = req.params.provider.toUpperCase() as Provider;
+    const providerParam = typeof req.params.provider === 'string' ? req.params.provider : String(req.params.provider);
+    const provider = providerParam.toUpperCase() as Provider;
     const userId = req.userId!;
 
     const result = await prisma.providerAccount.updateMany({

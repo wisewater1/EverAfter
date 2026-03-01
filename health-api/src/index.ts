@@ -9,6 +9,7 @@ import { logger } from './utils/logger.js';
 import { authMiddleware } from './middleware/auth.js';
 import connectionsRouter from './routes/connections.js';
 import metricsRouter from './routes/metrics.js';
+import ingestionRouter from './routes/ingestion.js';
 import {
   createSyncWorker,
   createTokenRefreshWorker,
@@ -84,6 +85,7 @@ app.get('/', (req, res) => {
 // API routes (authenticated)
 app.use('/api/connections', authMiddleware, connectionsRouter);
 app.use('/api/metrics', authMiddleware, metricsRouter);
+app.use('/api/ingestion', authMiddleware, ingestionRouter);
 
 // Swagger documentation
 if (process.env.ENABLE_SWAGGER_UI === 'true') {

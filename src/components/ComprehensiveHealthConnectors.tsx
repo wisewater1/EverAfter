@@ -386,6 +386,7 @@ export default function ComprehensiveHealthConnectors() {
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [connectingSource, setConnectingSource] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'all'>('all');
   const [connectedCount, setConnectedCount] = useState(0);
   const [showCustomDashboard, setShowCustomDashboard] = useState(false);
@@ -414,8 +415,10 @@ export default function ComprehensiveHealthConnectors() {
   };
 
   const connectService = async (serviceId: string, serviceName: string) => {
+    setConnectingSource(serviceId);
     try {
-      const { error } = await supabase
+      // Create a pending connection record in frontend DB first
+      const { error: dbError } = await supabase
         .from('health_connections')
         .insert([{
           user_id: user?.id,
@@ -425,12 +428,46 @@ export default function ComprehensiveHealthConnectors() {
           sync_frequency: 'daily'
         }]);
 
-      if (error) throw error;
-      alert(`${serviceName} connection initiated! In production, this would redirect to OAuth.`);
-      fetchConnections();
+      if (dbError) throw dbError;
+
+      // Ensure we have a valid session to authenticate with the health-api
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No valid session found for health API authentication.');
+      }
+
+      // Hit our new custom node.js rest API
+      const API_BASE_URL = import.meta.env.VITE_HEALTH_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${API_BASE_URL}/api/connections/me/connect/${serviceId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error || 'Failed to generate OAuth URL');
+      }
+
+      // Smooth transition to provider's auth page
+      if (resData.data?.authUrl) {
+        // Add a slight delay so user can see the premium loading animation 
+        // before being whisked away to the OAuth page
+        setTimeout(() => {
+          window.location.href = resData.data.authUrl;
+        }, 1200);
+      } else {
+        throw new Error('No authorization URL returned from the service');
+      }
+
     } catch (error) {
       console.error('Error connecting service:', error);
-      alert('Failed to connect service');
+      alert(`Failed to connect service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setConnectingSource(null);
+      fetchConnections(); // refresh to reset pending state if failed
     }
   };
 
@@ -500,11 +537,10 @@ export default function ComprehensiveHealthConnectors() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id as ServiceCategory | 'all')}
-                className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${
-                  isActive
+                className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${isActive
                     ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4)] border border-teal-500/30'
                     : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] border border-transparent hover:border-white/5'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span className="text-sm">{cat.label}</span>
@@ -536,6 +572,7 @@ export default function ComprehensiveHealthConnectors() {
                   connection={connections.find(c => c.service_type === service.id && c.status !== 'disconnected')}
                   onConnect={connectService}
                   syncing={syncing}
+                  isConnecting={connectingSource === service.id}
                 />
               ))}
             </div>
@@ -550,6 +587,7 @@ export default function ComprehensiveHealthConnectors() {
               connection={connections.find(c => c.service_type === service.id && c.status !== 'disconnected')}
               onConnect={connectService}
               syncing={syncing}
+              isConnecting={connectingSource === service.id}
             />
           ))}
         </div>
@@ -676,9 +714,10 @@ interface ServiceCardProps {
   connection?: HealthConnection;
   onConnect: (serviceId: string, serviceName: string) => void;
   syncing: string | null;
+  isConnecting?: boolean;
 }
 
-function ServiceCard({ service, connection, onConnect, syncing }: ServiceCardProps) {
+function ServiceCard({ service, connection, onConnect, syncing, isConnecting }: ServiceCardProps) {
   const Icon = service.icon;
   const isConnected = connection?.status === 'connected';
   const isComingSoon = service.status === 'coming_soon';
@@ -738,10 +777,21 @@ function ServiceCard({ service, connection, onConnect, syncing }: ServiceCardPro
       ) : (
         <button
           onClick={() => onConnect(service.id, service.name)}
-          className={`w-full px-4 py-3 bg-gradient-to-r ${service.color} text-white rounded-xl hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2 shadow-lg`}
+          disabled={isConnecting}
+          className={`w-full px-4 py-3 bg-gradient-to-r ${service.color} text-white rounded-xl ${isConnecting ? 'opacity-80' : 'hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]'} transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2 shadow-lg relative overflow-hidden`}
         >
-          <Plus className="w-4 h-4" />
-          Connect {service.name}
+          {isConnecting ? (
+            <>
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span className="relative z-10 tracking-wide font-semibold">Connecting...</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              Connect {service.name}
+            </>
+          )}
         </button>
       )}
     </div>
