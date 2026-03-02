@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import axios from 'axios';
-import { API_BASE_URL } from '../../lib/env';
+// import { API_BASE_URL } from '../../lib/env';
 
 export interface IntegrityReport {
     overallScore: number;
@@ -67,24 +67,29 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         try {
             const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
             const res = await axios.get(`${baseUrl}/api/v1/monitoring/status`, { headers });
-            const michael = res.data.michael;
+            const michael = res.data?.michael || {};
+            const michaelFindings = michael.recent_findings || [];
 
             // Map backend findings to frontend alerts
-            const findings = (michael.recent_findings || []).map((f: any) => ({
-                id: f.id,
-                type: f.type,
-                severity: f.severity,
-                message: f.message,
-                timestamp: f.timestamp,
+            const findings = michaelFindings.map((f: any) => ({
+                id: f.id || Math.random().toString(36).substr(2, 9),
+                type: f.type || 'vulnerability',
+                severity: f.severity || 'medium',
+                message: f.message || 'Unknown finding',
+                timestamp: f.timestamp || new Date().toISOString(),
                 resolved: false,
                 details: f.details
             }));
 
+            const overallScoreStr = typeof michael.integrity === 'string'
+                ? michael.integrity.replace('%', '')
+                : '100';
+
             return {
-                overallScore: parseInt(michael.integrity.replace('%', '')),
+                overallScore: parseInt(overallScoreStr) || 100,
                 dataIntegrity,
                 privacyStatus,
-                lastScan: res.data.timestamp,
+                lastScan: res.data?.timestamp || lastScan,
                 alerts: [...alerts, ...findings]
             };
         } catch (e) {
@@ -121,7 +126,7 @@ export async function getAuditHistory(userId: string): Promise<AuditRecord[]> {
 
         if (!data) return [];
 
-        return data.map((log: any) => ({
+        return (data || []).map((log: any) => ({
             id: log.id,
             action: log.action,
             timestamp: log.ts,
@@ -180,7 +185,7 @@ export interface ThreatEvent {
     ruleId: string;
 }
 
-export interface VulnerabilityEntry {
+export interface Vulnerability {
     id: string;
     cveId: string;
     title: string;
@@ -228,7 +233,7 @@ export function getThreatEvents(): ThreatEvent[] {
     ];
 }
 
-export async function getLiveVulnerabilities(): Promise<VulnerabilityEntry[]> {
+export async function getLiveVulnerabilities(): Promise<Vulnerability[]> {
     try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
         const { data: { session } } = await supabase.auth.getSession();
@@ -241,7 +246,7 @@ export async function getLiveVulnerabilities(): Promise<VulnerabilityEntry[]> {
     }
 }
 
-export async function triggerLiveScan(): Promise<any> {
+export async function triggerLiveScan(): Promise<Vulnerability[]> {
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
     const { data: { session } } = await supabase.auth.getSession();
     const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};

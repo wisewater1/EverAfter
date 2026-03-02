@@ -32,7 +32,10 @@ let _handlers: Map<string, EventHandler[]> = new Map();
 function loadEventLog(): SaintEventEnvelope[] {
     try {
         const stored = localStorage.getItem(EVENT_LOG_KEY);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return Array.isArray(parsed) ? parsed : [];
+        }
     } catch { /* ignore */ }
     return [];
 }
@@ -146,7 +149,10 @@ export function getSaintStatuses(): SaintStatus[] {
     try {
         const members = localStorage.getItem('everafter_family_members');
         if (members) {
-            josephAgents = JSON.parse(members).filter((m: any) => m.aiPersonality?.isActive).length;
+            const parsed = JSON.parse(members);
+            if (Array.isArray(parsed)) {
+                josephAgents = parsed.filter((m: any) => m.aiPersonality?.isActive).length;
+            }
         }
     } catch { /* */ }
 
