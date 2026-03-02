@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import NotificationToast from './components/NotificationToast';
 import HealthAlertListener from './components/HealthAlertListener';
 import { attachEdgeReactive } from './lib/edge-reactive';
+import { startSaintHeartbeat, stopSaintHeartbeat } from './lib/saintBridge';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -79,7 +80,11 @@ function ErrorNotifierConnector() {
 function App() {
   useEffect(() => {
     const cleanup = attachEdgeReactive('.ea-panel');
-    return cleanup;
+    startSaintHeartbeat();
+    return () => {
+      cleanup();
+      stopSaintHeartbeat();
+    };
   }, []);
 
   return (
@@ -176,6 +181,9 @@ function App() {
                   <ProtectedRoute>
                     <StMichaelSecurityDashboard />
                   </ProtectedRoute>
+                } />
+                <Route path="/michael-dashboard" element={
+                  <Navigate to="/security-dashboard" replace />
                 } />
                 <Route path="/family-dashboard" element={
                   <ProtectedRoute>

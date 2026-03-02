@@ -26,8 +26,21 @@ type EventHandler = (event: SaintEventEnvelope) => void;
 
 const EVENT_LOG_KEY = 'everafter_saint_events_v2';
 const MAX_LOG_SIZE = 100;
+const CHANNEL_NAME = 'everafter_divine_protocol';
 
 let _handlers: Map<string, EventHandler[]> = new Map();
+let _channel: BroadcastChannel | null = null;
+let _heartbeatInterval: any = null;
+
+// Initialize BroadcastChannel for cross-tab sync
+if (typeof window !== 'undefined' && window.BroadcastChannel) {
+    _channel = new BroadcastChannel(CHANNEL_NAME);
+    _channel.onmessage = (event) => {
+        const envelope = event.data as SaintEventEnvelope;
+        // Validate and trigger handlers locally (avoiding infinite loop)
+        processIncomingEvent(envelope, { remote: true });
+    };
+}
 
 function loadEventLog(): SaintEventEnvelope[] {
     try {
@@ -41,7 +54,42 @@ function loadEventLog(): SaintEventEnvelope[] {
 }
 
 function saveEventLog(events: SaintEventEnvelope[]): void {
-    localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(events.slice(-MAX_LOG_SIZE)));
+    // Deduplicate by ID before saving
+    const unique = Array.from(new Map(events.map(e => [e.id, e])).values());
+    localStorage.setItem(EVENT_LOG_KEY, JSON.stringify(unique.slice(-MAX_LOG_SIZE)));
+}
+
+/**
+ * Internal processor to handle events from both local and remote sources.
+ */
+function processIncomingEvent(envelope: SaintEventEnvelope, options: { remote?: boolean } = {}) {
+    const log = loadEventLog();
+
+    // Deduplication check
+    if (log.some(e => e.id === envelope.id)) return;
+
+    // Persist to log
+    log.push(envelope);
+    saveEventLog(log);
+
+    // Notify subscribers
+    const finalTarget = envelope.target;
+
+    // 1. Target specific
+    const targetHandlers = _handlers.get(finalTarget) || [];
+    // 2. Broadcast listeners
+    const broadcastHandlers = _handlers.get('broadcast') || [];
+    // 3. Legacy 'all' listeners
+    const allHandlers = _handlers.get('all') || [];
+
+    [...targetHandlers, ...broadcastHandlers, ...allHandlers].forEach(h => {
+        try { h(envelope); } catch (e) { console.error('Saint bridge handler error:', e); }
+    });
+
+    // Cross-Tab Propagation
+    if (!options.remote && _channel) {
+        _channel.postMessage(envelope);
+    }
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -67,43 +115,35 @@ export function emitSaintEvent<T extends Record<string, unknown>>(
     const result = SaintEventEnvelopeSchema.safeParse(fullEvent);
     if (!result.success) {
         console.error("Divine Protocol Violation:", result.error);
-        // We trigger it anyway to not break app, but log error
     }
 
-    // Persist to log
-    const log = loadEventLog();
-    log.push(fullEvent);
-    saveEventLog(log);
-
-    // Notify subscribers
-    // 1. Target specific
-    const targetHandlers = _handlers.get(finalTarget) || [];
-    // 2. Broadcast listeners
-    const broadcastHandlers = _handlers.get('broadcast') || [];
-    // 3. Legacy 'all' listeners
-    const allHandlers = _handlers.get('all') || [];
-
-    [...targetHandlers, ...broadcastHandlers, ...allHandlers].forEach(h => {
-        try { h(fullEvent); } catch (e) { console.error('Saint bridge handler error:', e); }
-    });
-
-    // Michael always gets a copy (security monitoring)
-    if (source !== 'michael' && finalTarget !== 'michael') {
-        const michaelHandlers = _handlers.get('michael') || [];
-        michaelHandlers.forEach(h => {
-            try { h(fullEvent); } catch (e) { console.error('Michael bridge handler error:', e); }
-        });
-    }
-
-    // Anthony always gets a copy (audit logging)
-    if (source !== 'anthony' && finalTarget !== 'anthony') {
-        const anthonyHandlers = _handlers.get('anthony') || [];
-        anthonyHandlers.forEach(h => {
-            try { h(fullEvent); } catch (e) { console.error('Anthony bridge handler error:', e); }
-        });
-    }
+    processIncomingEvent(fullEvent, { remote: false });
 
     return fullEvent;
+}
+
+/**
+ * Starts an active heartbeat system to keep Saint statuses fresh.
+ */
+export function startSaintHeartbeat(intervalMs: number = 30000) {
+    if (_heartbeatInterval) return;
+
+    // Initial heartbeat
+    emitSaintEvent('system', 'broadcast', SAINT_EVENT_TYPES.SYSTEM_STARTUP, { status: 'healthy' });
+
+    _heartbeatInterval = setInterval(() => {
+        emitSaintEvent('michael', 'broadcast', 'system/heartbeat', {
+            timestamp: new Date().toISOString(),
+            load: Math.random() // Simulating load
+        });
+    }, intervalMs);
+}
+
+export function stopSaintHeartbeat() {
+    if (_heartbeatInterval) {
+        clearInterval(_heartbeatInterval);
+        _heartbeatInterval = null;
+    }
 }
 
 export function onSaintEvent(saintId: SaintID | 'broadcast' | 'all', handler: EventHandler): () => void {
@@ -234,5 +274,6 @@ export const SAINT_EVENT_TYPES = {
     // System events
     SYSTEM_STARTUP: 'system/startup',
     SYSTEM_ERROR: 'system/error',
+    SYSTEM_HEARTBEAT: 'system/heartbeat',
 } as const;
 

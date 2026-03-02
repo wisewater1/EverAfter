@@ -3,7 +3,7 @@ import { Shield, Lock, Activity, Eye, CheckCircle, Search, RefreshCw, ArrowLeft,
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getSecurityIntegrity, getAuditHistory, runCAIAudit, IntegrityReport, SecurityAlert, AuditRecord } from '../lib/michael/security';
-import { getSaintStatuses, getEventLog, SaintStatus, SaintEventEnvelope } from '../lib/saintBridge';
+import { getSaintStatuses, onSaintEvent, SaintStatus } from '../lib/saintBridge';
 import SaintChat from './SaintChat';
 import SystemRelationshipsGraph from './saints/SystemRelationshipsGraph';
 import ThreatDetection from './michael/ThreatDetection';
@@ -11,8 +11,6 @@ import VulnerabilityScanner from './michael/VulnerabilityScanner';
 import FileIntegrityMonitor from './michael/FileIntegrityMonitor';
 import CompliancePanel from './michael/CompliancePanel';
 import SaintsQuickNav from './shared/SaintsQuickNav';
-import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
-import { API_BASE_URL } from '../lib/env';
 
 interface CAIState {
     integrityScore: number;
@@ -346,8 +344,8 @@ export default function StMichaelSecurityDashboard() {
 // ── Saints Network Panel (inline) ─────────────────────────
 
 function SaintsNetworkPanel() {
-    const [statuses] = useState<SaintStatus[]>(() => getSaintStatuses());
-    const [systemStatus, setSystemStatus] = useState<any>(null); // Use any for simplicity or import type
+    const [statuses, setStatuses] = useState<SaintStatus[]>(() => getSaintStatuses());
+    const [systemStatus, setSystemStatus] = useState<any>(null);
 
     const statusColor: Record<string, string> = {
         online: 'text-emerald-400', offline: 'text-slate-500', warning: 'text-amber-400',
@@ -356,6 +354,13 @@ function SaintsNetworkPanel() {
         green: 'bg-emerald-500', yellow: 'bg-amber-500', red: 'bg-rose-500',
     };
 
+    // Real-time Status Sync from Bridge
+    useEffect(() => {
+        const unsubscribe = onSaintEvent('broadcast', () => {
+            setStatuses(getSaintStatuses());
+        });
+        return unsubscribe;
+    }, []);
 
     // Fetch system status for the graph
     useEffect(() => {
