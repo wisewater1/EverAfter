@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, AlertCircle, Activity, CheckCircle, XCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../lib/env';
 
 interface Control {
     id: string;

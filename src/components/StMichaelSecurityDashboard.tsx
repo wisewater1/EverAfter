@@ -12,6 +12,7 @@ import FileIntegrityMonitor from './michael/FileIntegrityMonitor';
 import CompliancePanel from './michael/CompliancePanel';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
+import { API_BASE_URL } from '../lib/env';
 
 interface CAIState {
     integrityScore: number;

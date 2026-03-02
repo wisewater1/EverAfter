@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import axios from 'axios';
+import { API_BASE_URL } from '../../lib/env';
 
 export interface IntegrityReport {
     overallScore: number;

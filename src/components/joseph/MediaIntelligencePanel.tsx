@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { getFamilyMembers, updateFamilyMember } from '../../lib/joseph/genealogy';
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
+import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 

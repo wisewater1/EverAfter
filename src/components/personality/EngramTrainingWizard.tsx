@@ -7,6 +7,7 @@ import {
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 import { supabase } from '../../lib/supabase';
+import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 

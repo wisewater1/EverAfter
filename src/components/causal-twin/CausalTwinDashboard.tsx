@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Brain, FileText, Radio, Sparkles, TrendingUp, Lightbulb } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
+import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 

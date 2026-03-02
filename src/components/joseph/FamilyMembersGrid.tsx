@@ -13,6 +13,7 @@ import TraitBadges from './TraitBadges';
 import axios from 'axios';
 import { supabase } from '../../lib/supabase';
 import CausalAncestryPanel from '../causal-twin/CausalAncestryPanel';
+import { API_BASE_URL } from '../../lib/env';
 
 interface InteractionEvent {
     id: string;

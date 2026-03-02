@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Activity } from 'lucide-react';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
+import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { API_BASE_URL } from '../../lib/env';
 
 export interface Transaction {
     id: string;

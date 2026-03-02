@@ -3,6 +3,7 @@ import { env } from './env';
 import { logger } from './logger';
 import { NetworkError, IntegrationError, handleError } from './errors';
 import type { EdgeFunctionResponse, ChatResponse, DailyQuestionResponseData } from '../types/database.types';
+import { API_BASE_URL } from '../lib/env';
 
 /**
  * Enhanced API Client with Retry Logic, Error Handling, and Request Deduplication

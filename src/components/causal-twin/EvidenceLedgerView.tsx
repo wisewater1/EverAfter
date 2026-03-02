@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronRight, Clock, Database, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
+import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 

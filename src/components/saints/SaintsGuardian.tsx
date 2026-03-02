@@ -9,6 +9,7 @@ import {
     XCircle
 } from 'lucide-react';
 import { financeApi } from '../../lib/gabriel/finance';
+import { API_BASE_URL } from '../../lib/env';
 
 interface MonitoringStatus {
     role: string;

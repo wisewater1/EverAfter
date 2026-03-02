@@ -9,6 +9,7 @@ import {
   Scale, ThermometerSun, Clock, LayoutDashboard, Building2
 } from 'lucide-react';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
+import { API_BASE_URL } from '../lib/env';
 
 interface HealthConnection {
   id: string;

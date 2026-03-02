@@ -11,6 +11,7 @@ import WhatIfSimulator from '../causal-twin/WhatIfSimulator';
 import ExperimentLab from '../causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../causal-twin/ModelHealthPanel';
+import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 

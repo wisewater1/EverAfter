@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { API_BASE_URL } from '../lib/env';
 import {
   Heart, Plus, Edit, Trash2, DollarSign, Calendar, Users, FileText,
   Download, Upload, Shield, TrendingUp, AlertCircle, CheckCircle2,

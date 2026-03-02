@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Server, Shield, Heart, Users, Search, Code, ChevronRight, Download, CheckCircle } from 'lucide-react';
 import { subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
+import { API_BASE_URL } from '../../lib/env';
 
 const MOCK_EVENTS: SaintEventEnvelope[] = [
     {
