@@ -12,7 +12,7 @@ import ExperimentLab from '../causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../causal-twin/ModelHealthPanel';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 /* ── Types ───────────────────────────────────────────────── */
 

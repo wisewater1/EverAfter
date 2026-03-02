@@ -3,7 +3,7 @@ import { Brain, FileText, Radio, Sparkles, TrendingUp, Lightbulb } from 'lucide-
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 interface Prediction {
     scenario: Record<string, number>;

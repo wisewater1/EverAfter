@@ -109,7 +109,7 @@ export default function CreatorDashboard() {
       setTemplates(templatesData || []);
 
       // Fetch Mineable Engrams
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
       const mineableRes = await fetch(`${API_BASE_URL}/api/v1/marketplace/assets/mining`, {
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
@@ -127,7 +127,7 @@ export default function CreatorDashboard() {
 
   const toggleTrainingPermit = async (engramId: string, currentStatus: boolean) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
       const res = await fetch(`${API_BASE_URL}/api/v1/marketplace/assets/mining/${engramId}/permit?permit=${!currentStatus}`, {
         method: 'POST',
         headers: {

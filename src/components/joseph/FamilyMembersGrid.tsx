@@ -127,7 +127,7 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
         if (member.aiPersonality?.isActive) return;
 
         try {
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+            const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
             const res = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

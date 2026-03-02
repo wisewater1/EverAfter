@@ -6,7 +6,7 @@ import {
 import { getFamilyMembers, updateFamilyMember } from '../../lib/joseph/genealogy';
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 /* ── Types ──────────────────────────────────────────────────────── */
 

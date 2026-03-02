@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 interface HealthDot {
     member_id: string;

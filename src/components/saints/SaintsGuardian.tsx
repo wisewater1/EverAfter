@@ -46,7 +46,7 @@ export default function SaintsGuardian() {
             const { data: { session } } = await import('../../lib/supabase').then(m => m.supabase.auth.getSession());
             const token = session?.access_token;
 
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+            const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
             const response = await fetch(`${API_BASE}/api/v1/monitoring/status`, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}

@@ -3,7 +3,7 @@ import { Beaker, Plus, Play, Pause, CheckCircle, Clock, XCircle, ChevronDown, Ch
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 const METRIC_OPTIONS = ['sleep_quality', 'hrv', 'mood', 'energy', 'resting_hr', 'glucose_variability', 'recovery_score'];
 

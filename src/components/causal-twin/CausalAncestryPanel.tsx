@@ -4,7 +4,7 @@ import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 interface AncestryResult {
     member_name: string;

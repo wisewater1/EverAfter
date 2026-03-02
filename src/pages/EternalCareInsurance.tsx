@@ -91,7 +91,7 @@ export default function EternalCareInsurance() {
       ]);
 
       // Fetch Dividends from Custom API
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
       const dividendRes = await fetch(`${API_BASE_URL}/api/v1/integrity/dividends`, {
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`

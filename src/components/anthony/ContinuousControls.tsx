@@ -17,7 +17,7 @@ export default function ContinuousControls() {
     useEffect(() => {
         const fetchControls = async () => {
             try {
-                const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}/api/v1/audit/controls/readiness`;
+                const url = `${import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`}/api/v1/audit/controls/readiness`;
                 const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();

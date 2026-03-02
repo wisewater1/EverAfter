@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, DollarSign, Heart, Users, Calendar, Brain, Shield, Sparkles } from 'lucide-react';
+import { API_BASE_URL } from '../lib/env';
 
 interface TimelineEvent {
     id: string;
@@ -22,7 +23,7 @@ export default function HolisticTimeline() {
                 const headers: Record<string, string> = {};
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
-                const res = await fetch('http://localhost:8001/api/v1/saints/memory/dump', {
+                const res = await fetch(`${API_BASE_URL}/api/v1/saints/memory/dump`, {
                     headers
                 });
 

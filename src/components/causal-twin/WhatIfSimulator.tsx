@@ -3,7 +3,7 @@ import { Sliders, Play, TrendingUp, ArrowRight } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 const BEHAVIOR_SLIDERS = [
     { key: 'sleep_hours', label: 'Sleep (hours)', min: 4, max: 10, step: 0.5, default: 7 },

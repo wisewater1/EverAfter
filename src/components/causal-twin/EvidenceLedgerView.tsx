@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronRight, Clock, Database, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 const EVIDENCE_ICONS: Record<string, React.ReactNode> = {
     causal_trial: <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />,
