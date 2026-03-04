@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Heart, Shield, Users, Lock, Search, Wallet } from 'lucide-react';
+import { Heart, Shield, Users, Lock, Search, Wallet, Sparkles } from 'lucide-react';
 
 interface Saint {
   id: string;
@@ -66,6 +66,16 @@ export default function SaintsNavigation() {
       available: true,
       route: '/anthony-dashboard',
     },
+    {
+      id: 'trinity',
+      name: 'Trinity',
+      role: 'Unified Insights',
+      icon: Sparkles,
+      color: 'amber',
+      gradient: 'from-amber-400 to-yellow-500',
+      available: true,
+      route: '/trinity',
+    },
   ];
 
   const handleSaintClick = (saint: Saint) => {
@@ -92,7 +102,7 @@ export default function SaintsNavigation() {
           </div>
 
           {/* Saints Grid — each button is a flex-col card+name */}
-          <div className="grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4">
+          <div className="grid grid-cols-6 gap-1.5 sm:gap-2 md:gap-3 mb-4">
             {saints.map((saint, index) => {
               const Icon = saint.icon;
               const isCenter = index === 2; // St. Raphael
