@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Shield, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getThreatEvents, ThreatEvent, ThreatSeverity, MitreCategory } from '../../lib/michael/security';
 
 const SEVERITY_STYLES: Record<ThreatSeverity, { bg: string; border: string; text: string; badge: string }> = {
@@ -17,10 +18,25 @@ const CATEGORY_LABELS: Record<MitreCategory, string> = {
 };
 
 export default function ThreatDetection() {
-    const [threats] = useState<ThreatEvent[]>(() => getThreatEvents());
+    const [threats, setThreats] = useState<ThreatEvent[]>(() => getThreatEvents());
     const [filterSeverity, setFilterSeverity] = useState<ThreatSeverity | null>(null);
+    const [mitigatingId, setMitigatingId] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const filtered = filterSeverity ? threats.filter(t => t.severity === filterSeverity) : threats;
+
+    const handleMitigate = async (id: string) => {
+        setMitigatingId(id);
+        // Signature Michael protection animation delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setThreats(prev => prev.map(t => t.id === id ? { ...t, mitigated: true } : t));
+        setMitigatingId(null);
+    };
+
+    const handleInvestigate = (ruleId: string) => {
+        // Navigate to Anthony with a filter (mock filter param)
+        navigate(`/anthony?tab=ledger&filter=${ruleId}`);
+    };
 
     // Category distribution
     const catCounts = new Map<MitreCategory, number>();
@@ -64,8 +80,10 @@ export default function ThreatDetection() {
             <div className="space-y-3">
                 {filtered.map(threat => {
                     const s = SEVERITY_STYLES[threat.severity];
+                    const isMitigating = mitigatingId === threat.id;
+
                     return (
-                        <div key={threat.id} className={`${s.bg} border ${s.border} rounded-2xl p-5 transition-all hover:scale-[1.005]`}>
+                        <div key={threat.id} className={`${s.bg} border ${s.border} rounded-2xl p-5 transition-all hover:scale-[1.005] group/item`}>
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-start gap-3 flex-1">
                                     <div className={`p-2 rounded-lg ${s.bg} border ${s.border}`}>
@@ -85,15 +103,42 @@ export default function ThreatDetection() {
                                         </div>
                                     </div>
                                 </div>
-                                {threat.mitigated ? (
-                                    <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                                        <CheckCircle className="w-3 h-3" /> Mitigated
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-1 text-rose-400 text-[10px] font-bold bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20">
-                                        <XCircle className="w-3 h-3" /> Active
-                                    </span>
-                                )}
+
+                                <div className="flex flex-col items-end gap-2 shrink-0">
+                                    {threat.mitigated ? (
+                                        <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                                            <CheckCircle className="w-3 h-3" /> Mitigated
+                                        </span>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleInvestigate(threat.ruleId)}
+                                                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg border border-white/5 transition-all"
+                                            >
+                                                Investigate
+                                            </button>
+                                            <button
+                                                onClick={() => handleMitigate(threat.id)}
+                                                disabled={isMitigating}
+                                                className={`px-3 py-1 ${isMitigating ? 'bg-sky-500/50 cursor-wait' : 'bg-sky-600 hover:bg-sky-500'} text-white text-[10px] font-bold rounded-lg shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2`}
+                                            >
+                                                {isMitigating ? (
+                                                    <>
+                                                        <Shield className="w-3 h-3 animate-spin" />
+                                                        Isolating...
+                                                    </>
+                                                ) : (
+                                                    'Mitigate'
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {!threat.mitigated && (
+                                        <span className="flex items-center gap-1 text-rose-400 text-[9px] font-bold px-2">
+                                            <XCircle className="w-2.5 h-2.5" /> High Risk
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );

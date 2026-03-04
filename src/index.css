@@ -364,9 +364,11 @@
     --transition-smooth: 300ms;
     --transition-slow: 500ms;
 
-    /* Mobile typography scale */
-    --fs-0: clamp(14px, 0.9rem + 0.2vw, 16px);
-    --fs-1: clamp(16px, 1rem + 0.35vw, 18px);
+    /* Mobile typography scale — tuned for phone viewports */
+    --fs-0: clamp(13px, 0.8rem + 0.1vw, 15px);
+    /* body / buttons */
+    --fs-1: clamp(15px, 0.9rem + 0.2vw, 17px);
+    /* sub-headings     */
     --lh: 1.45;
 
     /* Shadows with neon glow */
@@ -461,9 +463,6 @@
   h4,
   h5,
   h6,
-  button,
-  .btn,
-  .chip,
   span,
   label,
   a {
@@ -471,6 +470,17 @@
     overflow-wrap: anywhere;
     word-break: break-word;
     hyphens: auto;
+    letter-spacing: 0;
+  }
+
+  /* Buttons & chips: never wrap labels, never hyphenate */
+  button,
+  .btn,
+  .chip {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    hyphens: none;
     letter-spacing: 0;
   }
 
@@ -506,11 +516,23 @@
     min-height: 44px;
   }
 
+  /* ≤480px phones: smaller, tighter buttons */
+  @media (max-width: 480px) {
+
+    button,
+    .btn {
+      font-size: 13px;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+
+  /* ≤360px tiny phones: even more compact */
   @media (max-width: 360px) {
 
     button,
     .btn {
-      font-size: var(--fs-1);
+      font-size: 12px;
     }
   }
 

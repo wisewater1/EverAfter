@@ -6,7 +6,7 @@ if sys.platform == 'win32':
 
 from fastapi import FastAPI
 print("====================================================")
-print("EVERAFTER BACKEND STARTING ON PORT 8001 (FIXED)")
+print("EVERAFTER BACKEND STARTING ON PORT 8002 (FIXED)")
 print("====================================================")
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings

@@ -13,4 +13,4 @@ if __name__ == "__main__":
     print("====================================================")
     print("EVERAFTER BACKEND STARTING ON PORT 8001 (FORCED)")
     print("====================================================")
-    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=8002, log_level="info")

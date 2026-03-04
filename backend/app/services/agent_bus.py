@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Callable, Dict, Any
+from typing import List, Callable, Dict, Any, Optional
 from app.schemas.saint_runtime import AgentEvent
 
 logger = logging.getLogger(__name__)
@@ -12,8 +12,14 @@ class AgentBus:
     """
     def __init__(self):
         self._subscribers: List[Callable[[AgentEvent], Any]] = []
-        self._queue: asyncio.Queue[AgentEvent] = asyncio.Queue()
+        self._queue: Optional[asyncio.Queue] = None
         self._is_running = False
+
+    @property
+    def queue(self) -> asyncio.Queue:
+        if self._queue is None:
+            self._queue = asyncio.Queue()
+        return self._queue
 
     def subscribe(self, callback: Callable[[AgentEvent], Any]):
         """Register a callback for all events."""
@@ -22,7 +28,7 @@ class AgentBus:
     async def publish(self, event: AgentEvent):
         """Publish an event to the bus."""
         logger.info(f"AgentBus: Received event {event.type} from {event.sender}")
-        await self._queue.put(event)
+        await self.queue.put(event)
 
     async def listen(self):
         """Background loop to process events."""
@@ -30,7 +36,7 @@ class AgentBus:
         logger.info("AgentBus Listener Started")
         while self._is_running:
             try:
-                event = await self._queue.get()
+                event = await self.queue.get()
                 for callback in self._subscribers:
                     try:
                         if asyncio.iscoroutinefunction(callback):
@@ -40,7 +46,7 @@ class AgentBus:
                     except Exception as e:
                         logger.error(f"Error in subscriber callback: {e}")
                 
-                self._queue.task_done()
+                self.queue.task_done()
             except asyncio.CancelledError:
                 break
             except Exception as e:

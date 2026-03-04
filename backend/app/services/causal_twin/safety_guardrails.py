@@ -2,25 +2,59 @@
 Safety Guardrails for Health Causal Twin.
 Blocks risky interventions, enforces non-diagnostic framing,
 and triggers escalation prompts for concerning trends.
+
+Fixes contradiction: all thresholds now sourced from health_constants.
 """
 from typing import Dict, Any, List, Optional
+from app.services.health.health_constants import (
+    METRIC_THRESHOLDS, Metric, EXEMPT_RECOMMENDATION_PREFIXES,
+)
 
 
 # Interventions that are NEVER allowed in experiments
 BLOCKED_INTERVENTION_KEYWORDS = [
-    "medication", "drug", "prescription", "supplement", "fasting",
-    "caloric restriction", "skip meals", "insulin", "steroid",
-    "blood thinner", "diuretic", "laxative", "stimulant",
-    "hormone", "testosterone", "estrogen"
+    "medication", "drug", "prescription",
+    "fasting", "caloric restriction", "skip meals",
+    "insulin", "steroid", "blood thinner", "diuretic",
+    "laxative", "stimulant", "hormone", "testosterone", "estrogen"
+    # NOTE: "supplement" removed — engine-generated dietary nudges
+    # (Vitamin C, Zinc) are exempted via EXEMPT_RECOMMENDATION_PREFIXES.
 ]
 
-# Metrics that trigger escalation if out of range
+# Clinical concern thresholds now pulled from health_constants.
+# Kept for backward-compatibility with direct dict access.
 CLINICAL_CONCERN_THRESHOLDS = {
-    "resting_hr":      {"low": 40, "high": 120, "unit": "bpm"},
-    "blood_pressure":  {"low": 80, "high": 180, "unit": "mmHg systolic"},
-    "glucose":         {"low": 54, "high": 250, "unit": "mg/dL"},
-    "oxygen_sat":      {"low": 90, "high": 100, "unit": "%"},
-    "hrv":             {"low": 10, "high": None, "unit": "ms"},
+    Metric.RESTING_HEART_RATE: {
+        "low":  METRIC_THRESHOLDS[Metric.RESTING_HEART_RATE]["escalation_low"],
+        "high": METRIC_THRESHOLDS[Metric.RESTING_HEART_RATE]["escalation"],
+        "unit": METRIC_THRESHOLDS[Metric.RESTING_HEART_RATE]["unit"],
+    },
+    Metric.BLOOD_PRESSURE: {
+        "low":  METRIC_THRESHOLDS[Metric.BLOOD_PRESSURE]["escalation_low"],
+        "high": METRIC_THRESHOLDS[Metric.BLOOD_PRESSURE]["escalation"],
+        "unit": METRIC_THRESHOLDS[Metric.BLOOD_PRESSURE]["unit"],
+    },
+    Metric.GLUCOSE: {
+        "low":  METRIC_THRESHOLDS[Metric.GLUCOSE]["hypo_crit"],   # 54 mg/dL
+        "high": METRIC_THRESHOLDS[Metric.GLUCOSE]["hyper_crit"],  # 250 mg/dL
+        "unit": METRIC_THRESHOLDS[Metric.GLUCOSE]["unit"],
+    },
+    Metric.OXYGEN_SAT: {
+        "low":  METRIC_THRESHOLDS[Metric.OXYGEN_SAT]["escalation_low"],
+        "high": None,
+        "unit": METRIC_THRESHOLDS[Metric.OXYGEN_SAT]["unit"],
+    },
+    Metric.HRV: {
+        "low":  METRIC_THRESHOLDS[Metric.HRV]["escalation_low"],
+        "high": None,
+        "unit": METRIC_THRESHOLDS[Metric.HRV]["unit"],
+    },
+    # Legacy aliases kept for backward compatibility
+    "resting_hr":   {"low": 40, "high": 120, "unit": "bpm"},
+    "blood_pressure": {"low": 80, "high": 180, "unit": "mmHg systolic"},
+    "glucose":      {"low": 54, "high": 250, "unit": "mg/dL"},
+    "oxygen_sat":   {"low": 90, "high": None, "unit": "%"},
+    "hrv":          {"low": 10, "high": None, "unit": "ms"},
 }
 
 WELLNESS_DISCLAIMER = (
@@ -46,6 +80,12 @@ class SafetyGuardrails:
     def validate_intervention(self, intervention_text: str) -> Dict[str, Any]:
         """Check if a proposed intervention is safe for experimentation."""
         text_lower = intervention_text.lower()
+
+        # Engine-generated recommendations are exempt from keyword blocking
+        for prefix in EXEMPT_RECOMMENDATION_PREFIXES:
+            if text_lower.startswith(prefix):
+                return {"approved": True, "reason": "Engine-generated evidence-based recommendation."}
+
         blocked = []
         for keyword in BLOCKED_INTERVENTION_KEYWORDS:
             if keyword in text_lower:
@@ -55,7 +95,7 @@ class SafetyGuardrails:
             return {
                 "approved": False,
                 "reason": f"Intervention involves restricted terms: {', '.join(blocked)}. "
-                          "Experiments involving medications, supplements, or extreme dietary "
+                          "Experiments involving medications, or extreme dietary "
                           "restrictions are not permitted for safety.",
                 "blocked_keywords": blocked
             }

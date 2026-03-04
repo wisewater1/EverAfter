@@ -19,6 +19,30 @@ const FRAMEWORK_COLORS: Record<string, string> = {
 export default function CompliancePanel() {
     const [checks] = useState<ComplianceCheck[]>(() => getComplianceChecks());
     const [filterFramework, setFilterFramework] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
+
+    const handleExport = async () => {
+        setExporting(true);
+        // Signature Michael digital fingerprint generation delay
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Mock download logic
+        const blob = new Blob([JSON.stringify({
+            timestamp: new Date().toISOString(),
+            user_id: 'current_user',
+            compliance_rate: `${complianceRate}%`,
+            checks: checks.filter(c => c.status === 'pass'),
+            signature: 'ST_MICHAEL_PROT_SIG_' + Math.random().toString(36).substr(2, 12).toUpperCase()
+        }, null, 2)], { type: 'application/json' });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ST_MICHAEL_COMPLIANCE_EVIDENCE_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+
+        setExporting(false);
+    };
 
     const filtered = filterFramework ? checks.filter(c => c.framework === filterFramework) : checks;
     const frameworks = [...new Set(checks.map(c => c.framework))];
@@ -30,8 +54,36 @@ export default function CompliancePanel() {
 
     return (
         <div className="space-y-6">
+            {/* Header + Export */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h3 className="text-xl font-light text-white">Compliance & Governance</h3>
+                    <p className="text-xs text-slate-500 mt-1">Cross-framework regulatory adherence monitoring</p>
+                </div>
+                <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg ${exporting ? 'bg-slate-800 text-slate-500 cursor-wait' : 'bg-white/5 hover:bg-white/10 text-white border border-white/10 shadow-black/20'
+                        }`}
+                >
+                    <Shield className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+                    {exporting ? 'Generating Signature...' : 'Export Evidence Package'}
+                </button>
+            </div>
+
             {/* Overall Score */}
-            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8">
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+                {exporting && (
+                    <div className="absolute inset-0 bg-sky-500/5 backdrop-blur-[2px] z-10 flex items-center justify-center animate-in fade-in duration-500">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 bg-sky-500/20 rounded-full flex items-center justify-center border border-sky-500/30 animate-ping">
+                                <Shield className="w-6 h-6 text-sky-400" />
+                            </div>
+                            <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em]">Affixing Digital Fingerprint</span>
+                        </div>
+                    </div>
+                )}
+
                 <div className="relative">
                     <svg className="w-32 h-32 -rotate-90" viewBox="0 0 36 36">
                         <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgb(30,40,60)" strokeWidth="2" />

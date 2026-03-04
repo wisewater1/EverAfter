@@ -23,38 +23,37 @@ class AkashicRecord:
     
     def _initialize(self):
         print("Initializing Akashic Record (Shared Memory)...")
-        # Load model efficiently
-        self.model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        self._model = None
         self.memories: List[Dict[str, Any]] = []
         self.embeddings: Optional[np.ndarray] = None
         self._load_memories()
         
+    @property
+    def model(self):
+        if self._model is None:
+            print("Loading Akashic ML model: sentence-transformers/all-MiniLM-L6-v2...")
+            self._model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        return self._model
+
     def _load_memories(self):
         if os.path.exists(MEMORY_FILE):
             try:
                 with open(MEMORY_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.memories = data
-                    # Rebuild embeddings from stored text if not stored directly
-                    # For simplicity, we re-embed on load or store embeddings as list in JSON
-                    # Storing embeddings in JSON is heavy, so we re-embed on startup or use a binary format
-                    # Optimization: Check if 'embedding' is in file, otherwise re-compute
                     print(f"Loaded {len(self.memories)} memories from Akashic Record.")
-                    
-                    # Check if empty
-                    if not self.memories:
-                        self.embeddings = np.empty((0, 384))
-                        return
-
-                    # Compute embeddings for all
-                    texts = [m['content'] for m in self.memories]
-                    self.embeddings = self.model.encode(texts)
             except Exception as e:
                 print(f"Failed to load Akashic Record: {e}")
                 self.memories = []
-                self.embeddings = np.empty((0, 384))
         else:
             self.memories = []
+            
+    def _ensure_embeddings(self):
+        if (self.embeddings is None or self.embeddings.shape[0] == 0) and self.memories:
+            print(f"Generating embeddings for {len(self.memories)} memories...")
+            texts = [m['content'] for m in self.memories]
+            self.embeddings = self.model.encode(texts)
+        elif self.embeddings is None:
             self.embeddings = np.empty((0, 384))
             
     def _save_memories(self):
@@ -69,6 +68,7 @@ class AkashicRecord:
         """
         Store a new memory in the Akashic Record.
         """
+        self._ensure_embeddings()
         embedding = self.model.encode([content])[0]
         
         memory_id = str(uuid.uuid4())
@@ -94,6 +94,7 @@ class AkashicRecord:
         """
         Semantic search for relevant memories with metadata filtering.
         """
+        self._ensure_embeddings()
         if not self.memories or (self.embeddings is None) or (self.embeddings.shape[0] == 0):
             return []
             

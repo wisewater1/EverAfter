@@ -10,6 +10,7 @@ import ThreatDetection from './michael/ThreatDetection';
 import VulnerabilityScanner from './michael/VulnerabilityScanner';
 import FileIntegrityMonitor from './michael/FileIntegrityMonitor';
 import CompliancePanel from './michael/CompliancePanel';
+import GuardianLog from './michael/GuardianLog';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 
 interface CAIState {
@@ -195,6 +196,11 @@ export default function StMichaelSecurityDashboard() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Guardian's Log */}
+                        <div className="mb-8">
+                            <GuardianLog report={report} alerts={alerts} />
                         </div>
 
                         {/* CAI Audit */}

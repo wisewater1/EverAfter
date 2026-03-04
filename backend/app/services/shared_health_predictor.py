@@ -20,6 +20,12 @@ import math
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
+# ── Shared health constants (single source of truth) ─────────────
+from app.services.health.health_constants import (
+    detect_trend, is_trend_worsening, risk_level,
+    Trend, Metric, METRIC_THRESHOLDS,
+)
+
 # ── Lazy imports for optional heavy deps ─────────────────────────
 
 def _uncertainty():
@@ -72,32 +78,17 @@ def _build_uncertainty(
 
 
 # ── Trend helpers ────────────────────────────────────────────────
+# NOTE: _detect_trend and _risk_level are now imported from health_constants.
+# Do NOT redefine them here — use detect_trend() and risk_level() directly.
 
 def _detect_trend(values: List[float]) -> str:
-    """Very simple linear-regression direction from a list of recent values."""
-    if len(values) < 3:
-        return "unknown"
-    n = len(values)
-    x_mean = (n - 1) / 2
-    y_mean = sum(values) / n
-    num = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(values))
-    den = sum((i - x_mean) ** 2 for i in range(n))
-    slope = num / den if den else 0
-    if slope > 0.05:
-        return "declining"  # higher value = worse for most health metrics
-    elif slope < -0.05:
-        return "improving"
-    return "stable"
+    """Delegate to shared health_constants.detect_trend (literal direction)."""
+    return detect_trend(values)
 
 
 def _risk_level(score: float) -> str:
-    if score >= 80:
-        return "critical"
-    if score >= 55:
-        return "high"
-    if score >= 30:
-        return "moderate"
-    return "low"
+    """Delegate to shared health_constants.risk_level."""
+    return risk_level(score)
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -150,8 +141,17 @@ class SharedHealthPredictor:
             mean_val = sum(values) / len(values)
             std_val = math.sqrt(sum((v - mean_val) ** 2 for v in values) / max(len(values), 1))
             volatility_penalty = min(std_val / max(mean_val, 1) * 20, 15)  # reduced penalty for classical models
-            trend_penalty = {"declining": 10, "stable": 0, "improving": -5, "unknown": 0}
-            base_risk += volatility_penalty + trend_penalty.get(trend, 0)
+            # Trend penalty: use is_trend_worsening() with the primary metric to determine direction correctly.
+            primary_metric = metrics_history[0].get("metric_type", "") if metrics_history else ""
+            if is_trend_worsening(primary_metric, trend):
+                trend_adj = 10
+            elif trend == Trend.STABLE:
+                trend_adj = 0
+            elif trend == Trend.UNKNOWN:
+                trend_adj = 0
+            else:
+                trend_adj = -5  # trend is improving for this metric
+            base_risk += volatility_penalty + trend_adj
             
         risk_score = max(0, min(100, base_risk))
 
@@ -352,8 +352,8 @@ class SharedHealthPredictor:
         for metric, values in by_metric.items():
             if len(values) < 3:
                 continue
-            trend = _detect_trend(values)
-            if trend == "declining":
+            trend = detect_trend(values)
+            if is_trend_worsening(metric, trend):
                 severity = "high" if values[-1] > values[0] * 1.3 else "moderate"
                 warnings.append({
                     "warning_id": str(uuid.uuid4()),
@@ -554,7 +554,7 @@ class SharedHealthPredictor:
         recs: List[str] = []
         if risk_score >= 55:
             recs.append("Schedule a check-up with your healthcare provider to discuss recent trends.")
-        if trend == "declining":
+        if is_trend_worsening("wellness_composite", trend):
             recs.append("Your metrics have been trending in a concerning direction. Aim for consistency in sleep and activity.")
         if any(f["factor"] == "High metric volatility" for f in factors):
             recs.append("Large swings detected in your data. Try logging at the same time each day for better accuracy.")

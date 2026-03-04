@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Heart, Users, Search, Wallet, User, Activity } from 'lucide-react';
+import { Shield, Heart, Users, Search, Wallet, User, Activity, XCircle } from 'lucide-react';
 
 interface Node {
     id: string;
@@ -50,21 +50,21 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
         joseph: { status: 'active', role: 'Worker', message: 'Family tasks on track.', metrics: { tasks: 5 } }
     };
 
-    // Use displayData instead of data for rendering
-    const validData = displayData as SystemStatus;
-
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-    const [tick, setTick] = useState(0);
+    const [selectedNode, setSelectedNode] = useState<string | null>(null);
+    const [isolatingId, setIsolatingId] = useState<string | null>(null);
 
-    // Animation loop for particles
-    useEffect(() => {
-        const interval = setInterval(() => setTick(t => (t + 1) % 100), 50);
-        return () => clearInterval(interval);
-    }, []);
+    const handleIsolate = async (id: string) => {
+        setIsolatingId(id);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setIsolatingId(null);
+        // Deselect or show 'isolated' state if we had a more complex state model
+    };
 
     const getStatusColor = (id: string, defaultColor: string) => {
-        if (!data) return defaultColor;
-        const saint = data[id as keyof SystemStatus];
+        if (isolatingId === id) return '#f43f5e'; // Pulse red during isolation
+        if (!displayData) return defaultColor;
+        const saint = (displayData as any)[id];
         if (!saint) return defaultColor;
 
         switch (saint.status) {
@@ -99,14 +99,18 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
         { source: 'anthony', target: 'michael', label: 'Audits', color: '#3b82f6', active: true },
     ];
 
+    const activeDetailId = selectedNode || hoveredNode;
+    const activeDisplayNode = nodes.find(n => n.id === activeDetailId);
+    const activeStatusData = activeDetailId ? (displayData as any)[activeDetailId] : null;
+
     return (
-        <div className="w-full h-[500px] bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden relative">
+        <div className="w-full h-[500px] bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden relative group/graph">
             <div className="absolute top-6 left-6 z-10">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                     <Activity className="w-4 h-4 text-sky-500" />
                     System Architecture Visualization
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">Real-time saint interactions and data flow.</p>
+                <p className="text-xs text-slate-500 mt-1">Real-time saint interactions and data flow. Click nodes for details.</p>
             </div>
 
             <svg className="w-full h-full" viewBox="0 0 800 600">
@@ -131,11 +135,12 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                                 y1={source.y}
                                 x2={target.x}
                                 y2={target.y}
-                                stroke="#1e293b"
+                                stroke={isolatingId === link.source ? '#450a0a' : '#1e293b'}
                                 strokeWidth="2"
                                 markerEnd="url(#arrowhead)"
+                                className="transition-all duration-1000"
                             />
-                            {link.active && (
+                            {link.active && isolatingId !== link.source && (
                                 <circle r="3" fill={link.color || source.color}>
                                     <animateMotion
                                         dur="2s"
@@ -149,56 +154,63 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                 })}
 
                 {/* Nodes */}
-                {nodes.map(node => (
-                    <g
-                        key={node.id}
-                        transform={`translate(${node.x}, ${node.y})`}
-                        onMouseEnter={() => setHoveredNode(node.id)}
-                        onMouseLeave={() => setHoveredNode(null)}
-                        className="cursor-pointer transition-all duration-300"
-                        style={{ opacity: hoveredNode && hoveredNode !== node.id ? 0.3 : 1 }}
-                    >
-                        {/* Pulse effect for core/active nodes */}
-                        <circle
-                            r="30"
-                            fill={node.color}
-                            fillOpacity="0.1"
-                            className="animate-pulse"
-                        />
-                        <circle
-                            r="20"
-                            fill="#0f172a"
-                            stroke={node.color}
-                            strokeWidth="2"
-                            filter="url(#glow)"
-                        />
-                        <foreignObject x="-10" y="-10" width="20" height="20">
-                            <div className="flex items-center justify-center w-full h-full text-white">
-                                <node.icon size={12} color={node.color} />
-                            </div>
-                        </foreignObject>
+                {nodes.map(node => {
+                    const isSelected = selectedNode === node.id;
+                    const isIsolating = isolatingId === node.id;
 
-                        <text
-                            y="40"
-                            textAnchor="middle"
-                            fill="white"
-                            fontSize="12"
-                            fontWeight="500"
-                            className="pointer-events-none select-none"
+                    return (
+                        <g
+                            key={node.id}
+                            transform={`translate(${node.x}, ${node.y})`}
+                            onMouseEnter={() => setHoveredNode(node.id)}
+                            onMouseLeave={() => setHoveredNode(null)}
+                            onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
+                            className="cursor-pointer transition-all duration-300"
+                            style={{ opacity: activeDetailId && activeDetailId !== node.id ? 0.3 : 1 }}
                         >
-                            {node.label}
-                        </text>
-                        <text
-                            y="54"
-                            textAnchor="middle"
-                            fill="#64748b"
-                            fontSize="9"
-                            className="pointer-events-none select-none uppercase tracking-wide"
-                        >
-                            {node.role}
-                        </text>
-                    </g>
-                ))}
+                            {/* Pulse effect for core/active nodes */}
+                            <circle
+                                r={isSelected ? "35" : "30"}
+                                fill={node.color}
+                                fillOpacity={isIsolating ? "0.4" : "0.1"}
+                                className={isIsolating ? "animate-ping" : "animate-pulse"}
+                            />
+                            <circle
+                                r="20"
+                                fill="#0f172a"
+                                stroke={node.color}
+                                strokeWidth={isSelected ? "3" : "2"}
+                                filter="url(#glow)"
+                                className="transition-all duration-300"
+                            />
+                            <foreignObject x="-10" y="-10" width="20" height="20">
+                                <div className="flex items-center justify-center w-full h-full text-white">
+                                    <node.icon size={12} color={node.color} />
+                                </div>
+                            </foreignObject>
+
+                            <text
+                                y="40"
+                                textAnchor="middle"
+                                fill="white"
+                                fontSize={isSelected ? "14" : "12"}
+                                fontWeight="500"
+                                className="pointer-events-none select-none transition-all"
+                            >
+                                {node.label}
+                            </text>
+                            <text
+                                y={isSelected ? "56" : "54"}
+                                textAnchor="middle"
+                                fill="#64748b"
+                                fontSize="9"
+                                className="pointer-events-none select-none uppercase tracking-wide transition-all"
+                            >
+                                {node.role}
+                            </text>
+                        </g>
+                    );
+                })}
             </svg>
 
             {/* Legend / Stats overlay */}
@@ -213,37 +225,62 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                 </div>
             </div>
 
-            {/* Hover Details Panel */}
-            {hoveredNode && data && data[hoveredNode as keyof SystemStatus] && (
-                <div className="absolute top-6 right-6 z-20 w-64 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-200">
-                    <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-bold text-white capitalize">{nodes.find(n => n.id === hoveredNode)?.label}</h4>
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${data[hoveredNode as keyof SystemStatus]?.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
-                            data[hoveredNode as keyof SystemStatus]?.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+            {/* Detail Panel */}
+            {activeDetailId && activeStatusData && activeDisplayNode && (
+                <div className="absolute top-6 right-6 z-20 w-72 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 className="text-sm font-bold text-white capitalize">{activeDisplayNode.label}</h4>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-tight">{activeDisplayNode.role}</span>
+                        </div>
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${activeStatusData.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
+                            activeStatusData.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
                                 'bg-rose-500/20 text-rose-400'
                             }`}>
-                            {data[hoveredNode as keyof SystemStatus]?.status}
+                            {activeStatusData.status}
                         </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 mb-3 italic">
-                        "{data[hoveredNode as keyof SystemStatus]?.message}"
-                    </p>
+                    <div className="bg-white/5 rounded-xl p-3 mb-4">
+                        <p className="text-[11px] text-slate-300 leading-relaxed italic">
+                            "{activeStatusData.message}"
+                        </p>
+                    </div>
 
-                    <div className="space-y-2">
-                        {data[hoveredNode as keyof SystemStatus]?.metrics && Object.entries(data[hoveredNode as keyof SystemStatus].metrics!).map(([key, value]) => (
-                            <div key={key} className="flex justify-between items-center text-xs border-b border-white/5 pb-1 last:border-0">
+                    <div className="space-y-2 mb-6">
+                        {activeStatusData.metrics && Object.entries(activeStatusData.metrics as Record<string, any>).map(([key, value]) => (
+                            <div key={key} className="flex justify-between items-center text-xs border-b border-white/5 pb-1 last:border-0 hover:bg-white/[0.02] px-1 rounded transition-colors">
                                 <span className="text-slate-500 capitalize">{key.replace(/_/g, ' ')}</span>
-                                <span className="text-sky-400 font-mono">{String(value)}</span>
+                                <span className="text-sky-400 font-mono font-bold">{String(value)}</span>
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-3 pt-2 border-t border-white/5">
-                        <span className="text-[10px] text-slate-600 uppercase tracking-widest">
-                            Role: {data[hoveredNode as keyof SystemStatus]?.role}
-                        </span>
-                    </div>
+                    {activeDetailId !== 'user' && (
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleIsolate(activeDetailId);
+                                }}
+                                disabled={!!isolatingId && isolatingId !== activeDetailId}
+                                className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isolatingId === activeDetailId
+                                    ? 'bg-rose-500 text-white animate-pulse'
+                                    : 'bg-slate-800 hover:bg-rose-900/40 text-rose-400 border border-rose-500/20'
+                                    }`}
+                            >
+                                {isolatingId === activeDetailId ? 'Containment Active' : 'Isolate Node'}
+                            </button>
+                            {selectedNode && (
+                                <button
+                                    onClick={() => setSelectedNode(null)}
+                                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-white/5 transition-colors"
+                                >
+                                    <XCircle size={14} />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

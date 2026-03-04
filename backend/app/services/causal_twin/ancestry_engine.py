@@ -3,6 +3,9 @@ Ancestry Engine: Bridges St. Joseph's family tree with St. Raphael's Causal Twin
 
 Given a family member's traits, age, occupation and generational data,
 this engine produces multi-decade health trajectory predictions.
+
+Fixes contradiction: age default now 35 (from health_constants).
+Risk/wellness score is converted to canonical 0-100 risk scale.
 """
 from __future__ import annotations
 
@@ -13,6 +16,10 @@ from typing import Any
 from app.services.causal_twin.counterfactual_engine import counterfactual_engine
 from app.services.causal_twin.uncertainty_engine import uncertainty_engine
 from app.services.causal_twin.safety_guardrails import safety_guardrails
+from app.services.health.health_constants import (
+    age_from_birth_year, risk_level, wellness_to_risk,
+    BEHAVIOUR_BASELINES, DEFAULT_AGE,
+)
 
 # ---------------------------------------------------------------------------
 # Trait → behaviour proxy mappings
@@ -44,19 +51,12 @@ OCCUPATION_RISK: dict[str, float] = {
     "software":       0.86,   "student":        0.92,
 }
 
-BASE_BEHAVIOURS = {
-    "sleep_hours": 7.0,
-    "steps": 6000,
-    "hydration_liters": 2.0,
-    "meditation_minutes": 0,
-    "caffeine_cutoff_hour": 14,
-}
+BASE_BEHAVIOURS = {k: float(v) for k, v in BEHAVIOUR_BASELINES.items()}
 
 
 def _age_from_birth_year(birth_year: int | None) -> int:
-    if not birth_year:
-        return 35  # default
-    return max(5, datetime.utcnow().year - birth_year)
+    """Delegate to shared health_constants (default age = 35)."""
+    return age_from_birth_year(birth_year)
 
 
 def _traits_to_behaviours(traits: list[str]) -> dict[str, float]:
@@ -157,8 +157,10 @@ class AncestryEngine:
     ) -> list[dict[str, Any]]:
         """
         Generate a lightweight risk heat-map for every living family member.
-        Returns one entry per member with a 'risk_level': 'low'|'moderate'|'high'
-        and a colour for the UI overlay.
+        Returns one entry per member with a 'risk_level' and a colour.
+
+        FIX: wellness score is converted to canonical risk score (higher=worse)
+        using wellness_to_risk() so it matches SharedHealthPredictor's scale.
         """
         results = []
         for m in members:
@@ -172,28 +174,35 @@ class AncestryEngine:
             occ_mod = _occupation_modifier(occ)
             gen_score = _generation_risk_factor(gen)
 
-            # Compute a simple 0-100 wellness score
-            sleep_score = (behaviours["sleep_hours"] - 4) / 6 * 100
-            steps_score = behaviours["steps"] / 15000 * 100
+            # Compute a 0-100 wellness score (higher = healthier)
+            sleep_score    = (behaviours["sleep_hours"] - 4) / 6 * 100
+            steps_score    = behaviours["steps"] / 15000 * 100
             hydration_score = behaviours["hydration_liters"] / 4 * 100
             meditation_score = min(100, behaviours["meditation_minutes"] * 3.33)
-            base_score = (sleep_score * 0.3 + steps_score * 0.3 + hydration_score * 0.2 + meditation_score * 0.2)
-            adjusted = base_score * occ_mod * gen_score
+            base_score = (sleep_score * 0.3 + steps_score * 0.3
+                          + hydration_score * 0.2 + meditation_score * 0.2)
+            wellness = base_score * occ_mod * gen_score
 
             # Age adjustment
             if age > 60:
-                adjusted *= 0.85
+                wellness *= 0.85
             elif age > 45:
-                adjusted *= 0.92
+                wellness *= 0.92
 
-            risk_level = "low" if adjusted >= 70 else "moderate" if adjusted >= 45 else "high"
-            colour = {"low": "#10b981", "moderate": "#f59e0b", "high": "#ef4444"}[risk_level]
+            wellness = max(0.0, min(100.0, wellness))
+
+            # Convert wellness → risk (canonical scale: higher = worse)
+            risk_score = wellness_to_risk(wellness)
+            r_level = risk_level(risk_score)
+            colour = {"low": "#10b981", "moderate": "#f59e0b",
+                      "high": "#f97316", "critical": "#ef4444"}.get(r_level, "#f59e0b")
 
             results.append({
                 "member_id": m.get("id"),
                 "member_name": f"{m.get('firstName', '')} {m.get('lastName', '')}".strip(),
-                "wellness_score": round(adjusted, 1),
-                "risk_level": risk_level,
+                "wellness_score": round(wellness, 1),
+                "risk_score": round(risk_score, 1),
+                "risk_level": r_level,
                 "colour": colour,
                 "top_risk": _derive_risk_factors(traits, occ, age)[:1],
             })

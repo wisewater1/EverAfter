@@ -30,8 +30,33 @@ def _predictor():
     return shared_predictor
 
 
+def _background_sim():
+    from app.services.causal_twin.background_simulator import background_simulator
+    return background_simulator
+
+
+def _behavioral():
+    from app.services.causal_twin.behavioral_forecaster import behavioral_forecaster
+    return behavioral_forecaster
+
+
+def _contagion():
+    from app.services.causal_twin.contagion_engine import contagion_engine
+    return contagion_engine
+
+
+def _epigenetic():
+    from app.services.causal_twin.epigenetic_ledger import epigenetic_ledger
+    return epigenetic_ledger
+
+
+def _environment():
+    from app.services.causal_twin.environmental_matrix import environmental_matrix
+    return environmental_matrix
+
+
 # ═════════════════════════════════════════════════════════════════
-#  Endpoints
+#  Core Endpoints
 # ═════════════════════════════════════════════════════════════════
 
 
@@ -109,3 +134,98 @@ async def update_consent(
         "consent_map": consent_map,
         "count": len(consent_map),
     }
+
+
+# ═════════════════════════════════════════════════════════════════
+#  Innovation Endpoints — Health Intelligence Suite
+# ═════════════════════════════════════════════════════════════════
+
+
+@router.post("/background-insights")
+async def background_insights(
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(_get_current_user()),
+):
+    """
+    Monte Carlo background simulation — projects 6-month health
+    trajectories and detects invisible compounding risks.
+    """
+    user_id = _get_user_id(current_user)
+    result = await _background_sim().get_background_insights(
+        user_id=user_id,
+        metrics_history=payload.get("metrics_history", []),
+    )
+    return result
+
+
+@router.post("/behavioral-forecast")
+async def behavioral_forecast(
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(_get_current_user()),
+):
+    """
+    Psychographic behavioral forecast — predicts personality-driven
+    health failure modes and generates tailored interventions.
+    """
+    user_id = _get_user_id(current_user)
+    result = await _behavioral().forecast_behavior(
+        user_id=user_id,
+        recent_metrics=payload.get("metrics_history", []),
+        personality_profile=payload.get("personality_profile"),
+    )
+    return result
+
+
+@router.post("/family-contagion")
+async def family_contagion(
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(_get_current_user()),
+):
+    """
+    Behavioral contagion analysis — detects cross-family health
+    propagation pathways and issues household prescriptions.
+    """
+    user_id = _get_user_id(current_user)
+    result = await _contagion().get_contagion_report(
+        family_id=user_id,
+        family_members=payload.get("members", []),
+        consent_map=payload.get("consent_map", {}),
+    )
+    return result
+
+
+@router.post("/epigenetic-risk")
+async def epigenetic_risk(
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(_get_current_user()),
+):
+    """
+    Multi-generational epigenetic risk — compares current health
+    trajectory against ancestor patterns at the same age.
+    """
+    user_id = _get_user_id(current_user)
+    result = await _epigenetic().get_epigenetic_risk(
+        member_id=user_id,
+        member=payload.get("member", {}),
+        ancestors=payload.get("ancestors", []),
+    )
+    return result
+
+
+@router.post("/environmental-risk")
+async def environmental_risk(
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(_get_current_user()),
+):
+    """
+    Environmental susceptibility matrix — crosses seasonal/geographic
+    threat levels with family immune resilience.
+    """
+    user_id = _get_user_id(current_user)
+    result = await _environment().get_susceptibility_report(
+        user_id=user_id,
+        family_members=payload.get("members", []),
+        location=payload.get("location", "US-Central"),
+        consent_map=payload.get("consent_map", {}),
+    )
+    return result
