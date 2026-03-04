@@ -54,7 +54,7 @@ export default function Dashboard() {
   const navItems = [
     { id: 'engrams', label: 'Engrams', icon: Bot },
     { id: 'council', label: 'Council', icon: Users },
-    { id: 'rituals', label: 'Rituals', icon: Sparkles },
+    { id: 'trinity', label: 'Trinity', icon: Sparkles },
   ];
 
   const handleNavigateToLegacy = () => {
@@ -67,7 +67,7 @@ export default function Dashboard() {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         onNavigateToLegacy={() => navigate('/legacy-vault')}
-        onNavigateToRituals={() => navigate('/rituals')}
+        onNavigateToTrinity={() => navigate('/trinity')}
         onSignOut={handleSignOut}
       />
 
@@ -131,8 +131,8 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   onClick={() => {
-                    if (item.id === 'rituals') {
-                      navigate('/rituals');
+                    if (item.id === 'trinity') {
+                      navigate('/trinity');
                     } else {
                       setSelectedView(item.id as any);
                     }
@@ -180,8 +180,8 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   onClick={() => {
-                    if (item.id === 'rituals') {
-                      navigate('/rituals');
+                    if (item.id === 'trinity') {
+                      navigate('/trinity');
                     } else {
                       setSelectedView(item.id as any);
                     }

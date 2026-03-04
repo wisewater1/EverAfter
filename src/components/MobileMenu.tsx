@@ -5,7 +5,7 @@ interface MobileMenuProps {
     isOpen: boolean;
     onClose: () => void;
     onNavigateToLegacy: () => void;
-    onNavigateToRituals: () => void;
+    onNavigateToTrinity: () => void;
     onSignOut: () => void;
 }
 
@@ -13,7 +13,7 @@ export default function MobileMenu({
     isOpen,
     onClose,
     onNavigateToLegacy,
-    onNavigateToRituals,
+    onNavigateToTrinity,
     onSignOut,
 }: MobileMenuProps) {
     if (!isOpen) return null;
@@ -56,8 +56,8 @@ export default function MobileMenu({
                     />
                     <MenuItem
                         icon={Sparkles}
-                        label="Ritual Altar"
-                        onClick={() => { onNavigateToRituals(); onClose(); }}
+                        label="Trinity Dashboard"
+                        onClick={() => { onNavigateToTrinity(); onClose(); }}
                         color="text-amber-300"
                         bgColor="bg-amber-500/10"
                     />
