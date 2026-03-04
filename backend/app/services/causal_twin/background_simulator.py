@@ -414,6 +414,48 @@ class BackgroundSimulator:
 
         return recs[:5]  # Cap at 5
 
+    # ── Trinity Synapse bridge ────────────────────────────────
+
+    def set_ancestry_priors(
+        self,
+        priors: Dict[str, float],
+        active_conditions: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        """
+        Inject ancestry-based prior probabilities from TrinitySynapse.
+        Called by trinity_synapse.ancestry_priors() before running simulations.
+
+        priors: {metric_key: 0..1 elevated-risk prior}
+        When a metric's prior > 0.5, its initial Monte Carlo variance is
+        widened toward the "worse" side, anchoring projections to family history.
+        """
+        self._ancestry_priors: Dict[str, float] = priors or {}
+        self._active_hereditary_conditions: List[Dict[str, Any]] = active_conditions or []
+
+    def get_ancestry_priors(self) -> Dict[str, float]:
+        """Return currently loaded ancestry priors (empty dict if not set)."""
+        return getattr(self, "_ancestry_priors", {})
+
+    def _apply_ancestry_bias(
+        self,
+        metric_key: str,
+        baseline: float,
+        direction: str,
+    ) -> float:
+        """
+        Shift Monte Carlo baseline toward the hereditary risk direction.
+        Called per-metric inside run_simulation jittering phase.
+        """
+        prior = self.get_ancestry_priors().get(metric_key, 0.0)
+        if prior < 0.3:
+            return baseline  # Low ancestry risk — no adjustment
+        bias_factor = 1.0 + (prior * 0.12)  # Up to +12% for 100% prior
+        if direction == "higher_is_worse":
+            return baseline * bias_factor   # Push metric higher (worse)
+        elif direction == "lower_is_worse":
+            return baseline / bias_factor   # Push metric lower (worse)
+        return baseline
+
 
 # ── Singleton ────────────────────────────────────────────────────
 

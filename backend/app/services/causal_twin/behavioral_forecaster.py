@@ -400,6 +400,55 @@ class BehavioralForecaster:
 
         return " ".join(parts)
 
+    # ── Trinity Synapse bridge ────────────────────────────────
+
+    def apply_ocean_profile(
+        self,
+        ocean_scores: Dict[str, float],
+        base_interventions: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Reorder and annotate interventions based on OCEAN scores from
+        TrinitySynapse.personality_interventions().
+
+        ocean_scores: {"O": 0-100, "C": 0-100, "E": 0-100, "A": 0-100, "N": 0-100}
+        Returns interventions sorted by personality fit — best match first.
+        """
+        N = float(ocean_scores.get("N", 50))
+        C = float(ocean_scores.get("C", 50))
+        E = float(ocean_scores.get("E", 50))
+        A = float(ocean_scores.get("A", 50))
+        O = float(ocean_scores.get("O", 50))
+
+        def _score(iv: Dict[str, Any]) -> float:
+            strategy = iv.get("strategy", "")
+            tone = iv.get("tone", "")
+            # Prioritise gentle/warm for high-N
+            if N >= 65 and tone in ("warm", "gentle_grounding"):
+                return 10.0
+            # Prioritise structured for high-C
+            if C >= 65 and strategy in ("micro_commitment", "gamified_streak"):
+                return 9.0
+            # Prioritise social for high-E
+            if E >= 65 and strategy in ("accountability_buddy", "social"):
+                return 8.0
+            # Prioritise self-care for high-A (caregiver burnout risk)
+            if A >= 65 and "self" in iv.get("title", "").lower():
+                return 7.0
+            # Low curiosity / openness — prefer familiar
+            if O <= 35 and strategy in ("habit_anchor", "environmental_design"):
+                return 6.0
+            return 1.0
+
+        ranked = sorted(base_interventions, key=_score, reverse=True)
+        # Annotate with personality context
+        for iv in ranked[:3]:
+            iv["personality_fit"] = (
+                f"Prioritised for your OCEAN profile "
+                f"(N={N:.0f}, C={C:.0f}, E={E:.0f})"
+            )
+        return ranked
+
 
 # ── Singleton ────────────────────────────────────────────────────
 

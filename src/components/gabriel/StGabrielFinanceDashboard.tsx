@@ -7,6 +7,7 @@ import CouncilChat from './CouncilChat';
 import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
 import SaintsGuardian from '../saints/SaintsGuardian';
 import SaintsQuickNav from '../shared/SaintsQuickNav';
+import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
@@ -109,8 +110,31 @@ export default function StGabrielFinanceDashboard() {
                     {activeView === 'budget' && <BudgetEnvelopes />}
                     {activeView === 'ledger' && <TransactionLedger />}
                     {activeView === 'reports' && (
-                        <div className="flex items-center justify-center h-full text-slate-500">
-                            Reports coming soon (requires more data)
+                        <div className="space-y-5">
+                            <div className="rounded-2xl bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-amber-500/5 border border-white/5 p-4">
+                                <h2 className="text-base font-semibold text-white mb-0.5 flex items-center gap-2">
+                                    ♥ Health × Finance
+                                </h2>
+                                <p className="text-xs text-slate-500">
+                                    How your financial decisions affect — and are affected by — your health.
+                                    Powered by Trinity Synapse cross-referencing St. Raphael and St. Joseph.
+                                </p>
+                            </div>
+                            <TrinitySynapsePanel
+                                saint="gabriel"
+                                budgetEnvelopes={[]}
+                                metricsHistory={[]}
+                                familyMembers={[]}
+                                healthRiskScore={50}
+                            />
+                            <div className="rounded-2xl bg-slate-900/50 border border-slate-800/50 p-5">
+                                <h3 className="text-sm font-semibold text-white mb-3">How Trinity Synapse Works</h3>
+                                <div className="space-y-2 text-xs text-slate-400">
+                                    <p>→ <span className="text-amber-400">St. Joseph</span> provides hereditary risk patterns and personality profiles (OCEAN).</p>
+                                    <p>→ <span className="text-teal-400">St. Raphael</span> tracks live biometrics (HRV, glucose, sleep, stress) and predicts health trajectories.</p>
+                                    <p>→ <span className="text-emerald-400">St. Gabriel</span> correlates your health-spending envelopes with those biometric trends, showing your health investment ROI.</p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </main>

@@ -27,6 +27,8 @@ import ModelHealthPanel from './causal-twin/ModelHealthPanel';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
 import SecurityIntegrityBadge from './shared/SecurityIntegrityBadge';
 import SaintsQuickNav from './shared/SaintsQuickNav';
+import TrinitySynapsePanel from './shared/TrinitySynapsePanel';
+import GenerationalTimeline from './shared/GenerationalTimeline';
 
 type TabView =
   | 'overview'
@@ -49,7 +51,8 @@ type TabView =
   | 'what-if'
   | 'experiments'
   | 'evidence-ledger'
-  | 'model-health';
+  | 'model-health'
+  | 'trinity';
 
 export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramId?: string }) {
   const navigate = useNavigate();
@@ -78,6 +81,7 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
     { id: 'files' as TabView, label: 'Files', icon: FolderOpen },
     { id: 'connections' as TabView, label: 'Quick Connect', icon: Link2 },
     { id: 'rotation' as TabView, label: 'Auto-Rotation', icon: Zap },
+    { id: 'trinity' as TabView, label: '✦ Trinity', icon: Brain },
     { id: 'contacts' as TabView, label: 'Emergency', icon: Users },
     { id: 'chat' as TabView, label: 'Raphael AI', icon: Bell },
   ];
@@ -253,6 +257,31 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
               <p className="text-slate-400">Raphael AI chat is initializing...</p>
             </div>
           )
+        )}
+
+        {activeTab === 'trinity' && (
+          <div className="space-y-5">
+            <div className="rounded-2xl bg-gradient-to-r from-amber-500/5 via-teal-500/5 to-emerald-500/5 border border-white/5 p-4">
+              <h2 className="text-base font-semibold text-white mb-0.5 flex items-center gap-2">
+                ✦ Trinity Insights
+              </h2>
+              <p className="text-xs text-slate-500">
+                Cross-domain intelligence from St. Joseph (genealogy), St. Raphael (health), and St. Gabriel (finance) — unified through Trinity Synapse.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              <TrinitySynapsePanel
+                saint="raphael"
+                metricsHistory={[]}
+                familyMembers={[]}
+                budgetEnvelopes={[]}
+                healthRiskScore={50}
+              />
+              <GenerationalTimeline
+                familyMembers={[]}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
