@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Heart, Shield, Users, BarChart3, Search, Activity } from 'lucide-react';
+import { Heart, Shield, Users, BarChart3, Search, Activity, Sparkles } from 'lucide-react';
 
 const SAINTS = [
     { path: '/health-dashboard', label: 'Raphael', sublabel: 'Health', icon: Heart, color: 'teal' },
@@ -8,6 +8,7 @@ const SAINTS = [
     { path: '/finance-dashboard', label: 'Gabriel', sublabel: 'Finance', icon: BarChart3, color: 'emerald' },
     { path: '/anthony-dashboard', label: 'Anthony', sublabel: 'Audit', icon: Search, color: 'violet' },
     { path: '/monitor', label: 'Monitor', sublabel: 'System', icon: Activity, color: 'rose' },
+    { path: '/trinity', label: 'Trinity', sublabel: 'Unified', icon: Sparkles, color: 'gold' },
 ];
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; activeBg: string }> = {
@@ -17,6 +18,7 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; acti
     emerald: { bg: 'bg-emerald-500/5', text: 'text-emerald-400', border: 'border-emerald-500/10', activeBg: 'bg-emerald-500/20' },
     violet: { bg: 'bg-violet-500/5', text: 'text-violet-400', border: 'border-violet-500/10', activeBg: 'bg-violet-500/20' },
     rose: { bg: 'bg-rose-500/5', text: 'text-rose-400', border: 'border-rose-500/10', activeBg: 'bg-rose-500/20' },
+    gold: { bg: 'bg-amber-500/5', text: 'text-amber-300', border: 'border-amber-400/20', activeBg: 'bg-amber-400/20' },
 };
 
 export default function SaintsQuickNav() {

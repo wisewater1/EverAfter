@@ -55,6 +55,7 @@ import PersonalityTrainingCenter from './components/personality/PersonalityTrain
 import StAnthonyAuditDashboard from './components/anthony/StAnthonyAuditDashboard';
 import StGabrielFinanceDashboard from './components/gabriel/StGabrielFinanceDashboard';
 import SystemMonitorDashboard from './components/saints/SystemMonitorDashboard';
+import TrinityDashboard from './pages/TrinityDashboard';
 
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
@@ -206,6 +207,11 @@ function App() {
                 <Route path="/monitor" element={
                   <ProtectedRoute>
                     <SystemMonitorDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/trinity" element={
+                  <ProtectedRoute>
+                    <TrinityDashboard />
                   </ProtectedRoute>
                 } />
                 {/* LEGACY ROUTE REDIRECTS - PRESERVES OLD DEEP LINKS (NON-DESTRUCTIVE) */}
