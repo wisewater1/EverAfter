@@ -76,10 +76,9 @@ export default function SaintsNavigation() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
-      {/* Backdrop blur with gradient */}
+      {/* Backdrop */}
       <div className="absolute inset-0 glass-strong" style={{ background: 'linear-gradient(180deg, transparent 0%, var(--glass-strong) 40%)' }} />
 
-      {/* Saints Container */}
       <div className="relative px-3 pb-6 pt-6 sm:px-4 sm:pt-8">
         <div className="max-w-4xl mx-auto">
           {/* Title */}
@@ -92,8 +91,8 @@ export default function SaintsNavigation() {
             </p>
           </div>
 
-          {/* Saints Grid with space for labels */}
-          <div className="grid grid-cols-5 gap-2.5 sm:gap-3 md:gap-4 mb-14 sm:mb-16">
+          {/* Saints Grid — each button is a flex-col card+name */}
+          <div className="grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4">
             {saints.map((saint, index) => {
               const Icon = saint.icon;
               const isCenter = index === 2; // St. Raphael
@@ -103,73 +102,46 @@ export default function SaintsNavigation() {
                   key={saint.id}
                   onClick={() => handleSaintClick(saint)}
                   disabled={!saint.available}
-                  className={`group relative transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
-                    } ${saint.available
-                      ? 'cursor-pointer'
-                      : 'cursor-not-allowed opacity-50'
-                    }`}
-                  style={{
-                    transform: isCenter
-                      ? 'translateY(-8px)'
-                      : 'translateY(0)',
-                  }}
+                  className={`group flex flex-col items-center gap-1.5 transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
+                    } ${saint.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                  style={{ transform: isCenter ? 'translateY(-8px)' : 'translateY(0)' }}
                 >
-                  {/* Card Container */}
-                  <div
-                    className={`relative rounded-2xl transition-all duration-500 ease-out ${saint.available
-                      ? 'hover:scale-105 active:scale-95'
-                      : ''
-                      }`}
-                  >
-                    {/* Glow Effect */}
+                  {/* Card Square */}
+                  <div className={`relative w-full aspect-square rounded-2xl transition-all duration-500 ease-out ${saint.available ? 'hover:scale-105 active:scale-95' : ''}`}>
+                    {/* Glow */}
                     {saint.available && (
-                      <div
-                        className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${saint.gradient} opacity-0 group-hover:opacity-30 blur-xl transition-all duration-500 -z-10`}
-                      />
+                      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${saint.gradient} opacity-0 group-hover:opacity-30 blur-xl transition-all duration-500 -z-10`} />
                     )}
 
-                    {/* Main Card */}
-                    <div
-                      className={`glass-card relative aspect-square rounded-2xl transition-all duration-500 ${saint.available
-                        ? `bg-gradient-to-br ${saint.gradient} opacity-90`
-                        : 'opacity-50'
-                        } overflow-hidden`}
-                    >
-                      {/* Animated Background Pattern */}
+                    {/* Face */}
+                    <div className={`glass-card relative w-full h-full rounded-2xl overflow-hidden transition-all duration-500 ${saint.available ? `bg-gradient-to-br ${saint.gradient} opacity-90` : 'opacity-50'}`}>
                       {saint.available && (
                         <div className="absolute inset-0 opacity-10">
-                          <div
-                            className={`absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 group-hover:animate-pulse`}
-                          />
+                          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 group-hover:animate-pulse" />
                         </div>
                       )}
 
                       {/* Icon */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Icon
-                          className={`transition-all duration-500 ${isCenter ? 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12' : 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9'
-                            } ${saint.available
-                              ? 'text-white drop-shadow-lg group-hover:scale-110'
-                              : 'text-slate-600'
-                            }`}
-                        />
+                        <Icon className={`transition-all duration-500 ${isCenter ? 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12' : 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9'
+                          } ${saint.available ? 'text-white drop-shadow-lg group-hover:scale-110' : 'text-slate-600'}`} />
                       </div>
 
-                      {/* Lock Overlay */}
+                      {/* Lock */}
                       {!saint.available && (
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
                           <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500" />
                         </div>
                       )}
 
-                      {/* Active Indicator for St. Raphael */}
+                      {/* Active dot */}
                       {saint.available && isCenter && (
                         <div className="absolute top-2 right-2">
                           <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50" />
                         </div>
                       )}
 
-                      {/* Coming Soon Badge */}
+                      {/* Coming soon */}
                       {!saint.available && (
                         <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-sm py-1">
                           <p className="text-[8px] sm:text-[9px] font-semibold text-slate-400 text-center uppercase tracking-wider">
@@ -177,45 +149,33 @@ export default function SaintsNavigation() {
                           </p>
                         </div>
                       )}
-                    </div>
 
-                    {/* Name Label - Always visible at bottom */}
-                    <div className="absolute -bottom-12 sm:-bottom-14 left-1/2 -translate-x-1/2 w-full px-0.5">
-                      <div className="text-center">
-                        <p
-                          className={`font-semibold leading-tight whitespace-nowrap transition-all duration-300 ${isCenter ? 'text-[11px] sm:text-xs md:text-sm' : 'text-[9px] sm:text-[10px] md:text-xs'
-                            } ${saint.available
-                              ? 'text-white'
-                              : 'text-slate-400'
-                            }`}
-                        >
-                          {saint.name}
-                        </p>
-                        <p
-                          className={`leading-tight mt-0.5 whitespace-nowrap transition-all duration-300 ${isCenter ? 'text-[9px] sm:text-[10px]' : 'text-[8px] sm:text-[9px]'
-                            } ${saint.available
-                              ? 'text-emerald-400 font-medium'
-                              : 'text-slate-600'
-                            }`}
-                        >
-                          {saint.role}
-                        </p>
-                      </div>
+                      {/* Ripple */}
+                      {saint.available && (
+                        <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                          <div className="absolute inset-0 bg-white/0 group-active:bg-white/20 transition-colors duration-150" />
+                        </div>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Ripple Effect on Click */}
-                    {saint.available && (
-                      <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                        <div className="absolute inset-0 bg-white/0 group-active:bg-white/20 transition-colors duration-150" />
-                      </div>
-                    )}
+                  {/* Name + Role — normal flow, always visible at every screen size */}
+                  <div className="text-center w-full px-0.5">
+                    <p className={`font-semibold leading-tight truncate ${isCenter ? 'text-[10px] sm:text-xs' : 'text-[9px] sm:text-[10px]'
+                      } ${saint.available ? 'text-white' : 'text-slate-400'}`}>
+                      {saint.name}
+                    </p>
+                    <p className={`leading-tight mt-0.5 truncate ${isCenter ? 'text-[8px] sm:text-[9px]' : 'text-[7px] sm:text-[8px]'
+                      } ${saint.available ? 'text-emerald-400 font-medium' : 'text-slate-600'}`}>
+                      {saint.role}
+                    </p>
                   </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Instruction Text for Mobile */}
+          {/* Footer hint */}
           <div className="text-center mt-2 sm:mt-4">
             <p className="text-[10px] sm:text-xs text-slate-500">
               Tap <span className="text-emerald-400 font-medium">St. Raphael</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features
