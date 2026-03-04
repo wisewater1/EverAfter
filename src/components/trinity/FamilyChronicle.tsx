@@ -3,7 +3,7 @@
  * Unified life + health + financial milestone timeline.
  */
 import { useState, useEffect } from 'react';
-import { BookOpen, GitBranch, Heart, Wallet, Loader2, Filter } from 'lucide-react';
+import { BookOpen, GitBranch, Heart, Wallet, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
 const SAINT_CONFIG: Record<string, { icon: any; color: string; label: string }> = {

@@ -3,7 +3,7 @@
  * OCEAN × stress × budget real-time nudges.
  */
 import { useState, useEffect } from 'react';
-import { Zap, GitBranch, Heart, Wallet, Check, Clock, Loader2 } from 'lucide-react';
+import { Zap, Check, Clock, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
 const PRIORITY_CONFIG: Record<string, { color: string; icon: any; label: string }> = {

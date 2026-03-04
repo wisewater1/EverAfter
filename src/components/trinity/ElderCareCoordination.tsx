@@ -3,7 +3,7 @@
  * Elder member care planning across all 3 Saints.
  */
 import { useState, useEffect } from 'react';
-import { Users, Heart, Wallet, AlertTriangle, Loader2 } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
 export default function ElderCareCoordination() {
