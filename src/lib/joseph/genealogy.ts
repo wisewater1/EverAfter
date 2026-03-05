@@ -410,7 +410,7 @@ export function getGenerationLabel(gen: number): string {
     switch (gen) {
         case -2: return 'Grandparents';
         case -1: return 'Parents';
-        case 0: return 'You';
+        case 0: return 'Your Generation';
         case 1: return 'Children';
         case 2: return 'Grandchildren';
         default: return `Generation ${gen}`;

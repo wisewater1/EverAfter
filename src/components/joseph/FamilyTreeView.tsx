@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import DHTScorePanel from '../dht/DHTScorePanel';
 import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap } from 'lucide-react';
 import {
     buildFamilyTree, FamilyTreeNode, FamilyMember,
@@ -204,7 +205,7 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
 
             {/* Member Detail Panel */}
             {selectedMember && (
-                <div className="fixed inset-y-0 right-0 w-full max-w-md z-50 bg-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col">
+                <div className="fixed inset-y-0 right-0 w-full max-w-md z-50 bg-slate-900/98 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="flex items-center justify-between p-6 border-b border-white/5">
                         <div className="flex items-center gap-3">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember.gender === 'male'
@@ -218,12 +219,12 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                                 <p className="text-[10px] text-slate-500 uppercase tracking-wider">{getGenerationLabel(selectedMember.generation)}</p>
                             </div>
                         </div>
-                        <button onClick={() => setSelectedMember(null)} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10">
+                        <button onClick={() => setSelectedMember(null)} className="p-3 -mr-1 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 active:bg-white/20 touch-manipulation" aria-label="Close">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                    <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 pb-8">
                         {selectedMember.birthDate && (
                             <p className="text-sm text-slate-300">
                                 <span className="text-slate-500">Born:</span> {formatDate(selectedMember.birthDate)}
@@ -260,6 +261,11 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                             ))}
                         </div>
 
+                        {/* DHT Score Panel */}
+                        <DHTScorePanel
+                            personId={selectedMember.id}
+                            memberName={`${selectedMember.firstName} ${selectedMember.lastName}`}
+                        />
                         {/* Personality Analysis Button */}
                         <div className="pt-2">
                             <button

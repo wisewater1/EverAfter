@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bot, Brain, Heart, LogOut, Users, Sparkles } from 'lucide-react';
+import { Menu, Bot, Brain, Heart, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MobileMenu from '../components/MobileMenu';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
@@ -9,7 +9,7 @@ import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
 import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
 import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
-import CouncilRoom from '../components/saints/CouncilRoom';
+
 import SocietyFeed from '../components/SocietyFeed';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 import HolisticTimeline from '../components/HolisticTimeline';
@@ -17,7 +17,7 @@ import HolisticTimeline from '../components/HolisticTimeline';
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'council' | 'chat'>('engrams');
+  const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,7 +53,6 @@ export default function Dashboard() {
 
   const navItems = [
     { id: 'engrams', label: 'Engrams', icon: Bot },
-    { id: 'council', label: 'Council', icon: Users },
     { id: 'trinity', label: 'Trinity', icon: Sparkles },
   ];
 
@@ -251,11 +250,7 @@ export default function Dashboard() {
               <div className="h-[60vh]"></div>
             </>
           )}
-          {selectedView === 'council' && (
-            <div className="flex-1 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl h-[700px]">
-              <CouncilRoom />
-            </div>
-          )}
+
           {selectedView === 'chat' && (
             <>
               <UnifiedChatInterface />
