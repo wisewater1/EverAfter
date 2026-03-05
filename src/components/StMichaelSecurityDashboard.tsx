@@ -12,6 +12,7 @@ import FileIntegrityMonitor from './michael/FileIntegrityMonitor';
 import CompliancePanel from './michael/CompliancePanel';
 import GuardianLog from './michael/GuardianLog';
 import SaintsQuickNav from './shared/SaintsQuickNav';
+import DHTAnomalyAlertChain from './michael/DHTAnomalyAlertChain';
 
 interface CAIState {
     integrityScore: number;
@@ -20,7 +21,7 @@ interface CAIState {
     status: 'clean' | 'compromised' | 'warning';
 }
 
-type MichaelTab = 'overview' | 'threats' | 'vulnerabilities' | 'integrity' | 'compliance' | 'network' | 'chat';
+type MichaelTab = 'overview' | 'threats' | 'vulnerabilities' | 'integrity' | 'compliance' | 'network' | 'chat' | 'health-dht';
 
 const TABS: { key: MichaelTab; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'overview', label: 'Overview', icon: Shield },
@@ -29,6 +30,7 @@ const TABS: { key: MichaelTab; label: string; icon: ComponentType<{ className?: 
     { key: 'integrity', label: 'File Integrity', icon: FileText },
     { key: 'compliance', label: 'Compliance', icon: ClipboardCheck },
     { key: 'network', label: 'Saints Network', icon: Network },
+    { key: 'health-dht', label: '⚕ Health Alerts', icon: Activity },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
@@ -308,6 +310,17 @@ export default function StMichaelSecurityDashboard() {
                 {activeTab === 'compliance' && <CompliancePanel />}
 
                 {activeTab === 'network' && <SaintsNetworkPanel />}
+
+                {activeTab === 'health-dht' && user?.id && (
+                    <div className="space-y-4">
+                        <div className="px-2 py-2 rounded-xl bg-sky-500/5 border border-sky-500/10">
+                            <p className="text-[10px] text-sky-400/70">
+                                St. Michael monitors your Delphi Health Trajectory for anomalies and elevated risk domains, escalating them as Guardian health alerts.
+                            </p>
+                        </div>
+                        <DHTAnomalyAlertChain personId={user.id} />
+                    </div>
+                )}
 
                 {activeTab === 'chat' && (
                     <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden h-[600px]">

@@ -9,10 +9,13 @@ import DataFlowMap from './DataFlowMap';
 import JITAccess from './JITAccess';
 import SaintsQuickNav from '../shared/SaintsQuickNav';
 import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
+import AnthonyStaleDataPanel from './AnthonyStaleDataPanel';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function StAnthonyAuditDashboard() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'readiness' | 'flow' | 'jit' | 'ledger' | 'stream' | 'chat'>('readiness');
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<'readiness' | 'flow' | 'jit' | 'ledger' | 'stream' | 'chat' | 'dht-recovery'>('readiness');
 
     return (
         <div className="space-y-8 p-6 bg-slate-950 min-h-screen text-slate-200">
@@ -94,6 +97,14 @@ export default function StAnthonyAuditDashboard() {
                     Consult St. Anthony
                     {activeTab === 'chat' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
                 </button>
+                <button
+                    onClick={() => setActiveTab('dht-recovery')}
+                    className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'dht-recovery' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
+                >
+                    <Search className="w-4 h-4" />
+                    ⚕ Health Recovery
+                    {activeTab === 'dht-recovery' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
+                </button>
             </div>
 
             {/* Content Area */}
@@ -113,6 +124,16 @@ export default function StAnthonyAuditDashboard() {
                             primaryColor="amber"
                             initialMessage="I am here to help you find what is lost, whether it be data, purpose, or peace. How may I assist you?"
                         />
+                    </div>
+                )}
+                {activeTab === 'dht-recovery' && user?.id && (
+                    <div className="space-y-4">
+                        <div className="px-3 py-2 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                            <p className="text-[10px] text-amber-400/70">
+                                St. Anthony finds what is lost in your Delphi Health Trajectory — stale readings, data gaps, and high-uncertainty signals that need to be recovered.
+                            </p>
+                        </div>
+                        <AnthonyStaleDataPanel personId={user.id} />
                     </div>
                 )}
             </div>

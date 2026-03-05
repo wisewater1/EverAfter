@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign, Menu, ChevronLeft, LogOut } from 'lucide-react';
+import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BudgetEnvelopes from './BudgetEnvelopes';
 import TransactionLedger from './TransactionLedger';
@@ -8,9 +8,12 @@ import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
 import SaintsGuardian from '../saints/SaintsGuardian';
 import SaintsQuickNav from '../shared/SaintsQuickNav';
 import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
+import GabrielDHTSummary from './GabrielDHTSummary';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [activeView, setActiveView] = useState<'budget' | 'ledger' | 'reports'>('budget');
     const [showCouncil, setShowCouncil] = useState(true);
 
@@ -120,6 +123,8 @@ export default function StGabrielFinanceDashboard() {
                                     Powered by Trinity Synapse cross-referencing St. Raphael and St. Joseph.
                                 </p>
                             </div>
+                            {/* Gabriel DHT Summary — OCEAN-calibrated health message */}
+                            {user?.id && <GabrielDHTSummary personId={user.id} />}
                             <TrinitySynapsePanel
                                 saint="gabriel"
                                 budgetEnvelopes={[]}
