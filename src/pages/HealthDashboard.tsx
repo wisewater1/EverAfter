@@ -34,10 +34,11 @@ import ExperimentLab from '../components/causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../components/causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../components/causal-twin/ModelHealthPanel';
 import SaintsQuickNav from '../components/shared/SaintsQuickNav';
+import DelphiView from '../components/dht/DelphiView';
 
 import { Beaker, FileText, Radio } from 'lucide-react';
 
-type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions' | 'causal-twin' | 'what-if' | 'experiments' | 'evidence' | 'model-health';
+type TabView = 'overview' | 'medications' | 'goals' | 'contacts' | 'chat' | 'connections' | 'files' | 'devices-analytics' | 'predictions' | 'delphi' | 'causal-twin' | 'what-if' | 'experiments' | 'evidence' | 'model-health';
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
@@ -113,6 +114,7 @@ export default function HealthDashboard() {
     { id: 'connections' as TabView, label: 'Connections', icon: Link2 }, // MOVED TO SECOND POSITION
     { id: 'devices-analytics' as TabView, label: 'Devices & Analytics', icon: LayoutGrid },
     { id: 'predictions' as TabView, label: 'Predictions', icon: Brain },
+    { id: 'delphi' as TabView, label: '⚕ Delphi Trajectory', icon: Activity },
     { id: 'causal-twin' as TabView, label: 'Causal Twin', icon: Activity },
     { id: 'what-if' as TabView, label: 'What If', icon: Target },
     { id: 'experiments' as TabView, label: 'Experiments', icon: Beaker },
@@ -326,6 +328,11 @@ export default function HealthDashboard() {
                 <RaphaelInsightsPanel engramId={raphaelEngramId} />
               </div>
               <HealthAnalytics />
+            </div>
+          )}
+          {activeTab === 'delphi' && user?.id && (
+            <div className="rounded-3xl bg-gradient-to-br from-[#0d0d12]/95 to-[#13131a]/95 backdrop-blur-xl border border-white/[0.03] p-6">
+              <DelphiView personId={user.id} memberName={user.email?.split('@')[0] || 'You'} />
             </div>
           )}
           {activeTab === 'medications' && (

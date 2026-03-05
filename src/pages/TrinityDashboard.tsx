@@ -16,6 +16,9 @@ import ElderCareCoordination from '../components/trinity/ElderCareCoordination';
 import BehavioralNudgeEngine from '../components/trinity/BehavioralNudgeEngine';
 import InheritanceDirective from '../components/trinity/InheritanceDirective';
 import CrossSaintWhatIf from '../components/trinity/CrossSaintWhatIf';
+import DHTPanel from '../components/dht/DHTPanel';
+import OceanBehavioralLayer from '../components/dht/OceanBehavioralLayer';
+import { useAuth } from '../contexts/AuthContext';
 
 const TABS = [
     { id: 'overview', label: 'Overview', icon: Shield },
@@ -33,6 +36,7 @@ const TABS = [
 export default function TrinityDashboard() {
     const [activeTab, setActiveTab] = useState('overview');
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     return (
         <div className="min-h-screen bg-[#0c0c12] text-white">
@@ -66,8 +70,8 @@ export default function TrinityDashboard() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium rounded-t-lg whitespace-nowrap transition-colors ${activeTab === tab.id
-                                            ? 'bg-white/5 text-white border-b-2 border-amber-400'
-                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]'
+                                        ? 'bg-white/5 text-white border-b-2 border-amber-400'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]'
                                         }`}
                                 >
                                     <Icon className="w-3 h-3" />
@@ -85,6 +89,26 @@ export default function TrinityDashboard() {
                     <div className="space-y-5">
                         {/* Vitality Score at top */}
                         <FamilyVitalityScore />
+
+                        {/* DHT + OCEAN Fusion Row */}
+                        {user?.id && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-teal-500 inline-block"></span>
+                                        Delphi Health Trajectory — {user.email?.split('@')[0]}
+                                    </p>
+                                    <DHTPanel personId={user.id} compact={false} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-purple-500 inline-block"></span>
+                                        OCEAN × Behavioral Health Layer
+                                    </p>
+                                    <OceanBehavioralLayer personId={user.id} />
+                                </div>
+                            </div>
+                        )}
 
                         {/* Quick grid: nudges + alerts + goals */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

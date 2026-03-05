@@ -25,8 +25,10 @@ import SharedPredictionPanel from './shared/SharedPredictionPanel';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
 import SaintsQuickNav from './shared/SaintsQuickNav';
+import DelphiView from './dht/DelphiView';
+import OceanBehavioralLayer from './dht/OceanBehavioralLayer';
 
-type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training';
+type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi';
 
 const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', icon: GitBranch },
@@ -34,6 +36,7 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'quiz', label: 'Personality Quiz', icon: Brain },
     { key: 'media', label: 'Media Intel', icon: Info },
     { key: 'predictions', label: 'Predictions', icon: Activity },
+    { key: 'delphi', label: '⚕ Delphi', icon: Activity },
     { key: 'society', label: 'Society', icon: Users },
     { key: 'timeline', label: 'Timeline', icon: History },
     { key: 'tasks', label: 'Tasks', icon: CheckSquare },
@@ -201,7 +204,7 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi') && (
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'tree' && <FamilyTreeView onTrainMember={handleTrainMember} />}
                     {activeTab === 'members' && (
@@ -211,8 +214,9 @@ export default function StJosephFamilyDashboard() {
                         </div>
                     )}
                     {activeTab === 'quiz' && (
-                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
                             <PersonalityQuiz />
+                            {user?.id && <OceanBehavioralLayer personId={user.id} />}
                         </div>
                     )}
                     {activeTab === 'media' && (
@@ -256,6 +260,11 @@ export default function StJosephFamilyDashboard() {
                                 GeneWeb Genealogy Tools
                             </h3>
                             <GeneWebTools />
+                        </div>
+                    )}
+                    {activeTab === 'delphi' && user?.id && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <DelphiView personId={user.id} memberName={user.email?.split('@')[0] || 'You'} />
                         </div>
                     )}
                 </div>

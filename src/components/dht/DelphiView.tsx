@@ -5,11 +5,11 @@
  */
 import { useState } from 'react';
 import { Activity, Shield, TrendingUp, Crosshair, Brain } from 'lucide-react';
-import DHTPanel from '../components/dht/DHTPanel';
-import RiskCards from '../components/dht/RiskCards';
-import LeadingIndicators from '../components/dht/LeadingIndicators';
-import NextBestMeasurement from '../components/dht/NextBestMeasurement';
-import OceanBehavioralLayer from '../components/dht/OceanBehavioralLayer';
+import DHTPanel from './DHTPanel';
+import RiskCards from './RiskCards';
+import LeadingIndicators from './LeadingIndicators';
+import NextBestMeasurement from './NextBestMeasurement';
+import OceanBehavioralLayer from './OceanBehavioralLayer';
 
 const DELPHI_TABS = [
     { id: 'trajectory', label: 'Trajectory', icon: Activity },

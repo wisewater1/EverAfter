@@ -1,7 +1,7 @@
 /**
  * DHT API helper — shared fetch wrapper for Delphi Health Trajectory endpoints.
  */
-import { API_BASE_URL } from '../../lib/env';
+import { API_BASE_URL } from './env';
 
 const BASE = import.meta.env.VITE_API_BASE_URL || API_BASE_URL;
 
