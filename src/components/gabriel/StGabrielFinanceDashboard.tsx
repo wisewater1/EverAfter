@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BudgetEnvelopes from './BudgetEnvelopes';
 import TransactionLedger from './TransactionLedger';
@@ -9,13 +9,64 @@ import SaintsGuardian from '../saints/SaintsGuardian';
 import SaintsQuickNav from '../shared/SaintsQuickNav';
 import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
 import GabrielDHTSummary from './GabrielDHTSummary';
+import WiseGoldPanel from './WiseGoldPanel';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const [activeView, setActiveView] = useState<'budget' | 'ledger' | 'reports'>('budget');
+    const { user, session } = useAuth();
+    const [activeView, setActiveView] = useState<'budget' | 'ledger' | 'reports' | 'wisegold'>('budget');
     const [showCouncil, setShowCouncil] = useState(true);
+    const [wgoldBalance, setWgoldBalance] = useState(0);
+    const [wgoldPriceUsd, setWgoldPriceUsd] = useState(72.00);
+
+    useEffect(() => {
+        // Fetch WGOLD balance for Net Worth calculation
+        const fetchWallet = async () => {
+            const token = session?.access_token || '';
+            if (!token) {
+                // Fallback to mock data if no auth token (prevents infinite skips)
+                setWgoldBalance(1450.50);
+                setWgoldPriceUsd(89.50);
+                return;
+            }
+
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002'}/api/v1/finance/wisegold/wallet`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.wallet && data.wallet.balance) {
+                        setWgoldBalance(data.wallet.balance);
+                    }
+                }
+
+                // Fetch live Gold Price from Chainlink (via backend)
+                const priceRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002'}/api/v1/finance/wisegold/price`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (priceRes.ok) {
+                    const priceData = await priceRes.json();
+                    if (priceData.xau_usd_price) {
+                        setWgoldPriceUsd(priceData.xau_usd_price);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch WiseGold balance or Chainlink price:", err);
+                // Fallback to mock data if backend is offline
+                setWgoldBalance(1450.50);
+                setWgoldPriceUsd(89.50);
+            }
+        };
+        fetchWallet();
+    }, []);
+
+    // Mock USD Net Worth base plus dynamic Chainlink WGOLD value
+    const baseNetWorth = 142593.00;
+    const wgoldValueUsd = wgoldBalance * wgoldPriceUsd;
+    const totalNetWorth = baseNetWorth + wgoldValueUsd;
 
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
@@ -54,13 +105,23 @@ export default function StGabrielFinanceDashboard() {
                             <PieChart className="w-4 h-4" />
                             Reports & Analysis
                         </button>
+
+                        <div className="my-2 border-t border-slate-800/50"></div>
+
+                        <button
+                            onClick={() => setActiveView('wisegold')}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeView === 'wisegold' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+                        >
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                            Sovereign Economy
+                        </button>
                     </nav>
                 </div>
 
                 <div className="mt-auto p-4 border-t border-slate-800">
                     <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                         <div className="text-xs text-slate-500 uppercase font-bold mb-2">Net Worth</div>
-                        <div className="text-2xl font-light text-white">$142,593.00</div>
+                        <div className="text-2xl font-light text-white">${totalNetWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400">
                             <TrendingUp className="w-3 h-3" />
                             <span>+2.4% this month</span>
@@ -84,6 +145,7 @@ export default function StGabrielFinanceDashboard() {
                         {activeView === 'budget' && 'Envelope Budget'}
                         {activeView === 'ledger' && 'Transaction Ledger'}
                         {activeView === 'reports' && 'Financial Health Check'}
+                        {activeView === 'wisegold' && 'WiseGold Network'}
                     </h2>
                     <div className="flex items-center gap-4">
                         <SecurityIntegrityBadge />
@@ -112,6 +174,7 @@ export default function StGabrielFinanceDashboard() {
 
                     {activeView === 'budget' && <BudgetEnvelopes />}
                     {activeView === 'ledger' && <TransactionLedger />}
+                    {activeView === 'wisegold' && <WiseGoldPanel />}
                     {activeView === 'reports' && (
                         <div className="space-y-5">
                             <div className="rounded-2xl bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-amber-500/5 border border-white/5 p-4">

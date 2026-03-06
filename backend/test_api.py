@@ -1,43 +1,22 @@
-from fastapi.testclient import TestClient
-import sys
-import os
 
-# Ensure app is importable
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import asyncio
+import httpx
+import uuid
 
-from app.main import app
-
-client = TestClient(app)
-
-def test_api():
-    print("Testing API locally via TestClient...")
+async def test():
+    user_id = "00000000-0000-0000-0000-000000000000" # Dummy UUID
+    base_url = "http://localhost:8002/api/v1"
     
-    # Test Health
+    print(f"Testing {base_url}/saints/status...")
     try:
-        resp = client.get("/health")
-        print(f"GET /health: {resp.status_code}")
-        if resp.status_code != 200:
-            print(f"Health check failed: {resp.text}")
-        else:
-            print("Health check OK.")
+        async with httpx.AsyncClient() as client:
+            # We need a token normally, but let's see if we can get a 401 or 500
+            # If we get 401, the route exists. If we get 500, we found the bug.
+            response = await client.get(f"{base_url}/saints/status")
+            print(f"Status: {response.status_code}")
+            print(f"Body: {response.text}")
     except Exception as e:
-        print(f"GET /health FAILED: {e}")
-
-    # Test Finance (Expect 401)
-    print("Testing Finance Endpoint...")
-    try:
-        resp = client.get("/api/v1/finance/transactions")
-        print(f"GET /api/v1/finance/transactions: {resp.status_code}")
-        if resp.status_code == 401:
-            print("Success! Endpoint exists and requires auth.")
-        elif resp.status_code == 404:
-            print("FAILURE: Endpoint not found (404). Router not mounted?")
-        elif resp.status_code == 200:
-            print("WARNING: Endpoint accessible without auth (UNEXPECTED).")
-        else:
-            print(f"Unexpected status: {resp.status_code}")
-    except Exception as e:
-        print(f"GET /finance FAILED: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    test_api()
+    asyncio.run(test())

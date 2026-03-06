@@ -20,7 +20,7 @@ from app.models.dht import (
 )
 from app.services.dht_engine import compute_dht, compute_behavioral_modifiers
 from app.services import dht_store
-from app.auth.middleware import get_current_user_id   # existing auth helper
+from app.api.auth_utils import get_current_user_id   # existing auth helper
 
 router = APIRouter(prefix="/api/v1/dht", tags=["dht"])
 

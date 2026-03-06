@@ -8,7 +8,7 @@ Used by the DHT engine, API, and frontend serialisation.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 import uuid
 
@@ -64,7 +64,7 @@ class Observation(BaseModel):
     source: ObservationSource
     category: ObservationCategory
     metric: str                       # e.g. "hrv_ms", "glucose_mmol", "steps"
-    value: float | str
+    value: Union[float, str]
     unit: str = ""
     recorded_at: datetime = Field(default_factory=datetime.utcnow)
     sync_at: datetime = Field(default_factory=datetime.utcnow)
@@ -107,7 +107,7 @@ class Indicator(BaseModel):
     """A leading health signal driving current risk or resilience."""
     metric: str
     label: str
-    value: float | str
+    value: Union[float, str]
     unit: str
     trend: DeltaArrow
     impact: Literal["positive", "negative", "neutral"]
@@ -222,7 +222,7 @@ class AuditEntry(BaseModel):
 class ObserveRequest(BaseModel):
     person_id: str
     metric: str
-    value: float | str
+    value: Union[float, str]
     unit: str = ""
     source: ObservationSource = "manual"
     category: ObservationCategory = "vital"

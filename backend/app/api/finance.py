@@ -8,10 +8,16 @@ from uuid import UUID
 from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.finance_service import FinanceService
+from app.services.chainlink_service import ChainlinkService
 
 router = APIRouter(prefix="/api/v1/finance", tags=["finance"])
 
 # Pydantic Schemas
+class CCIPBridgeRequest(BaseModel):
+    destination_chain: str
+    destination_address: str
+    amount: float
+
 class TransactionCreate(BaseModel):
     date: date
     payee: str
@@ -163,4 +169,66 @@ async def update_category(
     user_id = str(current_user.get("sub"))
     service = FinanceService(session)
     return await service.update_category(user_id, category_id, category_data.dict(exclude_unset=True))
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WiseGold Sovereign 3.0 Endpoints
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/wisegold/wallet")
+async def get_wisegold_wallet_info(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Get all core WiseGold wallet info (Balance, NFT, Living Will)"""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_wisegold_wallet(user_id)
+    
+@router.get("/wisegold/covenants")
+async def get_wisegold_covenants(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Get all Sovereign Covenants the user is part of"""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_wisegold_covenants(user_id)
+    
+@router.post("/wisegold/heartbeat")
+async def register_heartbeat(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Register a proof-of-life heartbeat"""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    success = await service.record_heartbeat(user_id)
+    return {"success": success}
+
+@router.get("/wisegold/price")
+async def get_wisegold_price():
+    """Get the live XAU/USD price from Chainlink Data Feeds"""
+    price = await ChainlinkService.get_latest_xau_usd_price()
+    return {"xau_usd_price": price, "timestamp": datetime.utcnow().isoformat()}
+
+@router.post("/wisegold/bridge/ccip")
+async def bridge_wisegold_ccip(
+    request: CCIPBridgeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Initiate a Cross-Chain transfer of WGOLD using Chainlink CCIP"""
+    user_id = str(current_user.get("sub"))
+    
+    # In a full implementation, this step would first check the user's WGOLD balance
+    # and lock/burn tokens on Solana before initiating the CCIP message.
+    
+    result = await ChainlinkService.initiate_ccip_transfer(
+        user_id=user_id,
+        amount=request.amount,
+        destination_chain=request.destination_chain,
+        destination_address=request.destination_address
+    )
+    
+    return result
+
 

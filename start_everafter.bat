@@ -19,7 +19,7 @@ echo.
 set "ROOT=%~dp0"
 
 REM ─── 1. FastAPI Main Backend (port 8002) ────────────────────────────────────
-echo  [1/4] FastAPI Backend        → http://localhost:8002
+echo  [1/7] FastAPI Backend        → http://localhost:8002
 echo         Docs                  → http://localhost:8002/docs
 echo.
 start "EverAfter — FastAPI Backend (8002)" cmd /k "^
@@ -35,7 +35,7 @@ start "EverAfter — FastAPI Backend (8002)" cmd /k "^
 timeout /t 2 /nobreak >nul
 
 REM ─── 2. Health Connect API (port 4000) ──────────────────────────────────────
-echo  [2/4] Health-Connect API     → http://localhost:4000
+echo  [2/7] Health-Connect API     → http://localhost:4000
 echo         (Terra / Oura / Fitbit / Dexcom integrations)
 echo.
 start "EverAfter — Health-Connect API (4000)" cmd /k "^
@@ -50,7 +50,7 @@ start "EverAfter — Health-Connect API (4000)" cmd /k "^
 timeout /t 2 /nobreak >nul
 
 REM ─── 3. Celery Worker ───────────────────────────────────────────────────────
-echo  [3/4] Celery Background Worker (autonomous tasks)
+echo  [3/7] Celery Background Worker (autonomous tasks)
 echo.
 start "EverAfter — Celery Worker" cmd /k "^
   color 0E && ^
@@ -63,8 +63,50 @@ start "EverAfter — Celery Worker" cmd /k "^
 
 timeout /t 2 /nobreak >nul
 
-REM ─── 4. Vite Frontend (port 5173) ────────────────────────────────────────────
-echo  [4/4] Vite Frontend          → http://localhost:5173
+REM ─── 4. Root Node Server (port 3001) ────────────────────────────────────────
+echo  [4/7] Root Node Server       → http://localhost:3001
+echo.
+start "EverAfter — Root Node Server (3001)" cmd /k "^
+  color 0C && ^
+  title Root Node Server :3001 && ^
+  cd /d "%ROOT%" && ^
+  echo. && ^
+  echo  ▶ Root Node Server (Saint AI Backend) starting on port 3001... && ^
+  echo. && ^
+  npm run dev:server"
+
+timeout /t 2 /nobreak >nul
+
+REM ─── 5. Root Agent Scheduler ────────────────────────────────────────────────
+echo  [5/7] Root Agent Scheduler
+echo.
+start "EverAfter — Root Agent Scheduler" cmd /k "^
+  color 09 && ^
+  title Root Agent Scheduler && ^
+  cd /d "%ROOT%" && ^
+  echo. && ^
+  echo  ▶ Root Agent Scheduler (Saint AI worker) starting... && ^
+  echo. && ^
+  npm run dev:worker"
+
+timeout /t 2 /nobreak >nul
+
+REM ─── 6. Python Task Worker ──────────────────────────────────────────────────
+echo  [6/7] Python Task Worker
+echo.
+start "EverAfter — Python Task Worker" cmd /k "^
+  color 06 && ^
+  title Python Task Worker && ^
+  cd /d "%ROOT%backend" && ^
+  echo. && ^
+  echo  ▶ Python Task Worker (Saint AI Background) starting... && ^
+  echo. && ^
+  venv\Scripts\python.exe -m app.workers.task_worker"
+
+timeout /t 2 /nobreak >nul
+
+REM ─── 7. Vite Frontend (port 5173) ────────────────────────────────────────────
+echo  [7/7] Vite Frontend          → http://localhost:5173
 echo.
 start "EverAfter — Vite Frontend (5173)" cmd /k "^
   color 0A && ^
@@ -83,25 +125,14 @@ echo.
 echo   Service            Port     URL
 echo   ─────────────────────────────────────────────────
 echo   FastAPI Backend    8002     http://localhost:8002
-echo   FastAPI API Docs   8002     http://localhost:8002/docs
 echo   Health-Connect     4000     http://localhost:4000
+echo   Root Node Server   3001     http://localhost:3001
 echo   Vite Frontend      5173     http://localhost:5173
 echo.
-echo   Saints Backends via FastAPI:
-echo   ✓ St. Raphael (Health)        /api/v1/health
-echo   ✓ St. Joseph  (Family)        /api/v1/family
-echo   ✓ St. Gabriel (Finance)       /api/v1/finance
-echo   ✓ St. Michael (Security)      /api/v1/saints
-echo   ✓ St. Anthony (Audit)         /api/v1/audit
-echo   ✓ Trinity Synapse             /api/v1/trinity
-echo   ✓ Causal Twin                 /api/v1/causal-twin
-echo   ✓ Engrams                     /api/v1/engrams
-echo   ✓ Chat                        /api/v1/chat
-echo   ✓ Council                     /api/v1/council
-echo   ✓ Rituals                     /api/v1/rituals
-echo   ✓ Time Capsule                /api/v1/time-capsule
-echo   ✓ Marketplace                 /api/v1/marketplace
-echo   ✓ Integrity                   /api/v1/integrity
+echo   Background Workers:
+echo   ✓ Celery Worker
+echo   ✓ Root Agent Scheduler
+echo   ✓ Python Task Worker
 echo.
 echo   Press any key to close this launcher window.
 echo   (All services will continue running in their own windows)

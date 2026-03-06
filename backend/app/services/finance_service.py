@@ -250,4 +250,111 @@ class FinanceService:
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
+    # ══════════════════════════════════════════════════════════════════════════════
+    # WiseGold Sovereign 3.0 Methods
+    # ══════════════════════════════════════════════════════════════════════════════
+    
+    async def get_wisegold_wallet(self, user_id: str) -> Dict[str, Any]:
+        """Fetch the user's WGOLD wallet and related data, creating it if it doesn't exist."""
+        from app.models.finance import WiseGoldWallet, RitualBondNFT, LivingWill
+        
+        stmt = select(WiseGoldWallet).where(WiseGoldWallet.user_id == user_id)
+        result = await self.session.execute(stmt)
+        wallet = result.scalar_one_or_none()
+        
+        if not wallet:
+            # First time initialization
+            wallet = WiseGoldWallet(user_id=user_id, balance=10.0) # 10 WGOLD sign-up bonus
+            self.session.add(wallet)
+            await self.session.flush()
+            
+            bond = RitualBondNFT(wallet_id=wallet.id, tier="Seed", ritual_score=0.1, multiplier=1.0)
+            self.session.add(bond)
+            
+            will = LivingWill(wallet_id=wallet.id, status="ACTIVE", heirs="[]")
+            self.session.add(will)
+            
+            await self.session.commit()
+            await self.session.refresh(wallet)
+        
+        # Fetch related
+        bond_stmt = select(RitualBondNFT).where(RitualBondNFT.wallet_id == wallet.id)
+        will_stmt = select(LivingWill).where(LivingWill.wallet_id == wallet.id)
+        
+        bond = (await self.session.execute(bond_stmt)).scalar_one_or_none()
+        will = (await self.session.execute(will_stmt)).scalar_one_or_none()
+        
+        return {
+            "wallet": {
+                "id": str(wallet.id),
+                "balance": wallet.balance,
+                "solana_pubkey": wallet.solana_pubkey,
+                "last_manna_claim": wallet.last_manna_claim.isoformat() if wallet.last_manna_claim else None
+            },
+            "ritual_bond": {
+                "tier": bond.tier if bond else "Seed",
+                "ritual_score": bond.ritual_score if bond else 0.0,
+                "multiplier": bond.multiplier if bond else 1.0,
+            },
+            "living_will": {
+                "status": will.status if will else "UNKNOWN",
+                "last_heartbeat": will.last_heartbeat.isoformat() if will and will.last_heartbeat else None,
+                "heirs": will.heirs if will else "[]"
+            }
+        }
+        
+    async def get_wisegold_covenants(self, user_id: str) -> List[Dict[str, Any]]:
+        """Fetch Sovereign Covenants the user is a part of."""
+        from app.models.finance import SovereignCovenant
+        import json
+        
+        # In a real app we'd query JSON, but for prototype we just return all
+        # or fake it.
+        stmt = select(SovereignCovenant)
+        result = await self.session.execute(stmt)
+        covenants = result.scalars().all()
+        
+        out = []
+        for cov in covenants:
+            # Quick check if user is in members JSON string
+            if user_id in cov.members:
+                members_list = json.loads(cov.members)
+                out.append({
+                    "id": str(cov.id),
+                    "name": cov.name,
+                    "total_vault": cov.total_vault,
+                    "members": len(members_list)
+                })
+                
+        # Prototype mock data if empty
+        if not out:
+            out.append({
+                "id": "mock-cov-1",
+                "name": "St. Joseph Family Vault",
+                "total_vault": 14500.0,
+                "members": 3
+            })
+            
+        return out
+        
+    async def record_heartbeat(self, user_id: str) -> bool:
+        """Update Proof-of-Life heartbeat for Living Will."""
+        from app.models.finance import WiseGoldWallet, LivingWill
+        
+        stmt = select(WiseGoldWallet).where(WiseGoldWallet.user_id == user_id)
+        wallet = (await self.session.execute(stmt)).scalar_one_or_none()
+        
+        if not wallet: return False
+        
+        stmt = select(LivingWill).where(LivingWill.wallet_id == wallet.id)
+        will = (await self.session.execute(stmt)).scalar_one_or_none()
+        
+        if will:
+            will.last_heartbeat = datetime.utcnow()
+            will.status = "ACTIVE"
+            await self.session.commit()
+            return True
+            
+        return False
+
 finance_service = None  # dependency injection placeholder

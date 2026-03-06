@@ -1,4 +1,9 @@
+import sys
 import asyncio
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,11 +11,6 @@ from app.db.session import get_session_factory
 from app.models.agent import AgentTaskQueue
 from app.services.task_executor import TaskExecutor
 import logging
-import asyncio
-import sys
-
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.core.config import settings
 
