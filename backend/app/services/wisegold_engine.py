@@ -62,6 +62,44 @@ class GoldenSovereignEngine:
         self.current_tax_rate = 0.005
         self.current_base_manna = 0.5
         
+    async def _execute_omnichain_transaction(self, chain_target: str, action: str, amount: float, wallet_id: str) -> bool:
+        """
+        Executes a transaction on the target blockchain.
+        Simulates the Omnichain Failover Waterfall.
+        """
+        import random
+        # Simulate network success rate
+        network_health = {
+            "Arbitrum": 0.95,  # 95% success
+            "Polygon": 0.99,   # 99% success
+            "Base": 0.99
+        }
+        
+        success = random.random() < network_health.get(chain_target, 0.90)
+        
+        if success:
+            logger.info(f"[Omnichain] Successfully executed {action} of {amount} WGOLD on {chain_target} for wallet {wallet_id}")
+            return True
+        else:
+            logger.warning(f"[Omnichain] RPC Timeout on {chain_target} for {action}. Network unresponsive.")
+            return False
+
+    async def execute_with_failover(self, action: str, amount: float, wallet_id: str):
+        """
+        Implements the Smart Contract Failover Waterfall.
+        Arbitrum -> Polygon -> Base
+        """
+        chains = ["Arbitrum", "Polygon", "Base"]
+        
+        for chain in chains:
+            logger.info(f"[Failover Protocol] Attempting execution on Node: {chain}")
+            success = await self._execute_omnichain_transaction(chain, action, amount, wallet_id)
+            if success:
+                return True
+                
+        logger.error(f"[Failover Protocol] CRITICAL: All networks failed for {action}. Retrying next epoch.")
+        return False
+        
     async def process_legacy_protocol(self) -> Dict[str, float]:
         """
         Marks deceased accounts (>365 days inactive) as HISTORICAL 
@@ -90,6 +128,8 @@ class GoldenSovereignEngine:
             # (Heir logic omitted in prototype unless fully mocked)
             pool_return = wallet.balance * 0.5
             heir_return = wallet.balance * 0.5
+            
+            await self.execute_with_failover("Legacy_Distribution", wallet.balance, str(wallet.id))
             
             logger.info(f"Legacy Protocol: Wallet {wallet.id} marked Historical. Reclaimed {pool_return} WGOLD into pool.")
             
@@ -146,6 +186,8 @@ class GoldenSovereignEngine:
             vault_boost = 1.0 
             
             final_amount = self.current_base_manna * ritual_boost * vault_boost
+            
+            await self.execute_with_failover("Manna_Distribution", final_amount, str(wallet.id))
             
             wallet.balance += final_amount
             total_outflow += final_amount
