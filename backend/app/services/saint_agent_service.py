@@ -13,6 +13,9 @@ Uses the existing LLMClient chain: OpenAI → Ollama → Fallback
 import uuid
 import logging
 import json
+import re
+import httpx
+import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,6 +55,12 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- Track medications, conditions, allergies, and appointments the user mentions.\n"
             "- Remember and reference past health discussions.\n"
             "- Your domain is secured by St. Michael (Protection) and St. Anthony (Audit).\n"
+            "\n"
+            "*** AUTONOMOUS EXTERNAL ACTIONS (MAKE.COM) ***\n"
+            "- You have the ability to trigger real-world actions like SMS, Airtable logging, or Make.com workflows.\n"
+            "- If you determine an urgent health action is necessary, output exactly this tag in your response:\n"
+            "  [MAKE_WEBHOOK: {\"action\": \"<ACTION_NAME>\", \"message\": \"<CONTEXT_DATA>\"}]\n"
+            "- The backend will intercept this tag, fire the webhook, and hide it from the user's view.\n"
         ),
     },
     "michael": {
@@ -509,7 +518,33 @@ class SaintAgentService:
             system_prompt=system_prompt,
         )
 
-        # 8. Parse Actions from AI response if available
+        # 8. Parse autonomous external actions (Make.com webhooks)
+        webhook_pattern = r'\[MAKE_WEBHOOK:\s*(\{.*?\})\s*\]'
+        match = re.search(webhook_pattern, ai_response_text, re.DOTALL)
+        if match:
+            webhook_data_str = match.group(1)
+            try:
+                webhook_data = json.loads(webhook_data_str)
+                # Hardcoded URL for demonstration. User can change this to their actual Make.com Webhook URL.
+                make_url = "https://hook.us1.make.com/xxxxxxxxxxxx" 
+                
+                # Fire and forget
+                async def fire_webhook(url: str, data: dict):
+                    try:
+                        async with httpx.AsyncClient() as client:
+                            await client.post(url, json=data)
+                    except Exception as e:
+                        logger.error(f"Failed to fire Make webhook: {e}")
+                
+                asyncio.create_task(fire_webhook(make_url, webhook_data))
+                logger.info(f"Fired Make.com webhook with data: {webhook_data}")
+            except Exception as e:
+                logger.error(f"Failed to parse or fire webhook: {e}")
+            
+            # Remove the tag from the text the user sees
+            ai_response_text = re.sub(webhook_pattern, '', ai_response_text, flags=re.DOTALL).strip()
+
+        # 9. Parse Actions from AI response if available
         executed_actions = []
         if action_engine:
             ai_response_text, executed_actions = action_engine.parse_and_execute(ai_response_text, str(user_uuid))

@@ -171,6 +171,9 @@ class PromptBuilder:
         """
         from app.services.health.service import health_service
         from app.models.health import Metric, Source
+        from app.services import dht_store
+        from app.services.causal_twin.environmental_matrix import environmental_matrix
+        from app.services.causal_twin.counterfactual_engine import counterfactual_engine
         from datetime import datetime, timedelta
 
         try:
@@ -194,20 +197,71 @@ class PromptBuilder:
                 } for m in metrics
             ]
 
-            # 2. Get predictions
+            # 2. Get standard predictions
             predictions = await health_service.get_predictions(user_id, history)
             
-            if not predictions:
+            # 3. Get Delphi Health Trajectory & Risk Cards
+            dht = dht_store.get_dht(user_id)
+            
+            # 4. Get OCEAN & Behavioral Modifiers
+            ocean = dht_store.get_latest_ocean(user_id)
+            mods = None
+            if ocean:
+                from app.services.dht_engine import compute_behavioral_modifiers
+                mods = compute_behavioral_modifiers(ocean.scores)
+                
+            # 5. Get Environmental Risk Matrix
+            try:
+                env_susceptibility = await environmental_matrix.get_susceptibility_report(user_id, [], "US-Central", {})
+            except Exception:
+                env_susceptibility = None
+                
+            # 6. Get active What-If Simulations
+            try:
+                simulations = await counterfactual_engine.simulate_scenarios(user_id, {}, 30, 0.6)
+            except Exception:
+                simulations = None
+
+            if not predictions and not dht and not ocean:
                 return ""
 
-            prompt_block = ["\nINSIGHTS FROM DELPHI (Health Trajectory Model):"]
-            for pred in predictions:
-                prompt_block.append(f"- Prediction: {pred.prediction_type}")
-                prompt_block.append(f"  Confidence: {pred.confidence:.2f}")
-                prompt_block.append(f"  Horizon: {pred.horizon}")
-                prompt_block.append(f"  Risk Level: {pred.risk_level.upper()}")
-                if pred.contributing_factors:
-                    prompt_block.append(f"  Key Insight: {pred.contributing_factors[0]}")
+            prompt_block = ["\n--- ADVANCED MEDICAL TWIN TELEMETRY ---"]
+            
+            if dht:
+                prompt_block.append(f"\n[DELPHI HEALTH TRAJECTORY]")
+                prompt_block.append(f"Direction: {dht.overall_direction.upper()}")
+                prompt_block.append(f"Confidence: {dht.confidence:.2f}")
+                if dht.risk_cards:
+                    prompt_block.append("Active Risk Cards:")
+                    for rc in dht.risk_cards:
+                        prompt_block.append(f"  - {rc.category}: {rc.description} (Urgency: {rc.urgency})")
+            
+            if ocean and mods:
+                prompt_block.append(f"\n[USER PERSONALITY & BEHAVIORAL MODIFIERS]")
+                prompt_block.append(f"O:{ocean.scores.openness} C:{ocean.scores.conscientiousness} E:{ocean.scores.extraversion} A:{ocean.scores.agreeableness} N:{ocean.scores.neuroticism}")
+                prompt_block.append(f"Receptivity to nudges: {mods.receptivity_to_nudges}")
+                prompt_block.append(f"Adherence likelihood: {mods.adherence_likelihood}")
+                prompt_block.append(f"Interaction Style: {mods.recommended_interaction_style}")
+            
+            if predictions:
+                prompt_block.append(f"\n[HOLISTIC PREDICTIONS]")
+                for pred in predictions:
+                    prompt_block.append(f"- {pred.prediction_type} (Risk: {pred.risk_level.upper()})")
+                    if pred.contributing_factors:
+                        prompt_block.append(f"  Insight: {pred.contributing_factors[0]}")
+                        
+            if env_susceptibility and "threat_vectors" in env_susceptibility:
+                prompt_block.append(f"\n[ENVIRONMENTAL MATRIX]")
+                for tv in env_susceptibility["threat_vectors"][:3]:
+                    prompt_block.append(f"- {tv.get('pathogen', tv.get('threat', 'Unknown'))}: Level {tv.get('severity_level', 'Moderate')}")
+            
+            if simulations and isinstance(simulations, dict) and simulations.get("scenarios"):
+                prompt_block.append(f"\n[CAUSAL TWIN SIMULATIONS]")
+                for num, sc in enumerate(simulations["scenarios"]):
+                    if isinstance(sc, dict):
+                        prompt_block.append(f"Scenario {num+1}: If they adhere to {list(sc.get('changes', {}).keys())}, projected trajectory is {sc.get('future_trajectory', 'Unknown')}.")
+
+            prompt_block.append("--------------------------------------\n")
             
             return "\n".join(prompt_block)
         except Exception as e:
