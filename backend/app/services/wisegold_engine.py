@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import random
 
 from app.models.finance import WiseGoldWallet, RitualBondNFT, LivingWill, SovereignCovenant
 
@@ -67,7 +68,6 @@ class GoldenSovereignEngine:
         Executes a transaction on the target blockchain.
         Simulates the Omnichain Failover Waterfall.
         """
-        import random
         # Simulate network success rate
         network_health = {
             "Arbitrum": 0.95,  # 95% success
@@ -126,15 +126,16 @@ class GoldenSovereignEngine:
             
             # Logic for splitting to heirs vs pool
             # (Heir logic omitted in prototype unless fully mocked)
-            pool_return = wallet.balance * 0.5
-            heir_return = wallet.balance * 0.5
+            current_balance = float(wallet.balance or 0.0)
+            pool_return = current_balance * 0.5
+            heir_return = current_balance * 0.5
             
-            await self.execute_with_failover("Legacy_Distribution", wallet.balance, str(wallet.id))
+            await self.execute_with_failover("Legacy_Distribution", current_balance, str(wallet.id))
             
             logger.info(f"Legacy Protocol: Wallet {wallet.id} marked Historical. Reclaimed {pool_return} WGOLD into pool.")
             
             self.daily_manna_pool += pool_return
-            wallet.balance = 0
+            wallet.balance = 0.0
             total_redistributed += pool_return
             
         await self.session.commit()
@@ -189,7 +190,7 @@ class GoldenSovereignEngine:
             
             await self.execute_with_failover("Manna_Distribution", final_amount, str(wallet.id))
             
-            wallet.balance += final_amount
+            wallet.balance = float(wallet.balance or 0.0) + final_amount
             total_outflow += final_amount
             
             # Mark claiming time

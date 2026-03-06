@@ -1,6 +1,9 @@
 import httpx
 import time
 import logging
+import math
+import random
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,6 @@ class ChainlinkService:
             chainlink_heartbeat_age = 0 # seconds
             
             # Simulate a 5% chance Chainlink is down/stale for demonstration of redundancy
-            import random
             if random.random() < 0.05:
                 chainlink_active = False
                 chainlink_heartbeat_age = 3601 # Over 1 hour stale
@@ -45,7 +47,6 @@ class ChainlinkService:
                 logger.warning(f"Chainlink Oracle stale/unresponsive (Heartbeat: {chainlink_heartbeat_age}s). Failing over to Pyth Network.")
                 return await ChainlinkService._fetch_from_pyth_network(current_time)
             
-            import math
             base_price_per_gram = 90.00 
             
             # Simulated market fluctuation based on current hour/minute
@@ -54,7 +55,7 @@ class ChainlinkService:
             
             live_price = base_price_per_gram + time_factor + noise
             
-            _cached_gold_price["price"] = round(live_price, 2)
+            _cached_gold_price["price"] = float(f"{live_price:.2f}")
             _cached_gold_price["timestamp"] = current_time
             
             logger.info(f"Chainlink Price Feed updated. New XAU/USD: ${_cached_gold_price['price']}/gram")
@@ -71,7 +72,6 @@ class ChainlinkService:
         """Fallback Oracle fetching via Pyth Network."""
         try:
             # Pyth operates on a pull-oracle model. We simulate pulling the latest price.
-            import math
             base_price_per_gram = 90.00
             
             # Use a slightly different noise model to simulate a different oracle source
@@ -80,7 +80,7 @@ class ChainlinkService:
             
             live_price = base_price_per_gram + time_factor + noise
             
-            _cached_gold_price["price"] = round(live_price, 2)
+            _cached_gold_price["price"] = float(f"{live_price:.2f}")
             _cached_gold_price["timestamp"] = current_time
             
             logger.info(f"Pyth Network Price Feed updated. New XAU/USD: ${_cached_gold_price['price']}/gram")
@@ -109,8 +109,8 @@ class ChainlinkService:
         # to the local network's CCIP Router contract using web3.py.
         # This requires paying CCIP fees in LINK or native gas.
         
-        import uuid
         message_id = f"0x{uuid.uuid4().hex}"
+
         
         # Calculate mock CCIP fee (e.g. $0.50 equivalent)
         fee_estimate_usd = 0.50

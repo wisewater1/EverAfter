@@ -179,7 +179,7 @@ class APIClient {
       const token = await this.getAuthToken();
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true',
+        'Bypass-Tunnel-Reminder': 'true',
       };
 
       if (token) {
@@ -476,7 +476,7 @@ class APIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ message, coordination_mode: coordinationMode })
@@ -536,7 +536,7 @@ class APIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(agentData),
@@ -579,7 +579,7 @@ class APIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true',
+          'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ query, context, coordination_mode: coordinationMode }),
@@ -769,7 +769,7 @@ class APIClient {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true'
+          'Bypass-Tunnel-Reminder': 'true'
         },
         body: JSON.stringify(members)
       });
@@ -852,7 +852,7 @@ class APIClient {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true'
+          'Bypass-Tunnel-Reminder': 'true'
         },
         body: JSON.stringify({ content })
       });
@@ -864,7 +864,7 @@ class APIClient {
       throw error;
     }
   }
-  /** Get family tasks from the backend (falls back to static data). */
+  /** Get family tasks from the backend. */
   async getFamilyTasks(_userId: string): Promise<any[]> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
@@ -872,15 +872,12 @@ class APIClient {
       const response = await fetch(`${API_BASE}/api/v1/family-home/tasks`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('not available');
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
       const data = await response.json();
       return data.tasks || [];
-    } catch {
-      return [
-        { id: '1', action: 'Mow Lawn', description: 'Front and back yard', status: 'pending', category: 'chore' },
-        { id: '2', action: 'Fix Faucet', description: 'Kitchen sink leak', status: 'pending', category: 'maintenance' },
-        { id: '3', action: 'Pick up Dry Cleaning', description: 'Suits for the wedding', status: 'completed', category: 'errand' },
-      ];
+    } catch (error) {
+      console.error("Get Family Tasks Error:", error);
+      return [];
     }
   }
 
@@ -889,11 +886,15 @@ class APIClient {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
-      await fetch(`${API_BASE}/api/v1/family-home/tasks/${taskId}/complete`, {
+      const response = await fetch(`${API_BASE}/api/v1/family-home/tasks/${taskId}/complete`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
-    } catch { /* best effort */ }
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+    } catch (error) {
+      console.error("Complete Task Error:", error);
+      throw error;
+    }
   }
 
   /** Get shopping list. */
@@ -904,15 +905,12 @@ class APIClient {
       const response = await fetch(`${API_BASE}/api/v1/family-home/shopping`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('not available');
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
       const data = await response.json();
       return data.items || [];
-    } catch {
-      return [
-        { id: 's1', name: 'Milk', quantity: '2 gallons', addedBy: 'Alice', status: 'needed' },
-        { id: 's2', name: 'Eggs', quantity: '1 dozen', addedBy: 'Bob', status: 'needed' },
-        { id: 's3', name: 'Bread', quantity: '2 loaves', addedBy: 'Charlie', status: 'bought' },
-      ];
+    } catch (error) {
+      console.error("Get Shopping List Error:", error);
+      return [];
     }
   }
 
@@ -921,11 +919,15 @@ class APIClient {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
-      await fetch(`${API_BASE}/api/v1/family-home/shopping/${itemId}/bought`, {
+      const response = await fetch(`${API_BASE}/api/v1/family-home/shopping/${itemId}/bought`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
-    } catch { /* best effort */ }
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+    } catch (error) {
+      console.error("Mark Item Bought Error:", error);
+      throw error;
+    }
   }
 
   /** Get family calendar events. */
@@ -936,15 +938,12 @@ class APIClient {
       const response = await fetch(`${API_BASE}/api/v1/family-home/calendar`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('not available');
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
       const data = await response.json();
       return data.events || [];
-    } catch {
-      const now = new Date().toISOString();
-      return [
-        { id: 'e1', title: 'Family Dinner', startTime: now, endTime: now, attendees: ['All'] },
-        { id: 'e2', title: 'Soccer Practice', startTime: now, endTime: now, attendees: ['Charlie'] },
-      ];
+    } catch (error) {
+      console.error("Get Family Calendar Error:", error);
+      return [];
     }
   }
 
@@ -956,14 +955,12 @@ class APIClient {
       const response = await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('not available');
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
       const data = await response.json();
       return data.messages || [];
-    } catch {
-      return [
-        { id: 'b1', text: "Don't forget family dinner at Grandma's on Sunday! 6:00 PM.", author: 'Alice' },
-        { id: 'b2', text: 'Pick up the package at the front door if you get home first.', author: 'Bob' },
-      ];
+    } catch (error) {
+      console.error("Get Family Bulletin Error:", error);
+      return [];
     }
   }
 
@@ -972,13 +969,19 @@ class APIClient {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
-      await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
+      const response = await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json',
-      'Bypass-Tunnel-Reminder': 'true' },
+        headers: {
+          'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
         body: JSON.stringify({ text, author }),
       });
-    } catch { /* best effort */ }
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+    } catch (error) {
+      console.error("Post Bulletin Message Error:", error);
+      throw error;
+    }
   }
 }
 
