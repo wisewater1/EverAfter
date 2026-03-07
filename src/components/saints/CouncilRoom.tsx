@@ -288,10 +288,10 @@ export default function CouncilRoom() {
                                     <div className={`relative group cursor-pointer`}>
                                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300
                                             ${isActive
-                                                ? `bg-slate-900/90 border-white/20 shadow-[0_0_30px_${saint.glowColor}] translate-y-[-4px]`
+                                                ? `bg-slate-900/90 border-white/20 translate-y-[-4px]`
                                                 : `bg-slate-900/40 border-white/5 hover:bg-slate-800/60 hover:border-white/20`
                                             }
-                                        `}>
+                                        `} style={{ boxShadow: isActive ? `0 0 30px ${saint.glowColor}` : 'none' }}>
                                             <saint.icon className={`w-6 h-6 transition-all duration-300 ${isActive ? 'text-white drop-shadow-md' : saint.color}`} />
 
                                             {/* Speaking Wave Animation */}

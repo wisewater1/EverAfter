@@ -11,6 +11,9 @@ export default defineConfig({
       resolveExtensions: ['.js', '.ts', '.jsx', '.tsx', '.json'],
     },
   },
+  build: {
+    target: 'esnext'
+  },
   server: {
     proxy: {
       '/api/v1': {
