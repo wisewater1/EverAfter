@@ -1,26 +1,19 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import {
-    X, Users, Heart, User as UserIcon, ChevronRight, ChevronLeft, Brain,
+    X, Users, Heart, ChevronRight, ChevronLeft, Brain,
     Sparkles, CheckCircle, BarChart3, ArrowRight, Home, Shield,
     Loader, TrendingUp, Star
 } from 'lucide-react';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 import { supabase } from '../../lib/supabase';
+import { apiClient } from '../../lib/api-client';
 import { API_BASE_URL } from '../../lib/env';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
-/* ─── Types ─────────────────────────────────────────────── */
-
-interface ArchetypalAI {
-    id: string;
-    name: string;
-    description: string;
-    total_memories: number;
-    ai_readiness_score: number;
-    is_ai_active: boolean;
-}
+import type { EngramResponse } from '../../types/database.types';
+type ArchetypalAI = EngramResponse;
 
 interface FamilyConnection {
     isFamilyMember: boolean;
@@ -120,7 +113,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
     // Memory state
     const [memory, setMemory] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [savedCount, setSavedCount] = useState(ai.total_memories);
+    const [savedCount, setSavedCount] = useState(ai.total_questions_answered);
 
     // Load family members for connection options
     useEffect(() => {
@@ -248,16 +241,16 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
         if (!memory.trim()) return;
         setIsSaving(true);
         try {
-            await supabase.from('memories').insert({
-                archetypal_ai_id: ai.id,
-                user_id: userId,
-                content: memory.trim(),
-                source: 'manual_training',
-                created_at: new Date().toISOString(),
+            await apiClient.submitEngramResponse(ai.id, {
+                question_text: "Shared Memory",
+                response_text: memory.trim(),
+                question_category: "Manual Training",
+                day_number: 0,
+                mood: "neutral"
             });
         } catch { /* continue even if offline */ }
         setSavedCount(prev => prev + 1);
-        const updated = { ...ai, total_memories: savedCount + 1, ai_readiness_score: Math.min(100, Math.round((savedCount + 1) / 50 * 100)) };
+        const updated = { ...ai, total_questions_answered: savedCount + 1, ai_readiness_score: Math.min(100, Math.round((savedCount + 1) / 50 * 100)) };
         onMemorySaved(updated);
         setMemory('');
         setIsSaving(false);

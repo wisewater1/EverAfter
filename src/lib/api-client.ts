@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { env } from './env';
 import { logger } from './logger';
 import { NetworkError, IntegrationError, handleError } from './errors';
-import type { EdgeFunctionResponse, ChatResponse, DailyQuestionResponseData } from '../types/database.types';
+import type { EdgeFunctionResponse, ChatResponse, DailyQuestionResponseData, FamilyTask, ShoppingItem, CalendarEvent, BulletinMessage, EngramResponse, EngramCreatePayload } from '../types/database.types';
 import { API_BASE_URL } from '../lib/env';
 
 /**
@@ -258,7 +258,7 @@ class APIClient {
   /**
    * Get engrams from local backend
    */
-  async getEngrams() {
+  async getEngrams(): Promise<EngramResponse[]> {
     const token = await this.getAuthToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -865,7 +865,7 @@ class APIClient {
     }
   }
   /** Get family tasks from the backend. */
-  async getFamilyTasks(_userId: string): Promise<any[]> {
+  async getFamilyTasks(_userId: string): Promise<FamilyTask[]> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
@@ -898,7 +898,7 @@ class APIClient {
   }
 
   /** Get shopping list. */
-  async getShoppingList(_userId: string): Promise<any[]> {
+  async getShoppingList(_userId: string): Promise<ShoppingItem[]> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
@@ -931,7 +931,7 @@ class APIClient {
   }
 
   /** Get family calendar events. */
-  async getFamilyCalendar(_userId: string): Promise<any[]> {
+  async getFamilyCalendar(_userId: string): Promise<CalendarEvent[]> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
@@ -948,7 +948,7 @@ class APIClient {
   }
 
   /** Get family bulletin messages. */
-  async getFamilyBulletin(): Promise<any[]> {
+  async getFamilyBulletin(): Promise<BulletinMessage[]> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {
@@ -980,6 +980,104 @@ class APIClient {
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
     } catch (error) {
       console.error("Post Bulletin Message Error:", error);
+      throw error;
+    }
+  }
+
+  /** --- Custom Engrams --- */
+
+  // Duplicate getEngrams removed
+
+  /** Create a new custom engram. */
+  async createEngram(payload: EngramCreatePayload): Promise<EngramResponse> {
+    const token = await this.getAuthToken();
+    const API_BASE = `${API_BASE_URL}`;
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
+        body: JSON.stringify({
+          ...payload,
+          relationship: payload.relationship || 'custom',
+          engram_type: payload.engram_type || 'custom',
+        }),
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Backend error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Create Engram Error:", error);
+      throw error;
+    }
+  }
+
+  /** Check if an engram name already exists for the user. */
+  async checkEngramNameExists(name: string): Promise<boolean> {
+    try {
+      const engrams = await this.getEngrams();
+      return engrams.some(engram => engram.name.toLowerCase() === name.toLowerCase());
+    } catch (e) {
+      return false;
+    }
+  }
+  /** Submit a manual training memory / response for an engram */
+  async submitEngramResponse(engramId: string, payload: {
+    question_text: string;
+    response_text: string;
+    question_category: string;
+    day_number: number;
+    mood?: string;
+  }): Promise<void> {
+    const token = await this.getAuthToken();
+    const API_BASE = `${API_BASE_URL}`;
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/responses`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
+        body: JSON.stringify({
+          engram_id: engramId,
+          ...payload
+        })
+      });
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+    } catch (error) {
+      console.error("Submit Engram Response Error:", error);
+      throw error;
+    }
+  }
+  /** Register a dynamic Saint/Engram (used in Family Tree and Members) */
+  async registerDynamicSaint(payload: {
+    name: string;
+    description: string;
+    system_prompt: string;
+    traits: Record<string, any>;
+  }): Promise<any> {
+    const token = await this.getAuthToken();
+    const API_BASE = `${API_BASE_URL}`;
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Register Dynamic Saint Error:", error);
       throw error;
     }
   }

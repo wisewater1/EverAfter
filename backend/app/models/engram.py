@@ -17,6 +17,7 @@ class ArchetypalAI(Base):
     total_memories = Column(Integer, default=0)
     training_status = Column(String, default='untrained')
     avatar_url = Column(String)
+    archetype = Column(String)
     dimension_scores = Column(JSON, default=dict)
     completeness_by_category = Column(JSON, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

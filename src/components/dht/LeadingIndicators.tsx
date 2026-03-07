@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react';
-import { getLeadingIndicators } from '../../lib/dhtApi';
+import { getLeadingIndicators, LeadingIndicator } from '../../lib/dhtApi';
 
 const IMPACT_COLORS: Record<string, string> = {
     positive: '#10b981',
@@ -12,7 +12,7 @@ const IMPACT_COLORS: Record<string, string> = {
 };
 
 export default function LeadingIndicators({ personId }: { personId: string }) {
-    const [indicators, setIndicators] = useState<any[]>([]);
+    const [indicators, setIndicators] = useState<LeadingIndicator[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

@@ -3,7 +3,7 @@ import {
     Upload, FileText, Image, Video, Shield, Check, X, Edit3,
     Trash2, Plus, Lock, Unlock, ChevronDown, Sparkles, Eye
 } from 'lucide-react';
-import { getFamilyMembers, updateFamilyMember } from '../../lib/joseph/genealogy';
+import { getFamilyMembers, updateFamilyMember, addFamilyEvent } from '../../lib/joseph/genealogy';
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
 import { API_BASE_URL } from '../../lib/env';
 
@@ -199,6 +199,26 @@ export default function MediaIntelligencePanel() {
 
         if (approved.length === 0) return;
 
+        // Automatically map date and milestone extractions to the Family Timeline
+        approved.forEach(insight => {
+            if (insight.category === 'date' || insight.category === 'milestone') {
+                const dateMatch = insight.value.match(/\b(19|20)\d{2}(?:-\d{2}-\d{2})?\b/) || insight.label.match(/\b(19|20)\d{2}(?:-\d{2}-\d{2})?\b/);
+                const extractedDate = dateMatch ? (dateMatch[0].length === 4 ? `${dateMatch[0]}-01-01` : dateMatch[0]) : new Date().toISOString().split('T')[0];
+
+                try {
+                    addFamilyEvent({
+                        memberId: selectedMember.id,
+                        memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
+                        type: (insight.category === 'milestone' ? 'milestone' : 'other') as any,
+                        date: extractedDate,
+                        title: insight.label || 'Extracted Memory',
+                        description: insight.value + (insight.source_snippet ? ` ("${insight.source_snippet}")` : ''),
+                        linkedEngramIds: selectedMember.engramId ? [selectedMember.engramId] : undefined
+                    });
+                } catch (e) { console.error('Failed to add event from extraction', e); }
+            }
+        });
+
         try {
             const res = await fetch(`${API_BASE}/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`, {
                 method: 'POST',
@@ -388,8 +408,8 @@ export default function MediaIntelligencePanel() {
                         <button
                             onClick={togglePermissions}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition border ${permsGranted
-                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                    : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
                                 }`}
                         >
                             <Shield className="w-3 h-3" />
@@ -413,8 +433,8 @@ export default function MediaIntelligencePanel() {
                         onDrop={onDrop}
                         onClick={() => fileRef.current?.click()}
                         className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${dragOver
-                                ? 'border-amber-400 bg-amber-500/5'
-                                : 'border-white/10 hover:border-white/20 bg-white/[0.01]'
+                            ? 'border-amber-400 bg-amber-500/5'
+                            : 'border-white/10 hover:border-white/20 bg-white/[0.01]'
                             }`}
                     >
                         <input
@@ -477,8 +497,8 @@ export default function MediaIntelligencePanel() {
                                             key={insight.id}
                                             onClick={() => toggleApproval(insight.id)}
                                             className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all border ${isApproved
-                                                    ? 'bg-emerald-500/[0.05] border-emerald-500/20'
-                                                    : 'bg-white/[0.01] border-white/5 hover:border-white/10'
+                                                ? 'bg-emerald-500/[0.05] border-emerald-500/20'
+                                                : 'bg-white/[0.01] border-white/5 hover:border-white/10'
                                                 }`}
                                         >
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isApproved ? 'bg-emerald-500/20' : 'bg-white/5'}`}>

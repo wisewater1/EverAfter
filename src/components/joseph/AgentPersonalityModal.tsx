@@ -27,7 +27,7 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
             // Register agent on backend to ensure persistence
             const birthYear = member.birthDate ? new Date(member.birthDate).getFullYear() : 'Unknown';
 
-            await apiClient.registerDynamicAgent({
+            await apiClient.registerDynamicSaint({
                 name: `${member.firstName} ${member.lastName}`,
                 description: `Family System Agent. Generation: ${member.generation}.`,
                 system_prompt: `You are ${member.firstName} ${member.lastName}. ${personality.communicationStyle} You have the following traits: ${personality.traits.join(', ')}.`,

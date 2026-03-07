@@ -82,6 +82,35 @@ export interface ArchetypalAI {
   updated_at: string;
 }
 
+export interface EngramResponse {
+  id: string;
+  user_id: string;
+  name: string;
+  relationship?: string;
+  engram_type?: string;
+  archetype?: string;
+  email?: string;
+  description: string;
+  avatar_url?: string;
+  personality_summary: Record<string, unknown>;
+  total_questions_answered: number;
+  ai_readiness_score: number;
+  is_ai_active: boolean;
+  training_status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngramCreatePayload {
+  user_id: string;
+  name: string;
+  description?: string;
+  archetype?: string;
+  avatar_url?: string;
+  relationship?: string;
+  engram_type?: string;
+}
+
 export interface DailyQuestion {
   id: string;
   question_text: string;
@@ -221,3 +250,36 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
 export type Inserts<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
 export type Updates<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
+
+export interface FamilyTask {
+  id: string;
+  action: string;
+  description: string;
+  status: 'pending' | 'completed';
+  category: string;
+  assignedTo?: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: string;
+  addedBy: string;
+  status: 'needed' | 'bought';
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  attendees?: string[];
+}
+
+export interface BulletinMessage {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: string;
+}

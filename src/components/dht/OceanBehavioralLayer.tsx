@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Brain, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import { getBehavioralModifiers, getOcean } from '../../lib/dhtApi';
+import { getBehavioralModifiers, getOcean, OceanMetrics, BehavioralModifier } from '../../lib/dhtApi';
 
 const TRAIT_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
     O: { label: 'Openness', color: '#8b5cf6', desc: 'Curiosity, creativity, willingness to try new approaches' },
@@ -31,8 +31,8 @@ interface OceanLayerProps {
 }
 
 export default function OceanBehavioralLayer({ personId }: OceanLayerProps) {
-    const [ocean, setOcean] = useState<any>(null);
-    const [modifiers, setModifiers] = useState<any>(null);
+    const [ocean, setOcean] = useState<OceanMetrics | null>(null);
+    const [modifiers, setModifiers] = useState<BehavioralModifier | null>(null);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(false);
 
@@ -42,8 +42,8 @@ export default function OceanBehavioralLayer({ personId }: OceanLayerProps) {
                 getOcean(personId),
                 getBehavioralModifiers(personId),
             ]);
-            setOcean(oceanResp?.latest);
-            setModifiers(modResp?.modifiers);
+            setOcean(oceanResp?.latest || null);
+            setModifiers(modResp || null);
             setLoading(false);
         })();
     }, [personId]);

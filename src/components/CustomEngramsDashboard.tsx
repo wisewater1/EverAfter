@@ -1,22 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, User, Brain, TrendingUp, Calendar, ArrowRight, Zap, Crown, Sparkles, Loader, MessageCircle, HelpCircle, Clock, Target, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { Brain, Sparkles, Loader, Target, AlertCircle, CheckCircle2, X, Crown, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/api-client';
+import type { EngramResponse } from '../types/database.types';
 import CompactSaintsOverlay from './CompactSaintsOverlay';
 import EngramTrainingWizard from './personality/EngramTrainingWizard';
-// import { updateAIPersonalityProfile } from '../lib/archetypal-ai-helpers'; // Reserved for future use
 
-interface ArchetypalAI {
-  id: string;
-  name: string;
-  description: string;
-  total_memories: number;
-  training_status: string;
-  is_ai_active: boolean;
-  ai_readiness_score: number;
-  avatar_url?: string;
-  archetype?: string;
-  created_at: string;
-}
+type ArchetypalAI = EngramResponse;
 
 interface AIArchetype {
   id: string;
@@ -140,21 +130,14 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
     setCheckingDuplicate(true);
     try {
-      const { data, error } = await supabase
-        .from('archetypal_ais')
-        .select('id, name')
-        .eq('user_id', userId)
-        .ilike('name', name.trim());
-
-      if (error) throw error;
-
-      setNameExists(data && data.length > 0);
+      const exists = await apiClient.checkEngramNameExists(name.trim());
+      setNameExists(exists);
     } catch (error) {
       console.error('Error checking duplicate name:', error);
     } finally {
       setCheckingDuplicate(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -204,14 +187,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
   const loadAIs = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('archetypal_ais')
-        .select('id, name, description, total_memories, training_status, is_ai_active, ai_readiness_score, avatar_url, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
+      const data = await apiClient.getEngrams();
       setAIs(data || []);
     } catch (error) {
       console.error('Error loading AIs:', error);
@@ -231,25 +207,21 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
     setIsCreating(true);
     try {
-      const { data, error } = await supabase
-        .from('archetypal_ais')
-        .insert([{
-          user_id: userId,
-          name: newAI.name.trim(),
-          description: newAI.description.trim() || newAI.description,
-          archetype: newAI.archetype || 'custom',
-        }])
-        .select()
-        .single();
+      const newEngram = await apiClient.createEngram({
+        user_id: userId,
+        name: newAI.name.trim(),
+        description: newAI.description.trim() || newAI.description,
+        archetype: newAI.archetype || 'custom',
+        relationship: 'custom',
+        engram_type: 'custom',
+      });
 
-      if (error) throw error;
-
-      setAIs([data, ...ais]);
+      setAIs([newEngram, ...ais]);
       resetCreateModal();
 
       setTimeout(() => {
         if (onSelectAI) {
-          onSelectAI(data.id);
+          onSelectAI(newEngram.id);
         }
       }, 300);
     } catch (error) {

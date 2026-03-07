@@ -10,10 +10,7 @@ import PersonalityRadar from './PersonalityRadar';
 import SaintChat from '../SaintChat';
 import SocietyFeed from '../SocietyFeed';
 import TraitBadges from './TraitBadges';
-import axios from 'axios';
-import { supabase } from '../../lib/supabase';
 import CausalAncestryPanel from '../causal-twin/CausalAncestryPanel';
-import { API_BASE_URL } from '../../lib/env';
 
 interface InteractionEvent {
     id: string;
@@ -39,11 +36,7 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
     const syncEngrams = async () => {
         setIsSyncing(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            const headers = { Authorization: `Bearer ${session.access_token}` };
-            const res = await axios.get('/api/v1/engrams/', { headers });
-            const backendEngrams = res.data;
+            const backendEngrams = await apiClient.getEngrams();
 
             const updatedMembers = members.map(m => {
                 // If already has engramId, skip
@@ -73,11 +66,8 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
     const provisionEngram = async (member: FamilyMember) => {
         setIsSyncing(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const headers = { Authorization: `Bearer ${session?.access_token}` };
-
             // Register as dynamic agent
-            const res = await axios.post('/api/v1/saints/register_dynamic', {
+            const data = await apiClient.registerDynamicSaint({
                 name: `${member.firstName} ${member.lastName}`,
                 description: member.bio || `Family member engram for ${member.firstName}`,
                 system_prompt: `You are ${member.firstName} ${member.lastName}. ${member.bio || ""}`,
@@ -85,9 +75,9 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
                     generation: member.generation,
                     memberId: member.id
                 }
-            }, { headers });
+            });
 
-            const engramId = res.data.engram_id;
+            const engramId = data.engram_id;
             const updated = { ...member, engramId };
             updateFamilyMember(member.id, updated);
             setMembers(prev => prev.map(m => m.id === member.id ? updated : m));
@@ -128,23 +118,16 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
         if (member.aiPersonality?.isActive) return;
 
         try {
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
-            const res = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: `${member.firstName} ${member.lastName}`,
-                    description: member.bio || `Family member in the St. Joseph tree.`,
-                    system_prompt: `You are ${member.firstName} ${member.lastName}, a family member in the St. Joseph tree. Use the provided bio and context to interact with the user. Bio: ${member.bio}`,
-                    traits: {
-                        memberId: member.id,
-                        generation: member.generation,
-                        research_integrated: ["generative_agents", "genagents", "agentic_collab"]
-                    }
-                })
+            await apiClient.registerDynamicSaint({
+                name: `${member.firstName} ${member.lastName}`,
+                description: member.bio || `Family member in the St. Joseph tree.`,
+                system_prompt: `You are ${member.firstName} ${member.lastName}, a family member in the St. Joseph tree. Use the provided bio and context to interact with the user. Bio: ${member.bio}`,
+                traits: {
+                    memberId: member.id,
+                    generation: member.generation,
+                    research_integrated: ["generative_agents", "genagents", "agentic_collab"]
+                }
             });
-
-            if (!res.ok) throw new Error('Activation failed');
 
             // Persist to local storage via genealogy API
             const updatedMember = activateAgent(member.id);

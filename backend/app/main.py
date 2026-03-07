@@ -81,6 +81,8 @@ from app.api import personality_quiz
 app.include_router(personality_quiz.router)
 from app.api import family_home
 app.include_router(family_home.router)
+from app.api import genealogy
+app.include_router(genealogy.router)
 from app.api import trinity_api
 app.include_router(trinity_api.router)
 from app.api import dht_api

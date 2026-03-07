@@ -6,8 +6,9 @@ from uuid import UUID
 
 class EngramBase(BaseModel):
     name: str
-    relationship: str
-    engram_type: str = Field(..., pattern="^(family_member|custom)$")
+    relationship: Optional[str] = "custom"
+    engram_type: Optional[str] = "custom"
+    archetype: Optional[str] = None
     email: Optional[str] = None
     description: Optional[str] = ""
     avatar_url: Optional[str] = None
@@ -24,6 +25,7 @@ class EngramResponse(EngramBase):
     total_questions_answered: int = 0
     ai_readiness_score: int = 0
     is_ai_active: bool = False
+    training_status: str = "untrained"
     created_at: datetime
     updated_at: datetime
 

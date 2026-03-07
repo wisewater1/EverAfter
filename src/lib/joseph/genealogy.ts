@@ -76,6 +76,8 @@ export interface FamilyEvent {
     date: string;
     title: string;
     description?: string;
+    mediaUrl?: string; // Phase 5.4 Support rich media
+    linkedEngramIds?: string[];
 }
 
 export interface FamilyTreeNode {
@@ -198,18 +200,73 @@ function saveToStorage<T>(key: string, data: T[]): void {
     localStorage.setItem(key, JSON.stringify(data));
 }
 
-// ── In-memory caches (loaded once from storage) ────────────
+// ── In-memory caches (loaded once from backend) ────────────
 
-let _members: FamilyMember[] | null = null;
-let _relationships: Relationship[] | null = null;
-let _events: FamilyEvent[] | null = null;
-let _sources: SourceCitation[] | null = null;
+let _members: FamilyMember[] = [];
+let _relationships: Relationship[] = [];
+let _events: FamilyEvent[] = [];
+let _sources: SourceCitation[] = [];
+
+// Helper to fetch from the new Postgres Backend Router
+async function loadGenealogyFromBackend() {
+    try {
+        const tokenStr = localStorage.getItem('supabase.auth.token');
+        let token = '';
+        if (tokenStr) {
+            try {
+                const session = JSON.parse(tokenStr);
+                token = session?.currentSession?.access_token || '';
+            } catch (e) { }
+        }
+
+        const res = await fetch('http://localhost:8002/api/v1/genealogy/tree', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            // Transform backend snake_case to frontend camelCase
+            if (data.nodes && data.nodes.length > 0) {
+                _members = data.nodes.map((n: any) => ({
+                    id: n.id,
+                    firstName: n.name.split(' ')[0],
+                    lastName: n.name.split(' ').slice(1).join(' '),
+                    gender: n.gender || 'other',
+                    birthDate: n.birthDate,
+                    deathDate: n.deathDate,
+                    healthMetrics: n.healthMetrics,
+                    generation: 0,
+                }));
+                _relationships = data.relationships.map((r: any) => ({
+                    id: r.id,
+                    fromId: r.fromNodeId,
+                    toId: r.toNodeId,
+                    type: r.relationType,
+                }));
+                // Mock events so the UI doesn't crash
+                _events = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
+                _sources = loadFromStorage<SourceCitation>(STORAGE_KEYS.sources, []);
+                return;
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load genealogy from backend, falling back to mock UI data', error);
+    }
+
+    // Fallback cleanly to storage if db is empty or unreachable
+    _members = loadFromStorage(STORAGE_KEYS.members, DEFAULT_MEMBERS);
+    _relationships = loadFromStorage(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
+    _events = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
+    _sources = loadFromStorage<SourceCitation>(STORAGE_KEYS.sources, []);
+}
+
+// Block module execution until hydrated from Postgres!
+await loadGenealogyFromBackend();
 
 function ensureLoaded() {
-    if (!_members) _members = loadFromStorage(STORAGE_KEYS.members, DEFAULT_MEMBERS);
-    if (!_relationships) _relationships = loadFromStorage(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
-    if (!_events) _events = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
-    if (!_sources) _sources = loadFromStorage<SourceCitation>(STORAGE_KEYS.sources, []);
+    // Top-level await guarantees arrays are hydrated.
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -287,6 +344,15 @@ export function addRelationship(rel: Omit<Relationship, 'id'>): Relationship {
     _relationships!.push(newRel);
     saveToStorage(STORAGE_KEYS.relationships, _relationships!);
     return newRel;
+}
+
+export function addFamilyEvent(event: Omit<FamilyEvent, 'id'>): FamilyEvent {
+    ensureLoaded();
+    const newEvent: FamilyEvent = { ...event, id: `ev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` };
+    _events!.push(newEvent);
+    _events!.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    saveToStorage(STORAGE_KEYS.events, _events!);
+    return newEvent;
 }
 
 // ── Relationship Queries ───────────────────────────────────

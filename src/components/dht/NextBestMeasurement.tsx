@@ -3,10 +3,10 @@
  */
 import { useState, useEffect } from 'react';
 import { Crosshair, Loader2, CheckCircle } from 'lucide-react';
-import { getNextBestMeasurement } from '../../lib/dhtApi';
+import { getNextBestMeasurement, NextBestMeasurement as NBMType } from '../../lib/dhtApi';
 
 export default function NextBestMeasurement({ personId }: { personId: string }) {
-    const [nbm, setNbm] = useState<any>(null);
+    const [nbm, setNbm] = useState<NBMType | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

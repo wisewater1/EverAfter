@@ -24,11 +24,12 @@ import PersonalityQuiz from './joseph/PersonalityQuiz';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
+import CustomEngramsDashboard from './CustomEngramsDashboard';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DelphiView from './dht/DelphiView';
 import OceanBehavioralLayer from './dht/OceanBehavioralLayer';
 
-type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi';
+type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams';
 
 const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', icon: GitBranch },
@@ -44,6 +45,7 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'calendar', label: 'Calendar', icon: Calendar },
     { key: 'genealogy', label: 'Genealogy', icon: Search },
     { key: 'training', label: 'Training Lab', icon: Sparkles },
+    { key: 'engrams', label: 'Custom Engrams', icon: Brain },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
@@ -204,7 +206,7 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams') && (
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'tree' && <FamilyTreeView onTrainMember={handleTrainMember} />}
                     {activeTab === 'members' && (
@@ -233,6 +235,11 @@ export default function StJosephFamilyDashboard() {
                     {activeTab === 'training' && (
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
                             <PersonalityTrainingCenter targetEngramId={trainingTargetId} />
+                        </div>
+                    )}
+                    {activeTab === 'engrams' && user && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <CustomEngramsDashboard userId={user.id} onSelectAI={handleTrainMember} />
                         </div>
                     )}
                     {activeTab === 'timeline' && (

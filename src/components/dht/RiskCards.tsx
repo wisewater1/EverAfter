@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import { getRiskCards } from '../../lib/dhtApi';
+import { getRiskCards, RiskCard } from '../../lib/dhtApi';
 
 const LEVEL_COLORS: Record<string, string> = {
     low: '#10b981',
@@ -25,7 +25,7 @@ interface RiskCardsProps {
 }
 
 export default function RiskCards({ personId }: RiskCardsProps) {
-    const [cards, setCards] = useState<any[]>([]);
+    const [cards, setCards] = useState<RiskCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState<string | null>(null);
 

@@ -55,19 +55,23 @@ async def list_engrams(
     response_list = []
     for engram in engrams:
         # We use a dict and provide the required defaults manually if they don't exist
+        # Or we can just let Python/Pydantic handle it naturally now since they are Optional
         engram_dict = {
             "id": engram.id,
             "user_id": engram.user_id,
             "name": engram.name,
             "description": engram.description,
             "avatar_url": engram.avatar_url,
+            "archetype": engram.archetype,
             "personality_summary": engram.personality_traits or {},
             "total_questions_answered": engram.total_memories or 0,
+            "ai_readiness_score": getattr(engram, 'ai_readiness_score', 0),
             "is_ai_active": True if engram.training_status == 'trained' else False,
+            "training_status": engram.training_status or 'untrained',
             "created_at": engram.created_at,
             "updated_at": engram.updated_at,
-            "relationship": "family",  # Default required field
-            "engram_type": "family_member" # Default required field
+            "relationship": getattr(engram, 'relationship', "custom"),
+            "engram_type": getattr(engram, 'engram_type', "custom")
         }
         response_list.append(engram_dict)
 
@@ -89,12 +93,10 @@ async def create_engram(
 
     new_engram = Engram(
         user_id=engram_data.user_id,
-        engram_type=engram_data.engram_type,
         name=engram_data.name,
-        email=engram_data.email,
-        relationship=engram_data.relationship,
         avatar_url=engram_data.avatar_url,
         description=engram_data.description or "",
+        archetype=engram_data.archetype,
         personality_traits=personality_matrix  # <--- INJECT LLM PERSONALITY
     )
 
