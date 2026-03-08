@@ -464,7 +464,7 @@ export default function StJosephFamilyDashboard() {
                                     saintTitle="The Family Guardian"
                                     saintIcon={Users}
                                     primaryColor="amber"
-                                    userContext={`Family Personality Dynamics Context: ${getActiveAgents().map(m => `${m.firstName}: ${m.aiPersonality?.archetype || 'Unknown'} (${m.aiPersonality?.familyRole || 'Member'}) - ${m.aiPersonality?.communicationStyle || ''}`).join(' | ')}`}
+                                    userContext={`Family Personality Dynamics Context: ${getFamilyMembers().filter(m => m.aiPersonality?.archetype).map(m => `${m.firstName}: ${m.aiPersonality?.archetype || 'Unknown'} (${m.aiPersonality?.familyRole || 'Member'}) - ${m.aiPersonality?.communicationStyle || ''}`).join(' | ')}`}
                                 />
                             </div>
                         )}
