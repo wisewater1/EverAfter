@@ -22,7 +22,7 @@ import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
 import MediaIntelligencePanel from './joseph/MediaIntelligencePanel';
 import PersonalityQuiz from './joseph/PersonalityQuiz';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
-import { getFamilyMembers } from '../lib/joseph/genealogy';
+import { getFamilyMembers, getActiveAgents } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
 import CustomEngramsDashboard from './CustomEngramsDashboard';
 import SaintsQuickNav from './shared/SaintsQuickNav';
@@ -464,6 +464,7 @@ export default function StJosephFamilyDashboard() {
                                     saintTitle="The Family Guardian"
                                     saintIcon={Users}
                                     primaryColor="amber"
+                                    userContext={`Family Personality Dynamics Context: ${getActiveAgents().map(m => `${m.firstName}: ${m.aiPersonality?.archetype || 'Unknown'} (${m.aiPersonality?.familyRole || 'Member'}) - ${m.aiPersonality?.communicationStyle || ''}`).join(' | ')}`}
                                 />
                             </div>
                         )}

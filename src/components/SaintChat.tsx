@@ -10,6 +10,7 @@ interface SaintChatProps {
     saintIcon: React.ElementType;
     primaryColor?: string;
     initialMessage?: string;
+    userContext?: string;
     onClose?: () => void;
 }
 
@@ -35,6 +36,7 @@ export default function SaintChat({
     saintIcon: Icon,
     primaryColor = 'blue',
     initialMessage,
+    userContext,
     onClose
 }: SaintChatProps) {
     const { user } = useAuth();
@@ -124,7 +126,7 @@ export default function SaintChat({
         setError(null);
 
         try {
-            const response = await apiClient.chatWithSaint(saintId, userMsg.content);
+            const response = await apiClient.chatWithSaint(saintId, userMsg.content, false, userContext);
             // specific cast to handle extra properties
             const responseData = response as any;
 

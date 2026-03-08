@@ -41,6 +41,7 @@ class CognitionStatusResponse(BaseModel):
 class SaintChatRequest(BaseModel):
     message: str
     coordination_mode: bool = False
+    context: Optional[str] = None
 
 class SaintChatResponse(BaseModel):
     id: str
@@ -267,7 +268,8 @@ async def chat_with_saint(
             user_id,
             saint_id,
             request.message,
-            coordination_mode=request.coordination_mode
+            coordination_mode=request.coordination_mode,
+            context=request.context
         )
         return response
     except Exception as e:

@@ -12,6 +12,7 @@ import ExperimentLab from '../causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../causal-twin/ModelHealthPanel';
 import { API_BASE_URL } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
@@ -269,8 +270,20 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                             keyMemories: selectedMember.aiPersonality?.keyMemories || [],
                             voiceDescription: `${data.archetype?.emoji || ''} ${data.archetype?.name || 'Balanced'} — ${data.archetype?.description || ''}`,
                             isActive: selectedMember.aiPersonality?.isActive || false,
+                            archetype: data.archetype?.name || 'Balanced',
+                            archetypeEmoji: data.archetype?.emoji || '⚖️',
+                            familyRole: data.family_role?.role || '',
+                            scores: data.scores,
                         },
                     });
+
+                    // Trigger Guardian Word bulletin
+                    try {
+                        const message = `I have meditated upon ${data.member_name}'s spirit. The grace of a ${data.archetype?.name || 'Balanced soul'} now shines brighter in our home. Their role as ${data.family_role?.role || 'a cherished member'} is a true blessing to us all.`;
+                        await apiClient.postBulletinMessage(message, "St. Joseph");
+                    } catch (err) {
+                        console.error('Failed to post Guardian word bulletin:', err);
+                    }
                 }
             }
         } catch (err) {

@@ -288,6 +288,38 @@ class APIClient {
   }
 
   /**
+   * Get time capsules from local backend
+   */
+  async getTimeCapsules(): Promise<any[]> {
+    const token = await this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const API_BASE = `${API_BASE_URL}`;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/time-capsules/`, {
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Time Capsule API error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Time Capsules API Error:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get health summary from local backend
    */
   async getHealthSummary() {
@@ -467,7 +499,7 @@ class APIClient {
     }
   }
 
-  async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
+  async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false, context?: string): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -479,7 +511,7 @@ class APIClient {
           'Bypass-Tunnel-Reminder': 'true',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ message, coordination_mode: coordinationMode })
+        body: JSON.stringify({ message, coordination_mode: coordinationMode, context })
       });
 
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);

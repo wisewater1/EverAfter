@@ -9,6 +9,7 @@ import AddFamilyMemberModal from './AddFamilyMemberModal';
 import AgentPersonalityModal from './AgentPersonalityModal';
 import PersonalityRadar from './PersonalityRadar';
 import TraitBadges from './TraitBadges';
+import RelationshipInsight from './RelationshipInsight';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -63,8 +64,13 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                             }`}>
                             {member.firstName[0]}{member.lastName[0]}
                             {hasAI && (
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-slate-900">
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-[0_0_5px_rgba(139,92,246,0.5)]">
                                     <Zap className="w-2.5 h-2.5 text-white" />
+                                </div>
+                            )}
+                            {member.aiPersonality?.archetypeEmoji && (
+                                <div className="absolute -bottom-2 -left-2 text-[15px] filter drop-shadow animate-float">
+                                    {member.aiPersonality.archetypeEmoji}
                                 </div>
                             )}
                         </div>
@@ -127,8 +133,13 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                                     }`}>
                                     {spouse.firstName[0]}{spouse.lastName[0]}
                                     {spouse.aiPersonality?.isActive && (
-                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-slate-900">
+                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-[0_0_5px_rgba(139,92,246,0.5)]">
                                             <Zap className="w-2.5 h-2.5 text-white" />
+                                        </div>
+                                    )}
+                                    {spouse.aiPersonality?.archetypeEmoji && (
+                                        <div className="absolute -bottom-2 -left-2 text-[15px] filter drop-shadow animate-float">
+                                            {spouse.aiPersonality.archetypeEmoji}
                                         </div>
                                     )}
                                 </div>
@@ -208,15 +219,27 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                 <div className="fixed inset-y-0 right-0 w-full max-w-md z-50 bg-slate-900/98 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="flex items-center justify-between p-6 border-b border-white/5">
                         <div className="flex items-center gap-3">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember.gender === 'male'
+                            <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember.gender === 'male'
                                 ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                                 : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                 }`}>
                                 {selectedMember.firstName[0]}{selectedMember.lastName[0]}
+                                {selectedMember.aiPersonality?.archetypeEmoji && (
+                                    <div className="absolute -bottom-2 -left-2 text-[18px] filter drop-shadow">
+                                        {selectedMember.aiPersonality.archetypeEmoji}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <h3 className="text-lg font-light text-white">{selectedMember.firstName} {selectedMember.lastName}</h3>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">{getGenerationLabel(selectedMember.generation)}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">{getGenerationLabel(selectedMember.generation)}</p>
+                                    {selectedMember.aiPersonality?.familyRole && (
+                                        <span className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
+                                            {selectedMember.aiPersonality.familyRole}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <button onClick={() => setSelectedMember(null)} className="p-3 -mr-1 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 active:bg-white/20 touch-manipulation" aria-label="Close">
@@ -260,6 +283,8 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                                 </span>
                             ))}
                         </div>
+
+                        <RelationshipInsight member={selectedMember} />
 
                         {/* DHT Score Panel */}
                         <DHTScorePanel

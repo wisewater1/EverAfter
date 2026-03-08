@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Clock, Sparkles, User, X, LineChart, Loader2, Plus, Image as ImageIcon } from 'lucide-react';
 import {
     getFamilyEvents, FamilyEvent as FamilyEventType,
@@ -23,6 +23,36 @@ export default function FamilyTimeline() {
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
     const [chatEventTitle, setChatEventTitle] = useState<string>('');
     const [zoomLevel, setZoomLevel] = useState(1); // 1 = Normal, 0.5 = Zoomed Out
+
+    // Drag-to-scroll state
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setIsDragging(true);
+        if (scrollContainerRef.current) {
+            setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+            setScrollLeft(scrollContainerRef.current.scrollLeft);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging || !scrollContainerRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX) * 2; // Scroll-fast multiplier
+        scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    };
 
     // Add Event Modal
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -176,14 +206,17 @@ export default function FamilyTimeline() {
     const allEvents = [...events, ...projectionEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const filteredEvents = filterType ? allEvents.filter(e => e.type === filterType) : allEvents;
 
-    // Group events by decade
-    const decades = new Map<string, FamilyEventType[]>();
-    filteredEvents.forEach(event => {
-        const year = new Date(event.date + 'T00:00:00').getFullYear();
-        const decade = `${Math.floor(year / 10) * 10}s`;
-        if (!decades.has(decade)) decades.set(decade, []);
-        decades.get(decade)!.push(event);
-    });
+    // Group events by decade (Memoized for performance on massive arrays)
+    const decades = useMemo(() => {
+        const map = new Map<string, FamilyEventType[]>();
+        filteredEvents.forEach(event => {
+            const year = new Date(event.date + 'T00:00:00').getFullYear();
+            const decade = `${Math.floor(year / 10) * 10}s`;
+            if (!map.has(decade)) map.set(decade, []);
+            map.get(decade)!.push(event);
+        });
+        return map;
+    }, [filteredEvents]);
 
     const eventTypes: EventType[] = ['birth', 'marriage', 'death', 'milestone'];
 
@@ -260,7 +293,15 @@ export default function FamilyTimeline() {
                 {/* Horizontal central line */}
                 <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 bg-gradient-to-r from-amber-500/10 via-amber-500/30 to-indigo-500/20 z-0" />
 
-                <div className="overflow-x-auto flex items-center h-[500px] px-24 py-12 snap-x snap-mandatory hide-scrollbar gap-16" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'left center', width: `${100 / zoomLevel}%` }}>
+                <div
+                    ref={scrollContainerRef}
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
+                    className={`overflow-x-auto flex items-center h-[500px] px-24 py-12 hide-scrollbar gap-16 ${isDragging ? 'cursor-grabbing snap-none' : 'cursor-grab snap-x snap-mandatory'}`}
+                    style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'left center', width: `${100 / zoomLevel}%` }}
+                >
                     {[...decades.entries()].map(([decade, decadeEvents]) => (
                         <div key={decade} className="flex items-center gap-12 shrink-0 h-full relative z-10">
 

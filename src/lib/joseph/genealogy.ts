@@ -12,6 +12,10 @@ export interface AIPersonality {
     keyMemories: string[];
     voiceDescription: string;
     isActive: boolean;
+    archetype?: string;
+    archetypeEmoji?: string;
+    familyRole?: string;
+    scores?: Record<string, number>;
 }
 
 export interface InfoStackEntry {
@@ -468,6 +472,57 @@ export function activateAgent(memberId: string): FamilyMember | null {
 export function getActiveAgents(): FamilyMember[] {
     ensureLoaded();
     return _members!.filter(m => m.aiPersonality?.isActive);
+}
+
+// ── Family Synastry / Synergy ──────────────────────────────
+
+export interface SynergyResult {
+    score: number;
+    compatibility: string[];
+    friction: string[];
+}
+
+export function calculateSynergy(m1: FamilyMember, m2: FamilyMember): SynergyResult | null {
+    if (!m1.aiPersonality?.scores || !m2.aiPersonality?.scores) return null;
+
+    const s1 = m1.aiPersonality.scores;
+    const s2 = m2.aiPersonality.scores;
+
+    let totalDelta = 0;
+    const compatibility: string[] = [];
+    const friction: string[] = [];
+
+    const traits = [
+        { key: 'openness', name: 'Openness', match: 'Shared Curiosity', clash: 'Differing Creativity Needs' },
+        { key: 'conscientiousness', name: 'Conscientiousness', match: 'Mutual Reliability', clash: 'Work/Play Balance Divergence' },
+        { key: 'extraversion', name: 'Extraversion', match: 'Aligned Social Energy', clash: 'Social Battery Asymmetry' },
+        { key: 'agreeableness', name: 'Agreeableness', match: 'Harmonious Empathy', clash: 'Directness vs. Diplomacy' },
+        { key: 'neuroticism', name: 'Emotional Sensitivity', match: 'Shared Emotional Depth', clash: 'Differing Stress Handling' }
+    ];
+
+    for (const t of traits) {
+        const val1 = s1[t.key] || 50;
+        const val2 = s2[t.key] || 50;
+        const delta = Math.abs(val1 - val2);
+        totalDelta += delta;
+
+        if (delta < 15) {
+            compatibility.push(t.match);
+        } else if (delta > 40) {
+            friction.push(t.clash);
+        }
+    }
+
+    // Max delta per trait is ~100. Over 5 traits max is 500.
+    // 0 delta means 100% synergy. 500 delta means 0% synergy.
+    const rawScore = 100 - (totalDelta / 5);
+    const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+
+    return {
+        score,
+        compatibility: compatibility.slice(0, 3), // Max 3
+        friction: friction.slice(0, 2)            // Max 2
+    };
 }
 
 // ── Utility Helpers ────────────────────────────────────────

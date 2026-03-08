@@ -60,7 +60,8 @@ class SaintRuntime:
         user_id: str,
         saint_id: str,
         message: str,
-        coordination_mode: bool = False
+        coordination_mode: bool = False,
+        context: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Enhanced Chat Loop:
@@ -96,9 +97,16 @@ class SaintRuntime:
         # 4. ENRICH: Inject context into the user message for the LLM
         # This is the "Deep Integration" - the LLM effectively "remembers"
         enriched_message = message
+        system_notes = []
+        if context:
+            system_notes.append(f"EXTERNAL CONTEXT:\n{context}")
         if context_str:
+            system_notes.append(f"RELEVANT MEMORIES:\n{context_str}")
+            
+        if system_notes:
+            notes_str = "\n\n".join(system_notes)
             enriched_message = (
-                f"SYSTEM NOTE - RELEVANT MEMORIES:\n{context_str}\n\n"
+                f"SYSTEM NOTE -\n{notes_str}\n\n"
                 f"USER MESSAGE:\n{message}"
             )
 

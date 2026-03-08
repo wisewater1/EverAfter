@@ -11,6 +11,7 @@ import SaintChat from '../SaintChat';
 import SocietyFeed from '../SocietyFeed';
 import TraitBadges from './TraitBadges';
 import CausalAncestryPanel from '../causal-twin/CausalAncestryPanel';
+import RelationshipInsight from './RelationshipInsight';
 
 interface InteractionEvent {
     id: string;
@@ -233,11 +234,16 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
                                         </div>
                                     )}
                                     <div className="flex items-start gap-3 cursor-pointer" onClick={() => setSelectedMember(member)}>
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${member.gender === 'male'
+                                        <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${member.gender === 'male'
                                             ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                                             : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                             }`}>
                                             {member.firstName[0]}{member.lastName[0]}
+                                            {member.aiPersonality?.archetypeEmoji && (
+                                                <div className="absolute -bottom-2 -left-2 text-[18px] filter drop-shadow animate-float">
+                                                    {member.aiPersonality.archetypeEmoji}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="min-w-0">
                                             <div className={`text-sm font-medium truncate ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
@@ -386,17 +392,29 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
                         <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember?.gender === 'male'
+                                    <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember?.gender === 'male'
                                         ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                                         : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                         }`}>
                                         {selectedMember?.firstName[0]}{selectedMember?.lastName[0]}
+                                        {selectedMember?.aiPersonality?.archetypeEmoji && (
+                                            <div className="absolute -bottom-2 -left-2 text-[18px] filter drop-shadow">
+                                                {selectedMember.aiPersonality.archetypeEmoji}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-light text-white">{selectedMember?.firstName} {selectedMember?.lastName}</h3>
-                                        <p className="text-xs text-slate-500 uppercase tracking-wider">
-                                            {selectedMember ? getGenerationLabel(selectedMember.generation) : ''}
-                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <p className="text-xs text-slate-500 uppercase tracking-wider">
+                                                {selectedMember ? getGenerationLabel(selectedMember.generation) : ''}
+                                            </p>
+                                            {selectedMember?.aiPersonality?.familyRole && (
+                                                <span className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
+                                                    {selectedMember.aiPersonality.familyRole}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <button onClick={() => setSelectedMember(null)} className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all">
@@ -420,6 +438,8 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
                                     {selectedMember.bio}
                                 </p>
                             )}
+
+                            {selectedMember && <RelationshipInsight member={selectedMember} />}
 
                             <div className="mt-6 flex justify-end">
                                 <button
