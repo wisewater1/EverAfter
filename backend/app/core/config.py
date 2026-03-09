@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8010
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:5000"
 
     ENVIRONMENT: str = "development"

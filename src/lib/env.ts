@@ -58,4 +58,4 @@ export const isProduction = import.meta.env.PROD;
 export const isDevelopment = import.meta.env.DEV;
 
 // Use VITE_API_BASE_URL from env or fallback to localtunnel/localhost
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8002' : 'https://proud-days-tease.loca.lt');
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8010' : 'https://proud-days-tease.loca.lt');
