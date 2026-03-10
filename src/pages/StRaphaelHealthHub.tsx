@@ -14,6 +14,7 @@ import WhatIfSimulator from '../components/causal-twin/WhatIfSimulator';
 import ExperimentLab from '../components/causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../components/causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../components/causal-twin/ModelHealthPanel';
+import GovernanceView from '../components/causal-twin/GovernanceView';
 
 // Specialized Healthcare Components
 import RaphaelChat from '../components/RaphaelChat';
@@ -203,6 +204,12 @@ export default function StRaphaelHealthHub() {
                             label="Experiment Lab"
                         />
                         <NavButton
+                            active={activeView === 'governance'}
+                            onClick={() => setActiveView('governance')}
+                            icon={Shield}
+                            label="Governance"
+                        />
+                        <NavButton
                             active={activeView === 'analytics'}
                             onClick={() => setActiveView('analytics')}
                             icon={Activity}
@@ -215,9 +222,9 @@ export default function StRaphaelHealthHub() {
                             label="Neural Trajectory"
                         />
                         <NavButton
-                            active={activeView === 'governance'}
-                            onClick={() => setActiveView('governance')}
-                            icon={FileText}
+                            active={activeView === 'lab'}
+                            onClick={() => setActiveView('lab')}
+                            icon={Beaker}
                             label="Evidence Ledger"
                         />
                         <NavButton
@@ -338,8 +345,9 @@ export default function StRaphaelHealthHub() {
                         )}
 
                         {activeView === 'governance' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <div className="grid grid-cols-1 gap-6">
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <GovernanceView />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <ModelHealthPanel />
                                     <EvidenceLedgerView />
                                 </div>

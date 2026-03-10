@@ -122,7 +122,7 @@ async def create_experiment(
 ):
     """Create a new N-of-1 experiment."""
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
-    result = experiment_engine.create_experiment(
+    result = await experiment_engine.create_experiment(
         user_id=user_id,
         name=request.name,
         intervention_a=request.intervention_a,
@@ -146,7 +146,7 @@ async def list_experiments(
 ):
     """List all experiments for the current user."""
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
-    experiments = experiment_engine.list_experiments(user_id)
+    experiments = await experiment_engine.list_experiments(user_id)
     return {"experiments": experiments}
 
 
@@ -156,7 +156,7 @@ async def get_experiment(
     current_user: dict = Depends(get_current_user)
 ):
     """Get experiment details and results."""
-    exp = experiment_engine.get_experiment(experiment_id)
+    exp = await experiment_engine.get_experiment(experiment_id)
     if not exp:
         raise HTTPException(status_code=404, detail="Experiment not found")
     return exp
@@ -169,7 +169,7 @@ async def log_adherence(
     current_user: dict = Depends(get_current_user)
 ):
     """Log daily adherence for an experiment."""
-    result = experiment_engine.log_adherence(
+    result = await experiment_engine.log_adherence(
         experiment_id=experiment_id,
         day_number=log.day_number,
         adhered=log.adhered,
@@ -198,7 +198,7 @@ async def update_experiment(
     if not action_fn:
         raise HTTPException(status_code=400, detail=f"Unknown action: {update.action}")
 
-    result = action_fn(experiment_id)
+    result = await action_fn(experiment_id)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result

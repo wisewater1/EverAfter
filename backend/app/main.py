@@ -14,7 +14,7 @@ from app.auth.middleware import JWTAuthMiddleware
 from app.api import (
     engrams, chat, tasks, autonomous_tasks, personality, health, social, saints, 
     finance, monitoring, akashic, council, time_capsule, rituals, sacred_state,
-    integrity, marketplace_assets, causal_twin
+    integrity, marketplace_assets, causal_twin, governance
 )
 from contextlib import asynccontextmanager
 # ... (imports omit)
@@ -73,6 +73,7 @@ app.include_router(integration.router, prefix="/integration", tags=["integration
 app.include_router(integrity.router, prefix="/api/v1/integrity", tags=["integrity"])
 app.include_router(marketplace_assets.router, prefix="/api/v1/marketplace", tags=["marketplace"])
 app.include_router(causal_twin.router)
+app.include_router(governance.router)
 from app.api import health_predictions
 app.include_router(health_predictions.router)
 from app.api import media_uploads

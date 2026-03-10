@@ -6,20 +6,20 @@ import random
 import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from sqlalchemy import select, update, insert
+from app.db.session import get_session_factory
+from app.models.causal_twin import Experiment, ExperimentStatus
 from app.services.causal_twin.safety_guardrails import safety_guardrails
 from app.services.causal_twin.uncertainty_engine import uncertainty_engine
 from app.ai.llm_client import get_llm_client
-
 
 class ExperimentEngine:
     """Manages the full lifecycle of N-of-1 micro-randomized experiments."""
 
     def __init__(self):
         self.llm = get_llm_client()
-        # In-memory store for prototyping (production: use DB models)
-        self._experiments: Dict[str, Dict[str, Any]] = {}
 
-    def create_experiment(
+    async def create_experiment(
         self,
         user_id: str,
         name: str,
@@ -46,9 +46,7 @@ class ExperimentEngine:
         # Generate randomized A/B schedule
         schedule = self._generate_schedule(duration_days)
 
-        experiment_id = str(uuid.uuid4())
-        experiment = {
-            "id": experiment_id,
+        experiment_data = {
             "user_id": user_id,
             "name": name,
             "description": description,
@@ -56,18 +54,28 @@ class ExperimentEngine:
             "intervention_b": intervention_b,
             "outcome_metrics": outcome_metrics,
             "duration_days": duration_days,
-            "status": "draft",
+            "status": ExperimentStatus.DRAFT.value,
             "schedule": schedule,
             "adherence_log": [],
-            "results": None,
             "safety_approved": True,
-            "created_at": datetime.utcnow().isoformat(),
-            "started_at": None,
-            "completed_at": None
+            "created_at": datetime.utcnow()
         }
 
-        self._experiments[experiment_id] = experiment
-        return {"created": True, "experiment": experiment}
+        async_session = get_session_factory()
+        async with async_session() as session:
+            new_exp = Experiment(**experiment_data)
+            session.add(new_exp)
+            await session.commit()
+            await session.refresh(new_exp)
+            
+            # Convert to dict for return (id is now a UUID object)
+            result_dict = {c.name: getattr(new_exp, c.name) for c in new_exp.__table__.columns}
+            result_dict["id"] = str(new_exp.id)
+            return {"created": True, "experiment": result_dict}
+        
+        return {"created": False, "error": "Database session context escaped"}
+        
+        return {"created": False, "error": "Database session failed"}
 
     def _generate_schedule(self, duration_days: int) -> List[Dict[str, Any]]:
         """Generate a randomized A/B schedule with balanced blocks."""
@@ -90,33 +98,54 @@ class ExperimentEngine:
 
         return schedule
 
-    def start_experiment(self, experiment_id: str) -> Dict[str, Any]:
+    async def start_experiment(self, experiment_id: str) -> Dict[str, Any]:
         """Activate a draft experiment."""
-        exp = self._experiments.get(experiment_id)
-        if not exp:
-            return {"error": "Experiment not found"}
-        if exp["status"] != "draft":
-            return {"error": f"Cannot start experiment in '{exp['status']}' status"}
+        async_session = get_session_factory()
+        async with async_session() as session:
+            result = await session.execute(select(Experiment).where(Experiment.id == experiment_id))
+            exp = result.scalar_one_or_none()
+            
+            if not exp:
+                return {"error": "Experiment not found"}
+            if exp.status != ExperimentStatus.DRAFT.value:
+                return {"error": f"Cannot start experiment in '{exp.status}' status"}
 
-        exp["status"] = "active"
-        exp["started_at"] = datetime.utcnow().isoformat()
-        return {"status": "active", "experiment": exp}
+            exp.status = ExperimentStatus.ACTIVE.value
+            exp.started_at = datetime.utcnow()
+            await session.commit()
+            return {"status": "active"}
+        
+        return {"error": "Database session context escaped"}
+        
+        return {"error": "Failed to start experiment"}
 
-    def pause_experiment(self, experiment_id: str) -> Dict[str, Any]:
-        exp = self._experiments.get(experiment_id)
-        if not exp:
-            return {"error": "Experiment not found"}
-        exp["status"] = "paused"
-        return {"status": "paused"}
+    async def pause_experiment(self, experiment_id: str) -> Dict[str, Any]:
+        async_session = get_session_factory()
+        async with async_session() as session:
+            await session.execute(
+                update(Experiment)
+                .where(Experiment.id == experiment_id)
+                .values(status=ExperimentStatus.PAUSED.value)
+            )
+            await session.commit()
+            return {"status": "paused"}
+        
+        return {"error": "Database session context escaped"}
+        
+        return {"error": "Failed to pause experiment"}
 
-    def resume_experiment(self, experiment_id: str) -> Dict[str, Any]:
-        exp = self._experiments.get(experiment_id)
-        if not exp:
-            return {"error": "Experiment not found"}
-        exp["status"] = "active"
-        return {"status": "active"}
+    async def resume_experiment(self, experiment_id: str) -> Dict[str, Any]:
+        async_session = get_session_factory()
+        async with async_session() as session:
+            await session.execute(
+                update(Experiment)
+                .where(Experiment.id == experiment_id)
+                .values(status=ExperimentStatus.ACTIVE.value)
+            )
+            await session.commit()
+            return {"status": "active"}
 
-    def log_adherence(
+    async def log_adherence(
         self,
         experiment_id: str,
         day_number: int,
@@ -125,52 +154,72 @@ class ExperimentEngine:
         notes: str = ""
     ) -> Dict[str, Any]:
         """Log daily compliance and metric measurements."""
-        exp = self._experiments.get(experiment_id)
-        if not exp:
-            return {"error": "Experiment not found"}
+        async_session = get_session_factory()
+        async with async_session() as session:
+            result = await session.execute(select(Experiment).where(Experiment.id == experiment_id))
+            exp = result.scalar_one_or_none()
+            if not exp:
+                return {"error": "Experiment not found"}
 
-        # Update schedule day
-        for day in exp["schedule"]:
-            if day["day"] == day_number:
-                day["adherence"] = "adhered" if adhered else "missed"
-                if metric_values:
-                    day["metric_values"] = metric_values
-                break
+            # Update schedule day
+            schedule = list(exp.schedule) if exp.schedule else []
+            for day in schedule:
+                if day["day"] == day_number:
+                    day["adherence"] = "adhered" if adhered else "missed"
+                    if metric_values:
+                        day["metric_values"] = metric_values
+                    break
+            
+            exp.schedule = schedule
 
-        # Add to adherence log
-        exp["adherence_log"].append({
-            "day": day_number,
-            "adhered": adhered,
-            "metric_values": metric_values or {},
-            "notes": notes,
-            "recorded_at": datetime.utcnow().isoformat()
-        })
+            # Add to adherence log
+            log = list(exp.adherence_log) if exp.adherence_log else []
+            log.append({
+                "day": day_number,
+                "adhered": adhered,
+                "metric_values": metric_values or {},
+                "notes": notes,
+                "recorded_at": datetime.utcnow().isoformat()
+            })
+            exp.adherence_log = log
+            
+            await session.commit()
 
-        # Check if experiment is complete
-        total_logged = len(exp["adherence_log"])
-        if total_logged >= exp["duration_days"]:
-            return self.complete_experiment(experiment_id)
+            # Check if experiment is complete
+            total_logged = len(log)
+            if total_logged >= exp.duration_days:
+                return await self.complete_experiment(experiment_id)
 
-        return {
-            "logged": True,
-            "day": day_number,
-            "progress": f"{total_logged}/{exp['duration_days']} days"
-        }
+            return {
+                "logged": True,
+                "day": day_number,
+                "progress": f"{total_logged}/{exp.duration_days} days"
+            }
+        
+        return {"error": "Database session context escaped"}
 
-    def complete_experiment(self, experiment_id: str) -> Dict[str, Any]:
+    async def complete_experiment(self, experiment_id: str) -> Dict[str, Any]:
         """Complete an experiment and compute results."""
-        exp = self._experiments.get(experiment_id)
-        if not exp:
-            return {"error": "Experiment not found"}
+        async_session = get_session_factory()
+        async with async_session() as session:
+            result = await session.execute(select(Experiment).where(Experiment.id == experiment_id))
+            exp = result.scalar_one_or_none()
+            if not exp:
+                return {"error": "Experiment not found"}
 
-        exp["status"] = "completed"
-        exp["completed_at"] = datetime.utcnow().isoformat()
+            exp.status = ExperimentStatus.COMPLETED.value
+            exp.completed_at = datetime.utcnow()
 
-        # Compute results
-        results = self._compute_results(exp)
-        exp["results"] = results
-
-        return {"status": "completed", "results": results}
+            # Compute results
+            # Convert model to dict for result computation
+            exp_dict = {c.name: getattr(exp, c.name) for c in exp.__table__.columns}
+            results = self._compute_results(exp_dict)
+            exp.results = results
+            
+            await session.commit()
+            return {"status": "completed", "results": results}
+        
+        return {"error": "Failed to complete experiment"}
 
     def _compute_results(self, experiment: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze experiment data to estimate treatment effect."""
@@ -198,9 +247,9 @@ class ExperimentEngine:
                 b_mean = sum(b_vals) / len(b_vals)
                 effect = a_mean - b_mean
                 metric_results[metric] = {
-                    "arm_a_mean": round(a_mean, 2),
-                    "arm_b_mean": round(b_mean, 2),
-                    "effect_estimate": round(effect, 2),
+                    "arm_a_mean": round(float(a_mean), 2),
+                    "arm_b_mean": round(float(b_mean), 2),
+                    "effect_estimate": round(float(effect), 2),
                     "favors": "A" if effect > 0 else "B" if effect < 0 else "neither",
                     "samples_a": len(a_vals),
                     "samples_b": len(b_vals)
@@ -264,18 +313,32 @@ class ExperimentEngine:
         return (
             f"{label} (\"{winner}\") showed better outcomes across "
             f"{max(favors_a, favors_b)} of {len(metric_results)} metrics. "
-            f"Adherence: {adherence_rate:.0%}."
+            f"Adherence: {float(adherence_rate):.0%}."
         )
 
-    def get_experiment(self, experiment_id: str) -> Optional[Dict[str, Any]]:
-        return self._experiments.get(experiment_id)
+    async def get_experiment(self, experiment_id: str) -> Optional[Dict[str, Any]]:
+        async_session = get_session_factory()
+        async with async_session() as session:
+            result = await session.execute(select(Experiment).where(Experiment.id == experiment_id))
+            exp = result.scalar_one_or_none()
+            if not exp:
+                return None
+            result_dict = {c.name: getattr(exp, c.name) for c in exp.__table__.columns}
+            result_dict["id"] = str(exp.id)
+            return result_dict
 
-    def list_experiments(self, user_id: str) -> List[Dict[str, Any]]:
-        return [e for e in self._experiments.values() if e["user_id"] == user_id]
+    async def list_experiments(self, user_id: str) -> List[Dict[str, Any]]:
+        async_session = get_session_factory()
+        async with async_session() as session:
+            result = await session.execute(select(Experiment).where(Experiment.user_id == user_id))
+            experiments = result.scalars().all()
+            return [{c.name: getattr(e, c.name) for c in e.__table__.columns} for e in experiments]
+        
+        return []
 
     async def get_experiment_summary(self, experiment_id: str) -> Optional[str]:
         """Use LLM to generate a human-friendly experiment summary."""
-        exp = self.get_experiment(experiment_id)
+        exp = await self.get_experiment(experiment_id)
         if not exp or not exp.get("results"):
             return None
 
