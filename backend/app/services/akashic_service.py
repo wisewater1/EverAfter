@@ -5,10 +5,12 @@ from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
+import asyncio
 
 # Path to persistent storage
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 MEMORY_FILE = os.path.join(DATA_DIR, "akashic_record.json")
+VECTOR_FILE = os.path.join(DATA_DIR, "akashic_vectors.npy")
 
 class AkashicRecord:
     _instance = None
@@ -27,6 +29,16 @@ class AkashicRecord:
         self.memories: List[Dict[str, Any]] = []
         self.embeddings: Optional[np.ndarray] = None
         self._load_memories()
+        self._load_vectors()
+        
+    def _load_vectors(self):
+        if os.path.exists(VECTOR_FILE):
+            try:
+                self.embeddings = np.load(VECTOR_FILE)
+                print(f"Loaded {self.embeddings.shape[0]} vectors from Akashic Record.")
+            except Exception as e:
+                print(f"Failed to load Akashic vectors: {e}")
+                self.embeddings = None
         
     @property
     def model(self):
@@ -48,13 +60,21 @@ class AkashicRecord:
         else:
             self.memories = []
             
-    def _ensure_embeddings(self):
+    async def _ensure_embeddings(self):
         if (self.embeddings is None or self.embeddings.shape[0] == 0) and self.memories:
             print(f"Generating embeddings for {len(self.memories)} memories...")
             texts = [m['content'] for m in self.memories]
-            self.embeddings = self.model.encode(texts)
+            # Use thread to avoid blocking event loop
+            self.embeddings = await asyncio.to_thread(self.model.encode, texts)
+            self._save_vectors()
         elif self.embeddings is None:
             self.embeddings = np.empty((0, 384))
+            
+    def _save_vectors(self):
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+        if self.embeddings is not None:
+            np.save(VECTOR_FILE, self.embeddings)
             
     def _save_memories(self):
         if not os.path.exists(DATA_DIR):
@@ -64,12 +84,18 @@ class AkashicRecord:
         with open(MEMORY_FILE, 'w', encoding='utf-8') as f:
             json.dump(self.memories, f, indent=2, default=str)
 
-    def canonize(self, content: str, metadata: Dict[str, Any]):
+    async def canonize(self, content: str, metadata: Dict[str, Any], user_email: Optional[str] = None):
         """
         Store a new memory in the Akashic Record.
         """
-        self._ensure_embeddings()
-        embedding = self.model.encode([content])[0]
+        await self._ensure_embeddings()
+        
+        # Add email to metadata
+        if user_email:
+            metadata['user_email'] = user_email
+            
+        embedding = await asyncio.to_thread(self.model.encode, [content])
+        embedding = embedding[0]
         
         memory_id = str(uuid.uuid4())
         record = {
@@ -88,17 +114,19 @@ class AkashicRecord:
             self.embeddings = np.vstack([self.embeddings, embedding])
             
         self._save_memories()
+        self._save_vectors()
         return record
 
-    def search(self, query: str, limit: int = 5, min_score: float = 0.3, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5, min_score: float = 0.3, filters: Optional[Dict[str, Any]] = None, user_email: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Semantic search for relevant memories with metadata filtering.
         """
-        self._ensure_embeddings()
+        await self._ensure_embeddings()
         if not self.memories or (self.embeddings is None) or (self.embeddings.shape[0] == 0):
             return []
             
-        query_embedding = self.model.encode([query])[0]
+        query_embedding = await asyncio.to_thread(self.model.encode, [query])
+        query_embedding = query_embedding[0]
         
         # Cosine similarity
         # A . B / (|A| * |B|)
@@ -109,7 +137,7 @@ class AkashicRecord:
         scores = np.dot(self.embeddings, query_embedding) / norms
         
         # Get top-k indices (get more than limit to account for filtering)
-        # We look at top 50 or all, then filter
+        # We look at top 100 or all, then filter
         search_limit = min(len(self.memories), 100)
         top_indices = np.argsort(scores)[::-1][:search_limit]
         
@@ -125,23 +153,26 @@ class AkashicRecord:
                 continue
                 
             memory = self.memories[idx]
+            meta = memory.get("metadata", {})
             
-            # Apply Filters (Omni-Context aware)
+            # ── Individualized Silo Check ────────────────────────────────────
+            if user_email:
+                mem_email = meta.get("user_email")
+                is_global = meta.get("type") in ["health_event", "finance_event", "life_event", "career_event"]
+                
+                # If not global and email doesn't match, skip
+                if not is_global and mem_email != user_email:
+                    continue
+
+            # ── Apply Technical Filters ──────────────────────────────────────
             if filters:
-                meta = memory.get("metadata", {})
-                
-                # Neural Graph Omni-Context: Allow all global events to bypass strict saint_id silos
-                is_global_event = meta.get("type", "") in ["health_event", "finance_event", "life_event", "career_event"]
-                
-                if not is_global_event:
-                    match = True
-                    for k, v in filters.items():
-                        # Simple equality check for isolated memories
-                        if meta.get(k) != v:
-                            match = False
-                            break
-                    if not match:
-                        continue
+                match = True
+                for k, v in filters.items():
+                    if meta.get(k) != v:
+                        match = False
+                        break
+                if not match:
+                    continue
 
             result = memory.copy()
             result['score'] = float(score)

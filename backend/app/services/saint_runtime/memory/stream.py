@@ -19,10 +19,10 @@ class MemoryStream:
         # We no longer keep a local list; we trust the Akashic Record
         pass
         
-    def add_memory(self, memory: MemoryObject):
+    async def add_memory(self, memory: MemoryObject):
         # Canonize into Akashic Record
         # We serialize the full MemoryObject into the metadata
-        akashic.canonize(
+        await akashic.canonize(
             content=memory.description,
             metadata=memory.dict()
         )
@@ -36,7 +36,7 @@ class MemoryStream:
         # We fetch more than we need (limit*3) to allow for re-ranking
         filters = {"saint_id": saint_id} if saint_id else None
         
-        akashic_results = akashic.search(
+        akashic_results = await akashic.search(
             query=query, 
             limit=limit * 3, 
             min_score=0.1,

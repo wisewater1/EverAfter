@@ -83,7 +83,7 @@ class SaintRuntime:
             type="observation",
             saint_id=saint_id
         )
-        memory.add_memory(observation)
+        await memory.add_memory(observation)
         
         # 2. REFLECT: Trigger reflection loop (async)
         await reflector.on_new_observation(observation)
@@ -91,7 +91,7 @@ class SaintRuntime:
         # 3. RETRIEVE: Get relevant context
         # We retrieve top 3 memories relevant to the user's current message
         # Use saint_id to filter Akashic records
-        relevant_memories = memory.get_context(message, limit=3, saint_id=saint_id)
+        relevant_memories = await memory.get_context(message, limit=3, saint_id=saint_id)
         context_str = "\n".join([f"- {m.description} (relevance: {m.importance})" for m in relevant_memories])
         
         # 4. ENRICH: Inject context into the user message for the LLM
@@ -154,7 +154,7 @@ class SaintRuntime:
         
         # 8. OBSERVE: Add own response to memory
         ai_content = response.get("content", "")
-        memory.add_memory(MemoryObject(
+        await memory.add_memory(MemoryObject(
             description=f"I responded: {ai_content}",
             importance=3.0,
             type="observation",
@@ -380,7 +380,7 @@ class SaintRuntime:
             type="system_event",
             saint_id=saint_id
         )
-        memory.add_memory(event_memory)
+        await memory.add_memory(event_memory)
         
         # Force a reflection cycle to process this new critical information
         await reflector.on_new_observation(event_memory)
