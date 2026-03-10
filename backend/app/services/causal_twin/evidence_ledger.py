@@ -1,24 +1,19 @@
-"""
-Evidence Ledger for Health Causal Twin.
-Immutable append-only audit trail for every recommendation and prediction.
-"""
 import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-
+from app.services.akashic_service import akashic
 
 class EvidenceLedger:
     """
     Append-only provenance store for recommendations.
-    Every recommendation includes data sources, model version, confidence,
-    evidence type, and failure history.
+    Integrates with Akashic Records for scientific grounding.
     """
 
     def __init__(self):
         # In-memory store for prototyping (production: use DB models)
         self._entries: List[Dict[str, Any]] = []
 
-    def record_recommendation(
+    async def record_recommendation(
         self,
         user_id: str,
         recommendation_text: str,
@@ -31,15 +26,25 @@ class EvidenceLedger:
         related_prediction_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Record a new recommendation in the immutable ledger."""
+        """Record a new recommendation and fetch scientific grounding from Akashic Records."""
+        
+        # Search Akashic for scientific context
+        grounding = await akashic.search(
+            query=recommendation_text,
+            limit=2,
+            min_score=0.4,
+            filters={"type": "medical_research"}
+        )
+
         entry = {
             "id": str(uuid.uuid4()),
             "user_id": user_id,
             "recommendation_text": recommendation_text,
             "data_sources": data_sources,
             "model_version": model_version,
-            "confidence": round(confidence, 1),
+            "confidence": round(float(confidence), 1),
             "evidence_type": evidence_type,
+            "grounding": grounding,
             "failure_history": failure_history or [],
             "contradictions": [],
             "related_experiment_id": related_experiment_id,
@@ -117,12 +122,13 @@ class EvidenceLedger:
                 entry["evidence_type"], "Evidence type unknown"
             ),
             "data_sources_used": entry["data_sources"],
+            "grounding": entry.get("grounding", []),
             "model_version": entry["model_version"],
             "confidence_percent": entry["confidence"],
             "times_this_failed": failures_count,
             "contradicting_evidence_count": contradictions_count,
             "reliability_note": self._reliability_note(
-                entry["confidence"], failures_count, contradictions_count
+                float(entry["confidence"]), failures_count, contradictions_count
             )
         }
 
@@ -152,7 +158,7 @@ class EvidenceLedger:
             return {"entries": 0, "trend": "insufficient_data"}
 
         # Compute rolling average confidence
-        confidences = [e["confidence"] for e in reversed(entries)]
+        confidences = [float(e["confidence"]) for e in reversed(entries)]
         total = len(confidences)
 
         if total < 5:
@@ -167,9 +173,9 @@ class EvidenceLedger:
         avg_first = sum(first_half) / len(first_half)
         avg_second = sum(second_half) / len(second_half)
 
-        if avg_second > avg_first + 3:
+        if avg_second > avg_first + 3.0:
             trend = "improving"
-        elif avg_second < avg_first - 3:
+        elif avg_second < avg_first - 3.0:
             trend = "declining"
         else:
             trend = "stable"
@@ -180,6 +186,8 @@ class EvidenceLedger:
             "avg_confidence_recent": round(avg_second, 1),
             "trend": trend
         }
+
+evidence_ledger = EvidenceLedger()
 
 
 evidence_ledger = EvidenceLedger()

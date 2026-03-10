@@ -274,6 +274,11 @@ export default function StRaphaelHealthHub() {
                                     </div>
                                 </div>
 
+                                <div className="space-y-6">
+                                    <SynapsePulse />
+                                    <FamilyHealthHeatmap />
+                                </div>
+
                                 {/* Connection Section */}
                                 <div className="p-8 rounded-[32px] bg-white/[0.02] border border-white/5">
                                     <div className="flex items-center justify-between mb-8">
@@ -410,12 +415,145 @@ function HubInsightCard({ insight }: { insight: Insight }) {
             <div className="mt-1">
                 <Shield className="w-4 h-4" />
             </div>
-            <div>
+            <div className="flex-1">
                 <p className="text-sm font-medium leading-relaxed italic">"{insight.text}"</p>
                 <div className="mt-2 flex items-center justify-between">
                     <span className="text-[10px] uppercase font-black tracking-widest opacity-60">{insight.category}</span>
-                    <button className="text-[9px] font-bold uppercase tracking-widest hover:underline">Log to Akashic</button>
+                    <div className="flex items-center gap-3">
+                        <button className="text-[9px] font-bold uppercase tracking-widest hover:underline text-white/40 hover:text-white">Scientific Context</button>
+                        <button className="text-[9px] font-bold uppercase tracking-widest hover:underline text-teal-400">Log to Akashic</button>
+                    </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function SynapsePulse() {
+    const [pulsing, setPulsing] = useState(false);
+    const [result, setResult] = useState<any>(null);
+
+    const triggerPulse = async () => {
+        setPulsing(true);
+        setResult(null);
+        try {
+            // Simulate neural processing delay
+            await new Promise(r => setTimeout(r, 2000));
+            const response = await fetch('/api/causal-twin/predictions');
+            if (response.ok) {
+                const data = await response.json();
+                setResult(data.predictions[0]);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setPulsing(false);
+        }
+    };
+
+    return (
+        <div className="p-8 rounded-[32px] bg-gradient-to-br from-teal-500/10 via-transparent to-transparent border border-teal-500/20 relative overflow-hidden group">
+            <div className={`absolute inset-0 bg-teal-500/5 animate-pulse pointer-events-none ${pulsing ? 'opacity-100' : 'opacity-0'}`}></div>
+
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-teal-400 animate-ping"></div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">Synapse Pulse</h3>
+                    </div>
+                    <p className="text-slate-400 text-sm max-w-md">
+                        Cross-reference your current vitals with genealogical health patterns and clinical evidence via the Akashic Records.
+                    </p>
+                </div>
+
+                <button
+                    onClick={triggerPulse}
+                    disabled={pulsing}
+                    className={`px-8 py-4 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all flex items-center gap-3 shadow-lg shadow-teal-500/20 active:scale-95 ${pulsing
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        : 'bg-teal-500 text-white hover:bg-teal-400 hover:-translate-y-1'
+                        }`}
+                >
+                    <Zap className={`w-4 h-4 ${pulsing ? 'animate-bounce' : ''}`} />
+                    {pulsing ? 'Processing...' : 'Trigger Pulse'}
+                </button>
+            </div>
+
+            {result && (
+                <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div>
+                        <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-4">Neural Trajectory Prediction</h4>
+                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                            <p className="text-slate-300 text-sm leading-relaxed mb-4">
+                                {result.narrative?.split('.')[0]}.
+                            </p>
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                        <span>Confidence</span>
+                                        <span className="text-teal-400">{result.confidence?.score}%</span>
+                                    </div>
+                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-full bg-teal-500" style={{ width: `${result.confidence?.score}%` }}></div>
+                                    </div>
+                                </div>
+                                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                    {result.evidence?.label}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-4">Akashic Grounding</h4>
+                        <div className="space-y-3">
+                            {result.narrative?.split('.').slice(1, 3).map((text: string, i: number) => (
+                                <div key={i} className="flex gap-3 text-sm text-slate-400 italic">
+                                    <Shield className="w-4 h-4 text-teal-500/40 shrink-0" />
+                                    <span>{text}.</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function FamilyHealthHeatmap() {
+    const [members, setMembers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch('/api/causal-twin/ancestry/family-map')
+            .then(res => res.json())
+            .then(data => {
+                setMembers(data.family_map || []);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    }, []);
+
+    if (loading) return null;
+
+    return (
+        <div className="p-8 rounded-[32px] bg-white/[0.02] border border-white/5">
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                Trinity Synapse: Family Risk Map
+            </h3>
+            <div className="flex flex-wrap gap-3">
+                {members.map((m, i) => (
+                    <div
+                        key={i}
+                        className="px-4 py-2 rounded-xl border flex items-center gap-2 group cursor-help transition-all hover:bg-white/5"
+                        style={{ borderColor: `${m.colour}40`, backgroundColor: `${m.colour}10` }}
+                    >
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: m.colour }}></div>
+                        <span className="text-xs font-bold text-white/80 group-hover:text-white">{m.member_name}</span>
+                        <span className="text-[10px] text-slate-500 uppercase font-black">{m.risk_level}</span>
+                    </div>
+                ))}
             </div>
         </div>
     );

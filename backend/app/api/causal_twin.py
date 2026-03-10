@@ -58,13 +58,13 @@ async def predict_ancestry_trajectory(
     return result
 
 
-@router.post("/ancestry/family-map")
+@router.get("/ancestry/family-map")
 async def get_family_health_map(
-    request: FamilyMapRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Generate a risk colour heat-map for all living family members."""
-    result = ancestry_engine.get_family_health_map(request.members)
+    """Generate a risk colour heat-map for all living family members from the database."""
+    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
+    result = await ancestry_engine.get_family_health_map_for_user(user_id)
     return {"family_map": result, "total": len(result)}
 
 
@@ -83,13 +83,13 @@ async def simulate_scenario(
     """Run a 'What If' counterfactual simulation for the user or a specific family member."""
     # Use the requested member_id if provided, otherwise default to the primary user
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
+    
+    # Run simulation (engine now handles internal stats fetching)
     result = await counterfactual_engine.simulate_scenarios(
         user_id=user_id,
         behavior_changes=request.behavior_changes,
         target_metrics=request.target_metrics,
-        horizons=request.horizons,
-        user_history_days=30,  # TODO: compute from actual user data
-        data_completeness=0.6
+        horizons=request.horizons
     )
     return result
 
@@ -102,12 +102,10 @@ async def get_active_predictions(
     """Get current active predictions for the user or a specific family member."""
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
 
-    # Generate a default prediction set if none exist
+    # Generate a default prediction set if none exist (default activity)
     default = await counterfactual_engine.simulate_scenarios(
         user_id=user_id,
-        behavior_changes={"sleep_hours": 7.5, "steps": 8000},
-        user_history_days=30,
-        data_completeness=0.6
+        behavior_changes={"sleep_hours": 7.5, "steps": 8000}
     )
     return {"predictions": [default]}
 

@@ -12,7 +12,10 @@ from __future__ import annotations
 import math
 import random
 from datetime import datetime
-from typing import Any
+from typing import Any, List, Dict
+from sqlalchemy import select
+from app.db.session import get_session_factory
+from app.models.genealogy import FamilyNode
 from app.services.causal_twin.counterfactual_engine import counterfactual_engine
 from app.services.causal_twin.uncertainty_engine import uncertainty_engine
 from app.services.causal_twin.safety_guardrails import safety_guardrails
@@ -124,7 +127,7 @@ class AncestryEngine:
         for metric, horizons in simulation.get("projections", {}).items():
             for h_key, h_data in horizons.items():
                 if isinstance(h_data, dict) and "mid" in h_data:
-                    h_data["mid"] = round(h_data["mid"] * occ_mod, 1)
+                    h_data["mid"] = round(float(h_data["mid"]) * occ_mod, 1)
 
         # Top risk factors
         risk_factors = _derive_risk_factors(traits, occupation, age)
@@ -151,17 +154,37 @@ class AncestryEngine:
             "generated_at": datetime.utcnow().isoformat(),
         }
 
-    def get_family_health_map(
+    async def get_family_health_map_for_user(self, user_id: str) -> List[Dict[str, Any]]:
+        """Fetch real family nodes from DB and generate a risk heat-map."""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            query = select(FamilyNode).where(FamilyNode.user_id == user_id)
+            result = await session.execute(query)
+            nodes = result.scalars().all()
+            
+            members = []
+            for node in nodes:
+                # Extract traits from health_metrics JSON or similar
+                metrics = node.health_metrics or {}
+                traits = metrics.get("traits", [])
+                
+                members.append({
+                    "id": node.id,
+                    "firstName": node.name.split(" ")[0] if " " in node.name else node.name,
+                    "lastName": node.name.split(" ")[1] if " " in node.name else "",
+                    "traits": traits,
+                    "occupation": metrics.get("occupation"),
+                    "generation": metrics.get("generation", 1),
+                    "birthYear": int(node.birth_date.split("-")[0]) if node.birth_date else None
+                })
+            
+            return await self.get_family_health_map(members)
+
+    async def get_family_health_map(
         self,
         members: list[dict],
     ) -> list[dict[str, Any]]:
-        """
-        Generate a lightweight risk heat-map for every living family member.
-        Returns one entry per member with a 'risk_level' and a colour.
-
-        FIX: wellness score is converted to canonical risk score (higher=worse)
-        using wellness_to_risk() so it matches SharedHealthPredictor's scale.
-        """
+        """Lightweight risk heat-map for every living family member."""
         results = []
         for m in members:
             traits = m.get("traits", [])
@@ -174,11 +197,12 @@ class AncestryEngine:
             occ_mod = _occupation_modifier(occ)
             gen_score = _generation_risk_factor(gen)
 
-            # Compute a 0-100 wellness score (higher = healthier)
-            sleep_score    = (behaviours["sleep_hours"] - 4) / 6 * 100
-            steps_score    = behaviours["steps"] / 15000 * 100
-            hydration_score = behaviours["hydration_liters"] / 4 * 100
-            meditation_score = min(100, behaviours["meditation_minutes"] * 3.33)
+            # Compute wellness score
+            sleep_score = (behaviours["sleep_hours"] - 4.0) / 6.0 * 100.0
+            steps_score = behaviours["steps"] / 15000.0 * 100.0
+            hydration_score = behaviours["hydration_liters"] / 4.0 * 100.0
+            meditation_score = min(100.0, behaviours["meditation_minutes"] * 3.33)
+            
             base_score = (sleep_score * 0.3 + steps_score * 0.3
                           + hydration_score * 0.2 + meditation_score * 0.2)
             wellness = base_score * occ_mod * gen_score
