@@ -178,7 +178,7 @@ export default function SaintsNavigation() {
           {/* Footer hint */}
           <div className="text-center mt-2 sm:mt-4">
             <p className="text-[10px] sm:text-xs text-slate-500">
-              Tap <span className="text-emerald-400 font-medium">St. Raphael</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features
+              Tap <span className="text-emerald-400 font-medium">St. Raphael Hub</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features
             </p>
           </div>
         </div>

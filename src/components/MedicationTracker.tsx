@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Pill, Plus, Check, X, Clock, AlertTriangle, Upload, FileText, Image as ImageIcon, Trash2, RefreshCw, Sparkles } from 'lucide-react';
+import { Pill, Plus, Check, X, Clock, AlertTriangle, Upload, Trash2, RefreshCw } from 'lucide-react';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
 
 interface Prescription {
@@ -110,7 +110,7 @@ export default function MedicationTracker() {
           const file = attachedFiles[i];
           try {
             const { file: uploadedFile } = await uploadFile(file, {
-              category: 'medical',
+              category: 'health_report',
               description: `Prescription for ${newMedication.medication_name}`,
               metadata: {
                 medication_name: newMedication.medication_name,
@@ -262,88 +262,58 @@ export default function MedicationTracker() {
       )}
 
       <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-          <div className="flex-1">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1">Medication Tracker</h2>
-            <p className="text-sm sm:text-base text-slate-400">Track your daily medications and adherence</p>
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-bold text-white tracking-tight truncate">Medication Tracker</h2>
+              <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Sovereign Regimen</p>
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl transition-all border border-emerald-500/20 active:scale-95"
+              title="Add Medication"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full sm:w-auto px-6 py-3.5 min-h-[48px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2.5 text-base font-medium active:scale-[0.97] touch-manipulation focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          >
-            <Plus className="w-5 h-5" />
-            Add Medication
-          </button>
-        </div>
 
-        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-800/50 hover:border-slate-700/50 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200 cursor-pointer active:scale-[0.98] touch-manipulation group min-h-[140px] flex flex-col justify-center">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center flex-shrink-0">
-                <Pill className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{prescriptions.length}</div>
-                <div className="text-sm sm:text-base text-slate-400">Active Medications</div>
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center text-center">
+              <Pill className="w-4 h-4 text-emerald-400 mb-1" />
+              <div className="text-lg font-bold text-white leading-none">{prescriptions.length}</div>
+              <div className="text-[8px] text-slate-500 uppercase mt-1">Active</div>
             </div>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent" />
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center text-center">
+              <Check className="w-4 h-4 text-blue-400 mb-1" />
+              <div className="text-lg font-bold text-white leading-none">{getAdherenceRate()}%</div>
+              <div className="text-[8px] text-slate-500 uppercase mt-1">Adherence</div>
             </div>
-          </div>
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-800/50 hover:border-slate-700/50 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200 cursor-pointer active:scale-[0.98] touch-manipulation group min-h-[140px] flex flex-col justify-center">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                <Check className="w-6 h-6 text-blue-400" />
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center text-center">
+              <AlertTriangle className="w-4 h-4 text-yellow-400 mb-1" />
+              <div className="text-lg font-bold text-white leading-none">
+                {prescriptions.filter(p => p.refills_remaining <= 1).length}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-3xl sm:text-4xl font-bold text-white mb-1">{getAdherenceRate()}%</div>
-                <div className="text-sm sm:text-base text-slate-400">Adherence Rate Today</div>
-              </div>
-            </div>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
-            </div>
-          </div>
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-800/50 hover:border-slate-700/50 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200 cursor-pointer active:scale-[0.98] touch-manipulation group min-h-[140px] flex flex-col justify-center min-[380px]:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-yellow-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-3xl sm:text-4xl font-bold text-white mb-1">
-                  {prescriptions.filter(p => p.refills_remaining <= 1).length}
-                </div>
-                <div className="text-sm sm:text-base text-slate-400">Low Refills</div>
-              </div>
-            </div>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent" />
+              <div className="text-[8px] text-slate-500 uppercase mt-1">Refills</div>
             </div>
           </div>
         </div>
 
         <div className="space-y-3 sm:space-y-4">
           {prescriptions.length === 0 ? (
-            <div className="bg-slate-900/40 backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-700/50 p-8 sm:p-12 md:p-16 text-center min-h-[400px] flex flex-col items-center justify-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-6 animate-pulse">
-                <Pill className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600" />
+            <div className="bg-white/[0.02] border border-dashed border-white/5 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[280px]">
+              <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4">
+                <Pill className="w-6 h-6 text-slate-600" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-semibold text-white mb-3">No active medications</h3>
-              <p className="text-sm sm:text-base text-slate-400 mb-8 max-w-md leading-relaxed">
-                Add your first medication to start tracking adherence, set reminders, and never miss a dose.
+              <h3 className="text-lg font-semibold text-white mb-2">No active medications</h3>
+              <p className="text-xs text-slate-500 mb-6 max-w-[240px]">
+                Add your first medication to start tracking.
               </p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-8 py-4 min-h-[52px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-3 text-base font-semibold active:scale-[0.97] touch-manipulation focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl transition-all border border-emerald-500/20 text-sm font-medium"
               >
-                <Plus className="w-5 h-5" />
                 Add Your First Medication
               </button>
-              <div className="mt-8 flex items-center gap-2 text-xs text-slate-500">
-                <Sparkles className="w-4 h-4" />
-                <span>Takes less than 30 seconds</span>
-              </div>
             </div>
           ) : (
             prescriptions.map((prescription) => (

@@ -13,13 +13,16 @@ MEMORY_FILE = os.path.join(DATA_DIR, "akashic_record.json")
 VECTOR_FILE = os.path.join(DATA_DIR, "akashic_vectors.npy")
 
 class AkashicRecord:
-    _instance = None
-    
+    _instance: Optional['AkashicRecord'] = None
+    _model: Optional[SentenceTransformer] = None
+    memories: List[Dict[str, Any]] = []
+    embeddings: Optional[np.ndarray] = None
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(AkashicRecord, cls).__new__(cls)
             cls._instance._initialize()
-        elif not hasattr(cls._instance, 'model'):
+        elif not hasattr(cls._instance, '_model'):
             cls._instance._initialize()
         return cls._instance
     
@@ -108,6 +111,7 @@ class AkashicRecord:
         self.memories.append(record)
         
         # Update embeddings matrix
+        assert self.embeddings is not None
         if self.embeddings.shape[0] == 0:
             self.embeddings = np.array([embedding])
         else:
@@ -130,6 +134,7 @@ class AkashicRecord:
         
         # Cosine similarity
         # A . B / (|A| * |B|)
+        assert self.embeddings is not None
         norms = np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding)
         # Avoid division by zero
         norms[norms == 0] = 1e-10

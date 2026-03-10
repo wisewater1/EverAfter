@@ -19,7 +19,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { terraClient } from '../lib/terra-client';
 import { storeHealthMetrics, type ExtractedHealthData } from '../lib/raphael/healthDataService';
 import { bluetoothConnector, isBluetoothSupported, type BLEDevice, type BLEDeviceType } from '../lib/connectors/bluetooth-health';
 import { cameraHeartRate, isCameraSupported } from '../lib/connectors/camera-heart-rate';
@@ -28,11 +27,11 @@ import { searchDrugs, type DrugInfo } from '../lib/connectors/openfda-service';
 import { searchFood, logFoodIntake, type FoodItem } from '../lib/connectors/nutrition-service';
 import { getEnvironmentSnapshot, storeEnvironmentData, type EnvironmentSnapshot } from '../lib/connectors/environment-health';
 import {
-    Smartphone, Watch, Activity, RefreshCw, CheckCircle,
-    Wifi, WifiOff, Zap, Heart, Footprints, Moon, Droplets, Thermometer,
-    TrendingUp, ArrowRight, Loader2, Shield, Clock, Database,
+    Smartphone, Activity, RefreshCw, CheckCircle,
+    Wifi, Heart, Footprints, Droplets, Thermometer,
+    TrendingUp, ArrowRight, Loader2, Shield, Database,
     Bluetooth, Camera, Wind, Pill, Apple, Search, X, Play, Square,
-    Sun, CloudRain, Wheat, FlaskConical
+    Sun
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -250,9 +249,9 @@ export default function PhoneHealthConnect() {
             free: true,
         },
         {
-            id: 'motion', category: 'phone' as const, name: 'Activity Tracker',
-            icon: <Footprints className="w-6 h-6" />, color: 'from-green-500 to-emerald-500',
-            description: 'Count steps via accelerometer and track distance with GPS. No wearable needed.',
+            id: 'motion', category: 'phone' as const, name: 'Motion & Activity',
+            icon: <Footprints className="w-6 h-6" />, color: 'from-green-500 to-emerald-600',
+            description: 'Track steps and distance using on-device sensors. No external hardware required.',
             supported: isMotionSupported() || isGeolocationSupported(),
             free: true,
         },
@@ -297,8 +296,8 @@ export default function PhoneHealthConnect() {
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-center px-4">
-                                <p className="text-2xl font-bold text-white">{connectedCount}</p>
-                                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Connected</p>
+                                <p className="text-2xl font-bold text-white leading-none">{connectedCount}</p>
+                                <p className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">Active</p>
                             </div>
                             <div className="w-px h-10 bg-white/10" />
                             <div className="text-center px-4">
@@ -344,7 +343,7 @@ export default function PhoneHealthConnect() {
             </div>
 
             {/* Connector cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filtered.map(connector => {
                     const isActive = activePanel === connector.id;
                     return (
@@ -358,9 +357,11 @@ export default function PhoneHealthConnect() {
                                         <div className={`p-2.5 rounded-xl bg-gradient-to-br ${connector.color} text-white`}>
                                             {connector.icon}
                                         </div>
-                                        <div>
-                                            <h3 className="font-semibold text-white text-sm">{connector.name}</h3>
-                                            <span className="text-[9px] uppercase tracking-widest text-emerald-400 font-bold">Free</span>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-bold text-white text-[15px] leading-tight mb-0.5">{connector.name}</h3>
+                                            <div className="flex items-center gap-1.5 whitespace-nowrap overflow-visible">
+                                                <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-400 font-black italic">Sovereign Tier</span>
+                                            </div>
                                         </div>
                                     </div>
                                     {!connector.supported && (

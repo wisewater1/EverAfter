@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Activity, Watch, Heart, Zap, Database, Cloud, Shield, Lock,
-  CheckCircle, AlertCircle, RefreshCw, Plus, Upload, FileText,
-  Smartphone, Radio, Droplet, Stethoscope, FlaskConical, Link2,
-  Sparkles, Code, Settings, Info, TrendingUp, Moon, Brain, Target,
-  Scale, ThermometerSun, Clock, LayoutDashboard, Building2
+  Activity, Watch, Heart, Zap, Cloud, Shield,
+  CheckCircle, Plus, Droplet, Stethoscope, FlaskConical, Link2,
+  Sparkles, Code, LayoutDashboard, Building2, Clock, Scale,
+  Radio, Smartphone, Moon, Upload
 } from 'lucide-react';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
-import { API_BASE_URL } from '../lib/env';
 
 interface HealthConnection {
   id: string;
@@ -386,7 +384,6 @@ export default function ComprehensiveHealthConnectors() {
   const { user } = useAuth();
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState<string | null>(null);
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'all'>('all');
   const [connectedCount, setConnectedCount] = useState(0);
@@ -407,7 +404,7 @@ export default function ComprehensiveHealthConnectors() {
 
       if (error) throw error;
       setConnections(data || []);
-      setConnectedCount(data?.filter(c => c.status === 'connected').length || 0);
+      setConnectedCount(data?.filter((c: HealthConnection) => c.status === 'connected').length || 0);
     } catch (error) {
       console.error('Error fetching connections:', error);
     } finally {
@@ -488,7 +485,7 @@ export default function ComprehensiveHealthConnectors() {
 
   const getCategoryTitle = (category: ServiceCategory) => {
     const titles = {
-      aggregators: 'Multi-Device Aggregators',
+      aggregators: 'Unified Data Aggregators',
       wearables: 'Individual Wearables',
       glucose: 'Glucose Monitoring',
       ehr: 'Electronic Health Records',
@@ -539,8 +536,8 @@ export default function ComprehensiveHealthConnectors() {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id as ServiceCategory | 'all')}
                 className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${isActive
-                    ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4)] border border-teal-500/30'
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] border border-transparent hover:border-white/5'
+                  ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4)] border border-teal-500/30'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] border border-transparent hover:border-white/5'
                   }`}
               >
                 <Icon className="w-4 h-4" />
@@ -572,7 +569,6 @@ export default function ComprehensiveHealthConnectors() {
                   service={service}
                   connection={connections.find(c => c.service_type === service.id && c.status !== 'disconnected')}
                   onConnect={connectService}
-                  syncing={syncing}
                   isConnecting={connectingSource === service.id}
                 />
               ))}
@@ -587,7 +583,6 @@ export default function ComprehensiveHealthConnectors() {
               service={service}
               connection={connections.find(c => c.service_type === service.id && c.status !== 'disconnected')}
               onConnect={connectService}
-              syncing={syncing}
               isConnecting={connectingSource === service.id}
             />
           ))}
@@ -718,9 +713,8 @@ interface ServiceCardProps {
   isConnecting?: boolean;
 }
 
-function ServiceCard({ service, connection, onConnect, syncing, isConnecting }: ServiceCardProps) {
+function ServiceCard({ service, connection, onConnect, isConnecting }: Omit<ServiceCardProps, 'syncing'>) {
   const Icon = service.icon;
-  const isConnected = connection?.status === 'connected';
   const isComingSoon = service.status === 'coming_soon';
 
   return (
@@ -731,13 +725,13 @@ function ServiceCard({ service, connection, onConnect, syncing, isConnecting }: 
             <Icon className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-white font-semibold text-sm truncate">{service.name}</h3>
+            <div className="flex items-start justify-between gap-2 overflow-visible">
+              <h3 className="text-white font-bold text-[15px] leading-tight flex-1">{service.name}</h3>
               {service.deviceCount && (
-                <span className="text-xs text-teal-400 font-medium whitespace-nowrap">{service.deviceCount}</span>
+                <span className="text-[10px] text-teal-400 font-bold bg-teal-400/10 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">{service.deviceCount}</span>
               )}
             </div>
-            <p className="text-slate-500 text-xs truncate">{service.description}</p>
+            <p className="text-slate-500 text-[10px] leading-snug mt-1 line-clamp-2">{service.description}</p>
           </div>
         </div>
       </div>
@@ -756,10 +750,10 @@ function ServiceCard({ service, connection, onConnect, syncing, isConnecting }: 
       {isComingSoon ? (
         <button
           disabled
-          className="w-full px-4 py-3 rounded-xl bg-gradient-to-br from-slate-500/10 to-gray-500/10 text-slate-500 font-medium text-sm flex items-center justify-center gap-2 border border-slate-500/20 cursor-not-allowed"
+          className="w-full px-3 py-2.5 rounded-xl bg-slate-800/40 text-slate-500 font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-700/30 cursor-not-allowed"
         >
-          <Clock className="w-4 h-4" />
-          Coming Soon
+          <Clock className="w-3.5 h-3.5" />
+          Planned
         </button>
       ) : connection ? (
         <div className="space-y-2">
