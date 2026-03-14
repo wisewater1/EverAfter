@@ -28,8 +28,10 @@ import CustomEngramsDashboard from './CustomEngramsDashboard';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DelphiView from './dht/DelphiView';
 import OceanBehavioralLayer from './dht/OceanBehavioralLayer';
+import TellMyStoryPartnerCard from './joseph/TellMyStoryPartnerCard';
+import { buildTellMyStoryReferralCode, buildTellMyStoryUrl } from '../lib/tellMyStory';
 
-type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams';
+type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams' | 'create-ai';
 
 const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', icon: GitBranch },
@@ -37,6 +39,7 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'quiz', label: 'Personality Quiz', icon: Brain },
     { key: 'media', label: 'Media Intel', icon: Info },
     { key: 'predictions', label: 'Predictions', icon: Activity },
+    { key: 'create-ai', label: 'Create Your AI', icon: Sparkles },
     { key: 'delphi', label: '⚕ Delphi', icon: Activity },
     { key: 'society', label: 'Society', icon: Users },
     { key: 'timeline', label: 'Timeline', icon: History },
@@ -206,8 +209,14 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams' || activeTab === 'create-ai') && (
                 <div className="max-w-7xl mx-auto">
+                    <div className="mb-4">
+                        <TellMyStoryPartnerCard
+                            title="New family memory AI feature"
+                            description="EverAfter has partnered with TellMyStory.ai so your family can capture guided memories, voice stories, and relationship context that can feed future AI experiences."
+                        />
+                    </div>
                     {activeTab === 'tree' && <FamilyTreeView onTrainMember={handleTrainMember} />}
                     {activeTab === 'members' && (
                         <div className="space-y-4">
@@ -219,6 +228,11 @@ export default function StJosephFamilyDashboard() {
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
                             <PersonalityQuiz />
                             {user?.id && <OceanBehavioralLayer personId={user.id} />}
+                            <TellMyStoryPartnerCard
+                                title="Create Your AI from OCEAN + story data"
+                                description="Use TellMyStory.ai to collect the narrative context behind each family member’s OCEAN profile, then carry that memory layer back into EverAfter."
+                                compact
+                            />
                         </div>
                     )}
                     {activeTab === 'media' && (
@@ -230,6 +244,11 @@ export default function StJosephFamilyDashboard() {
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
                             <SharedPredictionPanel saint="joseph" />
                             <FamilyHealthHeatmap />
+                            <TellMyStoryPartnerCard
+                                title="Create a medical memory AI profile"
+                                description="Pair health history, care preferences, and lived story context in TellMyStory.ai so each family member’s medical profile has human background, not just metrics."
+                                compact
+                            />
                         </div>
                     )}
                     {activeTab === 'training' && (
@@ -272,6 +291,43 @@ export default function StJosephFamilyDashboard() {
                     {activeTab === 'delphi' && user?.id && (
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
                             <DelphiView personId={user.id} memberName={user.email?.split('@')[0] || 'You'} />
+                        </div>
+                    )}
+                    {activeTab === 'create-ai' && (
+                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-amber-300">
+                                    <Sparkles className="w-5 h-5" />
+                                    <span className="text-xs font-semibold uppercase tracking-[0.2em]">Partner Launch</span>
+                                </div>
+                                <h3 className="text-2xl font-light text-white">EverAfter has partnered with TellMyStory.ai</h3>
+                                <p className="max-w-3xl text-sm text-slate-300 leading-relaxed">
+                                    Use this flow to send family members to TellMyStory.ai, capture memories and voice stories, and keep every referral tied back to EverAfter with a unique code that includes <span className="font-semibold text-amber-300">wise</span>.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {getFamilyMembers().map(member => (
+                                    <div key={member.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+                                        <div>
+                                            <h4 className="text-lg text-white font-medium">{member.firstName} {member.lastName}</h4>
+                                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{member.aiPersonality?.familyRole || 'Family Member'}</p>
+                                        </div>
+                                        <div className="space-y-2 text-sm text-slate-300">
+                                            <p>Referral code: <span className="font-semibold text-amber-300">{buildTellMyStoryReferralCode(member)}</span></p>
+                                            <p className="text-xs text-slate-500 break-all">{buildTellMyStoryUrl(member)}</p>
+                                        </div>
+                                        <a
+                                            href={buildTellMyStoryUrl(member)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-400"
+                                        >
+                                            Send to TellMyStory.ai
+                                            <MessageSquare className="w-4 h-4" />
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

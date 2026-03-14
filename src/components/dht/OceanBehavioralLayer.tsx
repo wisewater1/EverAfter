@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Brain, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { getBehavioralModifiers, getOcean, OceanMetrics, BehavioralModifier } from '../../lib/dhtApi';
+import TellMyStoryPartnerCard from '../joseph/TellMyStoryPartnerCard';
 
 const TRAIT_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
     O: { label: 'Openness', color: '#8b5cf6', desc: 'Curiosity, creativity, willingness to try new approaches' },
@@ -122,6 +123,14 @@ export default function OceanBehavioralLayer({ personId }: OceanLayerProps) {
                     </div>
                 </div>
             )}
+
+            <div className="px-4 pb-4">
+                <TellMyStoryPartnerCard
+                    compact
+                    title="Build the story layer behind OCEAN"
+                    description="TellMyStory.ai captures the lived experiences behind personality scores so EverAfter can pair behavioral metrics with family memory and narrative context."
+                />
+            </div>
         </div>
     );
 }

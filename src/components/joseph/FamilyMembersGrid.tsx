@@ -12,6 +12,7 @@ import SocietyFeed from '../SocietyFeed';
 import TraitBadges from './TraitBadges';
 import CausalAncestryPanel from '../causal-twin/CausalAncestryPanel';
 import RelationshipInsight from './RelationshipInsight';
+import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 
 interface InteractionEvent {
     id: string;
@@ -156,6 +157,11 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Main Family Tree Grid */}
                 <div className="flex-1 space-y-6 lg:border-r lg:border-white/5 lg:pr-6">
+                    <TellMyStoryPartnerCard
+                        title="Create Your AI for each family member"
+                        description="Send any member to TellMyStory.ai with a unique wise referral code to start capturing memories, stories, and voice context for their future EverAfter AI."
+                    />
+
                     {/* Search & Filters */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1 relative">
@@ -440,6 +446,10 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
                             )}
 
                             {selectedMember && <RelationshipInsight member={selectedMember} />}
+
+                            <div className="mt-4">
+                                <TellMyStoryPartnerCard member={selectedMember} compact />
+                            </div>
 
                             <div className="mt-6 flex justify-end">
                                 <button

@@ -10,6 +10,7 @@ import AgentPersonalityModal from './AgentPersonalityModal';
 import PersonalityRadar from './PersonalityRadar';
 import TraitBadges from './TraitBadges';
 import RelationshipInsight from './RelationshipInsight';
+import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -332,6 +333,15 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                                     Create AI Agent
                                 </button>
                             )}
+
+                            <div className="mt-4">
+                                <TellMyStoryPartnerCard
+                                    member={selectedMember}
+                                    compact
+                                    title="Create Your AI with TellMyStory.ai"
+                                    description="Send this family member to TellMyStory.ai with their wise referral code and collect memory, voice, and story data for EverAfter."
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
