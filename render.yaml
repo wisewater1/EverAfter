@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: everafter-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        value: https://everafterai.net,https://www.everafterai.net
+      - key: ENABLE_SAINT_EVENT_LISTENER
+        value: false
+      - key: ENABLE_SAINT_BACKGROUND_VIGILS
+        value: false
+      - key: ENABLE_COMPLIANCE_AUTOPILOT
+        value: false
+      - key: ALLOW_DEV_AUTH_FALLBACK
+        value: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
