@@ -34,6 +34,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
+    "framer-motion": "^12.35.2",
     "lodash": "^4.17.23",
     "lucide-react": "^0.344.0",
     "openai": "^4.0.0",
