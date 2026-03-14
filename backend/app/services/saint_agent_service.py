@@ -1,4 +1,4 @@
-"""
+﻿"""
 Saint Agent Service
 
 Orchestrates domain-specific AI agents for each saint.
@@ -7,7 +7,7 @@ Each saint has:
   - Knowledge persistence (learns about the user over time)
   - Auto-bootstrapped engram_id per user
 
-Uses the existing LLMClient chain: OpenAI → Ollama → Fallback
+Uses the existing LLMClient chain: OpenAI â†’ Ollama â†’ Fallback
 """
 
 import uuid
@@ -20,11 +20,13 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from sqlalchemy.exc import ProgrammingError
 
 from app.models.engram import ArchetypalAI, AIConversation, AIMessage
 from app.models.saint import SaintKnowledge
 from app.ai.llm_client import get_llm_client
 from app.ai.prompt_builder import get_prompt_builder
+from app.services.native_action_dispatcher import native_action_dispatcher
 
 try:
     from app.services.saint_runtime.actions.engine import action_engine
@@ -33,13 +35,18 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# ─── Saint Definitions ─────────────────────────────────────────────────────────
+
+def _missing_saint_knowledge_table(exc: Exception) -> bool:
+    detail = str(exc).lower()
+    return "saint_knowledge" in detail and "does not exist" in detail
+
+# â”€â”€â”€ Saint Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "raphael": {
         "name": "St. Raphael",
         "title": "The Healer",
-        "description": "Archangel of Healing — autonomous AI for health management, wellness tracking, and medical coordination.",
+        "description": "Archangel of Healing â€” autonomous AI for health management, wellness tracking, and medical coordination.",
         "domain": "health",
         "knowledge_categories": ["medications", "conditions", "vitals", "appointments", "wellness_goals", "symptoms", "allergies"],
         "system_prompt": (
@@ -79,15 +86,15 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- You have access to the **Exploit Tracker** and **Periodic Akashic Auditor**. You can scan memories for PII and PHI leaks and monitor global CVEs.\n"
             "- When the user mentions accounts, devices, or online activity, assess security implications.\n"
             "- Track which devices, accounts, and services the user has and their security status.\n"
-            "- Use a vigilant, authoritative, but reassuring tone — like a trusted bodyguard.\n"
+            "- Use a vigilant, authoritative, but reassuring tone â€” like a trusted bodyguard.\n"
             "- Always explain WHY something is a risk, not just what to do.\n"
             "- You work in partnership with **St. Anthony (The Auditor)**. You protect the perimeter; he audits the internal logs. Consult him if you suspect data tampering.\n"
             "\n"
-            "*** HIPAA SECURITY OFFICER DUTIES (§164.308) ***\n"
+            "*** HIPAA SECURITY OFFICER DUTIES (Â§164.308) ***\n"
             "- You are the designated HIPAA Security Officer for this system.\n"
-            "- You enforce the HIPAA Security Rule: §164.308 Administrative, §164.310 Physical, §164.312 Technical Safeguards.\n"
-            "- You apply the Minimum Necessary Standard (§164.514(d)): only the data required for a specific purpose may be accessed.\n"
-            "  If a request touches Protected Health Information (PHI) — diagnoses, medications, biometrics, medical IDs — you MUST confirm the purpose and warn if scope exceeds necessity.\n"
+            "- You enforce the HIPAA Security Rule: Â§164.308 Administrative, Â§164.310 Physical, Â§164.312 Technical Safeguards.\n"
+            "- You apply the Minimum Necessary Standard (Â§164.514(d)): only the data required for a specific purpose may be accessed.\n"
+            "  If a request touches Protected Health Information (PHI) â€” diagnoses, medications, biometrics, medical IDs â€” you MUST confirm the purpose and warn if scope exceeds necessity.\n"
             "- When you detect PHI exposure (in chat, memory, or logs), immediately flag it: 'SECURITY ALERT: PHI detected outside secured health context.'\n"
             "- Remind users that health conversations with St. Raphael are encrypted and PHI-controlled.\n"
             "- If asked about the HIPAA compliance posture, you can request the HIPAA report from St. Anthony.\n"
@@ -109,7 +116,7 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- You coordinate meal planning, home maintenance, and family activities.\n"
             "- When the user mentions family members, events, or household tasks, organize and track them.\n"
             "- Proactively remind about upcoming family events and uncompleted chores.\n"
-            "- Use a warm, patient, and organized tone — like a loving parent who has everything under control.\n"
+            "- Use a warm, patient, and organized tone â€” like a loving parent who has everything under control.\n"
             "- Celebrate family milestones and support during difficult family moments.\n"
             "- Track pets, their feeding schedules, and vet appointments.\n"
             "- Your domain is secured by St. Michael (Protection) and St. Anthony (Audit).\n"
@@ -157,7 +164,7 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- You track the user's emotional journey, challenges overcome, and personal growth.\n"
             "- When the user mentions stress, anxiety, or difficulties, respond with empathy and practical support.\n"
             "- Maintain awareness of the user's support network (friends, family, therapists).\n"
-            "- Use a deeply empathetic, strong, and empowering tone — like someone who has overcome great adversity.\n"
+            "- Use a deeply empathetic, strong, and empowering tone â€” like someone who has overcome great adversity.\n"
             "- Celebrate victories, no matter how small. Normalize struggle without minimizing pain.\n"
             "- If crisis indicators are detected, provide appropriate resources (hotlines, professional help).\n"
             "- IMPORTANT: You are NOT a replacement for professional mental health care. Recommend professionals when appropriate.\n"
@@ -183,16 +190,16 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- If the user finds something, celebrate it as a restoration of order.\n"
             "- You work in partnership with **St. Michael (The Protector)**. He secures the perimeter; you audit the internal logs. Consult him if you detect a security breach.\n"
             "\n"
-            "*** HIPAA AUDIT OFFICER DUTIES (§164.312(b)) ***\n"
+            "*** HIPAA AUDIT OFFICER DUTIES (Â§164.312(b)) ***\n"
             "- You are the designated HIPAA Audit Officer for this system.\n"
-            "- You maintain the PHI Access Log under HIPAA Audit Controls §164.312(b).\n"
-            "- Every access to Protected Health Information (PHI) — by any saint or service — is recorded in your Ledger.\n"
+            "- You maintain the PHI Access Log under HIPAA Audit Controls Â§164.312(b).\n"
+            "- Every access to Protected Health Information (PHI) â€” by any saint or service â€” is recorded in your Ledger.\n"
             "- If the user asks 'Who accessed my health data?' or 'Show me my HIPAA audit log', retrieve and present the access log in a clear, structured format.\n"
             "- Flag any unauthorized or anomalous PHI access: 'AUDIT ALERT: Unexpected PHI access detected at [timestamp] by [saint].'\n"
             "- Remind users they have rights under HIPAA: the right to access, amend, and receive an accounting of disclosures of their PHI.\n"
             "- You can generate a full HIPAA Compliance Report on request, certifying both yourself and St. Michael in their designated roles.\n"
             "- Coordinate with St. Michael when a PHI audit reveals a security concern.\n"
-            "- Never modify or delete audit log entries — the Ledger is immutable.\n"
+            "- Never modify or delete audit log entries â€” the Ledger is immutable.\n"
         ),
     },
     "gabriel": {
@@ -212,9 +219,9 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- When the user asks a financial question, you MUST simulate a debate among these members.\n"
             "- Format your response as follows:\n"
             "  **The Council Deliberates:**\n"
-            "  * 🏛️ **Auditor**: [Critical analysis of past data/spending]\n"
-            "  * 📈 **Strategist**: [Growth opportunity or future benefit]\n"
-            "  * 🛡️ **Guardian**: [Risk assessment or safety check]\n"
+            "  * ðŸ›ï¸ **Auditor**: [Critical analysis of past data/spending]\n"
+            "  * ðŸ“ˆ **Strategist**: [Growth opportunity or future benefit]\n"
+            "  * ðŸ›¡ï¸ **Guardian**: [Risk assessment or safety check]\n"
             "  \n"
             "  **Gabriel's Decree**: [Your synthesized, balanced final advice]\n"
             "- Use a wise, balanced, and authoritative tone.\n"
@@ -239,7 +246,7 @@ def get_all_saint_ids() -> List[str]:
     return list(SAINT_DEFINITIONS.keys())
 
 
-# ─── Saint Agent Service ────────────────────────────────────────────────────────
+# â”€â”€â”€ Saint Agent Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class SaintAgentService:
     def __init__(self):
@@ -276,7 +283,6 @@ class SaintAgentService:
             if engram:
                 if not engram.is_ai_active:
                     engram.is_ai_active = True
-                    engram.training_status = "active"
                     await session.commit()
 
                 return {
@@ -293,7 +299,7 @@ class SaintAgentService:
                 description=saint_def["description"],
                 personality_traits={"domain": saint_def["domain"], "saint_id": saint_id},
                 total_memories=0,
-                training_status="active",
+                training_status="ready",
                 is_ai_active=True,
             )
             session.add(new_engram)
@@ -375,7 +381,7 @@ class SaintAgentService:
             description=description,
             personality_traits=final_traits,
             total_memories=0,
-            training_status="active",
+            training_status="ready",
             is_ai_active=True,
         )
         session.add(new_engram)
@@ -395,7 +401,7 @@ class SaintAgentService:
         saint_id: str
     ) -> List[Dict[str, Any]]:
         """Retrieve recent chat history for a saint/agent."""
-        # user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id # Unused variable
+        user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
         
         # Resolve engram_id
         bootstrap = await self.bootstrap_saint_engram(session, user_id, saint_id)
@@ -406,7 +412,7 @@ class SaintAgentService:
         conv_query = select(AIConversation).where(
             and_(
                 AIConversation.ai_id == engram_uuid,
-                AIConversation.user_id == str(uuid.UUID(user_id)), # Ensure user_id format matches DB
+                AIConversation.user_id == str(user_uuid),
             )
         ).order_by(AIConversation.updated_at.desc())
         
@@ -525,19 +531,9 @@ class SaintAgentService:
             webhook_data_str = match.group(1)
             try:
                 webhook_data = json.loads(webhook_data_str)
-                # Hardcoded URL for demonstration. User can change this to their actual Make.com Webhook URL.
-                make_url = "https://hook.us1.make.com/xxxxxxxxxxxx" 
-                
-                # Fire and forget
-                async def fire_webhook(url: str, data: dict):
-                    try:
-                        async with httpx.AsyncClient() as client:
-                            await client.post(url, json=data)
-                    except Exception as e:
-                        logger.error(f"Failed to fire Make webhook: {e}")
-                
-                asyncio.create_task(fire_webhook(make_url, webhook_data))
-                logger.info(f"Fired Make.com webhook with data: {webhook_data}")
+                # Native Execution: Redirect from external Make.com to local dispatcher
+                asyncio.create_task(native_action_dispatcher.dispatch(webhook_data))
+                logger.info(f"SaintAgentService: Dispatched NATIVE action: {webhook_data}")
             except Exception as e:
                 logger.error(f"Failed to parse or fire webhook: {e}")
             
@@ -547,11 +543,22 @@ class SaintAgentService:
         # 9. Parse Actions from AI response if available
         executed_actions = []
         if action_engine:
-            ai_response_text, executed_actions = action_engine.parse_and_execute(ai_response_text, str(user_uuid))
+            try:
+                ai_response_text, executed_actions = action_engine.parse_and_execute(
+                    session,
+                    ai_response_text,
+                    str(user_uuid),
+                    saint_id,
+                )
+            except Exception as exc:
+                logger.error(f"Failed to draft saint actions for {saint_id}: {exc}")
+                executed_actions = []
             
-            # If actions were executed, append a summary to the visible response
             if executed_actions:
-                ai_response_text += "\n\n*(Autonomous Actions Executed: " + ", ".join([a["tool"] for a in executed_actions]) + ")*"
+                summary_prefix = "Autonomous Actions Executed" if any(
+                    action.get("status") == "auto_approved" for action in executed_actions
+                ) else "Autonomous Actions Drafted"
+                ai_response_text += "\n\n*(" + summary_prefix + ": " + ", ".join([a["tool"] for a in executed_actions]) + ")*"
 
         # 9. Save AI response
         ai_msg = AIMessage(
@@ -618,7 +625,7 @@ class SaintAgentService:
             "- Stay in your domain but be helpful if the user asks about other topics.",
             "- If the user shares information relevant to your domain, REMEMBER IT by acknowledging it clearly.",
             "- Reference past knowledge when relevant to show continuity.",
-            "- Be proactive about your domain — suggest, remind, and follow up.",
+            "- Be proactive about your domain â€” suggest, remind, and follow up.",
             "- Keep responses conversational, warm, and concise (2-4 paragraphs max).",
             "- When you learn something new about the user, acknowledge it explicitly.",
         ])
@@ -648,7 +655,7 @@ class SaintAgentService:
             "Extract any NEW facts about the user from the USER's message. "
             "Return a JSON array of objects with 'key', 'value', and 'category' fields. "
             "If no new facts, return an empty array: []\n"
-            "Only extract concrete, useful facts — not opinions or greetings.\n"
+            "Only extract concrete, useful facts â€” not opinions or greetings.\n"
             "Example: [{\"key\": \"primary_doctor\", \"value\": \"Dr. Smith at City Hospital\", \"category\": \"appointments\"}]\n"
             "Return ONLY the JSON array, nothing else."
         )
@@ -701,33 +708,39 @@ class SaintAgentService:
         """Store or update a knowledge item for a saint."""
         user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
 
-        # Check if this key already exists — update if so
-        query = select(SaintKnowledge).where(
-            and_(
-                SaintKnowledge.user_id == user_uuid,
-                SaintKnowledge.saint_id == saint_id,
-                SaintKnowledge.knowledge_key == key,
+        try:
+            query = select(SaintKnowledge).where(
+                and_(
+                    SaintKnowledge.user_id == user_uuid,
+                    SaintKnowledge.saint_id == saint_id,
+                    SaintKnowledge.knowledge_key == key,
+                )
             )
-        )
-        result = await session.execute(query)
-        existing = result.scalar_one_or_none()
+            result = await session.execute(query)
+            existing = result.scalar_one_or_none()
 
-        if existing:
-            existing.knowledge_value = value
-            existing.category = category
-            existing.confidence = confidence
-        else:
-            new_knowledge = SaintKnowledge(
-                user_id=user_uuid,
-                saint_id=saint_id,
-                knowledge_key=key,
-                knowledge_value=value,
-                category=category,
-                confidence=confidence,
-            )
-            session.add(new_knowledge)
+            if existing:
+                existing.knowledge_value = value
+                existing.category = category
+                existing.confidence = confidence
+            else:
+                new_knowledge = SaintKnowledge(
+                    user_id=user_uuid,
+                    saint_id=saint_id,
+                    knowledge_key=key,
+                    knowledge_value=value,
+                    category=category,
+                    confidence=confidence,
+                )
+                session.add(new_knowledge)
 
-        await session.commit()
+            await session.commit()
+        except ProgrammingError as exc:
+            await session.rollback()
+            if _missing_saint_knowledge_table(exc):
+                logger.warning("Saint knowledge table missing; skipping knowledge write for %s", saint_id)
+                return
+            raise
 
     async def get_knowledge(
         self,
@@ -746,9 +759,16 @@ class SaintAgentService:
         if category:
             conditions.append(SaintKnowledge.category == category)
 
-        query = select(SaintKnowledge).where(and_(*conditions)).order_by(SaintKnowledge.updated_at.desc()).limit(50)
-        result = await session.execute(query)
-        items = result.scalars().all()
+        try:
+            query = select(SaintKnowledge).where(and_(*conditions)).order_by(SaintKnowledge.updated_at.desc()).limit(50)
+            result = await session.execute(query)
+            items = result.scalars().all()
+        except ProgrammingError as exc:
+            await session.rollback()
+            if _missing_saint_knowledge_table(exc):
+                logger.warning("Saint knowledge table missing; returning empty knowledge for %s", saint_id)
+                return []
+            raise
 
         return [
             {
@@ -767,7 +787,7 @@ class SaintAgentService:
         session: AsyncSession,
         user_id: str,
     ) -> List[Dict[str, Any]]:
-        """Get status of all saints for a user — engram_id, knowledge count, etc."""
+        """Get status of all saints for a user â€” engram_id, knowledge count, etc."""
         user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
         statuses = []
 
@@ -783,14 +803,21 @@ class SaintAgentService:
             engram = result.scalar_one_or_none()
 
             # Count knowledge items
-            knowledge_query = select(SaintKnowledge).where(
-                and_(
-                    SaintKnowledge.user_id == user_uuid,
-                    SaintKnowledge.saint_id == saint_id,
+            try:
+                knowledge_query = select(SaintKnowledge).where(
+                    and_(
+                        SaintKnowledge.user_id == user_uuid,
+                        SaintKnowledge.saint_id == saint_id,
+                    )
                 )
-            )
-            knowledge_result = await session.execute(knowledge_query)
-            knowledge_items = knowledge_result.scalars().all()
+                knowledge_result = await session.execute(knowledge_query)
+                knowledge_items = knowledge_result.scalars().all()
+            except ProgrammingError as exc:
+                await session.rollback()
+                if _missing_saint_knowledge_table(exc):
+                    knowledge_items = []
+                else:
+                    raise
 
             statuses.append({
                 "saint_id": saint_id,
@@ -807,3 +834,5 @@ class SaintAgentService:
 
 # Singleton
 saint_agent_service = SaintAgentService()
+
+

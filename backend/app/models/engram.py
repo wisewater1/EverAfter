@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ARRAY, Float, JSON, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ARRAY, Float, JSON, ForeignKey, event
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import synonym
 from sqlalchemy.sql import func
 from app.db.session import Base
 from pgvector.sqlalchemy import Vector
@@ -23,6 +25,29 @@ class ArchetypalAI(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    @hybrid_property
+    def is_ai_active(self) -> bool:
+        return (self.training_status or 'untrained') in {'active', 'ready', 'trained'}
+
+    @is_ai_active.setter
+    def is_ai_active(self, value: bool) -> None:
+        if value:
+            if self.training_status in {None, "", "inactive", "untrained"}:
+                self.training_status = "active"
+        else:
+            self.training_status = "inactive"
+
+    @hybrid_property
+    def ai_readiness_score(self) -> int:
+        scores = self.dimension_scores or {}
+        return int(scores.get("ai_readiness_score", 0))
+
+    @ai_readiness_score.setter
+    def ai_readiness_score(self, value: int) -> None:
+        scores = dict(self.dimension_scores or {})
+        scores["ai_readiness_score"] = int(value or 0)
+        self.dimension_scores = scores
+
 
 class DailyQuestionResponse(Base):
     __tablename__ = "daily_question_responses"
@@ -37,11 +62,29 @@ class DailyQuestionResponse(Base):
     dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="SET NULL"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("question_categories.id", ondelete="SET NULL"))
     ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"))
+    engram_id = synonym("ai_id")
     question_category = Column(String)
     embedding_generated = Column(Boolean, default=False)
     training_permitted = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+def _normalize_training_status_for_db(target: ArchetypalAI) -> None:
+    if target.training_status in {"active", "trained"}:
+        target.training_status = "ready"
+    elif target.training_status == "inactive":
+        target.training_status = "untrained"
+
+
+@event.listens_for(ArchetypalAI, "before_insert")
+def _normalize_training_status_before_insert(mapper, connection, target) -> None:
+    _normalize_training_status_for_db(target)
+
+
+@event.listens_for(ArchetypalAI, "before_update")
+def _normalize_training_status_before_update(mapper, connection, target) -> None:
+    _normalize_training_status_for_db(target)
 
 
 class DailyQuestionEmbedding(Base):
@@ -58,6 +101,7 @@ class EngramAsset(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    engram_id = synonym("ai_id")
     user_id = Column(UUID(as_uuid=True), nullable=False)
     asset_type = Column(String) # photo, video, voice_note, etc.
     file_url = Column(String, nullable=False)
@@ -86,6 +130,7 @@ class AIConversation(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    engram_id = synonym("ai_id")
     user_id = Column(UUID(as_uuid=True), nullable=False)
     title = Column(String, default="New Conversation")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -107,12 +152,30 @@ class AITask(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    engram_id = synonym("ai_id")
     task_name = Column(String, nullable=False)
     description = Column(Text, nullable=False)
+    task_description = synonym("description")
     frequency = Column(String, default="on_demand")
     is_active = Column(Boolean, default=True)
     last_executed = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def task_type(self) -> str:
+        return self.__dict__.get("_task_type", "custom")
+
+    @task_type.setter
+    def task_type(self, value: str) -> None:
+        self.__dict__["_task_type"] = value or "custom"
+
+    @property
+    def execution_log(self) -> list[dict]:
+        return self.__dict__.setdefault("_execution_log", [])
+
+    @execution_log.setter
+    def execution_log(self, value: list[dict]) -> None:
+        self.__dict__["_execution_log"] = list(value or [])
 
 
 # New models for multi-layer personality system
@@ -205,3 +268,5 @@ EngramDailyResponse = DailyQuestionResponse
 EngramPersonalityFilter = PersonalityTrait
 EngramAITask = AITask
 EngramAssetModel = EngramAsset
+
+

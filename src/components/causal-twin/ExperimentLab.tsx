@@ -3,6 +3,7 @@ import { Beaker, Plus, Play, Pause, CheckCircle, Clock, XCircle, ChevronDown, Ch
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 import { API_BASE_URL } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
@@ -21,6 +22,7 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
     const [metrics, setMetrics] = useState<string[]>(['sleep_quality', 'mood']);
     const [days, setDays] = useState(14);
     const [createError, setCreateError] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => { loadExperiments(); }, []);
 
@@ -28,7 +30,10 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`);
+            const headers = await apiClient.getAuthHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`, { headers });
             const data = await res.json();
             setExperiments(data.experiments || []);
         } catch (e) { console.error(e); }
@@ -37,32 +42,53 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
 
     async function createExperiment() {
         setCreateError('');
+        if (!name.trim() || !intA.trim() || !intB.trim()) {
+            setCreateError('Enter an experiment name and both intervention arms before creating it.');
+            return;
+        }
+        if (metrics.length === 0) {
+            setCreateError('Select at least one outcome metric.');
+            return;
+        }
+
+        setSubmitting(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
+            });
             const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
-                    name, intervention_a: intA, intervention_b: intB,
+                    name: name.trim(),
+                    intervention_a: intA.trim(),
+                    intervention_b: intB.trim(),
                     outcome_metrics: metrics, duration_days: days
                 }),
             });
             const data = await res.json();
-            if (data.error || data.detail) {
-                setCreateError(data.error || data.detail);
+            if (!res.ok || data.error || data.detail) {
+                setCreateError(data.error || data.detail || `Failed to create experiment (${res.status})`);
                 return;
             }
             setShowCreate(false);
             setName(''); setIntA(''); setIntB('');
             loadExperiments();
         } catch (e) { setCreateError('Failed to create experiment'); }
+        finally { setSubmitting(false); }
     }
 
     async function updateExperiment(id: string, action: string) {
         try {
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
+            });
             await fetch(`${API_BASE}/api/v1/causal-twin/experiments/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ action }),
             });
             loadExperiments();
@@ -151,8 +177,9 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
                         </div>
                         {createError && <p className="text-xs text-red-400">{createError}</p>}
                         <button onClick={createExperiment}
-                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-teal-500/20 to-cyan-500/20 hover:from-teal-500/30 hover:to-cyan-500/30 text-teal-300 font-semibold transition-all border border-teal-500/20">
-                            Create Experiment
+                            disabled={submitting}
+                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-teal-500/20 to-cyan-500/20 hover:from-teal-500/30 hover:to-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-teal-300 font-semibold transition-all border border-teal-500/20">
+                            {submitting ? 'Creating…' : 'Create Experiment'}
                         </button>
                     </div>
                 </div>

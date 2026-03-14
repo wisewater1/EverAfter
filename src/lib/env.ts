@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Environment Variable Validation
  * Ensures all required environment variables are present and valid
  */
@@ -57,5 +57,6 @@ export const env = validateEnv();
 export const isProduction = import.meta.env.PROD;
 export const isDevelopment = import.meta.env.DEV;
 
-// Use VITE_API_BASE_URL from env or fallback to localtunnel/localhost
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8010' : 'https://proud-days-tease.loca.lt');
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8010' : '');
+
+export const API_BASE_URL = configuredApiBaseUrl.replace(/\/$/, '');

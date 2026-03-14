@@ -6,12 +6,12 @@
 
 .DESCRIPTION
     Launches:
-      1. FastAPI Main Backend     → http://localhost:8002
+      1. FastAPI Main Backend     → http://localhost:8010
       2. Health-Connect API       → http://localhost:4000
       3. Celery Background Worker → (no HTTP port)
       4. Root Node.js Server      → http://localhost:3001
       5. Root Agent Scheduler     → (no HTTP port)
-      6. Vite Frontend            → http://localhost:5173
+      6. Vite Frontend            → http://localhost:5000
 
     Polls /health endpoints every 30 seconds. Shows LIVE status in console.
 
@@ -90,10 +90,10 @@ if (-not $WatchOnly) {
 
     # ─── 1. FastAPI Main Backend ─────────────────────────────────────────────
     Green "[1/6] Starting FastAPI Main Backend..."
-    Dim  "      Port: 8002  |  Docs: http://localhost:8002/docs"
-    $fastapiCmd = "venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload"
+    Dim  "      Port: 8010  |  Docs: http://localhost:8010/docs"
+    $fastapiCmd = "venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload"
     Start-ServiceWindow `
-        -Title "FastAPI Backend :8002" `
+        -Title "FastAPI Backend :8010" `
         -Cwd "$Root\backend" `
         -Command $fastapiCmd
 
@@ -159,9 +159,9 @@ if (-not $WatchOnly) {
 
     # ─── 7. Vite Frontend ───────────────────────────────────────────────────
     Green "[7/7] Starting Vite Frontend..."
-    Dim  "      Port: 5173  |  http://localhost:5173"
+    Dim  "      Port: 5000  |  http://localhost:5000"
     Start-ServiceWindow `
-        -Title "Vite Frontend :5173" `
+        -Title "Vite Frontend :5000" `
         -Cwd "$Root" `
         -Command "npm run dev"
 
@@ -194,11 +194,11 @@ White "Service                 Port    Status"
 White "─────────────────────────────────────────────────────────"
 
 $endpoints = @(
-    @{ Name = "FastAPI Backend"; Url = "http://localhost:8002/health"; },
+    @{ Name = "FastAPI Backend"; Url = "http://localhost:8010/health"; },
     @{ Name = "Health-Connect API"; Url = "http://localhost:4000/health"; },
     @{ Name = "Root Node API"; Url = "http://localhost:3001/health"; },
-    @{ Name = "Vite Frontend"; Url = "http://localhost:5173"; },
-    @{ Name = "FastAPI /docs"; Url = "http://localhost:8002/docs"; }
+    @{ Name = "Vite Frontend"; Url = "http://localhost:5000"; },
+    @{ Name = "FastAPI /docs"; Url = "http://localhost:8010/docs"; }
 )
 
 $allOk = $true
@@ -231,7 +231,7 @@ else {
 }
 
 Write-Host ""
-White "  EverAfter Routes at http://localhost:8002/api/v1/"
+White "  EverAfter Routes at http://localhost:8010/api/v1/"
 Dim   "    /health      /chat         /engrams      /council"
 Dim   "    /saints       /finance      /causal-twin  /trinity"
 Dim   "    /rituals      /time-capsule /integrity    /audit"
@@ -240,5 +240,5 @@ White "  Node.js Routes:"
 Dim   "    /health-api (4000)   /api/connections  /api/metrics"
 Dim   "    /root-server (3001)  /api/terra  /api/webhooks"
 Write-Host ""
-White "  Open the app → http://localhost:5173"
+White "  Open the app → http://localhost:5000"
 Write-Host ""

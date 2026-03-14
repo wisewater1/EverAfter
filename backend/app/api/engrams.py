@@ -66,7 +66,7 @@ async def list_engrams(
             "personality_summary": engram.personality_traits or {},
             "total_questions_answered": engram.total_memories or 0,
             "ai_readiness_score": getattr(engram, 'ai_readiness_score', 0),
-            "is_ai_active": True if engram.training_status == 'trained' else False,
+            "is_ai_active": True if engram.training_status == 'ready' else False,
             "training_status": engram.training_status or 'untrained',
             "created_at": engram.created_at,
             "updated_at": engram.updated_at,
@@ -390,7 +390,7 @@ async def batch_sync_engrams(
             description=member.get("bio") or f"A member of the family tree: {full_name}",
             avatar_url=member.get("photo"),
             personality_traits=personality_matrix,
-            training_status='trained' if member.get("aiPersonality", {}).get("isActive") else 'untrained'
+            training_status='ready' if member.get("aiPersonality", {}).get("isActive") else 'untrained'
         )
         
         session.add(new_engram)

@@ -15,6 +15,8 @@ export default defineConfig({
     target: 'esnext'
   },
   server: {
+    port: 5000,
+    strictPort: true,
     proxy: {
       '/api/v1': {
         target: 'http://localhost:8010',

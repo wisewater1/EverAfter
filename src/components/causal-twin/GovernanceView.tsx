@@ -5,6 +5,10 @@ import {
     ChevronDown, ChevronUp, Lock, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 interface Proposal {
     id: string;
@@ -23,6 +27,8 @@ export default function GovernanceView() {
     const [proposals, setProposals] = useState<Proposal[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedProposal, setExpandedProposal] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProposals();
@@ -30,37 +36,65 @@ export default function GovernanceView() {
 
     async function fetchProposals() {
         try {
-            const response = await fetch('/api/governance/proposals');
+            const headers = await apiClient.getAuthHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const response = await fetch(`${API_BASE}/governance/proposals`, { headers });
             if (response.ok) {
                 const data = await response.json();
                 setProposals(data.proposals || []);
+                setError(null);
+            } else {
+                const data = await response.json().catch(() => ({}));
+                setError(data?.detail || `Failed to load governance proposals (${response.status}).`);
             }
         } catch (error) {
             console.error('Failed to fetch proposals:', error);
+            setError('Failed to load governance proposals.');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }
 
     async function handleAction(id: string, action: 'ratify' | 'veto') {
         try {
-            const response = await fetch(`/api/governance/proposals/${id}/${action}`, {
-                method: 'POST'
+            const headers = await apiClient.getAuthHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const response = await fetch(`${API_BASE}/governance/proposals/${id}/${action}`, {
+                method: 'POST',
+                headers,
             });
             if (response.ok) {
                 fetchProposals();
+            } else {
+                const data = await response.json().catch(() => ({}));
+                setError(data?.detail || `Failed to ${action} proposal.`);
             }
         } catch (error) {
             console.error(`Failed to ${action} proposal:`, error);
+            setError(`Failed to ${action} proposal.`);
         }
     }
 
     async function triggerCheck() {
         try {
-            await fetch('/api/governance/check-drift', { method: 'POST' });
+            setRefreshing(true);
+            setError(null);
+            const headers = await apiClient.getAuthHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const response = await fetch(`${API_BASE}/governance/check-drift`, { method: 'POST', headers });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data?.detail || `Failed to run drift scan (${response.status}).`);
+            }
             fetchProposals();
         } catch (error) {
             console.error('Failed to trigger drift check:', error);
+            setRefreshing(false);
+            setError(error instanceof Error ? error.message : 'Failed to trigger drift check.');
         }
     }
 
@@ -76,12 +110,19 @@ export default function GovernanceView() {
                 </div>
                 <button
                     onClick={triggerCheck}
-                    className="px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium hover:bg-teal-500/20 transition-all flex items-center gap-2 shadow-lg shadow-teal-500/5 group"
+                    disabled={refreshing}
+                    className="px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium hover:bg-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-teal-500/5 group"
                 >
                     <Zap className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    Scan for Drift
+                    {refreshing ? 'Scanning…' : 'Scan for Drift'}
                 </button>
             </div>
+
+            {error && (
+                <div className="px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-300">
+                    {error}
+                </div>
+            )}
 
             {loading ? (
                 <div className="p-12 text-center text-slate-500 italic">Accessing Akashic Records...</div>

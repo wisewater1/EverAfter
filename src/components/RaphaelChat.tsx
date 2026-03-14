@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
-import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, ExternalLink, CheckCircle } from 'lucide-react';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, ExternalLink, CheckCircle, Zap } from 'lucide-react';
 import { extractHealthDataFromMessage, storeHealthMetrics, type ExtractedHealthData } from '../lib/raphael/healthDataService';
 
 interface Message {
@@ -35,6 +35,7 @@ interface RaphaelChatProps {
 
 export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   const { user } = useAuth();
+  const [resolvedEngramId, setResolvedEngramId] = useState(engramId || '');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -48,6 +49,34 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   const [healthContext, setHealthContext] = useState<HealthContext>({ recentMetrics: 0, upcomingAppointments: 0, activePrescriptions: 0 });
   const [healthDataNotice, setHealthDataNotice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (engramId) {
+      setResolvedEngramId(engramId);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const bootstrapRaphael = async () => {
+      try {
+        const raphael = await apiClient.bootstrapSaint('raphael');
+        if (!cancelled) {
+          setResolvedEngramId(raphael.engram_id);
+        }
+      } catch (error) {
+        console.error('Failed to bootstrap Raphael saint session:', error);
+      }
+    };
+
+    bootstrapRaphael();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [engramId]);
 
   useEffect(() => {
     if (user) {
@@ -118,21 +147,28 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     }
 
     try {
-      if (!engramId) {
-        throw new Error('Raphael Engram ID not found. Please try again in a moment.');
+      let assistantContent = "I'm here to help.";
+      let toolSuggestions = ['View health dashboard', 'Schedule appointment', 'Track medication'];
+
+      if (resolvedEngramId) {
+        const response = await apiClient.sendChatMessage(resolvedEngramId, userInput, undefined);
+        assistantContent = response.data?.message || assistantContent;
+      } else {
+        const response = await apiClient.chatWithSaint('raphael', userInput);
+        assistantContent = response.message || response.content || assistantContent;
+        toolSuggestions = ['View health dashboard', 'Review recent metrics', 'Track medication'];
       }
-      const response = await apiClient.sendChatMessage(engramId, userInput, undefined);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.data?.message || "I'm here to help.",
+        content: assistantContent,
         timestamp: new Date(),
         toolsUsed: false,
         toolExecutionLog: [],
         context: {
           healthData: true,
-          suggestions: ['View health dashboard', 'Schedule appointment', 'Track medication']
+          suggestions: toolSuggestions
         }
       };
 
@@ -233,7 +269,17 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
                 ? 'bg-blue-500/20 border border-blue-500/30'
                 : 'bg-emerald-500/20 border border-emerald-500/30'
                 }`}>
-                <p className="text-white text-sm leading-relaxed">{message.content}</p>
+                <div className="flex flex-col gap-1">
+                  {message.content.startsWith('[NATIVE]') && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 uppercase tracking-tighter mb-1">
+                      <Zap className="w-3 h-3" />
+                      In-Process Native
+                    </div>
+                  )}
+                  <p className="text-white text-sm leading-relaxed">
+                    {message.content.replace('[NATIVE]', '').trim()}
+                  </p>
+                </div>
                 {message.toolsUsed && message.toolExecutionLog && (
                   <div className="mt-2 pt-2 border-t border-emerald-500/20">
                     <div className="flex items-center gap-1.5 text-xs text-emerald-400">

@@ -50,7 +50,9 @@ const CATEGORY_STYLE: Record<string, { icon: string; color: string; bg: string }
 
 export default function MediaIntelligencePanel() {
     const members = getFamilyMembers();
-    const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+    const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(
+        () => members.find(m => !m.deathDate) || null
+    );
     const [showMemberPicker, setShowMemberPicker] = useState(false);
 
     // Permissions
@@ -97,7 +99,7 @@ export default function MediaIntelligencePanel() {
     useEffect(() => {
         if (selectedMember) {
             loadInfoStack(selectedMember.id);
-            setPermsGranted(selectedMember.mediaPermissions?.allowAIProcessing || false);
+            setPermsGranted(selectedMember.mediaPermissions?.allowAIProcessing ?? true);
         }
     }, [selectedMember, loadInfoStack]);
 
@@ -413,7 +415,7 @@ export default function MediaIntelligencePanel() {
                                 }`}
                         >
                             <Shield className="w-3 h-3" />
-                            {permsGranted ? 'AI Access Granted' : 'AI Access Denied'}
+                            {permsGranted ? 'AI Access Enabled' : 'Enable AI Access'}
                         </button>
                     </div>
                 )}

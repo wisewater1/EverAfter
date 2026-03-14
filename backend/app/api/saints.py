@@ -1,4 +1,4 @@
-"""
+﻿"""
 Saints API Router
 
 Endpoints for interacting with Saint Agents:
@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from datetime import datetime
+import uuid
+import logging
 
 from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
@@ -25,9 +27,27 @@ from app.models.saint import GuardianIntercession
 from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/saints", tags=["saints"])
+logger = logging.getLogger(__name__)
 
 
-# ─── Schemas ──────────────────────────────────────────────────────────────────
+def _saint_not_found_error(exc: Exception) -> bool:
+    detail = str(exc)
+    return detail.startswith("Dynamic agent not found:") or detail.startswith("Unknown saint or invalid agent ID:")
+
+def _current_user_uuid(current_user: dict) -> uuid.UUID:
+    for key in ("sub", "id"):
+        value = current_user.get(key)
+        if not value:
+            continue
+        try:
+            return uuid.UUID(str(value))
+        except ValueError:
+            continue
+
+    raise HTTPException(status_code=401, detail="User ID not found in token")
+
+
+# â”€â”€â”€ Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class CognitionStatusResponse(BaseModel):
     saint_id: str
@@ -92,7 +112,7 @@ class GuardianIntercessionResponse(BaseModel):
     created_at: str
 
 
-# ─── Endpoints ────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/status", response_model=List[SaintStatusResponse])
 async def get_saints_status(
@@ -103,7 +123,7 @@ async def get_saints_status(
     Get status of all saints for the current user.
     Returns which ones are active (have engrams) and their knowledge stats.
     """
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     return await saint_agent_service.get_all_saint_statuses(session, user_id)
 
 @router.get("/intercessions/pending", response_model=List[GuardianIntercessionResponse])
@@ -112,7 +132,7 @@ async def get_pending_intercessions(
     current_user: dict = Depends(get_current_user)
 ):
     """Get all pending intercessions for the current user."""
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     query = select(GuardianIntercession).where(
         GuardianIntercession.user_id == user_id,
         GuardianIntercession.status == "pending"
@@ -140,7 +160,7 @@ async def approve_intercession(
     current_user: dict = Depends(get_current_user)
 ):
     """Approve and execute a pending intercession."""
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     query = select(GuardianIntercession).where(
         GuardianIntercession.id == intercession_id,
         GuardianIntercession.user_id == user_id
@@ -159,10 +179,7 @@ async def approve_intercession(
     # Execute the action
     if action_engine and intercession.tool_name in action_engine.tools:
         try:
-            exec_result = action_engine.tools[intercession.tool_name](
-                user_id=user_id,
-                **intercession.tool_kwargs
-            )
+            exec_result = action_engine.execute_intercession(intercession, str(user_id))
             intercession.execution_result = exec_result
             intercession.status = "executed"
         except Exception as e:
@@ -179,7 +196,7 @@ async def deny_intercession(
     current_user: dict = Depends(get_current_user)
 ):
     """Deny a pending intercession."""
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     query = select(GuardianIntercession).where(
         GuardianIntercession.id == intercession_id,
         GuardianIntercession.user_id == user_id
@@ -204,7 +221,7 @@ async def register_dynamic_agent(
     """
     Register a new dynamic AI agent (e.g. Family Member).
     """
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     return await saint_agent_service.register_dynamic_agent(
         session,
         user_id,
@@ -225,11 +242,17 @@ async def bootstrap_saint(
     Initialize (or retrieve) the engram for a specific saint OR dynamic agent.
     """
     # Removed static check to allow dynamic IDs
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     try:
         return await saint_agent_service.bootstrap_saint_engram(session, user_id, saint_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        if _saint_not_found_error(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        logger.exception("Saint bootstrap failed for %s", saint_id)
+        raise HTTPException(status_code=500, detail="Failed to bootstrap saint")
+    except Exception:
+        logger.exception("Saint bootstrap failed for %s", saint_id)
+        raise HTTPException(status_code=500, detail="Failed to bootstrap saint")
 
 
 @router.get("/{saint_id}/history", response_model=List[ChatMessage])
@@ -241,11 +264,17 @@ async def get_chat_history(
     """
     Get recent chat history for a saint/agent.
     """
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     try:
         return await saint_agent_service.get_chat_history(session, user_id, saint_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        if _saint_not_found_error(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        logger.exception("Saint history load failed for %s", saint_id)
+        raise HTTPException(status_code=500, detail="Failed to load saint history")
+    except Exception:
+        logger.exception("Saint history load failed for %s", saint_id)
+        raise HTTPException(status_code=500, detail="Failed to load saint history")
 
 
 @router.post("/{saint_id}/chat", response_model=SaintChatResponse)
@@ -259,7 +288,7 @@ async def chat_with_saint(
     Send a message to a saint/agent.
     """
     # Removed static check
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     
     try:
         # Use the Unified Runtime which wraps the agent service
@@ -292,7 +321,7 @@ async def get_saint_knowledge(
     # Relaxed check: if it's a dynamic agent, it might have knowledge if we implemented extraction for it.
     # For now, dynamic agents might return empty knowledge.
     
-    user_id = str(current_user.get("sub"))
+    user_id = _current_user_uuid(current_user)
     return await saint_agent_service.get_knowledge(session, user_id, saint_id, category)
 
 
@@ -311,7 +340,7 @@ async def get_saint_cognition_status(
     
     return CognitionStatusResponse(
         saint_id=saint_id,
-        memory_count=len(memory.get_context(query="", limit=100)),
+        memory_count=len(await memory.get_context(query="", limit=100)),
         last_reflection=reflector.last_reflection_time.isoformat() if getattr(reflector, 'last_reflection_time', None) else None,
         current_plan=planner.current_plan.high_level_goal if getattr(planner, 'current_plan', None) else "Maintaining family tree harmony and coordinating household schedules.",
         layers={
@@ -347,7 +376,7 @@ async def trigger_social_interaction(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ─── Akashic Synthesis Handlers ───────────────────────────────────────────────
+# â”€â”€â”€ Akashic Synthesis Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 from app.services.saint_event_bus import saint_event_bus, HealthDeclineEvent, FinancialCrisisEvent, LifeMilestoneEvent, PersonalityDriftEvent
 
@@ -465,3 +494,8 @@ async def handle_personality_drift(event: PersonalityDriftEvent):
             await session.rollback()
 
 saint_event_bus.subscribe("personality_drift", handle_personality_drift)
+
+
+
+
+

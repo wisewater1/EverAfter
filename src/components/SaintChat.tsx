@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Book, X, Sparkles } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
-import { useAuth } from '../contexts/AuthContext';
 
 interface SaintChatProps {
     saintId: string;
@@ -29,6 +28,42 @@ interface KnowledgeItem {
     confidence: number;
 }
 
+type SaintStep = 'bootstrap' | 'history' | 'knowledge' | 'chat';
+
+function formatSaintError(step: SaintStep, error: unknown): string {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+    if (message.includes('401') || message.includes('403') || message.includes('unauthorized') || message.includes('forbidden')) {
+        return 'Your Saint session is not authorized. Please sign in again.';
+    }
+
+    if (message.includes('not found') || message.includes('404')) {
+        return step === 'bootstrap'
+            ? 'This Saint is not available yet.'
+            : 'Saint data could not be found right now.';
+    }
+
+    if (message.includes('500') || message.includes('temporarily unavailable')) {
+        return step === 'chat'
+            ? 'Saint AI is temporarily unavailable. Please try again.'
+            : 'Saint services are temporarily unavailable. Please try again.';
+    }
+
+    if (step === 'knowledge') {
+        return 'Knowledge could not be loaded. Chat is still available.';
+    }
+
+    if (step === 'history') {
+        return 'History could not be loaded. You can still start a new conversation.';
+    }
+
+    if (step === 'chat') {
+        return 'Failed to send message. Please try again.';
+    }
+
+    return 'Failed to initialize Saint AI. Please try again.';
+}
+
 export default function SaintChat({
     saintId,
     saintName,
@@ -39,7 +74,6 @@ export default function SaintChat({
     userContext,
     onClose
 }: SaintChatProps) {
-    const { user } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -58,40 +92,41 @@ export default function SaintChat({
         scrollToBottom();
     }, [messages]);
 
-    // Bootstrap saint and load initial data
     useEffect(() => {
         const init = async () => {
-            if (!user) return;
-
             try {
                 setBootstrapping(true);
                 setError(null);
 
-                // 1. Bootstrap (ensure engram exists)
-                // For dynamic agents, this might fail if they aren't registered yet, 
-                // but we assume they are registered before Chat is opened.
-                // If not, the backend bootstrap will try to look them up.
                 await apiClient.bootstrapSaint(saintId);
 
-                // 2. Load knowledge & history in parallel
-                const [knowledgeData, historyData] = await Promise.all([
+                const [knowledgeResult, historyResult] = await Promise.allSettled([
                     apiClient.getSaintKnowledge(saintId),
                     apiClient.getChatHistory(saintId)
                 ]);
 
-                setKnowledge(knowledgeData);
+                if (knowledgeResult.status === 'fulfilled') {
+                    setKnowledge(knowledgeResult.value);
+                } else {
+                    console.error('Failed to load saint knowledge:', knowledgeResult.reason);
+                    setKnowledge([]);
+                    setError(formatSaintError('knowledge', knowledgeResult.reason));
+                }
 
-                // 3. Set messages from history or add initial greeting
-                if (historyData && historyData.length > 0) {
-                    // Map backend history to UI format
-                    const historyMessages: Message[] = historyData.map((msg: any) => ({
+                if (historyResult.status === 'fulfilled' && historyResult.value.length > 0) {
+                    const historyMessages: Message[] = historyResult.value.map((msg: any) => ({
                         id: msg.id,
                         role: msg.role,
                         content: msg.content,
                         timestamp: msg.timestamp || new Date().toISOString()
                     }));
                     setMessages(historyMessages);
-                } else if (messages.length === 0) {
+                } else {
+                    if (historyResult.status === 'rejected') {
+                        console.error('Failed to load saint history:', historyResult.reason);
+                        setError(prev => prev || formatSaintError('history', historyResult.reason));
+                    }
+
                     setMessages([{
                         id: 'init',
                         role: 'assistant',
@@ -101,14 +136,14 @@ export default function SaintChat({
                 }
             } catch (err) {
                 console.error('Failed to initialize saint:', err);
-                setError('Failed to connect to Saint AI. Please try again.');
+                setError(formatSaintError('bootstrap', err));
             } finally {
                 setBootstrapping(false);
             }
         };
 
         init();
-    }, [saintId, user]);
+    }, [initialMessage, saintId, saintName, saintTitle]);
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
@@ -139,13 +174,17 @@ export default function SaintChat({
 
             setMessages(prev => [...prev, aiMsg]);
 
-            // Refresh knowledge in background as it might have updated
-            const freshKnowledge = await apiClient.getSaintKnowledge(saintId);
-            setKnowledge(freshKnowledge);
+            try {
+                const freshKnowledge = await apiClient.getSaintKnowledge(saintId);
+                setKnowledge(freshKnowledge);
+            } catch (knowledgeError) {
+                console.error('Failed to refresh saint knowledge:', knowledgeError);
+                setError(prev => prev || formatSaintError('knowledge', knowledgeError));
+            }
 
         } catch (err) {
             console.error('Chat error:', err);
-            setError('Failed to send message. Please try again.');
+            setError(formatSaintError('chat', err));
         } finally {
             setLoading(false);
         }

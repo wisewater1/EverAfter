@@ -24,9 +24,36 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 class APIClient {
   private pendingRequests: Map<string, Promise<unknown>> = new Map();
 
+  private async buildAuthHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {
+    const token = await this.getAuthToken();
+    return token
+      ? { ...extraHeaders, Authorization: `Bearer ${token}` }
+      : extraHeaders;
+  }
+
   private async getAuthToken(): Promise<string | null> {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token || null;
+  }
+
+  async getAuthHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {
+    return this.buildAuthHeaders(extraHeaders);
+  }
+
+  private async parseBackendError(response: Response, fallbackLabel: string): Promise<Error> {
+    let message = `${fallbackLabel}: ${response.status}`;
+
+    try {
+      const data = await response.json();
+      const detail = data?.detail || data?.error || data?.message;
+      if (typeof detail === 'string' && detail.trim()) {
+        message = detail;
+      }
+    } catch {
+      // Ignore invalid error payloads and keep the status-based fallback.
+    }
+
+    return new Error(message);
   }
 
   /**
@@ -456,21 +483,21 @@ class APIClient {
     }
   }
 
-  // ─── Saint Agent API ────────────────────────────────────────────────────────
+  // Saint Agent API
 
   async getSaintsStatus(): Promise<Exclude<EdgeFunctionResponse<any>['data'], undefined>> {
     return this.deduplicate('saints-status', async () => {
-      const token = await this.getAuthToken();
       const API_BASE = `${API_BASE_URL}`;
+      const headers = await this.buildAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
+      });
 
       try {
-        const response = await fetch(`${API_BASE}/api/v1/saints/status`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/status`, {
+          headers
+        }));
 
-        if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+        if (!response.ok) throw await this.parseBackendError(response, 'Unable to load saints status');
         return await response.json();
       } catch (error) {
         console.error("Get Saints Status Error:", error);
@@ -480,18 +507,18 @@ class APIClient {
   }
 
   async bootstrapSaint(saintId: string): Promise<{ engram_id: string, saint_id: string, name: string }> {
-    const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/bootstrap`, {
+      const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/${saintId}/bootstrap`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+        headers
+      }));
 
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      if (!response.ok) throw await this.parseBackendError(response, `Unable to bootstrap saint ${saintId}`);
       return await response.json();
     } catch (error) {
       console.error("Bootstrap Saint Error:", error);
@@ -500,21 +527,20 @@ class APIClient {
   }
 
   async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false, context?: string): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
-    const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/chat`, {
+      const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/${saintId}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ message, coordination_mode: coordinationMode, context })
-      });
+      }));
 
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      if (!response.ok) throw await this.parseBackendError(response, `Unable to chat with saint ${saintId}`);
       const data = await response.json();
 
       // Map backend response to ChatResponse format expected by UI
@@ -536,8 +562,10 @@ class APIClient {
   }
 
   async getSaintKnowledge(saintId: string, category?: string): Promise<any[]> {
-    const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     let url = `${API_BASE}/api/v1/saints/${saintId}/knowledge`;
     if (category) {
@@ -545,13 +573,11 @@ class APIClient {
     }
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await this.withRetry(() => fetch(url, {
+        headers
+      }));
 
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      if (!response.ok) throw await this.parseBackendError(response, `Unable to load saint knowledge for ${saintId}`);
       return await response.json();
     } catch (error) {
       console.error("Get Saint Knowledge Error:", error);
@@ -584,17 +610,17 @@ class APIClient {
   }
 
   async getChatHistory(saintId: string): Promise<any[]> {
-    const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/history`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/${saintId}/history`, {
+        headers
+      }));
 
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      if (!response.ok) throw await this.parseBackendError(response, `Unable to load saint chat history for ${saintId}`);
       return await response.json();
     } catch (error) {
       console.error("Get Chat History Error:", error);

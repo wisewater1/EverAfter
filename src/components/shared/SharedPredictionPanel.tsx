@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
 import {
     Activity, TrendingUp, TrendingDown, Minus, AlertTriangle,
     Shield, Brain, Beaker, ChevronRight, RefreshCw
@@ -110,6 +111,7 @@ export default function SharedPredictionPanel({
     const [loading, setLoading] = useState(true);
     const [simulating, setSimulating] = useState(false);
     const [showSim, setShowSim] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [simMetric, setSimMetric] = useState('heart_rate');
     const [simChange, setSimChange] = useState(5);
 
@@ -118,20 +120,32 @@ export default function SharedPredictionPanel({
     const fetchPrediction = useCallback(async () => {
         setLoading(true);
         try {
+            const jsonHeaders = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const authHeaders = await apiClient.getAuthHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
             const [predRes, warnRes] = await Promise.all([
                 fetch(`${API_BASE}/api/v1/health-predictions/predict`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: jsonHeaders,
                     body: JSON.stringify({
                         metrics_history: metricsHistory,
                         profile: profile || {},
                     }),
                 }),
-                fetch(`${API_BASE}/api/v1/health-predictions/early-warnings`),
+                fetch(`${API_BASE}/api/v1/health-predictions/early-warnings`, {
+                    headers: authHeaders,
+                }),
             ]);
             if (predRes.ok) {
                 const data = await predRes.json();
                 setPrediction(data);
+                setError(null);
+            } else {
+                setError(`Failed to load predictions (${predRes.status}).`);
             }
             if (warnRes.ok) {
                 const data = await warnRes.json();
@@ -139,6 +153,8 @@ export default function SharedPredictionPanel({
             }
         } catch (err) {
             console.error('SharedPredictionPanel: fetch failed', err);
+            setError('Failed to load predictions.');
+            setPrediction(null);
         }
         setLoading(false);
     }, [metricsHistory, profile]);
@@ -150,9 +166,13 @@ export default function SharedPredictionPanel({
     const runSimulation = async () => {
         setSimulating(true);
         try {
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
+            });
             const res = await fetch(`${API_BASE}/api/v1/health-predictions/simulate`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     scenarios: [{ metric: simMetric, change_type: 'increase', change_value: simChange, duration_days: 30 }],
                     baseline_metrics: metricsHistory,
@@ -180,7 +200,16 @@ export default function SharedPredictionPanel({
         );
     }
 
-    if (!prediction) return null;
+    if (!prediction) {
+        return (
+            <div className="rounded-2xl bg-[#13131a] border border-white/5 p-6">
+                <div className="flex items-center gap-2 text-rose-300 text-sm">
+                    <AlertTriangle className="w-4 h-4" />
+                    {error || 'Predictions are unavailable right now.'}
+                </div>
+            </div>
+        );
+    }
 
     const badge = CONFIDENCE_BADGE[prediction.uncertainty.confidence_level] || CONFIDENCE_BADGE.low;
     const riskColor = RISK_COLORS[prediction.risk_level] || RISK_COLORS.moderate;
