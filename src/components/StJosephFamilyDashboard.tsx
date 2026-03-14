@@ -6,7 +6,7 @@ import {
     GitBranch, UserCheck, History, MessageCircle, Search,
     Scale, Archive, Sparkles, Brain
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
 import type { HouseholdSummary, FamilyTask, ShoppingItem, FamilyEvent } from '../lib/joseph/family';
@@ -22,7 +22,7 @@ import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
 import MediaIntelligencePanel from './joseph/MediaIntelligencePanel';
 import PersonalityQuiz from './joseph/PersonalityQuiz';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
-import { getFamilyMembers, getActiveAgents } from '../lib/joseph/genealogy';
+import { getFamilyMembers } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
 import CustomEngramsDashboard from './CustomEngramsDashboard';
 import SaintsQuickNav from './shared/SaintsQuickNav';
@@ -52,9 +52,29 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
+function sanitizeDashboardCopy(value: string) {
+    return value
+        .replace('âš• ', '')
+        .replaceAll('â€™', "'")
+        .replaceAll('â€”', '-')
+        .replaceAll('Â·', '-');
+}
+
+function deriveFamilyStatus() {
+    return getFamilyMembers()
+        .filter(member => !member.deathDate)
+        .sort((left, right) => right.generation - left.generation || left.firstName.localeCompare(right.firstName))
+        .slice(0, 6)
+        .map(member => ({
+            name: `${member.firstName} ${member.lastName}`,
+            status: member.generation >= 1 ? 'home' : member.generation === 0 ? 'busy' : 'away',
+        }));
+}
+
 export default function StJosephFamilyDashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [summary, setSummary] = useState<HouseholdSummary | null>(null);
     const [tasks, setTasks] = useState<FamilyTask[]>([]);
     const [shopping, setShopping] = useState<ShoppingItem[]>([]);
@@ -64,10 +84,17 @@ export default function StJosephFamilyDashboard() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
+    const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
+    const showTopTellMyStoryBanner = !['members', 'quiz', 'predictions', 'create-ai'].includes(activeTab);
 
     const handleTrainMember = (engramId: string) => {
         setTrainingTargetId(engramId);
         setActiveTab('training');
+    };
+
+    const handleStartPersonalityQuiz = (memberId: string) => {
+        setQuizTargetMemberId(memberId);
+        setActiveTab('quiz');
     };
 
     const loadData = async () => {
@@ -89,11 +116,7 @@ export default function StJosephFamilyDashboard() {
                 activeTasks: (t as FamilyTask[]).filter(x => x.status === 'pending').length,
                 upcomingEvents: (e as FamilyEvent[]).length,
                 shoppingListCount: (shop as ShoppingItem[]).filter((x: any) => x.status === 'needed').length,
-                familyStatus: [
-                    { name: 'Alice', status: 'home' },
-                    { name: 'Bob', status: 'away' },
-                    { name: 'Charlie', status: 'busy' },
-                ],
+                familyStatus: deriveFamilyStatus(),
             });
         } catch (error) {
             console.error('Error loading family data:', error);
@@ -138,6 +161,27 @@ export default function StJosephFamilyDashboard() {
         loadData();
         syncEngrams();
     }, [user]);
+
+    useEffect(() => {
+        const requestedTab = searchParams.get('tab');
+        const requestedMemberId = searchParams.get('memberId');
+        if (!requestedTab && !requestedMemberId) return;
+
+        if (requestedTab && TABS.some(tab => tab.key === requestedTab)) {
+            setActiveTab(requestedTab as TabKey);
+        } else if (requestedMemberId) {
+            setActiveTab('quiz');
+        }
+
+        if (requestedMemberId) {
+            setQuizTargetMemberId(requestedMemberId);
+        }
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        nextSearchParams.delete('tab');
+        nextSearchParams.delete('memberId');
+        setSearchParams(nextSearchParams, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     if (loading) {
         return (
@@ -202,7 +246,7 @@ export default function StJosephFamilyDashboard() {
                                 }`}
                         >
                             <TabIcon className="w-3.5 h-3.5 shrink-0" />
-                            {label}
+                            {sanitizeDashboardCopy(label)}
                         </button>
                     ))}
                 </div>
@@ -211,22 +255,35 @@ export default function StJosephFamilyDashboard() {
             {/* Full-width genealogy tabs */}
             {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams' || activeTab === 'create-ai') && (
                 <div className="max-w-7xl mx-auto">
-                    <div className="mb-4">
-                        <TellMyStoryPartnerCard
-                            title="New family memory AI feature"
-                            description="EverAfter has partnered with TellMyStory.ai so your family can capture guided memories, voice stories, and relationship context that can feed future AI experiences."
+                    {showTopTellMyStoryBanner && (
+                        <div className="mb-4">
+                            <TellMyStoryPartnerCard
+                                title="New family memory AI feature"
+                                description="EverAfter has partnered with TellMyStory.ai so your family can capture guided memories, voice stories, and relationship context that can feed future AI experiences."
+                            />
+                        </div>
+                    )}
+                    {activeTab === 'tree' && (
+                        <FamilyTreeView
+                            onTrainMember={handleTrainMember}
+                            onStartPersonalityQuiz={handleStartPersonalityQuiz}
                         />
-                    </div>
-                    {activeTab === 'tree' && <FamilyTreeView onTrainMember={handleTrainMember} />}
+                    )}
                     {activeTab === 'members' && (
                         <div className="space-y-4">
                             <FamilyHealthHeatmap />
-                            <FamilyMembersGrid onTrainMember={handleTrainMember} />
+                            <FamilyMembersGrid
+                                onTrainMember={handleTrainMember}
+                                onStartPersonalityQuiz={handleStartPersonalityQuiz}
+                            />
                         </div>
                     )}
                     {activeTab === 'quiz' && (
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
-                            <PersonalityQuiz />
+                            <PersonalityQuiz
+                                initialMemberId={quizTargetMemberId}
+                                onAutoStartConsumed={() => setQuizTargetMemberId(null)}
+                            />
                             {user?.id && <OceanBehavioralLayer personId={user.id} />}
                             <TellMyStoryPartnerCard
                                 title="Create Your AI from OCEAN + story data"
@@ -244,11 +301,16 @@ export default function StJosephFamilyDashboard() {
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
                             <SharedPredictionPanel saint="joseph" />
                             <FamilyHealthHeatmap />
-                            <TellMyStoryPartnerCard
-                                title="Create a medical memory AI profile"
-                                description="Pair health history, care preferences, and lived story context in TellMyStory.ai so each family member’s medical profile has human background, not just metrics."
-                                compact
-                            />
+                            <div className="rounded-2xl border border-teal-500/20 bg-gradient-to-br from-teal-500/10 via-cyan-500/5 to-transparent p-4">
+                                <div className="flex items-center gap-2 text-teal-300 mb-2">
+                                    <Activity className="w-4 h-4" />
+                                    <span className="text-xs font-semibold uppercase tracking-[0.2em]">Prediction Inputs</span>
+                                </div>
+                                <h3 className="text-lg font-medium text-white">Predictions use OCEAN + medical records</h3>
+                                <p className="mt-1 text-sm text-slate-300 leading-relaxed">
+                                    EverAfter predictions in this view are derived from OCEAN behavioral patterns, family health context, and connected medical record data. This panel no longer routes through TellMyStory.ai.
+                                </p>
+                            </div>
                         </div>
                     )}
                     {activeTab === 'training' && (

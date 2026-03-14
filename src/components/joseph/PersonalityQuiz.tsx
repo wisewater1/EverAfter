@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
     ChevronRight, ChevronLeft, Sparkles, BarChart3, Brain,
     CheckCircle, Users, RefreshCw, Shield, Heart, TrendingUp, BookOpen,
-    Activity, Target, Beaker, FileText, Radio
+    Activity, Target, Beaker, FileText, Radio, Send, PauseCircle
 } from 'lucide-react';
 import { getFamilyMembers, updateFamilyMember } from '../../lib/joseph/genealogy';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
@@ -13,6 +13,17 @@ import EvidenceLedgerView from '../causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../causal-twin/ModelHealthPanel';
 import { API_BASE_URL } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
+import { storePersonalityProfile, toOceanScores } from '../../lib/joseph/personalityProfiles';
+import {
+    buildQuizProgressSnapshot,
+    buildQuizShareMessage,
+    markQuizInviteSent,
+    readStoredQuizSession,
+    removeStoredQuizSession,
+    saveStoredQuizSession,
+    type StoredQuizQuestion,
+    type StoredQuizSession,
+} from '../../lib/joseph/quizSessions';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
@@ -104,9 +115,15 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 interface PersonalityQuizProps {
     onProfileComplete?: (profile: PersonalityProfile) => void;
+    initialMemberId?: string | null;
+    onAutoStartConsumed?: () => void;
 }
 
-export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizProps = {}) {
+export default function PersonalityQuiz({
+    onProfileComplete,
+    initialMemberId = null,
+    onAutoStartConsumed,
+}: PersonalityQuizProps = {}) {
     const members = getFamilyMembers();
 
     const [phase, setPhase] = useState<'select' | 'quiz' | 'results'>('select');
@@ -119,6 +136,7 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
     const [loading, setLoading] = useState(false);
     const [expandedTrait, setExpandedTrait] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'profile' | 'causal-twin' | 'what-if' | 'experiments' | 'evidence' | 'model-health'>('profile');
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     const TABS = [
         { id: 'profile', label: 'Traits', icon: Brain },
@@ -142,45 +160,27 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
         return groups;
     }, [questions]);
 
-    // Check local storage for existing progress text
-    const getSavedProgressText = (memberId: string) => {
-        try {
-            const saved = localStorage.getItem(`everafter_quiz_progress_${memberId}`);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed && typeof parsed.currentQ === 'number') {
-                    return `Resume Quiz (Saved at Q${parsed.currentQ + 1})`;
-                }
-            }
-        } catch { }
-        return null;
-    };
+    const loadSessionIntoState = useCallback((member: FamilyMember, session: StoredQuizSession) => {
+        setSelectedMember(member);
+        setSessionId(session.sessionId);
+        setQuestions(session.questions as QuizQuestion[]);
+        setAnswers(session.answers || {});
+        setCurrentQ(session.currentQ || 0);
+        setPhase('quiz');
+    }, []);
 
     /* ── Start quiz ──────────────────────────────────────── */
 
-    const startQuiz = useCallback(async (member: FamilyMember) => {
-        setSelectedMember(member);
-        const storageKey = `everafter_quiz_progress_${member.id}`;
-
-        // Check for saved progress first
-        try {
-            const saved = localStorage.getItem(storageKey);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed && parsed.sessionId && parsed.questions) {
-                    setSessionId(parsed.sessionId);
-                    setQuestions(parsed.questions);
-                    setAnswers(parsed.answers || {});
-                    setCurrentQ(parsed.currentQ || 0);
-                    setPhase('quiz');
-                    return; // Abort new backend fetch
-                }
-            }
-        } catch (e) {
-            console.error("Failed to parse saved quiz progress", e);
+    const ensureQuizSession = useCallback(async (member: FamilyMember) => {
+        const fullName = `${member.firstName} ${member.lastName}`;
+        const existing = readStoredQuizSession(member.id);
+        if (existing?.sessionId && Array.isArray(existing.questions) && existing.questions.length > 0) {
+            return {
+                ...existing,
+                memberName: existing.memberName || fullName,
+            } as StoredQuizSession;
         }
 
-        // Otherwise generate a new session
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE}/api/v1/personality-quiz/start`, {
@@ -188,30 +188,106 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     member_id: member.id,
-                    member_name: `${member.firstName} ${member.lastName}`,
+                    member_name: fullName,
                 }),
             });
-            if (res.ok) {
-                const data = await res.json();
-                setSessionId(data.session_id);
-                setQuestions(data.questions);
-                setAnswers({});
-                setCurrentQ(0);
-                setPhase('quiz');
-
-                // Init blank save file
-                localStorage.setItem(storageKey, JSON.stringify({
-                    sessionId: data.session_id,
-                    questions: data.questions,
-                    answers: {},
-                    currentQ: 0
-                }));
+            if (!res.ok) {
+                throw new Error('Failed to start personality quiz session');
             }
-        } catch {
-            console.error('Failed to start quiz session');
+
+            const data = await res.json();
+            const session: StoredQuizSession = {
+                memberId: member.id,
+                memberName: fullName,
+                sessionId: data.session_id,
+                questions: (data.questions || []) as StoredQuizQuestion[],
+                answers: {},
+                currentQ: 0,
+                startedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                sentCount: 0,
+            };
+            saveStoredQuizSession(session);
+            return session;
+        } catch (error) {
+            console.error('Failed to start quiz session', error);
+            setStatusMessage(`Could not start the quiz for ${fullName}.`);
+            return null;
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, []);
+
+    const shareQuizWithFamily = useCallback(async (member: FamilyMember) => {
+        const session = await ensureQuizSession(member);
+        if (!session) return;
+
+        const { subject, body, link } = buildQuizShareMessage(`${member.firstName} ${member.lastName}`, member.id);
+        const shareText = `${subject}\n\n${body}`;
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: subject,
+                    text: body,
+                    url: link,
+                });
+            } else if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(shareText);
+            } else {
+                window.prompt('Copy this quiz link', link);
+            }
+
+            markQuizInviteSent(member.id);
+            setStatusMessage(`Quiz link ready for ${member.firstName}.`);
+        } catch (error) {
+            console.error('Failed to share quiz link:', error);
+            setStatusMessage(`Could not share the quiz link for ${member.firstName}.`);
+        }
+    }, [ensureQuizSession]);
+
+    const startQuiz = useCallback(async (member: FamilyMember) => {
+        const session = await ensureQuizSession(member);
+        if (!session) return;
+        loadSessionIntoState(member, session);
+    }, [ensureQuizSession, loadSessionIntoState]);
+
+    useEffect(() => {
+        if (!initialMemberId || phase !== 'select') return;
+
+        const member = getFamilyMembers().find((candidate) => candidate.id === initialMemberId);
+        if (!member) return;
+
+        void (async () => {
+            await startQuiz(member);
+            onAutoStartConsumed?.();
+        })();
+    }, [initialMemberId, onAutoStartConsumed, phase, startQuiz]);
+
+    useEffect(() => {
+        if (!statusMessage) return;
+
+        const timeout = window.setTimeout(() => setStatusMessage(null), 2500);
+        return () => window.clearTimeout(timeout);
+    }, [statusMessage]);
+
+    useEffect(() => {
+        if (phase !== 'quiz' || !selectedMember || !sessionId || questions.length === 0) return;
+
+        const existing = readStoredQuizSession(selectedMember.id);
+        saveStoredQuizSession({
+            memberId: selectedMember.id,
+            memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
+            sessionId,
+            questions: questions as StoredQuizQuestion[],
+            answers,
+            currentQ,
+            startedAt: existing?.startedAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastSentAt: existing?.lastSentAt,
+            sentCount: existing?.sentCount || 0,
+        });
+    }, [answers, currentQ, phase, questions, selectedMember, sessionId]);
 
     const selectAnswer = (value: number) => {
         if (!currentQuestion || !selectedMember) return;
@@ -221,15 +297,6 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
 
         const isLastQuestion = currentQ >= questions.length - 1;
         const nextQ = isLastQuestion ? currentQ : currentQ + 1;
-
-        // Save progress locally
-        const storageKey = `everafter_quiz_progress_${selectedMember.id}`;
-        localStorage.setItem(storageKey, JSON.stringify({
-            sessionId,
-            questions,
-            answers: newAnswers,
-            currentQ: nextQ
-        }));
 
         if (!isLastQuestion) {
             setTimeout(() => setCurrentQ(nextQ), 300);
@@ -253,7 +320,7 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
 
                 // Wipe local storage file since we submitted
                 if (selectedMember) {
-                    localStorage.removeItem(`everafter_quiz_progress_${selectedMember.id}`);
+                    removeStoredQuizSession(selectedMember.id);
                 }
 
                 // Notify parent (e.g., TrainingCenter) so radar updates immediately
@@ -263,6 +330,8 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
 
                 // Save to local genealogy + backend
                 if (selectedMember && data.traits) {
+                    const normalizedOceanScores = toOceanScores(data.scores);
+
                     updateFamilyMember(selectedMember.id, {
                         aiPersonality: {
                             traits: data.traits,
@@ -276,6 +345,13 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                             scores: data.scores,
                         },
                     });
+                    storePersonalityProfile(selectedMember.id, data);
+
+                    try {
+                        await apiClient.submitOceanProfile(selectedMember.id, normalizedOceanScores);
+                    } catch (err) {
+                        console.error('Failed to sync OCEAN profile to DHT:', err);
+                    }
 
                     // Trigger Guardian Word bulletin
                     try {
@@ -294,11 +370,20 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
 
     const restart = () => {
         setPhase('select');
+        setSelectedMember(null);
         setProfile(null);
         setQuestions([]);
         setAnswers({});
         setCurrentQ(0);
         setExpandedTrait(null);
+    };
+
+    const saveAndExit = () => {
+        if (selectedMember) {
+            setStatusMessage(`Saved progress for ${selectedMember.firstName}.`);
+        }
+        setPhase('select');
+        setSelectedMember(null);
     };
 
     /* ═══════════════════════════════════════════════════════
@@ -307,6 +392,11 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
 
     return (
         <div className="rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 overflow-hidden">
+            {statusMessage && (
+                <div className="mx-6 mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                    {statusMessage}
+                </div>
+            )}
 
             {/* ── Phase: Select Member ──────────────────────── */}
             {phase === 'select' && (
@@ -341,30 +431,75 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
 
                     <p className="text-xs text-slate-500 mb-3">Select a family member:</p>
 
-                    <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 max-h-[28rem] overflow-y-auto">
                         {members.filter(m => !m.deathDate).map(m => {
-                            const progressText = getSavedProgressText(m.id);
+                            const savedSession = readStoredQuizSession(m.id);
+                            const progressSnapshot = savedSession ? buildQuizProgressSnapshot(savedSession) : null;
+                            const hasProfile = Boolean(m.aiPersonality?.traits?.length);
 
                             return (
-                                <button
+                                <div
                                     key={m.id}
-                                    onClick={() => startQuiz(m)}
-                                    disabled={loading}
-                                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/[0.03] transition text-left group"
+                                    className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition hover:border-purple-500/30 hover:bg-purple-500/[0.03]"
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                        <Users className="w-4 h-4 text-purple-400" />
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                            <Users className="w-4 h-4 text-purple-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm text-white font-medium">{m.firstName} {m.lastName}</p>
+                                                    <p className="text-[10px] text-slate-500">
+                                                        {progressSnapshot
+                                                            ? `${progressSnapshot.answeredCount}/${progressSnapshot.totalQuestions} answered • ${progressSnapshot.progressPercent}% complete`
+                                                            : hasProfile
+                                                                ? `${m.aiPersonality?.traits?.join(', ')}`
+                                                                : 'No profile yet'}
+                                                    </p>
+                                                </div>
+                                                {progressSnapshot && (
+                                                    <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-300">
+                                                        Q{progressSnapshot.currentQuestionNumber}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {progressSnapshot && (
+                                                <div className="mt-3">
+                                                    <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                                                        <div
+                                                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-amber-500"
+                                                            style={{ width: `${progressSnapshot.progressPercent}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="mt-1 text-[10px] text-slate-600">
+                                                        Last updated {new Date(progressSnapshot.updatedAt).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <button
+                                                    onClick={() => startQuiz(m)}
+                                                    disabled={loading}
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-purple-500/15 px-3 py-2 text-xs font-semibold text-purple-200 transition hover:bg-purple-500/25 disabled:opacity-50"
+                                                >
+                                                    <Brain className="w-3.5 h-3.5" />
+                                                    {progressSnapshot ? 'Resume' : hasProfile ? 'Retake on behalf' : 'Answer on behalf'}
+                                                </button>
+                                                <button
+                                                    onClick={() => shareQuizWithFamily(m)}
+                                                    disabled={loading}
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20 disabled:opacity-50"
+                                                >
+                                                    <Send className="w-3.5 h-3.5" />
+                                                    {progressSnapshot?.lastSentAt ? 'Copy quiz link again' : 'Send questions'}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white font-medium">{m.firstName} {m.lastName}</p>
-                                        <p className={`text-[10px] ${progressText ? 'text-amber-400 font-bold' : 'text-slate-600'}`}>
-                                            {progressText || (m.aiPersonality?.traits?.length
-                                                ? `${m.aiPersonality.traits.join(', ')}`
-                                                : 'No profile yet')}
-                                        </p>
-                                    </div>
-                                    <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-purple-400 transition" />
-                                </button>
+                                </div>
                             );
                         })}
                     </div>
@@ -386,9 +521,14 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                     <div className="px-5 pt-4 pb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-lg">{CATEGORY_ICONS[currentQuestion.category] || '📝'}</span>
-                            <span className="text-[11px] text-slate-500 font-medium">
-                                {currentQuestion.category}
-                            </span>
+                            <div>
+                                <span className="block text-[11px] text-slate-500 font-medium">
+                                    {currentQuestion.category}
+                                </span>
+                                <span className="block text-[10px] text-slate-600">
+                                    {selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Family member'}
+                                </span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="text-[11px] text-slate-600">
@@ -397,6 +537,13 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                             <span className="text-[11px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
                                 Q{currentQ + 1}
                             </span>
+                            <button
+                                onClick={saveAndExit}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:border-amber-500/30 hover:text-white"
+                            >
+                                <PauseCircle className="w-3.5 h-3.5" />
+                                Save & Exit
+                            </button>
                         </div>
                     </div>
 
@@ -438,12 +585,6 @@ export default function PersonalityQuiz({ onProfileComplete }: PersonalityQuizPr
                             onClick={() => {
                                 const nextQ = Math.max(0, currentQ - 1);
                                 setCurrentQ(nextQ);
-                                // Save local progress when going back too
-                                if (selectedMember) {
-                                    localStorage.setItem(`everafter_quiz_progress_${selectedMember.id}`, JSON.stringify({
-                                        sessionId, questions, answers, currentQ: nextQ
-                                    }));
-                                }
                             }}
                             disabled={currentQ === 0}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-white disabled:opacity-30 transition"

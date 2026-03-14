@@ -2,6 +2,7 @@
 // With localStorage persistence, AI Agent personality generation,
 // and GeneWeb-inspired genealogy tools (GEDCOM, relationship paths, source citations)
 
+import { API_BASE_URL } from '../env';
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
 export type EventType = 'birth' | 'marriage' | 'death' | 'milestone' | 'adoption';
@@ -223,7 +224,7 @@ async function loadGenealogyFromBackend() {
             } catch (e) { }
         }
 
-        const res = await fetch('http://localhost:8002/api/v1/genealogy/tree', {
+        const res = await fetch(`${API_BASE_URL}/api/v1/genealogy/tree`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

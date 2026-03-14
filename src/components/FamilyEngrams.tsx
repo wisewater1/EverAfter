@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Heart, Image, Video, MessageSquare, Sparkles, Settings, ChevronRight, Upload, X, Camera } from 'lucide-react';
+import { Users, Plus, Heart, Image, Video, MessageSquare, Sparkles, Settings, ChevronRight, Upload, X, Camera, Brain, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { getFamilyMembers } from '../lib/joseph/genealogy';
+import {
+  QUIZ_SESSIONS_UPDATED_EVENT,
+  buildQuizShareMessage,
+  buildQuizProgressSnapshot,
+  listStoredQuizSessions,
+  markQuizInviteSent,
+  type QuizProgressSnapshot,
+} from '../lib/joseph/quizSessions';
 
 interface FamilyMember {
   id: string;
@@ -28,8 +38,10 @@ type ViewMode = 'grid' | 'create' | 'detail' | 'interact';
 
 export default function FamilyEngrams() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [quizActivities, setQuizActivities] = useState<QuizProgressSnapshot[]>([]);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -39,6 +51,73 @@ export default function FamilyEngrams() {
       loadFamilyMembers();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const loadQuizActivities = () => {
+      const memberNameMap = new Map(
+        getFamilyMembers().map((member) => [member.id, `${member.firstName} ${member.lastName}`])
+      );
+
+      setQuizActivities(
+        listStoredQuizSessions()
+          .map((session) => {
+            const snapshot = buildQuizProgressSnapshot(session);
+            return {
+              ...snapshot,
+              memberName: memberNameMap.get(snapshot.memberId) || snapshot.memberName,
+            };
+          })
+          .filter((snapshot) => !snapshot.isComplete)
+      );
+    };
+
+    loadQuizActivities();
+    window.addEventListener(QUIZ_SESSIONS_UPDATED_EVENT, loadQuizActivities as EventListener);
+    window.addEventListener('focus', loadQuizActivities);
+
+    return () => {
+      window.removeEventListener(QUIZ_SESSIONS_UPDATED_EVENT, loadQuizActivities as EventListener);
+      window.removeEventListener('focus', loadQuizActivities);
+    };
+  }, []);
+
+  async function shareQuizLink(activity: QuizProgressSnapshot) {
+    const { subject, body, link } = buildQuizShareMessage(activity.memberName, activity.memberId);
+    const shareText = `${subject}\n\n${body}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: subject,
+          text: body,
+          url: link,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+      } else {
+        window.prompt('Copy this quiz link', link);
+      }
+
+      markQuizInviteSent(activity.memberId);
+      setQuizActivities((current) =>
+        current.map((entry) =>
+          entry.memberId === activity.memberId
+            ? {
+                ...entry,
+                lastSentAt: new Date().toISOString(),
+                sentCount: (entry.sentCount || 0) + 1,
+              }
+            : entry
+        )
+      );
+    } catch (error) {
+      console.error('Failed to share quiz link:', error);
+    }
+  }
+
+  function openQuizActivity(memberId: string) {
+    navigate(`/family-dashboard?tab=quiz&memberId=${encodeURIComponent(memberId)}`);
+  }
 
   async function loadFamilyMembers() {
     setLoading(true);
@@ -149,6 +228,88 @@ export default function FamilyEngrams() {
           <p className="text-3xl font-bold text-white">0</p>
         </div>
       </div>
+
+      {quizActivities.length > 0 && (
+        <div className="ea-panel p-4 sm:p-6" data-variant="gold">
+          <div className="flex flex-col gap-2 mb-5">
+            <div className="flex items-center gap-3">
+              <Brain className="w-6 h-6 text-amber-400" />
+              <div>
+                <h3 className="text-lg font-semibold text-white">Personality Questionnaire Activity</h3>
+                <p className="text-sm text-slate-400">
+                  Resume paused questions, answer on behalf of a family member, or send the questionnaire out.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {quizActivities.map((activity) => (
+              <div
+                key={activity.memberId}
+                className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4"
+              >
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{activity.memberName}</p>
+                    <p className="text-xs text-slate-400">
+                      {activity.answeredCount}/{activity.totalQuestions} answered
+                      {' '}•{' '}
+                      question {activity.currentQuestionNumber} next
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300">
+                    {activity.progressPercent}% complete
+                  </span>
+                </div>
+
+                <div className="mb-4">
+                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-400"
+                      style={{ width: `${activity.progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-[11px] text-slate-500 mb-4">
+                  <span>Started {new Date(activity.startedAt).toLocaleDateString()}</span>
+                  <span>Updated {new Date(activity.updatedAt).toLocaleString()}</span>
+                  {activity.sentCount > 0 && (
+                    <span>
+                      Sent {activity.sentCount} {activity.sentCount === 1 ? 'time' : 'times'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => openQuizActivity(activity.memberId)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-3 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-amber-400"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    Continue Here
+                  </button>
+                  <button
+                    onClick={() => openQuizActivity(activity.memberId)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-white/20 hover:text-white"
+                  >
+                    <Users className="w-4 h-4" />
+                    Answer on Their Behalf
+                  </button>
+                  <button
+                    onClick={() => void shareQuizLink(activity)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-sm font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                  >
+                    <Send className="w-4 h-4" />
+                    {activity.lastSentAt ? 'Copy Quiz Link Again' : 'Send Quiz Link'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Family Members Grid */}
       {loading ? (

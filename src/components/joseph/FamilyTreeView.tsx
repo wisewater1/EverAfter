@@ -14,9 +14,10 @@ import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
+    onStartPersonalityQuiz?: (memberId: string) => void;
 }
 
-export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
+export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }: FamilyTreeViewProps) {
     const [tree, setTree] = useState<FamilyTreeNode[]>(() => buildFamilyTree());
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(['gp1', 'gp3', 'p1']));
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -296,6 +297,11 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
                         <div className="pt-2">
                             <button
                                 onClick={() => {
+                                    if (!selectedMember.aiPersonality?.scores) {
+                                        setSelectedMember(null);
+                                        onStartPersonalityQuiz?.(selectedMember.id);
+                                        return;
+                                    }
                                     setPersonalityTarget(selectedMember);
                                 }}
                                 className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-medium"
@@ -351,7 +357,11 @@ export default function FamilyTreeView({ onTrainMember }: FamilyTreeViewProps) {
             {showAddModal && (
                 <AddFamilyMemberModal
                     onClose={() => setShowAddModal(false)}
-                    onAdded={() => { refreshTree(); }}
+                    onAdded={(member) => {
+                        refreshTree();
+                        setSelectedMember(member);
+                        onStartPersonalityQuiz?.(member.id);
+                    }}
                 />
             )}
             {agentTarget && (

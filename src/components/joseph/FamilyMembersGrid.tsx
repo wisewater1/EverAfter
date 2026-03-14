@@ -25,9 +25,10 @@ interface InteractionEvent {
 
 interface FamilyMembersGridProps {
     onTrainMember?: (engramId: string) => void;
+    onStartPersonalityQuiz?: (memberId: string) => void;
 }
 
-export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridProps) {
+export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQuiz }: FamilyMembersGridProps) {
     const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
     const [search, setSearch] = useState('');
     const [filterGen, setFilterGen] = useState<number | null>(null);
@@ -454,6 +455,11 @@ export default function FamilyMembersGrid({ onTrainMember }: FamilyMembersGridPr
                             <div className="mt-6 flex justify-end">
                                 <button
                                     onClick={() => {
+                                        if (!selectedMember.aiPersonality?.scores) {
+                                            setSelectedMember(null);
+                                            onStartPersonalityQuiz?.(selectedMember.id);
+                                            return;
+                                        }
                                         setSelectedMember(null);
                                         setPersonalityMember(selectedMember);
                                     }}
