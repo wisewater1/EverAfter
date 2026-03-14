@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import axios from 'axios';
-// import { API_BASE_URL } from '../../lib/env';
+import { API_BASE_URL } from '../env';
 
 export interface IntegrityReport {
     overallScore: number;
@@ -27,6 +27,37 @@ export interface AuditRecord {
     timestamp: string;
     status: 'safe' | 'flagged' | 'blocked';
     details: string;
+}
+
+export interface AuditLedgerEntry {
+    id: string;
+    action: string;
+    userId?: string | null;
+    provider?: string | null;
+    sha256?: string | null;
+    prevHash?: string | null;
+    signature?: string | null;
+    signerId?: string | null;
+    ts?: string | null;
+    metadata?: Record<string, any> | null;
+}
+
+export interface SecurityScanResult {
+    timestamp: string;
+    status: 'active' | 'critical';
+    findings_count: number;
+    findings: SecurityAlert[];
+    vulnerabilities: Vulnerability[];
+    system_integrity: number;
+    integrity_score: number;
+    scan_scope?: string;
+    audit_handoff?: {
+        recipient: 'st_anthony';
+        status: 'completed';
+        scan_log_id: string;
+        ledger_entry_id: string;
+        tab: 'ledger';
+    };
 }
 
 export async function getSecurityIntegrity(userId: string): Promise<IntegrityReport> {
@@ -65,7 +96,7 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 
         try {
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+            const baseUrl = `${API_BASE_URL}`;
             const res = await axios.get(`${baseUrl}/api/v1/monitoring/status`, { headers });
             const michael = res.data?.michael || {};
             const michaelFindings = michael.recent_findings || [];
@@ -117,24 +148,49 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
 
 export async function getAuditHistory(userId: string): Promise<AuditRecord[]> {
     try {
+        const ledgerEntries = await getAnthonyLedger(20);
+        const relevantEntries = ledgerEntries.filter((entry) =>
+            entry.userId === userId ||
+            entry.provider === 'st_michael' ||
+            entry.provider === 'st_anthony'
+        );
+
+        if (relevantEntries.length > 0) {
+            return relevantEntries.map((entry) => ({
+                id: entry.id,
+                action: entry.action,
+                timestamp: entry.ts || new Date().toISOString(),
+                status: entry.action.includes('anthony') ? 'flagged' : 'safe',
+                details: entry.provider === 'st_anthony'
+                    ? 'Delivered to St. Anthony for audit verification'
+                    : 'Verified by St. Michael and sealed for Anthony ledger review',
+            }));
+        }
+    } catch (error) {
+        console.error('Error fetching backend audit history:', error);
+    }
+
+    try {
         const { data } = await supabase
             .from('audit_logs')
             .select('*')
-            .eq('user_id', userId)
+            .or(`userId.eq.${userId},provider.eq.st_michael,provider.eq.st_anthony`)
             .order('ts', { ascending: false })
             .limit(20);
 
         if (!data) return [];
 
-        return (data || []).map((log: any) => ({
+        return data.map((log: any) => ({
             id: log.id,
             action: log.action,
             timestamp: log.ts,
-            status: 'safe', // Logic to flag certain actions
-            details: `Action ${log.action} verified by St. Michael`
+            status: log.action?.includes('anthony') ? 'flagged' : 'safe',
+            details: log.provider === 'st_anthony'
+                ? 'Delivered to St. Anthony for audit verification'
+                : `Action ${log.action} verified by St. Michael`,
         }));
     } catch (error) {
-        console.error('Error fetching audit history:', error);
+        console.error('Error fetching fallback audit history:', error);
         return [];
     }
 }
@@ -235,7 +291,7 @@ export function getThreatEvents(): ThreatEvent[] {
 
 export async function getLiveVulnerabilities(): Promise<Vulnerability[]> {
     try {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const baseUrl = `${API_BASE_URL}`;
         const { data: { session } } = await supabase.auth.getSession();
         const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
         const res = await axios.get(`${baseUrl}/api/v1/monitoring/michael/vulnerabilities`, { headers });
@@ -246,8 +302,16 @@ export async function getLiveVulnerabilities(): Promise<Vulnerability[]> {
     }
 }
 
-export async function triggerLiveScan(): Promise<Vulnerability[]> {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+export async function getAnthonyLedger(limit: number = 50): Promise<AuditLedgerEntry[]> {
+    const baseUrl = `${API_BASE_URL}`;
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+    const res = await axios.get(`${baseUrl}/api/v1/audit/ledger?limit=${limit}`, { headers });
+    return res.data?.data || [];
+}
+
+export async function triggerLiveScan(): Promise<SecurityScanResult> {
+    const baseUrl = `${API_BASE_URL}`;
     const { data: { session } } = await supabase.auth.getSession();
     const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
     const res = await axios.post(`${baseUrl}/api/v1/monitoring/michael/scan`, {}, { headers });

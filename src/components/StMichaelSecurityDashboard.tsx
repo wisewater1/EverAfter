@@ -2,8 +2,9 @@ import { useState, useEffect, type ComponentType } from 'react';
 import { Shield, Lock, Activity, Eye, CheckCircle, Search, RefreshCw, ArrowLeft, Globe, Database, Fingerprint, AlertTriangle, FileText, ClipboardCheck, MessageCircle, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getSecurityIntegrity, getAuditHistory, runCAIAudit, IntegrityReport, SecurityAlert, AuditRecord } from '../lib/michael/security';
+import { getSecurityIntegrity, getAuditHistory, runCAIAudit, triggerLiveScan, IntegrityReport, SecurityAlert, AuditRecord } from '../lib/michael/security';
 import { getSaintStatuses, onSaintEvent, SaintStatus } from '../lib/saintBridge';
+import { emitSaintEvent, SAINT_EVENT_TYPES } from '../lib/saintBridge';
 import SaintChat from './SaintChat';
 import SystemRelationshipsGraph from './saints/SystemRelationshipsGraph';
 import ThreatDetection from './michael/ThreatDetection';
@@ -13,6 +14,7 @@ import CompliancePanel from './michael/CompliancePanel';
 import GuardianLog from './michael/GuardianLog';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DHTAnomalyAlertChain from './michael/DHTAnomalyAlertChain';
+import { API_BASE_URL } from '../lib/env';
 
 interface CAIState {
     integrityScore: number;
@@ -44,6 +46,13 @@ export default function StMichaelSecurityDashboard() {
     const [loading, setLoading] = useState(true);
     const [scanning, setScanning] = useState(false);
     const [activeTab, setActiveTab] = useState<MichaelTab>('overview');
+    const [lastScanHandoff, setLastScanHandoff] = useState<{
+        status: string;
+        findingsCount: number;
+        vulnerabilitiesCount: number;
+        systemIntegrity: number;
+        ledgerEntryId?: string;
+    } | null>(null);
 
     useEffect(() => {
         if (user) loadData();
@@ -71,9 +80,53 @@ export default function StMichaelSecurityDashboard() {
 
     const handleManualScan = async () => {
         setScanning(true);
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        await loadData();
-        setScanning(false);
+        try {
+            const scanResult = await triggerLiveScan();
+
+            setReport((current) => ({
+                overallScore: scanResult.system_integrity,
+                dataIntegrity: current?.dataIntegrity ?? scanResult.system_integrity,
+                privacyStatus: current?.privacyStatus ?? 100,
+                lastScan: scanResult.timestamp,
+                alerts: scanResult.findings,
+            }));
+            setAlerts(scanResult.findings);
+
+            setLastScanHandoff({
+                status: scanResult.status,
+                findingsCount: scanResult.findings_count,
+                vulnerabilitiesCount: scanResult.vulnerabilities.length,
+                systemIntegrity: scanResult.system_integrity,
+                ledgerEntryId: scanResult.audit_handoff?.ledger_entry_id,
+            });
+
+            emitSaintEvent('michael', 'anthony', SAINT_EVENT_TYPES.SCAN_COMPLETE, {
+                status: scanResult.status,
+                findings_count: scanResult.findings_count,
+                vulnerabilities_count: scanResult.vulnerabilities.length,
+                system_integrity: scanResult.system_integrity,
+                audit_handoff: scanResult.audit_handoff,
+            }, { urgency: scanResult.status === 'critical' ? 'high' : 'normal' });
+            emitSaintEvent('anthony', 'broadcast', SAINT_EVENT_TYPES.INTEGRITY_CHECK, {
+                received_from: 'michael',
+                ledger_entry_id: scanResult.audit_handoff?.ledger_entry_id,
+                scan_log_id: scanResult.audit_handoff?.scan_log_id,
+                findings_count: scanResult.findings_count,
+                status: 'archived_for_audit',
+            });
+
+            await loadData();
+        } catch (error) {
+            console.error('Failed to run full security scan:', error);
+            setLastScanHandoff({
+                status: 'failed',
+                findingsCount: 0,
+                vulnerabilitiesCount: 0,
+                systemIntegrity: report?.overallScore || 100,
+            });
+        } finally {
+            setScanning(false);
+        }
     };
 
     if (loading && !scanning) {
@@ -118,6 +171,31 @@ export default function StMichaelSecurityDashboard() {
                         {scanning ? 'Scanning...' : 'Full Scan'}
                     </button>
                 </div>
+
+                {lastScanHandoff && (
+                    <div className="mb-6 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-5 py-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-white">
+                                    St. Michael full-app gauntlet {lastScanHandoff.status === 'failed' ? 'failed' : 'completed'}
+                                </p>
+                                <p className="text-xs text-slate-300 mt-1">
+                                    Integrity {lastScanHandoff.systemIntegrity}% • Findings {lastScanHandoff.findingsCount} • Vulnerabilities {lastScanHandoff.vulnerabilitiesCount}
+                                    {lastScanHandoff.status !== 'failed' && ' • Delivered to St. Anthony for auditing'}
+                                </p>
+                            </div>
+                            {lastScanHandoff.status !== 'failed' && (
+                                <button
+                                    onClick={() => navigate('/anthony-dashboard?tab=ledger')}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-300 transition-colors hover:bg-sky-500/20 hover:text-white"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    Open Anthony Audit
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <SaintsQuickNav />
 
@@ -270,7 +348,7 @@ export default function StMichaelSecurityDashboard() {
                                                     </span>
                                                     <p className="text-sm text-slate-300 font-medium">{alert.message}</p>
                                                 </div>
-                                                <button onClick={() => navigate('/anthony?tab=ledger')} className="ml-auto flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:text-sky-300 bg-sky-500/10 px-2 py-1 rounded border border-sky-500/20 transition-colors whitespace-nowrap">
+                                                <button onClick={() => navigate('/anthony-dashboard?tab=ledger')} className="ml-auto flex items-center gap-1 text-[10px] font-bold text-sky-400 hover:text-sky-300 bg-sky-500/10 px-2 py-1 rounded border border-sky-500/20 transition-colors whitespace-nowrap">
                                                     <Eye size={12} />
                                                     View Proof
                                                 </button>
@@ -292,7 +370,7 @@ export default function StMichaelSecurityDashboard() {
                                             <span className="text-slate-700 w-24 shrink-0">{new Date(audit.timestamp).toLocaleTimeString([], { hour12: false })}</span>
                                             <span className="text-sky-500/80 w-16 shrink-0 uppercase font-bold">[VERIFIED]</span>
                                             <span className="text-slate-400 flex-1 truncate">{audit.action}</span>
-                                            <button onClick={() => navigate('/anthony?tab=ledger')} className="text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 shrink-0">
+                                            <button onClick={() => navigate('/anthony-dashboard?tab=ledger')} className="text-[10px] font-bold text-sky-400 hover:text-sky-300 transition-colors flex items-center gap-1 shrink-0">
                                                 <Eye size={12} /> View
                                             </button>
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1 shadow-[0_0_8px_rgba(16,185,129,0.5)] shrink-0" />
@@ -385,7 +463,7 @@ function SaintsNetworkPanel() {
     useEffect(() => {
         const fetchStatus = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/monitoring/status`);
+                const response = await fetch(`${API_BASE_URL}/api/v1/monitoring/status`);
                 if (response.ok) {
                     const data = await response.json();
                     console.log("System Status API Data:", data); // DEBUG

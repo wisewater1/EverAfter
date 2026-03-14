@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Activity, Server, Shield, Heart, Users, Search, Code, ChevronRight, Download, CheckCircle } from 'lucide-react';
-import { subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
+import { getEventLog, subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
 import { API_BASE_URL } from '../../lib/env';
 
 const MOCK_EVENTS: SaintEventEnvelope[] = [
@@ -34,8 +34,10 @@ const MOCK_EVENTS: SaintEventEnvelope[] = [
 ];
 
 export default function EventStream() {
-    const [events, setEvents] = useState<SaintEventEnvelope[]>(MOCK_EVENTS);
-    const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(MOCK_EVENTS[0]);
+    const initialEvents = getEventLog().slice().reverse();
+    const seededEvents = initialEvents.length > 0 ? initialEvents : MOCK_EVENTS;
+    const [events, setEvents] = useState<SaintEventEnvelope[]>(seededEvents);
+    const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(seededEvents[0]);
 
     // Redact sensitive data before displaying
     const redactSensitiveData = (obj: any): any => {

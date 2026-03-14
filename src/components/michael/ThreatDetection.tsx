@@ -35,7 +35,7 @@ export default function ThreatDetection() {
 
     const handleInvestigate = (ruleId: string) => {
         // Navigate to Anthony with a filter (mock filter param)
-        navigate(`/anthony?tab=ledger&filter=${ruleId}`);
+        navigate(`/anthony-dashboard?tab=ledger&filter=${encodeURIComponent(ruleId)}`);
     };
 
     // Category distribution

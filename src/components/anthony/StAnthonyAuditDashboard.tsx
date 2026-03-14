@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Search, FileText, Activity, MessageCircle, ShieldCheck, Network, Key } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SaintChat from '../SaintChat';
 import LostFoundLedger from './LostFoundLedger';
 import EventStream from './EventStream';
@@ -14,8 +14,20 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function StAnthonyAuditDashboard() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'readiness' | 'flow' | 'jit' | 'ledger' | 'stream' | 'chat' | 'dht-recovery'>('readiness');
+    const ledgerFilter = searchParams.get('filter') || undefined;
+
+    useEffect(() => {
+        const requestedTab = searchParams.get('tab');
+        if (!requestedTab) return;
+
+        const allowedTabs = new Set(['readiness', 'flow', 'jit', 'ledger', 'stream', 'chat', 'dht-recovery']);
+        if (allowedTabs.has(requestedTab)) {
+            setActiveTab(requestedTab as typeof activeTab);
+        }
+    }, [searchParams]);
 
     return (
         <div className="space-y-8 p-6 bg-slate-950 min-h-screen text-slate-200">
@@ -112,7 +124,7 @@ export default function StAnthonyAuditDashboard() {
                 {activeTab === 'readiness' && <ContinuousControls />}
                 {activeTab === 'flow' && <DataFlowMap />}
                 {activeTab === 'jit' && <JITAccess />}
-                {activeTab === 'ledger' && <LostFoundLedger />}
+                {activeTab === 'ledger' && <LostFoundLedger filterToken={ledgerFilter} />}
                 {activeTab === 'stream' && <EventStream />}
                 {activeTab === 'chat' && (
                     <div className="max-w-4xl mx-auto h-[600px] bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { FileText, CheckCircle, Clock, Plus, Filter, Download } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { FileText, CheckCircle, Clock, Filter, Download, Shield, Search } from 'lucide-react';
+import { getAnthonyLedger, type AuditLedgerEntry } from '../../lib/michael/security';
 
 interface LedgerItem {
     id: string;
@@ -7,29 +8,145 @@ interface LedgerItem {
     category: 'data' | 'memory' | 'security' | 'financial';
     status: 'restored' | 'searching' | 'verified' | 'archived';
     date: string;
-    value: string; // e.g., "High Importance" or actual value
+    value: string;
+    raw: AuditLedgerEntry;
 }
 
-const MOCK_LEDGER: LedgerItem[] = [
-    { id: '1', description: 'Recovered 3 deleted contacts', category: 'data', status: 'restored', date: '2023-10-24', value: 'Medium' },
-    { id: '2', description: 'Deep Memory Scan: Sector 7', category: 'memory', status: 'verified', date: '2023-10-23', value: 'High' },
-    { id: '3', description: 'Lost Connection Logtrace', category: 'security', status: 'searching', date: '2023-10-24', value: 'Low' },
-    { id: '4', description: 'Orphaned File Link Cleanup', category: 'data', status: 'restored', date: '2023-10-22', value: 'Low' },
-    { id: '5', description: 'Legacy Vault Integrity Check', category: 'security', status: 'verified', date: '2023-10-21', value: 'Critical' },
+const FALLBACK_LEDGER: LedgerItem[] = [
+    {
+        id: 'fallback-1',
+        description: 'Awaiting live audit handoff from St. Michael',
+        category: 'security',
+        status: 'searching',
+        date: new Date().toISOString(),
+        value: 'Pending',
+        raw: { id: 'fallback-1', action: 'audit/anthony_waiting_for_scan', ts: new Date().toISOString() },
+    },
 ];
 
-export default function LostFoundLedger() {
-    const [items, setItems] = useState<LedgerItem[]>(MOCK_LEDGER);
+function mapLedgerCategory(action: string): LedgerItem['category'] {
+    if (action.includes('finance')) return 'financial';
+    if (action.includes('memory') || action.includes('engram')) return 'memory';
+    if (action.includes('data')) return 'data';
+    return 'security';
+}
+
+function mapLedgerStatus(action: string): LedgerItem['status'] {
+    if (action.includes('received') || action.includes('completed') || action.includes('verified')) return 'verified';
+    if (action.includes('searching') || action.includes('pending')) return 'searching';
+    if (action.includes('restored') || action.includes('recovered')) return 'restored';
+    return 'archived';
+}
+
+function mapLedgerValue(entry: AuditLedgerEntry) {
+    const findingsCount = entry.metadata?.findings_count;
+    if (typeof findingsCount === 'number' && findingsCount > 0) {
+        return findingsCount >= 3 ? 'Critical' : 'High';
+    }
+
+    const integrity = entry.metadata?.system_integrity;
+    if (typeof integrity === 'number') {
+        return `${integrity}%`;
+    }
+
+    return 'Verified';
+}
+
+function formatLedgerDescription(entry: AuditLedgerEntry) {
+    if (entry.action === 'security/michael_full_scan_completed') {
+        return 'St. Michael full application gauntlet completed';
+    }
+    if (entry.action === 'audit/anthony_scan_received') {
+        return 'St. Anthony received St. Michael scan for auditing';
+    }
+
+    return entry.action.replaceAll('_', ' ').replaceAll('/', ' / ');
+}
+
+function toLedgerItem(entry: AuditLedgerEntry): LedgerItem {
+    return {
+        id: entry.id,
+        description: formatLedgerDescription(entry),
+        category: mapLedgerCategory(entry.action),
+        status: mapLedgerStatus(entry.action),
+        date: entry.ts || new Date().toISOString(),
+        value: mapLedgerValue(entry),
+        raw: entry,
+    };
+}
+
+interface LostFoundLedgerProps {
+    filterToken?: string;
+}
+
+export default function LostFoundLedger({ filterToken }: LostFoundLedgerProps) {
+    const [items, setItems] = useState<LedgerItem[]>(FALLBACK_LEDGER);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const loadLedger = async () => {
+            setLoading(true);
+            try {
+                const entries = await getAnthonyLedger(50);
+                if (!mounted) return;
+
+                const mapped = entries
+                    .map(toLedgerItem)
+                    .filter((item) =>
+                        item.raw.provider === 'st_anthony' ||
+                        item.raw.provider === 'st_michael' ||
+                        item.description.toLowerCase().includes('audit') ||
+                        item.description.toLowerCase().includes('scan')
+                    );
+
+                setItems(mapped.length > 0 ? mapped : FALLBACK_LEDGER);
+            } catch (error) {
+                console.error('Failed to load Anthony ledger:', error);
+                if (mounted) {
+                    setItems(FALLBACK_LEDGER);
+                }
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadLedger();
+        const interval = window.setInterval(loadLedger, 20000);
+        return () => {
+            mounted = false;
+            window.clearInterval(interval);
+        };
+    }, []);
+
+    const filteredItems = useMemo(() => {
+        if (!filterToken) return items;
+        const normalizedToken = filterToken.toLowerCase();
+        return items.filter((item) =>
+            item.description.toLowerCase().includes(normalizedToken) ||
+            item.raw.action.toLowerCase().includes(normalizedToken) ||
+            item.raw.id.toLowerCase().includes(normalizedToken)
+        );
+    }, [filterToken, items]);
+
+    const visibleItems = filteredItems.length > 0 ? filteredItems : items;
 
     return (
         <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-            {/* Toolbar */}
             <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                 <div className="flex items-center gap-3">
                     <h2 className="text-lg font-medium text-slate-200">Transaction Ledger</h2>
                     <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-xs font-medium border border-slate-700">
-                        {items.length} Items
+                        {visibleItems.length} Items
                     </span>
+                    {filterToken && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs font-medium border border-amber-500/20">
+                            Filter: {filterToken}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
@@ -38,17 +155,24 @@ export default function LostFoundLedger() {
                     <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
                         <Download className="w-4 h-4" />
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-amber-900/20">
-                        <Plus className="w-4 h-4" />
-                        Report Lost Item
-                    </button>
                 </div>
             </div>
 
-            {/* List */}
             <div className="divide-y divide-slate-800/50">
-                {items.map((item) => (
-                    <div key={item.id} className="p-4 hover:bg-slate-800/30 transition-colors flex items-center justify-between group cursor-pointer">
+                {loading && (
+                    <div className="p-8 text-center text-slate-500 text-sm">
+                        St. Anthony is verifying the latest ledger proofs...
+                    </div>
+                )}
+
+                {!loading && visibleItems.map((item) => (
+                    <div
+                        key={item.id}
+                        className={`p-4 hover:bg-slate-800/30 transition-colors flex items-center justify-between group ${filterToken && (
+                            item.description.toLowerCase().includes(filterToken.toLowerCase()) ||
+                            item.raw.action.toLowerCase().includes(filterToken.toLowerCase())
+                        ) ? 'bg-amber-500/5' : ''}`}
+                    >
                         <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${item.status === 'restored' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                                 item.status === 'searching' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
@@ -57,15 +181,21 @@ export default function LostFoundLedger() {
                                 }`}>
                                 {item.status === 'restored' && <CheckCircle className="w-5 h-5" />}
                                 {item.status === 'searching' && <Clock className="w-5 h-5 animate-pulse" />}
-                                {item.status === 'verified' && <FileText className="w-5 h-5" />}
-                                {item.status === 'archived' && <CheckCircle className="w-5 h-5 text-slate-500" />}
+                                {item.status === 'verified' && <Shield className="w-5 h-5" />}
+                                {item.status === 'archived' && <FileText className="w-5 h-5 text-slate-500" />}
                             </div>
                             <div>
                                 <h3 className="text-slate-200 font-medium">{item.description}</h3>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs text-slate-500">{item.date}</span>
+                                    <span className="text-xs text-slate-500">{new Date(item.date).toLocaleString()}</span>
                                     <span className="text-xs text-slate-600">•</span>
                                     <span className="text-xs text-slate-400 uppercase tracking-wider">{item.category}</span>
+                                    {item.raw.provider && (
+                                        <>
+                                            <span className="text-xs text-slate-600">•</span>
+                                            <span className="text-xs text-amber-400 uppercase tracking-wider">{item.raw.provider}</span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -79,8 +209,8 @@ export default function LostFoundLedger() {
                                 </span>
                                 <p className="text-[10px] text-slate-500 uppercase tracking-widest">Impact</p>
                             </div>
-                            <div className="w-24 text-right">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.status === 'restored' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            <div className="w-28 text-right">
+                                <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.status === 'restored' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
                                     item.status === 'searching' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
                                         item.status === 'verified' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
                                             'bg-slate-700/30 text-slate-400 border border-slate-700/30'
@@ -91,10 +221,17 @@ export default function LostFoundLedger() {
                         </div>
                     </div>
                 ))}
+
+                {!loading && visibleItems.length === 0 && (
+                    <div className="p-8 text-center text-slate-500">
+                        <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p>No Anthony ledger entries match that filter.</p>
+                    </div>
+                )}
             </div>
-            {/* Footer / Pagination */}
+
             <div className="p-4 border-t border-slate-800 bg-slate-900/50 text-center text-xs text-slate-500">
-                Showing {items.length} most recent ledger entries
+                Showing {visibleItems.length} most recent ledger entries
             </div>
         </div>
     );
