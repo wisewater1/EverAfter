@@ -1,4 +1,4 @@
-// Deployment sync trigger - 2026-02-18 HMR CHECK
+﻿// Deployment sync trigger - 2026-02-18 HMR CHECK
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
@@ -55,6 +55,14 @@ import StGabrielFinanceDashboard from './components/gabriel/StGabrielFinanceDash
 import SystemMonitorDashboard from './components/saints/SystemMonitorDashboard';
 import TrinityDashboard from './pages/TrinityDashboard';
 
+const nonCoreRoutesEnabled = import.meta.env.VITE_ENABLE_NON_CORE_ROUTES === 'true';
+const publicReleaseRedirect = <Navigate to="/" replace />;
+const protectedReleaseRedirect = (
+  <ProtectedRoute>
+    <Navigate to="/dashboard" replace />
+  </ProtectedRoute>
+);
+
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
   const { setErrorNotifier } = useAuth();
@@ -104,18 +112,22 @@ function App() {
                 } />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/admin/create-user" element={<AdminUserCreation />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/admin/create-user" element={nonCoreRoutesEnabled ? <AdminUserCreation /> : publicReleaseRedirect} />
+                <Route path="/pricing" element={nonCoreRoutesEnabled ? <Pricing /> : publicReleaseRedirect} />
+                <Route path="/marketplace" element={nonCoreRoutesEnabled ? <Marketplace /> : publicReleaseRedirect} />
                 <Route path="/creator" element={
-                  <ProtectedRoute>
-                    <CreatorDashboard />
-                  </ProtectedRoute>
+                  nonCoreRoutesEnabled ? (
+                    <ProtectedRoute>
+                      <CreatorDashboard />
+                    </ProtectedRoute>
+                  ) : protectedReleaseRedirect
                 } />
                 <Route path="/my-ais" element={
-                  <ProtectedRoute>
-                    <MyAIs />
-                  </ProtectedRoute>
+                  nonCoreRoutesEnabled ? (
+                    <ProtectedRoute>
+                      <MyAIs />
+                    </ProtectedRoute>
+                  ) : protectedReleaseRedirect
                 } />
                 <Route path="/portal" element={
                   <ProtectedRoute>
@@ -128,13 +140,15 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/portal" element={
-                  <ProtectedRoute>
-                    <AdminPortal />
-                  </ProtectedRoute>
+                  nonCoreRoutesEnabled ? (
+                    <ProtectedRoute>
+                      <AdminPortal />
+                    </ProtectedRoute>
+                  ) : protectedReleaseRedirect
                 } />
-                <Route path="/beyond-modules" element={<BeyondModules />} />
-                <Route path="/dark-glass-carousel" element={<DarkGlassCarouselShowcase />} />
-                <Route path="/dev/device-check" element={<DeviceCheck />} />
+                <Route path="/beyond-modules" element={nonCoreRoutesEnabled ? <BeyondModules /> : publicReleaseRedirect} />
+                <Route path="/dark-glass-carousel" element={nonCoreRoutesEnabled ? <DarkGlassCarouselShowcase /> : publicReleaseRedirect} />
+                <Route path="/dev/device-check" element={nonCoreRoutesEnabled ? <DeviceCheck /> : publicReleaseRedirect} />
                 <Route path="/raphael-prototype" element={<Navigate to="/health-dashboard" replace />} />
                 <Route path="/raphael" element={
                   <Navigate to="/health-dashboard" replace />
@@ -150,19 +164,25 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/insurance/connect" element={
-                  <ProtectedRoute>
-                    <InsuranceConnection />
-                  </ProtectedRoute>
+                  nonCoreRoutesEnabled ? (
+                    <ProtectedRoute>
+                      <InsuranceConnection />
+                    </ProtectedRoute>
+                  ) : protectedReleaseRedirect
                 } />
                 <Route path="/insurance" element={
-                  <ProtectedRoute>
-                    <EternalCareInsurance />
-                  </ProtectedRoute>
+                  nonCoreRoutesEnabled ? (
+                    <ProtectedRoute>
+                      <EternalCareInsurance />
+                    </ProtectedRoute>
+                  ) : protectedReleaseRedirect
                 } />
                 <Route path="/memorial-services" element={
-                  <ProtectedRoute>
-                    <MemorialServices />
-                  </ProtectedRoute>
+                  nonCoreRoutesEnabled ? (
+                    <ProtectedRoute>
+                      <MemorialServices />
+                    </ProtectedRoute>
+                  ) : protectedReleaseRedirect
                 } />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
@@ -265,7 +285,7 @@ function App() {
                     <PersonalityTrainingCenter />
                   </ProtectedRoute>
                 } />
-                <Route path="/career/public/:token" element={<PublicCareerChat />} />
+                <Route path="/career/public/:token" element={nonCoreRoutesEnabled ? <PublicCareerChat /> : publicReleaseRedirect} />
               </Routes>
               <ConnectionsPanel />
               <SacredOverlay />

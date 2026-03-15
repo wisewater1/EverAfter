@@ -88,6 +88,47 @@ interface WalletResponse {
   living_will: LivingWill;
   policy: WiseGoldPolicy;
   social_standing: SocialStanding;
+  policy_summary?: PolicySummary;
+}
+
+interface WiseGoldAttestation {
+  id: string;
+  covenant_id: string;
+  covenant_key: string;
+  covenant_name: string | null;
+  status: string;
+  attestation_type: string;
+  wallet_address: string | null;
+  issued_at: string | null;
+  expires_at: string | null;
+  last_verified_at: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+interface PolicyActionEvaluation {
+  allowed: boolean;
+  reason_code: string;
+  reason: string;
+  effective_limit: number;
+  attested: boolean;
+  attestation_count: number;
+}
+
+interface PolicySummary {
+  attestation_status: {
+    active: boolean;
+    count: number;
+  };
+  limits: {
+    mint: number;
+    withdraw: number;
+    bridge: number;
+  };
+  actions: {
+    mint: PolicyActionEvaluation;
+    withdraw: PolicyActionEvaluation;
+    bridge: PolicyActionEvaluation;
+  };
 }
 
 function formatTimestamp(value: string | null) {
@@ -114,6 +155,8 @@ export default function WiseGoldPanel() {
   const [socialStanding, setSocialStanding] = useState<SocialStanding | null>(null);
   const [covenants, setCovenants] = useState<SovereignCovenant[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [attestations, setAttestations] = useState<WiseGoldAttestation[]>([]);
+  const [policySummary, setPolicySummary] = useState<PolicySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [heartbeatSending, setHeartbeatSending] = useState(false);
   const [wgoldPriceUsd, setWgoldPriceUsd] = useState<number | null>(null);
@@ -179,6 +222,29 @@ export default function WiseGoldPanel() {
         created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
       },
     ]);
+    setAttestations([
+      {
+        id: 'dev-attestation-1',
+        covenant_id: 'dev-cov-1',
+        covenant_key: '0xdev',
+        covenant_name: 'St. Joseph Family Vault',
+        status: 'ACTIVE',
+        attestation_type: 'BACKEND_COVENANT_MEMBERSHIP',
+        wallet_address: '0xdev',
+        issued_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+        last_verified_at: new Date().toISOString(),
+      },
+    ]);
+    setPolicySummary({
+      attestation_status: { active: true, count: 1 },
+      limits: { mint: 190.5, withdraw: 761.25, bridge: 420.75 },
+      actions: {
+        mint: { allowed: true, reason_code: 'ALLOW', reason: 'Mint is allowed under the current covenant and treasury policy.', effective_limit: 190.5, attested: true, attestation_count: 1 },
+        withdraw: { allowed: true, reason_code: 'ALLOW', reason: 'Withdraw is allowed under the current covenant and treasury policy.', effective_limit: 761.25, attested: true, attestation_count: 1 },
+        bridge: { allowed: true, reason_code: 'ALLOW', reason: 'Bridge is allowed under the current covenant and treasury policy.', effective_limit: 420.75, attested: true, attestation_count: 1 },
+      },
+    });
     setWgoldPriceUsd(89.5);
     setError(`Development fallback active: ${message}`);
   };
@@ -217,11 +283,13 @@ export default function WiseGoldPanel() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [walletRes, covRes, ledgerRes, priceRes] = await Promise.all([
+      const [walletRes, covRes, ledgerRes, priceRes, attestationRes, policySummaryRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/v1/finance/wisegold/wallet`, { headers }),
         fetch(`${API_BASE_URL}/api/v1/finance/wisegold/covenants`, { headers }),
         fetch(`${API_BASE_URL}/api/v1/finance/wisegold/ledger?limit=12`, { headers }),
         fetch(`${API_BASE_URL}/api/v1/finance/wisegold/price`, { headers }),
+        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/attestations`, { headers }),
+        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/policy/summary`, { headers }),
       ]);
 
       if (!walletRes.ok) {
@@ -236,10 +304,20 @@ export default function WiseGoldPanel() {
         const detail = await ledgerRes.text();
         throw new Error(detail || 'Failed to load ledger.');
       }
+      if (!attestationRes.ok) {
+        const detail = await attestationRes.text();
+        throw new Error(detail || 'Failed to load covenant attestations.');
+      }
+      if (!policySummaryRes.ok) {
+        const detail = await policySummaryRes.text();
+        throw new Error(detail || 'Failed to load WiseGold policy summary.');
+      }
 
       const walletData: WalletResponse = await walletRes.json();
       const covenantData: SovereignCovenant[] = await covRes.json();
       const ledgerData: LedgerEntry[] = await ledgerRes.json();
+      const attestationData: WiseGoldAttestation[] = await attestationRes.json();
+      const policySummaryData: PolicySummary = await policySummaryRes.json();
 
       setWallet(walletData.wallet);
       setBond(walletData.ritual_bond);
@@ -248,6 +326,8 @@ export default function WiseGoldPanel() {
       setSocialStanding(walletData.social_standing);
       setCovenants(covenantData);
       setLedger(ledgerData);
+      setAttestations(attestationData);
+      setPolicySummary(policySummaryData || walletData.policy_summary || null);
       setError(null);
 
       if (priceRes.ok) {
@@ -268,6 +348,8 @@ export default function WiseGoldPanel() {
         setSocialStanding(null);
         setCovenants([]);
         setLedger([]);
+        setAttestations([]);
+        setPolicySummary(null);
         setWgoldPriceUsd(null);
       } else {
         applyDevFallback(message);
@@ -351,7 +433,7 @@ export default function WiseGoldPanel() {
     return <div className="p-8 text-center text-slate-400">Syncing with Sovereign Network...</div>;
   }
 
-  if (!wallet || !bond || !will || !policy || !socialStanding) {
+  if (!wallet || !bond || !will || !policy || !socialStanding || !policySummary) {
     return (
       <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-6 text-sm text-rose-300">
         {error || 'WiseGold is unavailable.'}
@@ -546,6 +628,81 @@ export default function WiseGoldPanel() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            Covenant Attestation
+          </h3>
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-300">Status</span>
+              <span className={`text-xs font-medium ${policySummary.attestation_status.active ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {policySummary.attestation_status.active ? 'Attested' : 'Not Attested'}
+              </span>
+            </div>
+            <div className="mt-2 text-xs text-slate-500">
+              {policySummary.attestation_status.count} active covenant attestation{policySummary.attestation_status.count === 1 ? '' : 's'}.
+            </div>
+          </div>
+          <div className="space-y-3">
+            {attestations.length === 0 ? (
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+                No active covenant attestation is available for policy-gated actions.
+              </div>
+            ) : attestations.map((attestation) => (
+              <div key={attestation.id} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-white">{attestation.covenant_name || 'Unnamed Covenant'}</div>
+                    <div className="mt-1 text-[11px] text-slate-500">{attestation.attestation_type}</div>
+                  </div>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${attestation.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>
+                    {attestation.status}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                  <div>
+                    <span className="text-slate-500">Covenant Key</span>
+                    <div className="mt-1 font-mono text-slate-300">{attestation.covenant_key.slice(0, 14)}...</div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Expires</span>
+                    <div className="mt-1 text-slate-300">{formatTimestamp(attestation.expires_at)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-indigo-400" />
+            Policy Limits
+          </h3>
+          <div className="space-y-3">
+            {([
+              ['Mint', policySummary.actions.mint],
+              ['Withdraw', policySummary.actions.withdraw],
+              ['Bridge', policySummary.actions.bridge],
+            ] as const).map(([label, action]) => (
+              <div key={label} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-medium text-white">{label}</div>
+                  <div className="text-sm font-mono text-amber-400">
+                    {action.effective_limit.toFixed(2)} WGOLD
+                  </div>
+                </div>
+                <div className={`mt-2 text-xs ${action.allowed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {action.reason}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-400" />
             Sovereign Covenants
           </h3>
@@ -667,6 +824,7 @@ export default function WiseGoldPanel() {
         onClose={() => setIsBridgeModalOpen(false)}
         currentBalance={wallet.balance}
         token={token}
+        maxBridgeLimit={policySummary.limits.bridge}
         onSuccess={() => {
           void loadWiseGoldData();
         }}

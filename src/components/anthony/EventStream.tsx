@@ -38,6 +38,7 @@ export default function EventStream() {
     const seededEvents = initialEvents.length > 0 ? initialEvents : MOCK_EVENTS;
     const [events, setEvents] = useState<SaintEventEnvelope[]>(seededEvents);
     const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(seededEvents[0]);
+    const auditBaseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`);
 
     // Redact sensitive data before displaying
     const redactSensitiveData = (obj: any): any => {
@@ -63,8 +64,8 @@ export default function EventStream() {
     };
 
     const handleExportVerifier = () => {
-        window.open(`${import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`}/api/v1/audit/verifier-script`, '_blank');
-        window.open(`${import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`}/api/v1/audit/ledger/export`, '_blank');
+        window.open(`${auditBaseUrl}/api/v1/audit/verifier-script`, '_blank');
+        window.open(`${auditBaseUrl}/api/v1/audit/ledger/export`, '_blank');
     };
 
     useEffect(() => {

@@ -32,6 +32,8 @@ import HealthGoals from '../components/HealthGoals';
 import PhoneHealthConnect from '../components/PhoneHealthConnect';
 import ComprehensiveHealthConnectors from '../components/ComprehensiveHealthConnectors';
 import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge';
+import { apiClient } from '../lib/api-client';
+import { API_BASE_URL } from '../lib/env';
 
 interface Insight {
     text: string;
@@ -48,6 +50,8 @@ interface VitalsData {
 }
 
 type ActiveView = 'overview' | 'simulation' | 'lab' | 'governance' | 'analytics' | 'trajectory' | 'chat';
+
+const RAPHAEL_API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 export default function StRaphaelHealthHub() {
     const navigate = useNavigate();
@@ -440,20 +444,35 @@ function HubInsightCard({ insight }: { insight: Insight }) {
 function SynapsePulse() {
     const [pulsing, setPulsing] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const triggerPulse = async () => {
         setPulsing(true);
         setResult(null);
+        setError(null);
         try {
-            // Simulate neural processing delay
-            await new Promise(r => setTimeout(r, 2000));
-            const response = await fetch('/api/causal-twin/predictions');
-            if (response.ok) {
-                const data = await response.json();
-                setResult(data.predictions[0]);
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const response = await fetch(`${RAPHAEL_API_BASE}/api/v1/causal-twin/predictions`, {
+                headers,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Synapse pulse failed: ${response.status}`);
             }
+
+            const data = await response.json();
+            const prediction = data?.predictions?.[0];
+            if (!prediction) {
+                throw new Error('No synapse prediction was returned.');
+            }
+
+            setResult(prediction);
         } catch (e) {
             console.error(e);
+            setError(e instanceof Error ? e.message : 'Failed to trigger synapse pulse.');
         } finally {
             setPulsing(false);
         }
@@ -486,6 +505,12 @@ function SynapsePulse() {
                     {pulsing ? 'Processing...' : 'Trigger Pulse'}
                 </button>
             </div>
+
+            {error && (
+                <div className="relative mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
+                </div>
+            )}
 
             {result && (
                 <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
@@ -531,15 +556,48 @@ function SynapsePulse() {
 function FamilyHealthHeatmap() {
     const [members, setMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('/api/causal-twin/ancestry/family-map')
-            .then(res => res.json())
-            .then(data => {
-                setMembers(data.family_map || []);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        let cancelled = false;
+
+        const loadFamilyMap = async () => {
+            try {
+                const headers = await apiClient.getAuthHeaders({
+                    'Content-Type': 'application/json',
+                    'Bypass-Tunnel-Reminder': 'true',
+                });
+                const response = await fetch(`${RAPHAEL_API_BASE}/api/v1/causal-twin/ancestry/family-map`, {
+                    headers,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Family risk map failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!cancelled) {
+                    setMembers(data.family_map || []);
+                    setError(null);
+                }
+            } catch (e) {
+                console.error(e);
+                if (!cancelled) {
+                    setMembers([]);
+                    setError(e instanceof Error ? e.message : 'Failed to load family risk map.');
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadFamilyMap();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     if (loading) return null;
@@ -550,19 +608,29 @@ function FamilyHealthHeatmap() {
                 <Shield className="w-4 h-4 text-emerald-400" />
                 Trinity Synapse: Family Risk Map
             </h3>
-            <div className="flex flex-wrap gap-3">
-                {members.map((m, i) => (
-                    <div
-                        key={i}
-                        className="px-4 py-2 rounded-xl border flex items-center gap-2 group cursor-help transition-all hover:bg-white/5"
-                        style={{ borderColor: `${m.colour}40`, backgroundColor: `${m.colour}10` }}
-                    >
-                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: m.colour }}></div>
-                        <span className="text-xs font-bold text-white/80 group-hover:text-white">{m.member_name}</span>
-                        <span className="text-[10px] text-slate-500 uppercase font-black">{m.risk_level}</span>
-                    </div>
-                ))}
-            </div>
+            {error ? (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
+                </div>
+            ) : members.length === 0 ? (
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-6 text-sm text-slate-400">
+                    No family risk map is available yet.
+                </div>
+            ) : (
+                <div className="flex flex-wrap gap-3">
+                    {members.map((m, i) => (
+                        <div
+                            key={i}
+                            className="px-4 py-2 rounded-xl border flex items-center gap-2 group cursor-help transition-all hover:bg-white/5"
+                            style={{ borderColor: `${m.colour}40`, backgroundColor: `${m.colour}10` }}
+                        >
+                            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: m.colour }}></div>
+                            <span className="text-xs font-bold text-white/80 group-hover:text-white">{m.member_name}</span>
+                            <span className="text-[10px] text-slate-500 uppercase font-black">{m.risk_level}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

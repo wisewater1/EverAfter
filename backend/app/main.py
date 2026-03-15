@@ -24,9 +24,11 @@ async def lifespan(app: FastAPI):
     print("Startup: Initializing resources...")
     from app.services.saint_runtime import saint_runtime
     from app.services.compliance_service import compliance_autopilot
+    from app.services.finance_runtime_tables import ensure_finance_runtime_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables, wisegold_scheduler
 
     background_tasks = []
+    await ensure_finance_runtime_tables()
     await ensure_wisegold_tables()
     if settings.ENABLE_SAINT_EVENT_LISTENER:
         background_tasks.append(asyncio.create_task(saint_runtime.listen_for_events(), name="saint-event-listener"))

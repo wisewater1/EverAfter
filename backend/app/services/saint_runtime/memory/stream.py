@@ -27,7 +27,7 @@ class MemoryStream:
             metadata=memory.dict()
         )
         
-    def get_context(self, query: str, limit: int = 5, saint_id: str = None) -> List[MemoryObject]:
+    async def get_context(self, query: str, limit: int = 5, saint_id: str = None) -> List[MemoryObject]:
         """
         Retrieves the most relevant memories for a given query context.
         Uses Akashic Semantic Search (Relevance) then re-ranks by Recency & Importance.

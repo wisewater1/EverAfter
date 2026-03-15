@@ -39,7 +39,7 @@ class CognitivePlanner:
         
         # 1. Retrieve Context
         # We query for morning routine, current threats, and general recent priorities
-        context_memories = self.memory_stream.get_context(f"{saint_name} morning routine current priorities threats goals", limit=10)
+        context_memories = await self.memory_stream.get_context(f"{saint_name} morning routine current priorities threats goals", limit=10)
         context_str = "\n".join([f"- {m.description}" for m in context_memories])
         
         # 2. Generate Plan using LLM

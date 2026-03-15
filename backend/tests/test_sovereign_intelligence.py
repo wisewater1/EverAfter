@@ -31,6 +31,8 @@ async def test_counterfactual_engine_empty_data():
         assert result["history_days"] == 0
         assert result["completeness"] == 0.0
         assert "projections" in result
+        assert "composite_indices" in result
+        assert "downstream_equations" in result
 
 @pytest.mark.asyncio
 async def test_ancestry_engine_logic():
@@ -132,5 +134,7 @@ async def test_counterfactual_engine_complex_scaling():
         )
         
         assert "90d" in result["projections"]["resting_hr"]
+        assert "30d" in result["composite_indices"]
+        assert "oracle_focus" in result["downstream_equations"]
         assert result["narrative"] == "Complex narrative."
         assert result["history_days"] == 30

@@ -291,7 +291,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-semibold text-white">Family Hub</h2>
-              <p className="text-xs sm:text-sm text-slate-400">Manage family members, questions, and legacy data</p>
+              <p className="text-xs sm:text-sm text-slate-400">Manage family members, OCEAN questions, personality responses, and legacy data</p>
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -331,7 +331,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="whitespace-nowrap">Daily Questions</span>
+              <span className="whitespace-nowrap">OCEAN Questions</span>
             </div>
             {activeTab === 'daily-questions' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"></div>
@@ -346,7 +346,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           >
             <div className="flex items-center gap-1.5 sm:gap-2">
               <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="whitespace-nowrap">Responses</span>
+              <span className="whitespace-nowrap">OCEAN Responses</span>
             </div>
             {activeTab === 'questions' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400"></div>
@@ -436,7 +436,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <Activity className="w-3 h-3" />
-                  {member.personality_questions_answered} / {member.personality_questions_sent} questions answered
+                  {member.personality_questions_answered} / {member.personality_questions_sent} OCEAN questions answered
                 </div>
               </div>
 
@@ -449,7 +449,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                   className="flex-1 px-3 py-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 text-slate-300 hover:text-white rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-2"
                 >
                   <Send className="w-3 h-3" />
-                  Send Question
+                  Send OCEAN
                 </button>
                 <button
                   onClick={() => {
@@ -475,12 +475,12 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             <div className="col-span-full ea-panel border-dashed p-8 sm:p-12 text-center" data-variant="teal">
               <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-slate-400 mb-2">No Family Members Yet</h3>
-              <p className="text-sm text-slate-500 mb-4">Start building your family network by inviting members</p>
+              <p className="text-sm text-slate-500 mb-4">Invite family members so they can complete OCEAN personality questions and build richer profiles</p>
               <button
                 onClick={() => setShowInviteModal(true)}
                 className="ea-btn relative z-10"
               >
-                <span className="relative z-10">Invite Your First Member</span>
+                <span className="relative z-10">Invite Your First OCEAN Member</span>
               </button>
             </div>
           )}
@@ -493,10 +493,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-2xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-2">
               <Calendar className="w-5 h-5 text-blue-400" />
-              <h3 className="text-base sm:text-lg font-semibold text-white">Answer Your Daily Questions</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-white">Answer Your OCEAN Questions</h3>
             </div>
             <p className="text-xs sm:text-sm text-slate-400">
-              Build your digital legacy by answering meaningful questions about your life, memories, and experiences.
+              Complete OCEAN personality questions so EverAfter can score openness, conscientiousness, extraversion, agreeableness, and neuroticism with better fidelity.
             </p>
           </div>
           <DailyQuestionCard userId={userId} preselectedAIId={preselectedAIId} />
@@ -540,8 +540,8 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           {questionResponses.length === 0 && (
             <div className="bg-slate-900/30 border border-dashed border-slate-700/50 rounded-xl p-12 text-center">
               <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-400 mb-2">No Question Responses Yet</h3>
-              <p className="text-sm text-slate-500">Responses from family members will appear here</p>
+              <h3 className="text-lg font-medium text-slate-400 mb-2">No OCEAN Responses Yet</h3>
+              <p className="text-sm text-slate-500">Completed OCEAN answers from family members will appear here</p>
             </div>
           )}
         </div>
@@ -599,7 +599,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <MessageCircle className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-300">Questions & Responses ({questionResponses.length})</span>
+                <span className="text-sm text-slate-300">OCEAN Questions & Responses ({questionResponses.length})</span>
               </label>
             </div>
           </div>
@@ -728,7 +728,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Send Question to {selectedMember.name}</h3>
+              <h3 className="text-xl font-semibold text-white">Send OCEAN Question to {selectedMember.name}</h3>
               <button
                 onClick={() => {
                   setShowQuestionModal(false);
@@ -742,11 +742,11 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             </div>
             <form onSubmit={handleSendQuestion} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Your Question</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">OCEAN Question</label>
                 <textarea
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="What would you like to ask?"
+                  placeholder="Ask an OCEAN-style personality question for this family member"
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 h-32 resize-none"
                   required
                 />
@@ -757,7 +757,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Send className="w-4 h-4" />
-                {loading ? 'Sending...' : 'Send Question'}
+                {loading ? 'Sending...' : 'Send OCEAN Question'}
               </button>
             </form>
           </div>

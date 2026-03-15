@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Calendar, User, Image as ImageIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { EventType, FamilyMember } from '../../lib/joseph/genealogy';
+import { API_BASE_URL as CENTRAL_API_BASE } from '../../lib/env';
 
 interface AddEventModalProps {
     isOpen: boolean;
@@ -31,7 +32,7 @@ export default function AddEventModal({ isOpen, onClose, onSuccess, members }: A
                 token = session?.currentSession?.access_token || '';
             } catch (e) { }
 
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002';
+            const API_BASE = CENTRAL_API_BASE;
 
             const selectedMember = members.find(m => m.id === memberId);
             const memberName = selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Unknown';

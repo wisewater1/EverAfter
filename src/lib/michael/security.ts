@@ -60,6 +60,131 @@ export interface SecurityScanResult {
     };
 }
 
+export interface AnthonyFlowMapNode {
+    id: string;
+    label: string;
+    kind: string;
+    status: 'healthy' | 'warning' | 'critical';
+    details: string;
+    evidenceCount: number;
+    evidenceIds: string[];
+}
+
+export interface AnthonyFlowMapEdge {
+    id: string;
+    from: string;
+    to: string;
+    label: string;
+    severity: 'healthy' | 'warning' | 'critical';
+    evidenceIds: string[];
+}
+
+export interface AnthonyFlowMapEvidence {
+    id: string;
+    type: string;
+    title: string;
+    summary: string;
+    severity: string;
+    timestamp?: string | null;
+    provider?: string | null;
+    action?: string | null;
+    metadata?: Record<string, any> | null;
+}
+
+export interface AnthonyFlowMapResponse {
+    success: boolean;
+    generatedAt: string;
+    requestedBy?: string;
+    summary: {
+        latestScanStatus: string;
+        findingsCount: number;
+        vulnerabilitiesCount: number;
+        criticalVulnerabilities: number;
+        integrity?: number | null;
+        anthonyHandoffStatus: string;
+    };
+    nodes: AnthonyFlowMapNode[];
+    edges: AnthonyFlowMapEdge[];
+    evidence: AnthonyFlowMapEvidence[];
+}
+
+export interface JITAccessRequestRecord {
+    id: string;
+    userId: string;
+    targetResource: string;
+    reason: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+    expiresAt: string;
+    createdAt: string;
+    approvedBy?: string | null;
+    approvedAt?: string | null;
+    timeRemainingMinutes: number;
+}
+
+export interface JITAccessRequestPayload {
+    targetResource: string;
+    reason: string;
+    durationMinutes: number;
+}
+
+async function getAuthHeaders() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+async function axiosWithAuthRetry<T = any>(
+    method: 'get' | 'post',
+    path: string,
+    data?: any,
+    responseType: 'json' | 'blob' = 'json',
+): Promise<T> {
+    const headers = await getAuthHeaders();
+    const absoluteUrl = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+    const relativeUrl = path;
+
+    const request = async (url: string, includeAuth: boolean) => {
+        const config: any = {
+            method,
+            url,
+            responseType,
+        };
+
+        if (method !== 'get' && typeof data !== 'undefined') {
+            config.data = data;
+        }
+
+        if (includeAuth && Object.keys(headers).length > 0) {
+            config.headers = headers;
+        }
+
+        return axios.request<T>(config);
+    };
+
+    const attempts: Array<{ url: string; includeAuth: boolean }> = [];
+
+    if (import.meta.env.DEV && relativeUrl.startsWith('/')) {
+        attempts.push({ url: relativeUrl, includeAuth: true });
+        attempts.push({ url: relativeUrl, includeAuth: false });
+    }
+
+    attempts.push({ url: absoluteUrl, includeAuth: true });
+
+    if (import.meta.env.DEV) {
+        attempts.push({ url: absoluteUrl, includeAuth: false });
+    }
+
+    let lastError: unknown;
+    for (const attempt of attempts) {
+        try {
+            return (await request(attempt.url, attempt.includeAuth)).data;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError;
+}
+
 export async function getSecurityIntegrity(userId: string): Promise<IntegrityReport> {
     const lastScan = new Date().toISOString();
 
@@ -91,14 +216,9 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         // In a real scenario, this would query access logs for specific health metrics
         const privacyStatus = 100;
 
-        // 3. Fetch live status from backend
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
-
         try {
-            const baseUrl = `${API_BASE_URL}`;
-            const res = await axios.get(`${baseUrl}/api/v1/monitoring/status`, { headers });
-            const michael = res.data?.michael || {};
+            const monitoring = await getMonitoringStatus();
+            const michael = monitoring?.michael || {};
             const michaelFindings = michael.recent_findings || [];
 
             // Map backend findings to frontend alerts
@@ -120,7 +240,7 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
                 overallScore: parseInt(overallScoreStr) || 100,
                 dataIntegrity,
                 privacyStatus,
-                lastScan: res.data?.timestamp || lastScan,
+                lastScan: monitoring?.timestamp || lastScan,
                 alerts: [...alerts, ...findings]
             };
         } catch (e) {
@@ -217,7 +337,22 @@ export async function runCAIAudit(userId: string): Promise<{
     phiLeeksDetected: number;
     status: 'clean' | 'compromised' | 'warning';
 }> {
-    // Specialized Cybersecurity Audit for AI (CAI)
+    try {
+        const monitoring = await getMonitoringStatus();
+        const findings = monitoring.michael?.recent_findings || [];
+        const phiLeaksDetected = findings.filter((finding) => finding.type === 'pii_leak').length;
+        const adversarialFlags = findings.filter((finding) => ['high', 'critical'].includes((finding.severity || '').toLowerCase())).length;
+        const integrityScore = Number.parseInt((monitoring.michael?.integrity || '100').replace('%', ''), 10) || 100;
+        const status =
+            monitoring.michael?.status === 'critical' ? 'compromised' :
+            monitoring.michael?.status === 'warning' ? 'warning' :
+            'clean';
+
+        return { integrityScore, adversarialFlags, phiLeeksDetected, status };
+    } catch (error) {
+        console.error('Error running CAI audit:', error);
+    }
+
     if (!userId) {
         return { integrityScore: 100, adversarialFlags: 0, phiLeeksDetected: 0, status: 'clean' };
     }
@@ -274,6 +409,58 @@ export interface ComplianceCheck {
     details: string;
 }
 
+export interface MonitoringSaintStatus {
+    status: 'active' | 'warning' | 'error' | 'critical';
+    role: string;
+    message?: string;
+    integrity?: string;
+    metrics?: Record<string, any>;
+    recent_findings?: Array<Record<string, any>>;
+}
+
+export interface MonitoringStatusResponse {
+    michael: MonitoringSaintStatus;
+    gabriel: MonitoringSaintStatus;
+    anthony: MonitoringSaintStatus;
+    raphael?: MonitoringSaintStatus;
+    joseph?: MonitoringSaintStatus;
+    timestamp: string;
+}
+
+export interface ComplianceReadinessControl {
+    id: string;
+    controlId: string;
+    description: string;
+    isPassing: boolean;
+    lastCheckedAt?: string | null;
+}
+
+export interface ComplianceReadinessResponse {
+    success: boolean;
+    readiness_score: number;
+    controls: ComplianceReadinessControl[];
+}
+
+export interface HipaaSafeguard {
+    rule: string;
+    officer: string;
+    status: string;
+    description: string;
+}
+
+export interface HipaaReportResponse {
+    generated_at: string;
+    user_id: string;
+    compliance_score: number;
+    status: string;
+    total_phi_events: number;
+    flagged_events: number;
+    denied_events: number;
+    safeguards: HipaaSafeguard[];
+    recent_events: Array<Record<string, any>>;
+    certifying_saints?: Record<string, string>;
+}
+
 // ── Mock Data Generators ───────────────────────────────────
 
 export function getThreatEvents(): ThreatEvent[] {
@@ -291,11 +478,10 @@ export function getThreatEvents(): ThreatEvent[] {
 
 export async function getLiveVulnerabilities(): Promise<Vulnerability[]> {
     try {
-        const baseUrl = `${API_BASE_URL}`;
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
-        const res = await axios.get(`${baseUrl}/api/v1/monitoring/michael/vulnerabilities`, { headers });
-        return res.data;
+        return await axiosWithAuthRetry<Vulnerability[]>(
+            'get',
+            '/api/v1/monitoring/michael/vulnerabilities',
+        );
     } catch (e) {
         console.error("Failed to fetch live CVEs", e);
         return getVulnerabilities(); // Fallback
@@ -303,22 +489,240 @@ export async function getLiveVulnerabilities(): Promise<Vulnerability[]> {
 }
 
 export async function getAnthonyLedger(limit: number = 50): Promise<AuditLedgerEntry[]> {
-    const baseUrl = `${API_BASE_URL}`;
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
-    const res = await axios.get(`${baseUrl}/api/v1/audit/ledger?limit=${limit}`, { headers });
-    return res.data?.data || [];
+    const res = await axiosWithAuthRetry<{ success: boolean; data: AuditLedgerEntry[] }>(
+        'get',
+        `/api/v1/audit/ledger?limit=${limit}`,
+    );
+    return res.data || [];
+}
+
+function mapSeverity(value?: string | null): ThreatSeverity {
+    switch ((value || '').toLowerCase()) {
+        case 'critical':
+            return 'critical';
+        case 'high':
+        case 'error':
+            return 'high';
+        case 'medium':
+        case 'warning':
+            return 'medium';
+        default:
+            return 'low';
+    }
+}
+
+function mapMitreCategory(value?: string | null): MitreCategory {
+    const source = (value || '').toLowerCase();
+    if (source.includes('credential') || source.includes('auth')) return 'credential_access';
+    if (source.includes('privilege')) return 'privilege_escalation';
+    if (source.includes('lateral')) return 'lateral_movement';
+    if (source.includes('collection') || source.includes('phi') || source.includes('pii')) return 'collection';
+    if (source.includes('exfil')) return 'exfiltration';
+    if (source.includes('persist') || source.includes('runtime')) return 'persistence';
+    if (source.includes('execute')) return 'execution';
+    return 'discovery';
+}
+
+function componentToFilePath(component?: string | null): string {
+    const source = (component || '').toLowerCase();
+    if (source.includes('auth')) return '/app/services/auth-service';
+    if (source.includes('akashic')) return '/app/services/akashic-processor';
+    if (source.includes('runtime')) return '/app/saint-runtime/core';
+    if (source.includes('bridge')) return '/app/saint-bridge/transport';
+    if (source.includes('vault')) return '/app/legacy-vault/api';
+    return '/app/security/guardian-scan';
+}
+
+function findingToThreat(finding: Record<string, any>, index: number): ThreatEvent {
+    const severity = mapSeverity(finding.severity);
+    const title = finding.type === 'pii_leak'
+        ? 'Sensitive Data Exposure Signal'
+        : (finding.type || 'Security Finding').replace(/_/g, ' ');
+
+    return {
+        id: String(finding.id || `finding-${index}`),
+        title,
+        description: finding.message || finding.details || 'Security anomaly detected by St. Michael.',
+        severity,
+        category: mapMitreCategory(finding.type || finding.message),
+        source: finding.source || 'St. Michael Scan',
+        timestamp: finding.timestamp || new Date().toISOString(),
+        mitigated: Boolean(finding.resolved),
+        ruleId: finding.ruleId || `MICHAEL-${String(index + 1).padStart(3, '0')}`,
+    };
+}
+
+function vulnerabilityToThreat(vulnerability: Vulnerability, index: number): ThreatEvent {
+    return {
+        id: vulnerability.id,
+        title: vulnerability.title,
+        description: vulnerability.description,
+        severity: mapSeverity(vulnerability.severity),
+        category: mapMitreCategory(vulnerability.affectedComponent),
+        source: vulnerability.affectedComponent,
+        timestamp: vulnerability.publishedDate || new Date().toISOString(),
+        mitigated: vulnerability.status === 'patched' || vulnerability.status === 'mitigated',
+        ruleId: vulnerability.cveId || `CVE-${index + 1}`,
+    };
+}
+
+function vulnerabilityToFileEvent(vulnerability: Vulnerability): FileIntegrityEvent {
+    const status = vulnerability.status;
+    const changeType: FileIntegrityEvent['changeType'] =
+        status === 'patched' ? 'permissions' :
+        status === 'mitigated' ? 'modified' :
+        status === 'accepted' ? 'permissions' :
+        'created';
+
+    return {
+        id: `file-${vulnerability.id}`,
+        filePath: componentToFilePath(vulnerability.affectedComponent),
+        changeType,
+        previousHash: status === 'patched' ? vulnerability.cveId : undefined,
+        currentHash: `${vulnerability.cveId}-${status}`,
+        user: 'st_michael',
+        timestamp: vulnerability.publishedDate || new Date().toISOString(),
+        severity: mapSeverity(vulnerability.severity),
+    };
+}
+
+function findingToFileEvent(finding: Record<string, any>, index: number): FileIntegrityEvent {
+    return {
+        id: `finding-file-${finding.id || index}`,
+        filePath: finding.details?.includes('Memory ID:')
+            ? `/akashic/${String(finding.details).replace('Memory ID:', '').trim()}.json`
+            : '/app/security/guardian-scan.json',
+        changeType: finding.type === 'pii_leak' ? 'modified' : 'created',
+        currentHash: String(finding.id || `finding-${index}`),
+        user: 'st_michael',
+        timestamp: finding.timestamp || new Date().toISOString(),
+        severity: mapSeverity(finding.severity),
+    };
+}
+
+export async function getMonitoringStatus(): Promise<MonitoringStatusResponse> {
+    return axiosWithAuthRetry<MonitoringStatusResponse>(
+        'get',
+        '/api/v1/monitoring/status',
+    );
+}
+
+export async function getComplianceReadiness(): Promise<ComplianceReadinessResponse> {
+    return axiosWithAuthRetry<ComplianceReadinessResponse>(
+        'get',
+        '/api/v1/audit/controls/readiness',
+    );
+}
+
+export async function getHipaaReport(): Promise<HipaaReportResponse> {
+    return axiosWithAuthRetry<HipaaReportResponse>(
+        'get',
+        '/api/v1/integrity/hipaa-report',
+    );
+}
+
+export async function getLiveThreatEvents(): Promise<ThreatEvent[]> {
+    try {
+        const [status, vulnerabilities] = await Promise.all([
+            getMonitoringStatus(),
+            getLiveVulnerabilities(),
+        ]);
+
+        const findingThreats = (status.michael?.recent_findings || []).map(findingToThreat);
+        const vulnerabilityThreats = vulnerabilities
+            .filter((vuln) => vuln.status === 'open' || vuln.severity === 'critical' || vuln.severity === 'high')
+            .map(vulnerabilityToThreat);
+
+        const deduped = [...findingThreats, ...vulnerabilityThreats].filter(
+            (event, index, items) => items.findIndex((candidate) => candidate.id === event.id) === index,
+        );
+
+        return deduped.length > 0 ? deduped : getThreatEvents();
+    } catch (error) {
+        console.error('Failed to fetch live threat events', error);
+        return getThreatEvents();
+    }
+}
+
+export async function getLiveFileIntegrityEvents(): Promise<FileIntegrityEvent[]> {
+    try {
+        const [status, vulnerabilities] = await Promise.all([
+            getMonitoringStatus(),
+            getLiveVulnerabilities(),
+        ]);
+
+        const findingEvents = (status.michael?.recent_findings || []).map(findingToFileEvent);
+        const vulnerabilityEvents = vulnerabilities.map(vulnerabilityToFileEvent);
+        const events = [...findingEvents, ...vulnerabilityEvents]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        return events.length > 0 ? events : getFileIntegrityEvents();
+    } catch (error) {
+        console.error('Failed to fetch live file integrity events', error);
+        return getFileIntegrityEvents();
+    }
 }
 
 export async function triggerLiveScan(): Promise<SecurityScanResult> {
-    const baseUrl = `${API_BASE_URL}`;
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
-    const res = await axios.post(`${baseUrl}/api/v1/monitoring/michael/scan`, {}, { headers });
+    return axiosWithAuthRetry<SecurityScanResult>(
+        'post',
+        '/api/v1/monitoring/michael/scan',
+        {},
+    );
+}
+
+export async function getAnthonyFlowMap(): Promise<AnthonyFlowMapResponse> {
+    return axiosWithAuthRetry<AnthonyFlowMapResponse>(
+        'get',
+        '/api/v1/audit/flow-map',
+    );
+}
+
+export async function getJITAccessRequests(): Promise<JITAccessRequestRecord[]> {
+    const res = await axiosWithAuthRetry<{ success: boolean; data: JITAccessRequestRecord[] }>(
+        'get',
+        '/api/v1/audit/jit-access',
+    );
+    return res.data || [];
+}
+
+export async function createJITAccessRequest(payload: JITAccessRequestPayload): Promise<JITAccessRequestRecord> {
+    const res = await axiosWithAuthRetry<{ success: boolean; data: JITAccessRequestRecord }>(
+        'post',
+        '/api/v1/audit/jit-access',
+        payload,
+    );
     return res.data;
 }
 
-export function getVulnerabilities(): VulnerabilityEntry[] {
+export async function approveJITAccessRequest(requestId: string): Promise<JITAccessRequestRecord> {
+    const res = await axiosWithAuthRetry<{ success: boolean; data: JITAccessRequestRecord }>(
+        'post',
+        `/api/v1/audit/jit-access/${requestId}/approve`,
+        {},
+    );
+    return res.data;
+}
+
+export async function rejectJITAccessRequest(requestId: string): Promise<JITAccessRequestRecord> {
+    const res = await axiosWithAuthRetry<{ success: boolean; data: JITAccessRequestRecord }>(
+        'post',
+        `/api/v1/audit/jit-access/${requestId}/reject`,
+        {},
+    );
+    return res.data;
+}
+
+export async function downloadAnthonyLedgerExport(): Promise<Blob> {
+    return axiosWithAuthRetry<Blob>(
+        'get',
+        '/api/v1/audit/ledger/export',
+        undefined,
+        'blob',
+    );
+}
+
+export function getVulnerabilities(): Vulnerability[] {
     return [
         { id: 'v1', cveId: 'CVE-2024-31091', title: 'Authentication Bypass in Legacy Module', severity: 'critical', cvssScore: 9.8, affectedComponent: 'Auth Service v2.1', status: 'patched', publishedDate: '2024-03-15', description: 'Allows unauthenticated users to bypass MFA' },
         { id: 'v2', cveId: 'CVE-2024-28447', title: 'XSS in Dashboard Rendering', severity: 'medium', cvssScore: 6.1, affectedComponent: 'Frontend UI', status: 'mitigated', publishedDate: '2024-02-20', description: 'Reflected XSS via query parameter injection' },

@@ -31,7 +31,11 @@ class EvidenceLabel(BaseModel):
 
 class SimulationResponse(BaseModel):
     scenario: Dict[str, float]
+    behavior_baselines: Optional[Dict[str, float]] = None
+    behavior_deltas: Optional[Dict[str, float]] = None
     projections: Dict[str, Any]
+    composite_indices: Optional[Dict[str, Any]] = None
+    downstream_equations: Optional[Dict[str, Any]] = None
     horizons: List[int]
     confidence: ConfidenceReport
     evidence: EvidenceLabel

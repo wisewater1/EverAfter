@@ -26,6 +26,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@netlify/neon": "^0.1.2",
     "@prisma/client": "^6.0.0",
     "@supabase/supabase-js": "^2.57.4",
     "@types/lodash": "^4.17.24",

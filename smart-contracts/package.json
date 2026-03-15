@@ -7,6 +7,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:local": "hardhat run chainlink/scripts/deploy.js --network hardhat",
+    "automation:register-upkeep": "node chainlink/scripts/register-upkeep.js",
+    "policy:sync": "node chainlink/scripts/sync-treasury-policy.js",
     "functions:create-subscription": "node chainlink/scripts/functions-create-subscription.js",
     "functions:build-secrets": "node chainlink/scripts/functions-build-secrets.js"
   },

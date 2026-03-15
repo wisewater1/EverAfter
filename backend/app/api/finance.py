@@ -9,6 +9,7 @@ from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.finance_service import FinanceService
 from app.services.chainlink_service import ChainlinkService
+from app.services.treasury_analyst_service import TreasuryAnalystService
 from app.core.config import settings
 
 router = APIRouter(prefix="/api/v1/finance", tags=["finance"])
@@ -19,19 +20,37 @@ class CCIPBridgeRequest(BaseModel):
     destination_address: str
     amount: float
 
-class TransactionCreate(BaseModel):
+class TransactionCategoryResponse(BaseModel):
+    name: str
+    group: str
+
+
+class TransactionBase(BaseModel):
     date: date
     payee: str
     amount: float
-    category_id: UUID
-    description: str = None
+    category_id: Optional[UUID] = None
+    description: Optional[str] = None
     is_cleared: bool = False
 
-class TransactionResponse(TransactionCreate):
+
+class TransactionCreate(TransactionBase):
+    pass
+
+
+class TransactionResponse(TransactionBase):
     id: UUID
     created_at: datetime
+    category: Optional[TransactionCategoryResponse] = None
+    source: str = "manual"
+    account_name: Optional[str] = None
+    account_mask: Optional[str] = None
+    institution_name: Optional[str] = None
+    pending: bool = False
+
     class Config:
         from_attributes = True
+
 
 class TransferRequest(BaseModel):
     from_category_id: UUID
@@ -54,6 +73,19 @@ class CovenantAmountRequest(BaseModel):
     amount: float
 
 
+class WiseGoldPolicyEvaluateRequest(BaseModel):
+    action: str
+    amount: float = 0.0
+    covenant_id: Optional[UUID] = None
+    destination_chain: Optional[str] = None
+
+
+class BankPublicTokenExchangeRequest(BaseModel):
+    public_token: str
+    institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
+
+
 def _require_oracle_key(x_wisegold_oracle_key: Optional[str]) -> None:
     configured_key = settings.WISEGOLD_ORACLE_API_KEY.strip()
     if not configured_key:
@@ -62,6 +94,61 @@ def _require_oracle_key(x_wisegold_oracle_key: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="Invalid oracle credentials")
 
 # Endpoints
+
+
+@router.get("/bank/status")
+async def get_bank_connection_status(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_bank_connection_status(user_id)
+
+
+@router.post("/bank/link-token")
+async def create_bank_link_token(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    try:
+        return await service.create_bank_link_token(user_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/bank/exchange")
+async def exchange_bank_public_token(
+    request: BankPublicTokenExchangeRequest,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    try:
+        return await service.exchange_bank_public_token(
+            user_id,
+            public_token=request.public_token,
+            institution_id=request.institution_id,
+            institution_name=request.institution_name,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/bank/sync")
+async def sync_bank_transactions(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    try:
+        return await service.sync_bank_connections(user_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @router.get("/budget", response_model=List[EnvelopeSummary])
 async def get_budget(
@@ -107,6 +194,18 @@ async def list_transactions(
     user_id = str(current_user.get("sub"))
     service = FinanceService(session)
     return await service.get_transactions(user_id, limit)
+
+
+@router.get("/treasury/summary")
+async def get_treasury_summary(
+    months: int = 3,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Get St. Gabriel treasury analysis grounded in the user's real finance data."""
+    user_id = str(current_user.get("sub"))
+    service = TreasuryAnalystService(session)
+    return await service.build_snapshot(user_id, months=months)
 
 @router.post("/budget/transfer")
 async def transfer_funds(
@@ -231,6 +330,58 @@ async def get_wisegold_social_standing(
     return await service.get_wisegold_social_standing(user_id)
 
 
+@router.get("/wisegold/attestations")
+async def get_wisegold_attestations(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Get active and historical covenant attestations for the authenticated member."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_wisegold_attestations(user_id)
+
+
+@router.post("/wisegold/attestations/sync")
+async def sync_wisegold_attestations(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Refresh backend-issued covenant attestations from covenant membership state."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    attestations = await service.get_wisegold_attestations(user_id)
+    return {"success": True, "count": len(attestations), "attestations": attestations}
+
+
+@router.get("/wisegold/policy/summary")
+async def get_wisegold_policy_summary(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Get Gabriel-facing WiseGold policy state, limits, and allow/deny explanations."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_wisegold_policy_summary(user_id)
+
+
+@router.post("/wisegold/policy/evaluate")
+async def evaluate_wisegold_policy(
+    request: WiseGoldPolicyEvaluateRequest,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Evaluate a prospective WGOLD action against current attestation and treasury policy."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.evaluate_wisegold_policy(
+        user_id,
+        action=request.action,
+        amount=request.amount,
+        covenant_id=request.covenant_id,
+        destination_chain=request.destination_chain,
+    )
+
+
 @router.get("/wisegold/oracle/reputation/{user_id}")
 async def get_wisegold_oracle_reputation(
     user_id: str,
@@ -254,6 +405,29 @@ async def get_wisegold_oracle_reputation(
         "tier": snapshot["tier"],
         "last_calculated_at": snapshot["last_calculated_at"],
     }
+
+
+@router.get("/wisegold/oracle/policy-global")
+async def get_wisegold_oracle_global_policy(
+    x_wisegold_oracle_key: Optional[str] = Header(default=None),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Chainlink-safe treasury policy snapshot used for onchain controller sync."""
+    _require_oracle_key(x_wisegold_oracle_key)
+    service = FinanceService(session)
+    return await service.get_wisegold_global_policy()
+
+
+@router.get("/wisegold/oracle/policy/{user_id}")
+async def get_wisegold_oracle_policy(
+    user_id: str,
+    x_wisegold_oracle_key: Optional[str] = Header(default=None),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Chainlink Functions-safe policy endpoint for action limits and attestation state."""
+    _require_oracle_key(x_wisegold_oracle_key)
+    service = FinanceService(session)
+    return await service.get_wisegold_policy_summary(user_id)
     
 @router.post("/wisegold/heartbeat")
 async def register_heartbeat(
@@ -310,8 +484,11 @@ async def bridge_wisegold_ccip(
         destination_chain=request.destination_chain,
         destination_address=request.destination_address
     )
-    
-    return result
+
+    return {
+        **result,
+        "status": result.get("status", "submitted"),
+    }
 
 
 @router.post("/wisegold/covenants/{covenant_id}/deposit")

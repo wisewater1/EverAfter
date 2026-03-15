@@ -109,6 +109,7 @@ async def get_society_feed(
             "initiator": engram_map.get(i.initiator_id, {"name": "Unknown"}),
             "receiver_id": str(i.receiver_id),
             "receiver": engram_map.get(i.receiver_id, {"name": "Unknown"}),
+            "interaction_type": i.interaction_type,
             "created_at": i.created_at.isoformat(),
             "rapport": i.emotional_rapport
         }

@@ -7,6 +7,7 @@ import {
 } from '../../lib/joseph/genealogy';
 import SaintChat from '../SaintChat';
 import AddEventModal from './AddEventModal';
+import { API_BASE_URL } from '../../lib/env';
 
 const EVENT_COLORS: Record<EventType, { bg: string; border: string; text: string; dot: string }> = {
     birth: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', dot: 'bg-emerald-400' },
@@ -72,7 +73,7 @@ export default function FamilyTimeline() {
                     token = session?.currentSession?.access_token || '';
                 } catch (e) { }
 
-                const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002';
+                const API_BASE = API_BASE_URL;
                 const res = await fetch(`${API_BASE}/api/v1/time-capsules`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -119,7 +120,7 @@ export default function FamilyTimeline() {
                     token = session?.currentSession?.access_token || '';
                 } catch (e) { }
 
-                const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002';
+                const API_BASE = API_BASE_URL;
                 const futureEvents: FamilyEventType[] = [];
                 const currentYear = new Date().getFullYear();
 

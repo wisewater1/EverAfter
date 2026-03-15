@@ -47,10 +47,102 @@ interface InteractionEvent {
     rapport: number;
 }
 
+const LOCAL_SOCIETY_EVENTS_KEY = 'everafter_society_events';
+const MAX_SOCIAL_EVENTS = 20;
+const LOCAL_EVENT_TYPES = [
+    'casual_observation',
+    'mutual_support',
+    'legacy_alignment',
+    'vignette_propagation',
+] as const;
+
+const readLocalSocietyEvents = (): InteractionEvent[] => {
+    if (typeof window === 'undefined') return [];
+
+    try {
+        const raw = window.localStorage.getItem(LOCAL_SOCIETY_EVENTS_KEY);
+        if (!raw) return [];
+
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeLocalSocietyEvents = (events: InteractionEvent[]): void => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+        LOCAL_SOCIETY_EVENTS_KEY,
+        JSON.stringify(events.slice(0, MAX_SOCIAL_EVENTS))
+    );
+};
+
+const mergeSocietyEvents = (...collections: InteractionEvent[][]): InteractionEvent[] => {
+    const merged = new Map<string, InteractionEvent>();
+
+    collections.flat().forEach((event) => {
+        if (event?.id) {
+            merged.set(String(event.id), event);
+        }
+    });
+
+    return Array.from(merged.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, MAX_SOCIAL_EVENTS);
+};
+
+const sampleOne = <T,>(items: T[]): T | null => {
+    if (items.length === 0) return null;
+    return items[Math.floor(Math.random() * items.length)];
+};
+
+const buildLocalSocietySummary = (
+    initiatorName: string,
+    receiverName: string,
+    interactionType: string
+): string => {
+    switch (interactionType) {
+        case 'vignette_propagation':
+            return `${initiatorName} shared a legacy vignette with ${receiverName}, extending a family memory across the network.`;
+        case 'mutual_support':
+            return `${initiatorName} checked in with ${receiverName} and offered practical support for an active family priority.`;
+        case 'legacy_alignment':
+            return `${initiatorName} and ${receiverName} aligned on a long-term family goal and updated their shared plan.`;
+        default:
+            return `${initiatorName} opened a light-touch conversation with ${receiverName} to exchange family context and recent updates.`;
+    }
+};
+
+const createLocalSocietyEvent = (
+    initiator: AgentProfile,
+    receiver: AgentProfile,
+    interactionType: string
+): InteractionEvent => ({
+    id: `local-social-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    summary: buildLocalSocietySummary(initiator.name, receiver.name, interactionType),
+    initiator_id: initiator.id,
+    initiator: {
+        id: initiator.id,
+        name: initiator.name,
+        avatar_url: initiator.avatar_url,
+    },
+    receiver_id: receiver.id,
+    receiver: {
+        id: receiver.id,
+        name: receiver.name,
+        avatar_url: receiver.avatar_url,
+    },
+    interaction_type: interactionType,
+    created_at: new Date().toISOString(),
+    rapport: 0.62 + Math.random() * 0.28,
+});
+
 const SocietyFeed: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'agora' | 'clusters' | 'council'>('agora');
     const [events, setEvents] = useState<InteractionEvent[]>([]);
     const [agents, setAgents] = useState<AgentProfile[]>([]);
+    const [backendAgentIds, setBackendAgentIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
 
@@ -64,27 +156,70 @@ const SocietyFeed: React.FC = () => {
     const physicsRef = useRef<Record<string, { x: number, y: number, vx: number, vy: number, baseVy: number, targetHeight: number, arc: Archetype }>>({});
     const [positions, setPositions] = useState<Record<string, { x: number, y: number }>>({});
 
+    const appendLocalEvents = (newEvents: InteractionEvent[]) => {
+        if (newEvents.length === 0) return;
+        const mergedLocalEvents = mergeSocietyEvents(readLocalSocietyEvents(), newEvents);
+        writeLocalSocietyEvents(mergedLocalEvents);
+        setEvents((current) => mergeSocietyEvents(current, mergedLocalEvents));
+    };
+
+    const runLocalSimulation = (
+        count: number,
+        interactionType?: string,
+        focusAgent?: AgentProfile
+    ): InteractionEvent[] => {
+        const activeAgents = agents.filter((agent) => agent.status === 'active');
+        const preferredPool = activeAgents.length >= 2 ? activeAgents : agents;
+        const pool = focusAgent && !preferredPool.some((agent) => agent.id === focusAgent.id)
+            ? [focusAgent, ...preferredPool]
+            : preferredPool;
+
+        if (pool.length < 2) {
+            return [];
+        }
+
+        const createdEvents: InteractionEvent[] = [];
+
+        for (let index = 0; index < count; index += 1) {
+            const initiator = focusAgent || sampleOne(pool);
+            if (!initiator) break;
+
+            const receiver = sampleOne(pool.filter((agent) => agent.id !== initiator.id));
+            if (!receiver) break;
+
+            const nextType = interactionType || LOCAL_EVENT_TYPES[index % LOCAL_EVENT_TYPES.length];
+            createdEvents.push(createLocalSocietyEvent(initiator, receiver, nextType));
+        }
+
+        appendLocalEvents(createdEvents);
+        return createdEvents;
+    };
+
     const refreshData = async () => {
         try {
-            const [engrams, , feedData] = await Promise.all([
+            const [engramsResult, , feedResult] = await Promise.allSettled([
                 apiClient.getEngrams(),
                 apiClient.getSocialClusters(),
                 apiClient.getSocietyFeed()
             ]);
 
+            const engrams = engramsResult.status === 'fulfilled' ? engramsResult.value : [];
+            const feedData = feedResult.status === 'fulfilled' ? feedResult.value : [];
             const localFamily = getFamilyMembers();
             const engramMap = new Map((engrams || []).map((e: any) => [e.name, e]));
+            const localEvents = readLocalSocietyEvents();
 
             const combinedAgents: AgentProfile[] = localFamily.map(member => {
                 const fullName = `${member.firstName} ${member.lastName}`;
                 const engram = engramMap.get(fullName) as any;
                 const traits = engram?.personality_traits || member.aiPersonality?.traits;
+                const isLocalActive = Boolean(member.aiPersonality?.isActive || member.aiPersonality?.scores || member.engramId);
                 return {
-                    id: engram?.id || member.id,
+                    id: engram?.id || member.engramId || member.id,
                     name: fullName,
                     avatar_url: engram?.avatar_url || member.photo,
                     personality_traits: traits,
-                    status: engram?.is_ai_active ? 'active' : 'idle',
+                    status: engram?.is_ai_active || isLocalActive ? 'active' : 'idle',
                     archetype: getAgentArchetype(traits || member.bio)
                 } as AgentProfile;
             });
@@ -103,8 +238,9 @@ const SocietyFeed: React.FC = () => {
                 }
             });
 
+            setBackendAgentIds((engrams || []).map((engram: any) => String(engram.id)));
             setAgents(combinedAgents);
-            setEvents(feedData || []);
+            setEvents(mergeSocietyEvents(feedData || [], localEvents));
         } catch (error) {
             console.error('Error fetching society data:', error);
         } finally {
@@ -234,7 +370,7 @@ const SocietyFeed: React.FC = () => {
             {errorMsg && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-500/90 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 backdrop-blur border border-rose-400/50 flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
                     <span>{errorMsg}</span>
-                    <button onClick={() => setErrorMsg(null)} className="ml-2 opacity-70 hover:opacity-100">×</button>
+                    <button onClick={() => setErrorMsg(null)} className="ml-2 opacity-70 hover:opacity-100">x</button>
                 </div>
             )}
 
@@ -359,7 +495,7 @@ const SocietyFeed: React.FC = () => {
                                         <div className="flex items-center gap-2 mb-1.5">
                                             <Zap className={`w-3 h-3 ${event.interaction_type === 'vignette_propagation' ? 'text-amber-400' : 'text-cyan-400'}`} />
                                             <span className="text-[9px] text-slate-400 font-bold uppercase transition-colors group-hover:text-cyan-300">
-                                                {event.interaction_type?.replace('_', ' ') || 'Casual Observation'}
+                                                {event.interaction_type?.replace(/_/g, ' ') || 'Casual Observation'}
                                             </span>
                                         </div>
                                         <p className="text-xs text-slate-300 leading-relaxed font-medium">{event.summary}</p>
@@ -382,11 +518,21 @@ const SocietyFeed: React.FC = () => {
                                             setIsSeeding(true);
                                             setErrorMsg(null);
                                             try {
-                                                await apiClient.boostSociety(5);
-                                                await refreshData();
+                                                if (backendAgentIds.length >= 2) {
+                                                    await apiClient.boostSociety(5);
+                                                    await refreshData();
+                                                } else {
+                                                    const seededEvents = runLocalSimulation(5);
+                                                    if (seededEvents.length === 0) {
+                                                        setErrorMsg("Need at least 2 family members to seed the society simulation.");
+                                                    }
+                                                }
                                             } catch (error: any) {
                                                 console.error("Failed to boost society:", error);
-                                                setErrorMsg(error.message || "Simulation failed. Are there enough active agents in the database?");
+                                                const seededEvents = runLocalSimulation(5);
+                                                if (seededEvents.length === 0) {
+                                                    setErrorMsg(error?.message || "Simulation failed. Need at least 2 agents to seed the society.");
+                                                }
                                             } finally {
                                                 setIsSeeding(false);
                                             }
@@ -414,14 +560,33 @@ const SocietyFeed: React.FC = () => {
                                 setIsPropagating(true);
                                 setErrorMsg(null);
                                 try {
-                                    const initiator = agents.find(a => a.status === 'active') || agents[0];
-                                    if (initiator) {
+                                    const initiator =
+                                        agents.find((agent) => backendAgentIds.includes(agent.id) && agent.status === 'active') ||
+                                        agents.find((agent) => backendAgentIds.includes(agent.id));
+
+                                    if (initiator && backendAgentIds.length >= 1) {
                                         await apiClient.triggerLegacyPropagation(initiator.id, "Family traditions are the glue of our legacy.");
                                         await refreshData();
+                                    } else {
+                                        const localInitiator = agents.find((agent) => agent.status === 'active') || agents[0];
+                                        const propagatedEvents = localInitiator
+                                            ? runLocalSimulation(3, 'vignette_propagation', localInitiator)
+                                            : [];
+
+                                        if (propagatedEvents.length === 0) {
+                                            setErrorMsg("Need at least 2 agents in the society to propagate legacies.");
+                                        }
                                     }
                                 } catch (error: any) {
                                     console.error("Propagation Error:", error);
-                                    setErrorMsg(error.message || "Failed to trigger propagation vignette.");
+                                    const localInitiator = agents.find((agent) => agent.status === 'active') || agents[0];
+                                    const propagatedEvents = localInitiator
+                                        ? runLocalSimulation(3, 'vignette_propagation', localInitiator)
+                                        : [];
+
+                                    if (propagatedEvents.length === 0) {
+                                        setErrorMsg(error?.message || "Failed to trigger propagation vignette.");
+                                    }
                                 } finally {
                                     setIsPropagating(false);
                                 }
@@ -444,11 +609,21 @@ const SocietyFeed: React.FC = () => {
                                 setIsAccelerating(true);
                                 setErrorMsg(null);
                                 try {
-                                    await apiClient.triggerSocietyEvent();
-                                    await refreshData();
+                                    if (backendAgentIds.length >= 2) {
+                                        await apiClient.triggerSocietyEvent();
+                                        await refreshData();
+                                    } else {
+                                        const acceleratedEvents = runLocalSimulation(1);
+                                        if (acceleratedEvents.length === 0) {
+                                            setErrorMsg("Need at least 2 agents to accelerate the society simulation.");
+                                        }
+                                    }
                                 } catch (error: any) {
                                     console.error("Event trigger error:", error);
-                                    setErrorMsg(error.message || "Failed to trigger society event. Not enough active engrams?");
+                                    const acceleratedEvents = runLocalSimulation(1);
+                                    if (acceleratedEvents.length === 0) {
+                                        setErrorMsg(error?.message || "Failed to trigger society event. Need at least 2 agents in the graph.");
+                                    }
                                 } finally {
                                     setIsAccelerating(false);
                                 }

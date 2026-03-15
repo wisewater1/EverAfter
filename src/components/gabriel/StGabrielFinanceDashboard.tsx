@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Wallet, PieChart, TrendingUp, Shield, MessageSquare, Plus, DollarSign, Sparkles } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, Wallet, PieChart, TrendingUp, TrendingDown, Shield, MessageSquare, Plus, DollarSign, Sparkles, Building2, RefreshCcw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BudgetEnvelopes from './BudgetEnvelopes';
 import TransactionLedger from './TransactionLedger';
@@ -12,6 +12,8 @@ import GabrielDHTSummary from './GabrielDHTSummary';
 import WiseGoldPanel from './WiseGoldPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_BASE_URL, isProduction } from '../../lib/env';
+import { BankStatusResponse, Transaction, financeApi } from '../../lib/gabriel/finance';
+import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
@@ -20,62 +22,186 @@ export default function StGabrielFinanceDashboard() {
     const [showCouncil, setShowCouncil] = useState(true);
     const [wgoldBalance, setWgoldBalance] = useState(0);
     const [wgoldPriceUsd, setWgoldPriceUsd] = useState(72.00);
+    const [bankStatus, setBankStatus] = useState<BankStatusResponse | null>(null);
+    const [bankActionLoading, setBankActionLoading] = useState(false);
+    const [financeCardLoading, setFinanceCardLoading] = useState(true);
+    const [financeCardError, setFinanceCardError] = useState<string | null>(null);
+    const [monthCashFlow, setMonthCashFlow] = useState<number | null>(null);
 
     useEffect(() => {
-        // Fetch WGOLD balance for Net Worth calculation
-        const fetchWallet = async () => {
+        const fetchFinanceCardState = async () => {
+            setFinanceCardLoading(true);
+            setFinanceCardError(null);
+
             const token = session?.access_token || '';
             if (!token) {
-                if (!isProduction) {
-                    setWgoldBalance(1450.50);
-                    setWgoldPriceUsd(89.50);
-                } else {
-                    setWgoldBalance(0);
-                    setWgoldPriceUsd(0);
-                }
+                setWgoldBalance(0);
+                setWgoldPriceUsd(0);
+                setBankStatus(null);
+                setMonthCashFlow(null);
+                setFinanceCardLoading(false);
                 return;
             }
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/wallet`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const [walletResult, priceResult, bankStatusResult, transactionsResult] = await Promise.allSettled([
+                    fetch(`${API_BASE_URL}/api/v1/finance/wisegold/wallet`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${API_BASE_URL}/api/v1/finance/wisegold/price`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    financeApi.getBankStatus(),
+                    financeApi.getTransactions(200),
+                ]);
 
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.wallet && data.wallet.balance) {
-                        setWgoldBalance(data.wallet.balance);
-                    }
-                }
-
-                // Fetch live Gold Price from Chainlink (via backend)
-                const priceRes = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/price`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (priceRes.ok) {
-                    const priceData = await priceRes.json();
-                    if (priceData.xau_usd_price) {
-                        setWgoldPriceUsd(priceData.xau_usd_price);
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch WiseGold balance or Chainlink price:", err);
-                if (!isProduction) {
-                    setWgoldBalance(1450.50);
-                    setWgoldPriceUsd(89.50);
+                if (walletResult.status === 'fulfilled' && walletResult.value.ok) {
+                    const data = await walletResult.value.json();
+                    setWgoldBalance(Number(data?.wallet?.balance || 0));
                 } else {
                     setWgoldBalance(0);
+                }
+
+                if (priceResult.status === 'fulfilled' && priceResult.value.ok) {
+                    const priceData = await priceResult.value.json();
+                    setWgoldPriceUsd(Number(priceData?.xau_usd_price || 0));
+                } else {
                     setWgoldPriceUsd(0);
                 }
+
+                if (bankStatusResult.status === 'fulfilled') {
+                    setBankStatus(bankStatusResult.value);
+                } else {
+                    setBankStatus(null);
+                }
+
+                if (transactionsResult.status === 'fulfilled') {
+                    const startOfMonth = new Date();
+                    startOfMonth.setDate(1);
+                    startOfMonth.setHours(0, 0, 0, 0);
+                    const bankTransactions = transactionsResult.value.filter(
+                        (transaction: Transaction) =>
+                            transaction.source === 'bank' &&
+                            new Date(transaction.date).getTime() >= startOfMonth.getTime(),
+                    );
+                    if (bankTransactions.length > 0) {
+                        const total = bankTransactions.reduce(
+                            (sum: number, transaction: Transaction) => sum + Number(transaction.amount || 0),
+                            0,
+                        );
+                        setMonthCashFlow(total);
+                    } else {
+                        setMonthCashFlow(null);
+                    }
+                } else {
+                    setMonthCashFlow(null);
+                }
+            } catch (err) {
+                console.error('Failed to fetch finance sidebar state:', err);
+                setWgoldBalance(0);
+                setWgoldPriceUsd(0);
+                setBankStatus(null);
+                setMonthCashFlow(null);
+                setFinanceCardError(err instanceof Error ? err.message : 'Unable to load connected account balances.');
+            } finally {
+                setFinanceCardLoading(false);
             }
         };
-        fetchWallet();
+
+        void fetchFinanceCardState();
     }, [session]);
 
-    // Mock USD Net Worth base plus dynamic Chainlink WGOLD value
-    const baseNetWorth = 142593.00;
+    const linkedAccountBalance = useMemo(() => {
+        if (!bankStatus?.connected) {
+            return 0;
+        }
+
+        return bankStatus.connections.reduce((connectionTotal, connection) => {
+            const accountTotal = connection.accounts.reduce((sum, account) => {
+                return sum + Number(account.current_balance || 0);
+            }, 0);
+            return connectionTotal + accountTotal;
+        }, 0);
+    }, [bankStatus]);
+
+    const latestSyncText = useMemo(() => {
+        const syncDates = bankStatus?.connections
+            .map((connection) => connection.last_synced_at)
+            .filter(Boolean)
+            .map((value) => new Date(value as string).getTime()) || [];
+
+        if (syncDates.length === 0) {
+            return null;
+        }
+
+        return new Date(Math.max(...syncDates)).toLocaleString();
+    }, [bankStatus]);
+
     const wgoldValueUsd = wgoldBalance * wgoldPriceUsd;
-    const totalNetWorth = baseNetWorth + wgoldValueUsd;
+    const totalNetWorth = linkedAccountBalance + wgoldValueUsd;
+
+    async function refreshFinanceCardState() {
+        setFinanceCardLoading(true);
+        setFinanceCardError(null);
+        try {
+            const status = await financeApi.getBankStatus();
+            setBankStatus(status);
+
+            const transactions = await financeApi.getTransactions(200);
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+            const bankTransactions = transactions.filter(
+                (transaction) =>
+                    transaction.source === 'bank' &&
+                    new Date(transaction.date).getTime() >= startOfMonth.getTime(),
+            );
+            setMonthCashFlow(
+                bankTransactions.length > 0
+                    ? bankTransactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0)
+                    : null,
+            );
+        } catch (err) {
+            setFinanceCardError(err instanceof Error ? err.message : 'Unable to refresh connected account balances.');
+        } finally {
+            setFinanceCardLoading(false);
+        }
+    }
+
+    async function handleBankAction() {
+        if (!bankStatus?.configured) {
+            setActiveView('ledger');
+            return;
+        }
+
+        try {
+            setBankActionLoading(true);
+            setFinanceCardError(null);
+
+            if (bankStatus.connected) {
+                await financeApi.syncBankTransactions();
+            } else {
+                const tokenResponse = await financeApi.createBankLinkToken();
+                await openPlaidLink({
+                    linkToken: tokenResponse.link_token,
+                    onSuccess: async (publicToken, metadata) => {
+                        await financeApi.exchangeBankPublicToken({
+                            public_token: publicToken,
+                            institution_id: metadata?.institution?.institution_id ?? metadata?.institution?.id ?? null,
+                            institution_name: metadata?.institution?.name ?? null,
+                        });
+                    },
+                });
+            }
+
+            await refreshFinanceCardState();
+        } catch (err) {
+            console.error('Failed to complete bank action:', err);
+            setFinanceCardError(err instanceof Error ? err.message : 'Unable to connect or sync bank account.');
+        } finally {
+            setBankActionLoading(false);
+        }
+    }
 
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
@@ -130,11 +256,97 @@ export default function StGabrielFinanceDashboard() {
                 <div className="mt-auto p-4 border-t border-slate-800">
                     <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                         <div className="text-xs text-slate-500 uppercase font-bold mb-2">Net Worth</div>
-                        <div className="text-2xl font-light text-white">${totalNetWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400">
-                            <TrendingUp className="w-3 h-3" />
-                            <span>+2.4% this month</span>
-                        </div>
+                        {financeCardLoading ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Loading balances...
+                            </div>
+                        ) : bankStatus?.connected ? (
+                            <>
+                                <div className="text-2xl font-light text-white">
+                                    ${totalNetWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="mt-2 space-y-1 text-xs">
+                                    <div className="flex items-center justify-between text-slate-400">
+                                        <span>Linked accounts</span>
+                                        <span className="text-slate-200">
+                                            ${linkedAccountBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-slate-400">
+                                        <span>WGOLD value</span>
+                                        <span className="text-slate-200">
+                                            ${wgoldValueUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div
+                                    className={`flex items-center gap-1 mt-3 text-xs ${
+                                        monthCashFlow === null
+                                            ? 'text-slate-400'
+                                            : monthCashFlow >= 0
+                                                ? 'text-emerald-400'
+                                                : 'text-rose-400'
+                                    }`}
+                                >
+                                    {monthCashFlow === null ? (
+                                        <Building2 className="w-3 h-3" />
+                                    ) : monthCashFlow >= 0 ? (
+                                        <TrendingUp className="w-3 h-3" />
+                                    ) : (
+                                        <TrendingDown className="w-3 h-3" />
+                                    )}
+                                    <span>
+                                        {monthCashFlow === null
+                                            ? `${bankStatus.connections.length} linked connection${bankStatus.connections.length === 1 ? '' : 's'}`
+                                            : `${monthCashFlow >= 0 ? '+' : '-'}$${Math.abs(monthCashFlow).toLocaleString('en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })} net cash flow this month`}
+                                    </span>
+                                </div>
+                                {latestSyncText && (
+                                    <div className="mt-1 text-[11px] text-slate-500">
+                                        Last synced {latestSyncText}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-lg font-medium text-white">Connect a bank account</div>
+                                <div className="mt-1 text-xs text-slate-400">
+                                    {bankStatus?.configured
+                                        ? 'Link a real account to calculate net worth and keep Gabriel in sync.'
+                                        : 'Bank linking is not configured on this backend yet.'}
+                                </div>
+                                {wgoldValueUsd > 0 && (
+                                    <div className="mt-3 text-xs text-slate-400">
+                                        Current WGOLD asset value:{' '}
+                                        <span className="text-amber-300">
+                                            ${wgoldValueUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        {financeCardError && (
+                            <div className="mt-3 text-xs text-rose-400">{financeCardError}</div>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleBankAction}
+                            disabled={bankActionLoading}
+                            className="mt-3 w-full flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {bankActionLoading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : bankStatus?.connected ? (
+                                <RefreshCcw className="w-3.5 h-3.5" />
+                            ) : (
+                                <Building2 className="w-3.5 h-3.5" />
+                            )}
+                            {bankStatus?.connected ? 'Sync linked accounts' : bankStatus?.configured ? 'Connect bank account' : 'Open transaction ledger'}
+                        </button>
                     </div>
                     <button
                         onClick={() => navigate('/saints')}

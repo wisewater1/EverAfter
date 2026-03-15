@@ -7,13 +7,16 @@ Handles detailed business logic for the Envelope Budgeting system.
 import json
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, desc
+from sqlalchemy import delete, select, func, and_, desc
 from sqlalchemy.orm import selectinload
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import calendar
 
 from app.models.finance import (
+    BankAccount,
+    BankConnection,
+    BankImportedTransaction,
     BudgetCategory,
     BudgetEnvelope,
     Transaction,
@@ -25,7 +28,9 @@ from app.models.finance import (
     WiseGoldPolicyState,
 )
 from app.core.config import settings
+from app.services.plaid_service import PlaidAPIError, PlaidConfigurationError, PlaidService
 from app.services.social_reputation_service import social_reputation_service
+from app.services.wisegold_policy_service import WiseGoldPolicyService
 
 class FinanceService:
     def __init__(self, session: AsyncSession):
@@ -168,6 +173,383 @@ class FinanceService:
         
         await self.session.commit()
 
+    def _normalize_plaid_amount(self, plaid_amount: float) -> float:
+        # Plaid transaction amounts are positive for outflow and negative for inflow.
+        # EverAfter stores negative values for spending and positive values for income.
+        return -float(plaid_amount)
+
+    def _parse_transaction_date(self, value: Optional[str]) -> date:
+        if not value:
+            return datetime.utcnow().date()
+        return datetime.strptime(value, "%Y-%m-%d").date()
+
+    def _plaid_payee(self, payload: Dict[str, Any]) -> str:
+        return (
+            payload.get("merchant_name")
+            or payload.get("name")
+            or payload.get("authorized_merchant_name")
+            or "Imported transaction"
+        )
+
+    def _plaid_description(self, payload: Dict[str, Any]) -> Optional[str]:
+        category = payload.get("personal_finance_category") or {}
+        detailed = category.get("detailed")
+        name = payload.get("name")
+        merchant_name = payload.get("merchant_name")
+        if detailed and merchant_name and name and merchant_name != name:
+            return f"{name} • {detailed}"
+        return detailed or name
+
+    async def _guess_category_id(self, user_id: str, payload: Dict[str, Any]) -> Optional[UUID]:
+        categories = await self.get_categories(user_id)
+        if not categories:
+            return None
+
+        category_map = {category.name.lower(): category.id for category in categories}
+        category_text = " ".join(
+            filter(
+                None,
+                [
+                    payload.get("merchant_name"),
+                    payload.get("name"),
+                    (payload.get("personal_finance_category") or {}).get("primary"),
+                    (payload.get("personal_finance_category") or {}).get("detailed"),
+                ],
+            )
+        ).lower()
+
+        matching_rules = [
+            (["grocery", "supermarket"], "groceries"),
+            (["restaurant", "coffee", "food and drink"], "dining out"),
+            (["rent", "mortgage"], "rent/mortgage"),
+            (["utility", "electric", "water", "internet", "phone"], "utilities"),
+            (["maintenance", "repair"], "maintenance"),
+            (["gas", "fuel"], "gas"),
+            (["insurance"], "car insurance"),
+            (["transit", "taxi", "rideshare", "public transportation"], "public transit"),
+            (["movie", "streaming", "music", "entertainment"], "entertainment"),
+            (["clothing", "apparel"], "clothing"),
+            (["personal care", "salon", "barber", "pharmacy"], "personal care"),
+            (["investment", "brokerage"], "investments"),
+            (["vacation", "travel", "airline", "hotel"], "vacation"),
+            (["credit card"], "credit card payments"),
+            (["student loan", "loan"], "student loans"),
+            (["emergency"], "emergency fund"),
+        ]
+
+        for needles, category_name in matching_rules:
+            if any(needle in category_text for needle in needles):
+                return category_map.get(category_name)
+
+        return None
+
+    async def _upsert_bank_account(self, connection: BankConnection, payload: Dict[str, Any]) -> BankAccount:
+        stmt = select(BankAccount).where(BankAccount.provider_account_id == payload["account_id"])
+        bank_account = (await self.session.execute(stmt)).scalar_one_or_none()
+
+        balances = payload.get("balances") or {}
+        if not bank_account:
+            bank_account = BankAccount(
+                connection_id=connection.id,
+                provider_account_id=payload["account_id"],
+            )
+            self.session.add(bank_account)
+
+        bank_account.connection_id = connection.id
+        bank_account.name = payload.get("name") or payload.get("official_name") or "Linked account"
+        bank_account.official_name = payload.get("official_name")
+        bank_account.mask = payload.get("mask")
+        bank_account.type = payload.get("type")
+        bank_account.subtype = payload.get("subtype")
+        bank_account.iso_currency_code = balances.get("iso_currency_code")
+        bank_account.current_balance = balances.get("current")
+        bank_account.available_balance = balances.get("available")
+        await self.session.flush()
+        return bank_account
+
+    async def _apply_added_bank_transaction(
+        self,
+        *,
+        user_id: str,
+        connection: BankConnection,
+        bank_accounts: Dict[str, BankAccount],
+        payload: Dict[str, Any],
+    ) -> bool:
+        existing = (
+            await self.session.execute(
+                select(BankImportedTransaction).where(
+                    BankImportedTransaction.provider_transaction_id == payload["transaction_id"]
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            return False
+
+        category_id = await self._guess_category_id(user_id, payload)
+        account = bank_accounts.get(payload.get("account_id"))
+
+        transaction = Transaction(
+            user_id=user_id,
+            date=self._parse_transaction_date(payload.get("authorized_date") or payload.get("date")),
+            payee=self._plaid_payee(payload),
+            amount=self._normalize_plaid_amount(float(payload.get("amount") or 0.0)),
+            category_id=category_id,
+            description=self._plaid_description(payload),
+            is_cleared=not bool(payload.get("pending")),
+        )
+        self.session.add(transaction)
+        await self.session.flush()
+
+        imported = BankImportedTransaction(
+            user_id=user_id,
+            connection_id=connection.id,
+            bank_account_id=account.id if account else None,
+            finance_transaction_id=transaction.id,
+            provider=connection.provider,
+            provider_transaction_id=payload["transaction_id"],
+            pending=bool(payload.get("pending")),
+            raw_json=json.dumps(payload),
+        )
+        self.session.add(imported)
+        await self.session.flush()
+        return True
+
+    async def _apply_modified_bank_transaction(
+        self,
+        *,
+        user_id: str,
+        bank_accounts: Dict[str, BankAccount],
+        payload: Dict[str, Any],
+    ) -> bool:
+        imported = (
+            await self.session.execute(
+                select(BankImportedTransaction).where(
+                    BankImportedTransaction.provider_transaction_id == payload["transaction_id"]
+                )
+            )
+        ).scalar_one_or_none()
+        if not imported:
+            return False
+
+        transaction = await self.session.get(Transaction, imported.finance_transaction_id)
+        if transaction:
+            transaction.date = self._parse_transaction_date(payload.get("authorized_date") or payload.get("date"))
+            transaction.payee = self._plaid_payee(payload)
+            transaction.amount = self._normalize_plaid_amount(float(payload.get("amount") or 0.0))
+            transaction.description = transaction.description or self._plaid_description(payload)
+            transaction.is_cleared = not bool(payload.get("pending"))
+            if transaction.category_id is None:
+                transaction.category_id = await self._guess_category_id(user_id, payload)
+
+        account = bank_accounts.get(payload.get("account_id"))
+        imported.bank_account_id = account.id if account else imported.bank_account_id
+        imported.pending = bool(payload.get("pending"))
+        imported.raw_json = json.dumps(payload)
+        await self.session.flush()
+        return True
+
+    async def _apply_removed_bank_transaction(self, provider_transaction_id: str) -> bool:
+        imported = (
+            await self.session.execute(
+                select(BankImportedTransaction).where(
+                    BankImportedTransaction.provider_transaction_id == provider_transaction_id
+                )
+            )
+        ).scalar_one_or_none()
+        if not imported:
+            return False
+
+        if imported.finance_transaction_id:
+            await self.session.execute(delete(Transaction).where(Transaction.id == imported.finance_transaction_id))
+        await self.session.delete(imported)
+        await self.session.flush()
+        return True
+
+    async def get_bank_connection_status(self, user_id: str) -> Dict[str, Any]:
+        stmt = (
+            select(BankConnection)
+            .where(and_(BankConnection.user_id == user_id, BankConnection.status == "ACTIVE"))
+            .options(selectinload(BankConnection.accounts))
+            .order_by(desc(BankConnection.created_at))
+        )
+        connections = (await self.session.execute(stmt)).scalars().all()
+
+        items: List[Dict[str, Any]] = []
+        sync_recommended = False
+        for connection in connections:
+            imported_count = (
+                await self.session.execute(
+                    select(func.count(BankImportedTransaction.id)).where(
+                        BankImportedTransaction.connection_id == connection.id
+                    )
+                )
+            ).scalar() or 0
+            if not connection.last_synced_at or datetime.utcnow() - connection.last_synced_at >= timedelta(hours=6):
+                sync_recommended = True
+            items.append({
+                "id": str(connection.id),
+                "provider": connection.provider,
+                "institution_name": connection.institution_name,
+                "institution_id": connection.institution_id,
+                "last_synced_at": connection.last_synced_at.isoformat() if connection.last_synced_at else None,
+                "imported_transactions": int(imported_count),
+                "accounts": [
+                    {
+                        "id": str(account.id),
+                        "name": account.name,
+                        "official_name": account.official_name,
+                        "mask": account.mask,
+                        "type": account.type,
+                        "subtype": account.subtype,
+                        "current_balance": account.current_balance,
+                        "available_balance": account.available_balance,
+                        "iso_currency_code": account.iso_currency_code,
+                    }
+                    for account in connection.accounts
+                ],
+            })
+
+        return {
+            "provider": "plaid",
+            "configured": PlaidService.is_configured(),
+            "connected": bool(items),
+            "sync_recommended": sync_recommended,
+            "connections": items,
+        }
+
+    async def create_bank_link_token(self, user_id: str) -> Dict[str, Any]:
+        plaid = PlaidService()
+        response = await plaid.create_link_token(user_id)
+        return {
+            "link_token": response["link_token"],
+            "expiration": response.get("expiration"),
+            "request_id": response.get("request_id"),
+        }
+
+    async def exchange_bank_public_token(
+        self,
+        user_id: str,
+        *,
+        public_token: str,
+        institution_id: Optional[str] = None,
+        institution_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        plaid = PlaidService()
+        exchange = await plaid.exchange_public_token(public_token)
+
+        stmt = select(BankConnection).where(BankConnection.item_id == exchange["item_id"])
+        connection = (await self.session.execute(stmt)).scalar_one_or_none()
+        if not connection:
+            connection = BankConnection(
+                user_id=user_id,
+                provider="plaid",
+                item_id=exchange["item_id"],
+                institution_id=institution_id,
+                institution_name=institution_name,
+                access_token_encrypted=plaid.encrypt_access_token(exchange["access_token"]),
+                status="ACTIVE",
+            )
+            self.session.add(connection)
+        else:
+            connection.user_id = user_id
+            connection.provider = "plaid"
+            connection.institution_id = institution_id or connection.institution_id
+            connection.institution_name = institution_name or connection.institution_name
+            connection.access_token_encrypted = plaid.encrypt_access_token(exchange["access_token"])
+            connection.status = "ACTIVE"
+        await self.session.flush()
+
+        accounts_response = await plaid.get_accounts(exchange["access_token"])
+        for account_payload in accounts_response.get("accounts", []):
+            await self._upsert_bank_account(connection, account_payload)
+
+        sync_summary = await self.sync_bank_connections(user_id, connection_id=connection.id)
+        await self.session.commit()
+        return {
+            "success": True,
+            "connection_id": str(connection.id),
+            "institution_name": connection.institution_name,
+            "imported": sync_summary["imported_count"],
+            "modified": sync_summary["modified_count"],
+            "removed": sync_summary["removed_count"],
+        }
+
+    async def sync_bank_connections(
+        self,
+        user_id: str,
+        *,
+        connection_id: Optional[UUID] = None,
+    ) -> Dict[str, Any]:
+        plaid = PlaidService()
+        stmt = (
+            select(BankConnection)
+            .where(and_(BankConnection.user_id == user_id, BankConnection.status == "ACTIVE"))
+            .options(selectinload(BankConnection.accounts))
+            .order_by(desc(BankConnection.created_at))
+        )
+        if connection_id:
+            stmt = stmt.where(BankConnection.id == connection_id)
+        connections = (await self.session.execute(stmt)).scalars().all()
+
+        if not connections:
+            return {"synced_connections": 0, "imported_count": 0, "modified_count": 0, "removed_count": 0}
+
+        imported_count = 0
+        modified_count = 0
+        removed_count = 0
+
+        for connection in connections:
+            access_token = plaid.decrypt_access_token(connection.access_token_encrypted)
+            accounts_response = await plaid.get_accounts(access_token)
+            for account_payload in accounts_response.get("accounts", []):
+                await self._upsert_bank_account(connection, account_payload)
+
+            bank_accounts = {
+                account.provider_account_id: account
+                for account in (
+                    await self.session.execute(
+                        select(BankAccount).where(BankAccount.connection_id == connection.id)
+                    )
+                ).scalars().all()
+            }
+
+            cursor = connection.sync_cursor
+            has_more = True
+            while has_more:
+                response = await plaid.transactions_sync(access_token, cursor=cursor)
+                for payload in response.get("added", []):
+                    if await self._apply_added_bank_transaction(
+                        user_id=user_id,
+                        connection=connection,
+                        bank_accounts=bank_accounts,
+                        payload=payload,
+                    ):
+                        imported_count += 1
+                for payload in response.get("modified", []):
+                    if await self._apply_modified_bank_transaction(
+                        user_id=user_id,
+                        bank_accounts=bank_accounts,
+                        payload=payload,
+                    ):
+                        modified_count += 1
+                for payload in response.get("removed", []):
+                    if await self._apply_removed_bank_transaction(payload.get("transaction_id")):
+                        removed_count += 1
+
+                cursor = response.get("next_cursor")
+                has_more = bool(response.get("has_more"))
+
+            connection.sync_cursor = cursor
+            connection.last_synced_at = datetime.utcnow()
+
+        await self.session.commit()
+        return {
+            "synced_connections": len(connections),
+            "imported_count": imported_count,
+            "modified_count": modified_count,
+            "removed_count": removed_count,
+        }
+
     async def add_transaction(self, user_id: str, data: dict) -> Transaction:
         """Record a new transaction."""
         # Convert date string to python date if needed
@@ -254,14 +636,52 @@ class FinanceService:
         await self.session.refresh(envelope)
         return envelope
 
-    async def get_transactions(self, user_id: str, limit: int = 50) -> List[Transaction]:
-        """Get recent transactions."""
-        stmt = select(Transaction).where(
-            Transaction.user_id == user_id
-        ).order_by(Transaction.date.desc()).limit(limit).options(selectinload(Transaction.category))
-        
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
+    async def get_transactions(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get recent transactions with bank-import metadata when present."""
+        stmt = (
+            select(
+                Transaction,
+                BudgetCategory,
+                BankImportedTransaction,
+                BankAccount,
+                BankConnection,
+            )
+            .outerjoin(BudgetCategory, BudgetCategory.id == Transaction.category_id)
+            .outerjoin(BankImportedTransaction, BankImportedTransaction.finance_transaction_id == Transaction.id)
+            .outerjoin(BankAccount, BankAccount.id == BankImportedTransaction.bank_account_id)
+            .outerjoin(BankConnection, BankConnection.id == BankImportedTransaction.connection_id)
+            .where(Transaction.user_id == user_id)
+            .order_by(Transaction.date.desc(), Transaction.created_at.desc())
+            .limit(limit)
+        )
+
+        rows = (await self.session.execute(stmt)).all()
+        transactions: List[Dict[str, Any]] = []
+        for transaction, category, imported, bank_account, connection in rows:
+            transactions.append({
+                "id": transaction.id,
+                "date": transaction.date,
+                "payee": transaction.payee,
+                "amount": transaction.amount,
+                "category_id": transaction.category_id,
+                "description": transaction.description,
+                "is_cleared": transaction.is_cleared,
+                "created_at": transaction.created_at,
+                "category": (
+                    {
+                        "name": category.name,
+                        "group": category.group,
+                    }
+                    if category
+                    else None
+                ),
+                "source": "bank" if imported else "manual",
+                "account_name": bank_account.name if bank_account else None,
+                "account_mask": bank_account.mask if bank_account else None,
+                "institution_name": connection.institution_name if connection else None,
+                "pending": imported.pending if imported else False,
+            })
+        return transactions
 
     # ══════════════════════════════════════════════════════════════════════════════
     # WiseGold Sovereign 3.0 Methods
@@ -407,12 +827,14 @@ class FinanceService:
         """Fetch the user's WGOLD wallet, bond, will, and live policy state."""
         wallet, bond, will = await self._ensure_wisegold_wallet_entities(user_id)
         policy = await self._get_policy_row()
+        policy_service = WiseGoldPolicyService(self.session)
         social_standing = await social_reputation_service.calculate_user_reputation(
             self.session,
             user_id,
             persist=True,
             wallet_address=wallet.solana_pubkey,
         )
+        policy_summary = await policy_service.get_policy_summary(user_id, wallet.solana_pubkey)
         await self.session.commit()
 
         return {
@@ -447,9 +869,12 @@ class FinanceService:
             "onchain": {
                 "token_contract": settings.WGOLD_TOKEN_CONTRACT or None,
                 "reputation_oracle_contract": settings.WGOLD_REPUTATION_ORACLE_CONTRACT or None,
+                "policy_controller_contract": settings.WGOLD_POLICY_CONTROLLER_CONTRACT or None,
+                "covenant_verifier_contract": settings.WGOLD_COVENANT_VERIFIER_CONTRACT or None,
                 "functions_router": settings.WISEGOLD_CHAINLINK_ROUTER or None,
                 "don_id": settings.WISEGOLD_CHAINLINK_DON_ID or None,
             },
+            "policy_summary": policy_summary,
         }
 
     async def get_wisegold_social_standing(self, user_id: str, wallet_address: Optional[str] = None) -> Dict[str, Any]:
@@ -539,6 +964,57 @@ class FinanceService:
         await self.session.commit()
         return True
 
+    async def get_wisegold_attestations(self, user_id: str) -> List[Dict[str, Any]]:
+        wallet, _, _ = await self._ensure_wisegold_wallet_entities(user_id)
+        policy_service = WiseGoldPolicyService(self.session)
+        attestations = await policy_service.get_user_attestations(user_id, wallet.solana_pubkey)
+        await self.session.commit()
+        return attestations
+
+    async def get_wisegold_policy_summary(self, user_id: str) -> Dict[str, Any]:
+        wallet, _, _ = await self._ensure_wisegold_wallet_entities(user_id)
+        policy_service = WiseGoldPolicyService(self.session)
+        summary = await policy_service.get_policy_summary(user_id, wallet.solana_pubkey)
+        await self.session.commit()
+        return summary
+
+    async def get_wisegold_global_policy(self) -> Dict[str, Any]:
+        policy = await self._get_policy_row()
+        await self.session.commit()
+        return {
+            "current_tax_rate": float(policy.current_tax_rate or 0.0),
+            "current_base_manna": float(policy.current_base_manna or 0.0),
+            "daily_manna_pool": float(policy.daily_manna_pool or 0.0),
+            "total_circulating": float(policy.total_circulating or 0.0),
+            "last_gold_price": float(policy.last_gold_price or 0.0),
+            "stress_level": float(policy.stress_level or 0.0),
+            "last_tick_velocity": float(policy.last_tick_velocity or 0.0),
+            "last_gold_delta": float(policy.last_gold_delta or 0.0),
+            "last_tick_at": policy.last_tick_at.isoformat() if policy.last_tick_at else None,
+        }
+
+    async def evaluate_wisegold_policy(
+        self,
+        user_id: str,
+        *,
+        action: str,
+        amount: float,
+        covenant_id: Optional[UUID] = None,
+        destination_chain: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        wallet, _, _ = await self._ensure_wisegold_wallet_entities(user_id)
+        policy_service = WiseGoldPolicyService(self.session)
+        evaluation = await policy_service.evaluate_action(
+            user_id=user_id,
+            action=action,
+            amount=amount,
+            covenant_id=covenant_id,
+            destination_chain=destination_chain,
+            wallet_address=wallet.solana_pubkey,
+        )
+        await self.session.commit()
+        return evaluation
+
     async def deposit_into_covenant(self, user_id: str, covenant_id: UUID, amount: float) -> Dict[str, Any]:
         if amount <= 0:
             raise ValueError("Deposit amount must be positive")
@@ -581,6 +1057,7 @@ class FinanceService:
             raise ValueError("Withdrawal amount must be positive")
 
         wallet, _, _ = await self._ensure_wisegold_wallet_entities(user_id)
+        policy_service = WiseGoldPolicyService(self.session)
         covenant = await self.session.get(SovereignCovenant, covenant_id)
         if not covenant:
             raise ValueError("Covenant not found")
@@ -591,6 +1068,27 @@ class FinanceService:
 
         if float(covenant.total_vault or 0.0) < amount:
             raise ValueError("Covenant vault does not have enough WGOLD")
+
+        evaluation = await policy_service.evaluate_action(
+            user_id=user_id,
+            action="withdraw",
+            amount=amount,
+            covenant_id=covenant_id,
+            wallet_address=wallet.solana_pubkey,
+        )
+        if not evaluation["allowed"]:
+            await policy_service.record_policy_decision(
+                user_id=user_id,
+                action="withdraw",
+                allowed=False,
+                amount=amount,
+                reason=evaluation["reason"],
+                metadata={
+                    "covenant_id": str(covenant_id),
+                    "reason_code": evaluation["reason_code"],
+                },
+            )
+            raise ValueError(evaluation["reason"])
 
         status = "PENDING_QUORUM"
         description = f"Withdrawal request for {amount:.2f} WGOLD submitted to {covenant.name}."
@@ -613,6 +1111,18 @@ class FinanceService:
             metadata={"quorum_required": max(1, (len(members) + 1) // 2)},
         )
         await self.session.commit()
+        await policy_service.record_policy_decision(
+            user_id=user_id,
+            action="withdraw",
+            allowed=True,
+            amount=amount,
+            reason=evaluation["reason"],
+            metadata={
+                "covenant_id": str(covenant_id),
+                "status": status,
+                "effective_limit": evaluation["effective_limit"],
+            },
+        )
         return {
             "success": True,
             "status": status,
@@ -641,8 +1151,31 @@ class FinanceService:
             raise ValueError("Bridge amount must be positive")
 
         wallet, _, _ = await self._ensure_wisegold_wallet_entities(user_id)
+        policy_service = WiseGoldPolicyService(self.session)
         if float(wallet.balance or 0.0) < amount:
             raise ValueError("Insufficient WGOLD balance")
+
+        evaluation = await policy_service.evaluate_action(
+            user_id=user_id,
+            action="bridge",
+            amount=amount,
+            destination_chain=destination_chain,
+            wallet_address=wallet.solana_pubkey,
+        )
+        if not evaluation["allowed"]:
+            await policy_service.record_policy_decision(
+                user_id=user_id,
+                action="bridge",
+                allowed=False,
+                amount=amount,
+                reason=evaluation["reason"],
+                metadata={
+                    "destination_chain": destination_chain,
+                    "destination_address": destination_address,
+                    "reason_code": evaluation["reason_code"],
+                },
+            )
+            raise ValueError(evaluation["reason"])
 
         wallet.balance = float(wallet.balance or 0.0) - amount
         await self._record_wisegold_entry(
@@ -659,8 +1192,21 @@ class FinanceService:
             },
         )
         await self.session.commit()
+        await policy_service.record_policy_decision(
+            user_id=user_id,
+            action="bridge",
+            allowed=True,
+            amount=amount,
+            reason=evaluation["reason"],
+            metadata={
+                "destination_chain": destination_chain,
+                "destination_address": destination_address,
+                "effective_limit": evaluation["effective_limit"],
+            },
+        )
         return {
             "wallet_balance": float(wallet.balance or 0.0),
+            "effective_limit": evaluation["effective_limit"],
         }
 
     async def run_wisegold_tick(self) -> Dict[str, Any]:

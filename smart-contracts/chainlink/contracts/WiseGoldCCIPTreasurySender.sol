@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
+import {IWiseGoldPolicyController} from "./interfaces/IWiseGoldPolicyController.sol";
 
 contract WiseGoldCCIPTreasurySender is AccessControl {
     using SafeERC20 for IERC20;
@@ -16,11 +17,13 @@ contract WiseGoldCCIPTreasurySender is AccessControl {
     IRouterClient public immutable router;
     IERC20 public immutable wgold;
     IERC20 public immutable linkToken;
+    IWiseGoldPolicyController public policyController;
 
     mapping(uint64 => bytes) public destinationReceivers;
     mapping(uint64 => bytes) public destinationExtraArgs;
 
     event DestinationConfigured(uint64 indexed destinationChainSelector, bytes receiver, bytes extraArgs);
+    event PolicyControllerUpdated(address indexed previousController, address indexed newController);
     event WGoldBridged(
         bytes32 indexed messageId,
         uint64 indexed destinationChainSelector,
@@ -37,11 +40,13 @@ contract WiseGoldCCIPTreasurySender is AccessControl {
         address admin,
         address routerAddress,
         address wgoldToken,
-        address linkTokenAddress
+        address linkTokenAddress,
+        address policyControllerAddress
     ) {
         router = IRouterClient(routerAddress);
         wgold = IERC20(wgoldToken);
         linkToken = IERC20(linkTokenAddress);
+        policyController = IWiseGoldPolicyController(policyControllerAddress);
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(BRIDGE_OPERATOR_ROLE, admin);
@@ -49,6 +54,12 @@ contract WiseGoldCCIPTreasurySender is AccessControl {
 
         wgold.forceApprove(routerAddress, type(uint256).max);
         linkToken.forceApprove(routerAddress, type(uint256).max);
+    }
+
+    function setPolicyController(address newPolicyController) external onlyRole(CONFIG_ROLE) {
+        address previous = address(policyController);
+        policyController = IWiseGoldPolicyController(newPolicyController);
+        emit PolicyControllerUpdated(previous, newPolicyController);
     }
 
     function configureDestination(
@@ -86,6 +97,10 @@ contract WiseGoldCCIPTreasurySender is AccessControl {
         if (destinationReceivers[destinationChainSelector].length == 0) {
             if (receiver == address(0)) revert UnsupportedDestinationChain(destinationChainSelector);
             destinationReceivers[destinationChainSelector] = abi.encode(receiver);
+        }
+
+        if (address(policyController) != address(0)) {
+            policyController.enforceBridgePolicy(msg.sender, bytes32(0), amount, destinationChainSelector);
         }
 
         wgold.safeTransferFrom(msg.sender, address(this), amount);

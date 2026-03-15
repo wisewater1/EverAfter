@@ -6,11 +6,12 @@ interface BridgeModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentBalance: number;
+    maxBridgeLimit?: number;
     token: string;
     onSuccess?: () => void;
 }
 
-export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance, token, onSuccess }: BridgeModalProps) {
+export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance, maxBridgeLimit, token, onSuccess }: BridgeModalProps) {
     const [destinationChain, setDestinationChain] = useState<'Arbitrum' | 'Polygon' | 'Base'>('Arbitrum');
     const [amount, setAmount] = useState<string>('');
     const [address, setAddress] = useState<string>('');
@@ -29,6 +30,11 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
         }
         if (bridgeAmount > currentBalance) {
             setErrorMessage("Insufficient WGOLD balance.");
+            setStatus('error');
+            return;
+        }
+        if (typeof maxBridgeLimit === 'number' && bridgeAmount > maxBridgeLimit) {
+            setErrorMessage(`Current bridge limit is ${maxBridgeLimit.toFixed(2)} WGOLD.`);
             setStatus('error');
             return;
         }
@@ -57,8 +63,8 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
 
             const data = await res.json();
 
-            if (res.ok && data.status === 'success') {
-                setTxHash(data.message_id);
+            if (res.ok && (data.status === 'success' || data.status === 'submitted')) {
+                setTxHash(data.message_id || 'pending');
                 setStatus('success');
                 onSuccess?.();
             } else {
@@ -178,6 +184,12 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
                                     <span>Est. CCIP Fee:</span>
                                     <span>~0.005 LINK</span>
                                 </div>
+                                {typeof maxBridgeLimit === 'number' && (
+                                    <div className="flex justify-between text-xs mt-2 text-slate-400">
+                                        <span>Policy Limit:</span>
+                                        <span>{maxBridgeLimit.toFixed(2)} WGOLD</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Action Button */}

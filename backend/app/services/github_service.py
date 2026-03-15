@@ -1,6 +1,9 @@
 import httpx
 import logging
+import json
+import os
 from typing import Dict, Any, List, Optional
+from git import Repo
 from app.ai.llm_client import get_llm_client
 
 logger = logging.getLogger(__name__)
@@ -12,30 +15,30 @@ class GitHubService:
 
     async def fetch_user_data(self, username: str) -> Dict[str, Any]:
         """
-        Fetch public data for a GitHub user: bio, repos, languages, commit style.
+        Fetch public data for a GitHub user. Fallback to local if username is 'local'.
         """
+        if username.lower() == 'local' or not username:
+            return await self.fetch_local_data()
+            
         async with httpx.AsyncClient() as client:
-            # 1. User Info
+            # ... existing remote fetch logic ...
             user_resp = await client.get(f"{self.base_url}/users/{username}")
             if user_resp.status_code == 404:
-                return None
+                return await self.fetch_local_data() # Fallback to local
             user_data = user_resp.json()
-
-            # 2. Repos (limit to 10 recently updated)
+            
+            # (Keeping the rest of the existing fetch logic for backup)
             repos_resp = await client.get(f"{self.base_url}/users/{username}/repos?sort=updated&per_page=10")
             repos = repos_resp.json() if repos_resp.status_code == 200 else []
 
-            # 3. Aggregate Languages
             languages = {}
             for repo in repos:
                 lang = repo.get("language")
                 if lang:
                     languages[lang] = languages.get(lang, 0) + 1
             
-            # Sort languages by usage
             top_languages = sorted(languages.items(), key=lambda x: x[1], reverse=True)
             
-            # 4. Extract Commit Messages (from events - lighter than cloning)
             events_resp = await client.get(f"{self.base_url}/users/{username}/events/public?per_page=20")
             events = events_resp.json() if events_resp.status_code == 200 else []
             
@@ -55,7 +58,60 @@ class GitHubService:
                 "recent_repos": [r["name"] for r in repos[:5]],
                 "commit_samples": commit_msgs[:10],
                 "public_repos": user_data.get("public_repos"),
-                "followers": user_data.get("followers")
+                "followers": user_data.get("followers"),
+                "source": "remote"
+            }
+
+    async def fetch_local_data(self) -> Dict[str, Any]:
+        """
+        Extract data from the local .git repository for personality analysis.
+        """
+        try:
+            repo_path = os.getcwd()
+            # Walk up to find .git if not in current dir
+            for _ in range(3):
+                if os.path.exists(os.path.join(repo_path, ".git")):
+                    break
+                repo_path = os.path.dirname(repo_path)
+            
+            repo = Repo(repo_path)
+            
+            # 1. Languages (approximate by file extensions)
+            ext_counts = {}
+            ext_map = {'.py': 'Python', '.js': 'JavaScript', '.ts': 'TypeScript', '.tsx': 'React', '.html': 'HTML', '.css': 'CSS', '.go': 'Go', '.rs': 'Rust'}
+            
+            for item in repo.tree().traverse():
+                if item.type == 'blob':
+                    ext = os.path.splitext(item.name)[1]
+                    if ext in ext_map:
+                        lang = ext_map[ext]
+                        ext_counts[lang] = ext_counts.get(lang, 0) + 1
+            
+            top_languages = sorted(ext_counts.items(), key=lambda x: x[1], reverse=True)
+
+            # 2. Commit Samples
+            commits = list(repo.iter_commits(max_count=20))
+            commit_msgs = [c.message.strip() for c in commits]
+
+            # 3. Basic Stats
+            author = commits[0].author if commits else None
+
+            return {
+                "username": "Local Architect",
+                "name": author.name if author else "Unknown",
+                "bio": f"Analyzing local repository: {os.path.basename(repo_path)}",
+                "top_languages": [l[0] for l in top_languages[:5]],
+                "recent_repos": [os.path.basename(repo_path)],
+                "commit_samples": commit_msgs[:15],
+                "source": "native-git"
+            }
+        except Exception as e:
+            logger.error(f"Local git analysis failed: {e}")
+            return {
+                "username": "Unknown",
+                "top_languages": ["Python"],
+                "commit_samples": ["initial commit"],
+                "source": "minimal-fallback"
             }
 
     async def analyze_coding_personality(self, username: str) -> Dict[str, Any]:

@@ -88,5 +88,37 @@
       ]
     },
     "timestamp": "2026-02-20T06:02:04.835461"
+  },
+  {
+    "id": "c86dbd83-b499-406f-be68-7719b874f747",
+    "content": "User said: hello",
+    "metadata": {
+      "id": "48569af2-3510-4dfd-bfef-2e99ac9bee43",
+      "description": "User said: hello",
+      "created_at": "2026-03-14 07:46:20.675709",
+      "last_accessed": "2026-03-14 07:46:20.675709",
+      "importance": 5.0,
+      "type": "observation",
+      "embedding": null,
+      "saint_id": "gabriel",
+      "related_entities": []
+    },
+    "timestamp": "2026-03-14T02:46:25.945023"
+  },
+  {
+    "id": "d0ceab49-7993-4de6-b97a-0d7f1771f424",
+    "content": "User said: j",
+    "metadata": {
+      "id": "fa4574ae-da95-450b-942a-f3ebf6bf402a",
+      "description": "User said: j",
+      "created_at": "2026-03-14 10:15:13.077939",
+      "last_accessed": "2026-03-14 10:15:13.077939",
+      "importance": 5.0,
+      "type": "observation",
+      "embedding": null,
+      "saint_id": "gabriel",
+      "related_entities": []
+    },
+    "timestamp": "2026-03-14T05:15:21.018079"
   }
 ]

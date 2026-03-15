@@ -4,6 +4,7 @@ import { logger } from './logger';
 import { NetworkError, IntegrationError, handleError } from './errors';
 import type { EdgeFunctionResponse, ChatResponse, DailyQuestionResponseData, FamilyTask, ShoppingItem, CalendarEvent, BulletinMessage, EngramResponse, EngramCreatePayload } from '../types/database.types';
 import { API_BASE_URL } from '../lib/env';
+import { getFamilyCalendar as getLocalFamilyCalendar } from './joseph/family';
 
 /**
  * Enhanced API Client with Retry Logic, Error Handling, and Request Deduplication
@@ -23,6 +24,32 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 
 class APIClient {
   private pendingRequests: Map<string, Promise<unknown>> = new Map();
+
+  private normalizeCalendarEvent(event: Partial<CalendarEvent>, index: number): CalendarEvent {
+    const startTime = event.startTime || new Date(Date.now() + index * 60 * 60 * 1000).toISOString();
+    const endTime = event.endTime || new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString();
+
+    return {
+      id: event.id || `calendar-event-${index}`,
+      title: event.title || 'Family event',
+      startTime,
+      endTime,
+      location: event.location || 'Family Record',
+      attendees: Array.isArray(event.attendees) ? event.attendees : [],
+      notes: event.notes || event.description || 'No additional notes recorded yet.',
+      description: event.description || event.notes,
+      url: event.url,
+      allDay: Boolean(event.allDay),
+      availability: event.availability || 'busy',
+      calendarTitle: event.calendarTitle || 'Family Sync',
+      recurrenceRule: event.recurrenceRule,
+      alarms: Array.isArray(event.alarms) ? event.alarms : [],
+      source: event.source || 'Family calendar',
+      memberName: event.memberName,
+      type: event.type,
+      riskSummary: event.riskSummary,
+    };
+  }
 
   private async buildAuthHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {
     const token = await this.getAuthToken();
@@ -939,6 +966,46 @@ class APIClient {
     }
   }
 
+  async getPersonalityQuizProfile(memberId: string): Promise<any | null> {
+    const API_BASE = `${API_BASE_URL}`;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/personality-quiz/profile/${memberId}`);
+      if (!response.ok) {
+        throw await this.parseBackendError(response, 'Get Personality Quiz Profile Error');
+      }
+
+      const data = await response.json();
+      return data?.error ? null : data;
+    } catch (error) {
+      console.error('Get Personality Quiz Profile Error:', error);
+      return null;
+    }
+  }
+
+  async submitOceanProfile(
+    personId: string,
+    scores: { O: number; C: number; E: number; A: number; N: number }
+  ): Promise<any> {
+    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.getAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+
+    const response = await fetch(`${API_BASE}/api/v1/dht/ocean/${personId}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(scores),
+    });
+
+    if (!response.ok) {
+      throw await this.parseBackendError(response, 'Submit OCEAN Profile Error');
+    }
+
+    return await response.json();
+  }
+
   /** Mark a task complete. */
   async completeTask(taskId: string): Promise<void> {
     const token = await this.getAuthToken();
@@ -998,10 +1065,14 @@ class APIClient {
       });
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
       const data = await response.json();
-      return data.events || [];
+      const events = Array.isArray(data.events) ? data.events : [];
+      if (events.length > 0) {
+        return events.map((event: CalendarEvent, index: number) => this.normalizeCalendarEvent(event, index));
+      }
+      return getLocalFamilyCalendar(_userId).map((event, index) => this.normalizeCalendarEvent(event, index));
     } catch (error) {
       console.error("Get Family Calendar Error:", error);
-      return [];
+      return getLocalFamilyCalendar(_userId).map((event, index) => this.normalizeCalendarEvent(event, index));
     }
   }
 

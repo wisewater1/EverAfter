@@ -9,6 +9,13 @@ interface TellMyStoryPartnerCardProps {
     compact?: boolean;
 }
 
+function sanitizePartnerCopy(value: string) {
+    return value
+        .replaceAll('â€™', "'")
+        .replaceAll('â€”', '-')
+        .replaceAll('Â·', '-');
+}
+
 export default function TellMyStoryPartnerCard({
     member,
     title = 'Create Your AI with TellMyStory.ai',
@@ -18,6 +25,8 @@ export default function TellMyStoryPartnerCard({
     const referralCode = buildTellMyStoryReferralCode(member);
     const partnerUrl = buildTellMyStoryUrl(member);
     const memberName = member ? `${member.firstName} ${member.lastName}` : 'your family';
+    const cleanTitle = sanitizePartnerCopy(title);
+    const cleanDescription = sanitizePartnerCopy(description);
 
     return (
         <div className={`rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent ${compact ? 'p-4' : 'p-5 md:p-6'}`}>
@@ -28,8 +37,8 @@ export default function TellMyStoryPartnerCard({
                         <span className="text-xs font-semibold uppercase tracking-[0.2em]">EverAfter x TellMyStory.ai</span>
                     </div>
                     <div>
-                        <h3 className="text-lg font-medium text-white">{title}</h3>
-                        <p className="mt-1 text-sm text-slate-300 leading-relaxed">{description}</p>
+                        <h3 className="text-lg font-medium text-white">{cleanTitle}</h3>
+                        <p className="mt-1 text-sm text-slate-300 leading-relaxed">{cleanDescription}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">

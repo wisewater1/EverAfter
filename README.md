@@ -28,7 +28,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+The application will be available at `http://localhost:5000`
 
 ### Deploy Edge Functions
 

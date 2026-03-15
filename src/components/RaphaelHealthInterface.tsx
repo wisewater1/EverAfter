@@ -103,14 +103,20 @@ export default function RaphaelHealthInterface() {
               <p className="text-xs sm:text-sm lg:text-base text-emerald-200">Your comprehensive health companion powered by AI</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate('/raphael')}
-            className="flex-shrink-0 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-emerald-500/20 backdrop-blur-xl group"
-          >
-            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline text-sm font-medium">Production AI</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 uppercase tracking-wider animate-pulse">
+                <Zap className="w-3 h-3" />
+                Native Engine: ONLINE
+              </div>
+              <button
+                onClick={() => navigate('/raphael')}
+                className="flex-shrink-0 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-emerald-500/20 backdrop-blur-xl group"
+              >
+                <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline text-sm font-medium">Production AI</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
         </div>
       </div>
 

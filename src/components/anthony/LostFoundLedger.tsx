@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FileText, CheckCircle, Clock, Filter, Download, Shield, Search } from 'lucide-react';
-import { getAnthonyLedger, type AuditLedgerEntry } from '../../lib/michael/security';
+import { downloadAnthonyLedgerExport, getAnthonyLedger, type AuditLedgerEntry } from '../../lib/michael/security';
 
 interface LedgerItem {
     id: string;
@@ -82,6 +82,8 @@ interface LostFoundLedgerProps {
 export default function LostFoundLedger({ filterToken }: LostFoundLedgerProps) {
     const [items, setItems] = useState<LedgerItem[]>(FALLBACK_LEDGER);
     const [loading, setLoading] = useState(true);
+    const [localFilter, setLocalFilter] = useState<'all' | 'security' | 'jit' | 'michael'>('all');
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -123,16 +125,57 @@ export default function LostFoundLedger({ filterToken }: LostFoundLedgerProps) {
     }, []);
 
     const filteredItems = useMemo(() => {
-        if (!filterToken) return items;
-        const normalizedToken = filterToken.toLowerCase();
-        return items.filter((item) =>
-            item.description.toLowerCase().includes(normalizedToken) ||
-            item.raw.action.toLowerCase().includes(normalizedToken) ||
-            item.raw.id.toLowerCase().includes(normalizedToken)
-        );
-    }, [filterToken, items]);
+        let nextItems = items;
 
-    const visibleItems = filteredItems.length > 0 ? filteredItems : items;
+        if (filterToken) {
+            const normalizedToken = filterToken.toLowerCase();
+            nextItems = nextItems.filter((item) =>
+                item.description.toLowerCase().includes(normalizedToken) ||
+                item.raw.action.toLowerCase().includes(normalizedToken) ||
+                item.raw.id.toLowerCase().includes(normalizedToken)
+            );
+        }
+
+        if (localFilter === 'security') {
+            nextItems = nextItems.filter((item) => item.category === 'security');
+        } else if (localFilter === 'jit') {
+            nextItems = nextItems.filter((item) => item.raw.action.toLowerCase().includes('jit_access'));
+        } else if (localFilter === 'michael') {
+            nextItems = nextItems.filter((item) => item.raw.provider === 'st_michael');
+        }
+
+        return nextItems;
+    }, [filterToken, items, localFilter]);
+
+    const visibleItems = filteredItems;
+
+    const cycleFilter = () => {
+        setLocalFilter((current) => {
+            if (current === 'all') return 'security';
+            if (current === 'security') return 'jit';
+            if (current === 'jit') return 'michael';
+            return 'all';
+        });
+    };
+
+    const handleDownload = async () => {
+        try {
+            setDownloading(true);
+            const blob = await downloadAnthonyLedgerExport();
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `anthony-ledger-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to download Anthony ledger export:', error);
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     return (
         <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
@@ -147,12 +190,26 @@ export default function LostFoundLedger({ filterToken }: LostFoundLedgerProps) {
                             Filter: {filterToken}
                         </span>
                     )}
+                    {localFilter !== 'all' && (
+                        <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 text-xs font-medium border border-sky-500/20">
+                            View: {localFilter}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                    <button
+                        onClick={cycleFilter}
+                        className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        title={`Cycle filter (current: ${localFilter})`}
+                    >
                         <Filter className="w-4 h-4" />
                     </button>
-                    <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+                    <button
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+                        title="Download ledger proof package"
+                    >
                         <Download className="w-4 h-4" />
                     </button>
                 </div>

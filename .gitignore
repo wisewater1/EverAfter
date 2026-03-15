@@ -43,3 +43,8 @@ __pycache__/
 .pytest_cache/
 .coverage
 .mypy_cache/
+backend/models/
+*.gguf
+
+# Local Netlify folder
+.netlify

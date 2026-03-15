@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -11,6 +11,9 @@ import asyncio
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 MEMORY_FILE = os.path.join(DATA_DIR, "akashic_record.json")
 VECTOR_FILE = os.path.join(DATA_DIR, "akashic_vectors.npy")
+
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("TQDM_DISABLE", "1")
 
 class AkashicRecord:
     _instance: Optional['AkashicRecord'] = None
@@ -50,6 +53,13 @@ class AkashicRecord:
             self._model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
         return self._model
 
+    def _encode(self, texts: List[str]) -> np.ndarray:
+        return self.model.encode(
+            texts,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+        )
+
     def _load_memories(self):
         if os.path.exists(MEMORY_FILE):
             try:
@@ -67,8 +77,7 @@ class AkashicRecord:
         if (self.embeddings is None or self.embeddings.shape[0] == 0) and self.memories:
             print(f"Generating embeddings for {len(self.memories)} memories...")
             texts = [m['content'] for m in self.memories]
-            # Use thread to avoid blocking event loop
-            self.embeddings = await asyncio.to_thread(self.model.encode, texts)
+            self.embeddings = await asyncio.to_thread(self._encode, texts)
             self._save_vectors()
         elif self.embeddings is None:
             self.embeddings = np.empty((0, 384))
@@ -83,7 +92,6 @@ class AkashicRecord:
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
         
-        # Save without embeddings to keep JSON readable/small
         with open(MEMORY_FILE, 'w', encoding='utf-8') as f:
             json.dump(self.memories, f, indent=2, default=str)
 
@@ -93,11 +101,10 @@ class AkashicRecord:
         """
         await self._ensure_embeddings()
         
-        # Add email to metadata
         if user_email:
             metadata['user_email'] = user_email
             
-        embedding = await asyncio.to_thread(self.model.encode, [content])
+        embedding = await asyncio.to_thread(self._encode, [content])
         embedding = embedding[0]
         
         memory_id = str(uuid.uuid4())
@@ -110,7 +117,6 @@ class AkashicRecord:
         
         self.memories.append(record)
         
-        # Update embeddings matrix
         assert self.embeddings is not None
         if self.embeddings.shape[0] == 0:
             self.embeddings = np.array([embedding])
@@ -129,20 +135,15 @@ class AkashicRecord:
         if not self.memories or (self.embeddings is None) or (self.embeddings.shape[0] == 0):
             return []
             
-        query_embedding = await asyncio.to_thread(self.model.encode, [query])
+        query_embedding = await asyncio.to_thread(self._encode, [query])
         query_embedding = query_embedding[0]
         
-        # Cosine similarity
-        # A . B / (|A| * |B|)
         assert self.embeddings is not None
         norms = np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding)
-        # Avoid division by zero
         norms[norms == 0] = 1e-10
         
         scores = np.dot(self.embeddings, query_embedding) / norms
         
-        # Get top-k indices (get more than limit to account for filtering)
-        # We look at top 100 or all, then filter
         search_limit = min(len(self.memories), 100)
         top_indices = np.argsort(scores)[::-1][:search_limit]
         
@@ -160,16 +161,13 @@ class AkashicRecord:
             memory = self.memories[idx]
             meta = memory.get("metadata", {})
             
-            # ── Individualized Silo Check ────────────────────────────────────
             if user_email:
                 mem_email = meta.get("user_email")
                 is_global = meta.get("type") in ["health_event", "finance_event", "life_event", "career_event"]
                 
-                # If not global and email doesn't match, skip
                 if not is_global and mem_email != user_email:
                     continue
 
-            # ── Apply Technical Filters ──────────────────────────────────────
             if filters:
                 match = True
                 for k, v in filters.items():

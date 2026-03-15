@@ -32,7 +32,7 @@ class GovernanceProposal(Base):
     priority = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     decided_at = Column(DateTime)
-    metadata = Column(JSON)
+    proposal_metadata = Column(JSON)
 
 class HealthProtocol(Base):
     """User-ratified health 'laws' or recurring rules."""

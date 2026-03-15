@@ -10,6 +10,7 @@ contract WiseGoldChainlinkToken is ERC20, AccessControl, Ownable {
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
     bytes32 public constant REWARD_DISTRIBUTOR_ROLE = keccak256("REWARD_DISTRIBUTOR_ROLE");
     bytes32 public constant POLICY_ROLE = keccak256("POLICY_ROLE");
+    bytes32 public constant POLICY_CONTROLLER_ROLE = keccak256("POLICY_CONTROLLER_ROLE");
 
     uint16 public constant MAX_BPS = 10_000;
 
@@ -28,6 +29,7 @@ contract WiseGoldChainlinkToken is ERC20, AccessControl, Ownable {
 
     event ReputationSynced(address indexed account, uint16 scoreBps, uint16 multiplierBps, uint40 observedAt);
     event SocialRewardIssued(address indexed account, uint256 baseAmount, uint256 adjustedAmount, bytes32 indexed reason);
+    event PolicyMinted(address indexed account, uint256 amount, bytes32 indexed reason);
     event VelocityTaxUpdated(uint16 previousBps, uint16 newBps);
     event MannaTreasuryUpdated(address indexed previousTreasury, address indexed newTreasury);
 
@@ -49,6 +51,7 @@ contract WiseGoldChainlinkToken is ERC20, AccessControl, Ownable {
         _grantRole(ORACLE_ROLE, initialOracle);
         _grantRole(REWARD_DISTRIBUTOR_ROLE, initialOwner);
         _grantRole(POLICY_ROLE, initialOwner);
+        _grantRole(POLICY_CONTROLLER_ROLE, initialOwner);
     }
 
     function setMannaTreasury(address newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -109,6 +112,14 @@ contract WiseGoldChainlinkToken is ERC20, AccessControl, Ownable {
         adjustedAmount = quoteSocialReward(account, baseAmount);
         _mint(account, adjustedAmount);
         emit SocialRewardIssued(account, baseAmount, adjustedAmount, reason);
+    }
+
+    function mintPolicy(address account, uint256 amount, bytes32 reason)
+        external
+        onlyRole(POLICY_CONTROLLER_ROLE)
+    {
+        _mint(account, amount);
+        emit PolicyMinted(account, amount, reason);
     }
 
     function deriveEmissionMultiplierBps(uint16 scoreBps) public pure returns (uint16) {

@@ -1,10 +1,107 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from app.engrams.nlp import get_nlp_engine
 
 
 class PromptBuilder:
+    def _map_gabriel_alert_style(self, alert_style: Optional[str]) -> str:
+        if alert_style == "calm":
+            return "calm"
+        if alert_style == "high":
+            return "direct"
+        return "moderate"
+
+    def _gabriel_tone_guidance(self, alert_style: str) -> str:
+        guidance = {
+            "calm": "Use steady, non-alarmist wording. Avoid panic language and keep the advice grounded.",
+            "moderate": "Use balanced language. Be direct about risk but keep the tone measured.",
+            "direct": "Use concise, explicit wording. Surface the risk clearly and do not soften key warnings.",
+        }
+        return guidance.get(alert_style, guidance["moderate"])
+
+    def _gabriel_plan_guidance(self, plan_style: str) -> str:
+        guidance = {
+            "structured": "Present next steps as an ordered plan with explicit priorities.",
+            "exploratory": "Offer a small set of options with clear tradeoffs so the user can choose.",
+            "supportive": "Phrase next steps gently and focus on the smallest high-value action first.",
+        }
+        return guidance.get(plan_style, guidance["structured"])
+
+    async def build_gabriel_communication_context(
+        self,
+        session: AsyncSession,
+        user_id: str,
+    ) -> str:
+        """
+        Builds the DHT/OCEAN-based communication profile for St. Gabriel.
+        This should calibrate tone and phrasing, not turn finance responses into health advice.
+        """
+        from app.services import dht_store
+        from app.services.dht_engine import compute_behavioral_modifiers
+
+        try:
+            dht = dht_store.get_dht(user_id)
+            ocean = dht_store.get_latest_ocean(user_id)
+
+            if not dht and not ocean:
+                return ""
+
+            mods = compute_behavioral_modifiers(ocean.scores) if ocean else None
+            alert_style = self._map_gabriel_alert_style(
+                getattr(mods, "alert_sensitivity", None) if mods else None
+            )
+            plan_style = getattr(mods, "intervention_style", "structured") if mods else "structured"
+
+            lines = [
+                "--- GABRIEL COMMUNICATION PROFILE ---",
+                "Use this profile only to calibrate tone, pacing, and phrasing.",
+                "Do not turn treasury answers into health analysis unless the user explicitly asks for health guidance.",
+                f"- Alert style: {alert_style}",
+                f"- Plan style: {plan_style}",
+                f"- Tone guidance: {self._gabriel_tone_guidance(alert_style)}",
+                f"- Next-step guidance: {self._gabriel_plan_guidance(plan_style)}",
+            ]
+
+            if dht:
+                lines.extend(
+                    [
+                        f"- DHT direction: {getattr(dht, 'overall_direction', 'unknown')}",
+                        f"- DHT confidence: {round(float(getattr(dht, 'confidence', 0.0)) * 100)}%",
+                        f"- Observation count: {getattr(dht, 'observation_count', 0)}",
+                    ]
+                )
+                next_best = getattr(dht, "next_best_measurement", None)
+                if next_best:
+                    label = getattr(next_best, "label", None) or getattr(next_best, "type", "follow-up measurement")
+                    uncertainty = getattr(next_best, "uncertainty_reduction_pct", None)
+                    if uncertainty is not None:
+                        lines.append(
+                            f"- Communication cue: when recommending action, prefer a practical next step similar to '{label}' that reduces uncertainty by about {float(uncertainty):.0f}%."
+                        )
+                    else:
+                        lines.append(
+                            f"- Communication cue: when recommending action, prefer a practical next step similar to '{label}'."
+                        )
+
+            if ocean:
+                scores = ocean.scores
+                lines.append(
+                    f"- OCEAN modifiers available: O={scores.openness}, C={scores.conscientiousness}, E={scores.extraversion}, A={scores.agreeableness}, N={scores.neuroticism}"
+                )
+
+            lines.extend(
+                [
+                    "- Financial answers should still prioritize exact numbers, tradeoffs, runway, overspending, anomalies, and WGOLD policy.",
+                    "--- END GABRIEL COMMUNICATION PROFILE ---",
+                ]
+            )
+
+            return "\n".join(lines)
+        except Exception as e:
+            print(f"Error building Gabriel communication context: {str(e)}")
+            return ""
+
     async def build_engram_system_prompt(
         self,
         session: AsyncSession,
@@ -266,6 +363,23 @@ class PromptBuilder:
             return "\n".join(prompt_block)
         except Exception as e:
             print(f"Error building health context: {str(e)}")
+            return ""
+
+    async def build_finance_treasury_context(
+        self,
+        session: AsyncSession,
+        user_id: str,
+    ) -> str:
+        """
+        Fetches treasury analysis from St. Gabriel's finance stack and formats it for the prompt.
+        """
+        try:
+            from app.services.treasury_analyst_service import TreasuryAnalystService
+
+            service = TreasuryAnalystService(session)
+            return await service.build_prompt_context(user_id)
+        except Exception as e:
+            print(f"Error building treasury context: {str(e)}")
             return ""
 
     def format_context_for_prompt(self, context: List[Dict[str, Any]]) -> str:

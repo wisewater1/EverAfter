@@ -1,6 +1,12 @@
 from typing import List, Dict, Any, Optional
 import httpx
+import os
+import asyncio
 from app.core.config import settings
+
+# Global singleton for the native model engine
+_native_model_instance = None
+_native_model_lock = asyncio.Lock()
 
 
 class LLMClient:
@@ -25,13 +31,19 @@ class LLMClient:
 
         full_messages.extend(messages)
 
-        # 1. Try Ollama FIRST (local, privacy-focused, free)
+        # 1. Try NATIVE FIRST (in-process, truly native)
+        try:
+            return await self._generate_native_response(full_messages, max_tokens, temperature)
+        except Exception as e:
+            print(f"Native generation failed: {str(e)}")
+
+        # 2. Try Ollama (local server)
         try:
             return await self._generate_ollama_response(full_messages)
         except Exception as e:
-            print(f"Ollama generation failed (fallback to OpenAI): {str(e)}")
+            print(f"Ollama generation failed: {str(e)}")
 
-        # 2. Try OpenAI Fallback if API key is present
+        # 3. Try OpenAI Fallback if API key is present
         if self.api_key and self.api_key.strip():
             try:
                 async with httpx.AsyncClient() as client:
@@ -56,8 +68,70 @@ class LLMClient:
             except Exception as e:
                 print(f"OpenAI API Error: {str(e)}")
 
-        # 3. Final Fallback to Canned Responses
+        # 4. Final Fallback to Canned Responses
         return await self._generate_fallback_response(full_messages)
+
+    async def _get_native_engine(self):
+        """Thread-safe access to the embedded LLM engine."""
+        global _native_model_instance
+        async with _native_model_lock:
+            if _native_model_instance is None:
+                try:
+                    from llama_cpp import Llama
+                    model_path = os.path.join(settings.LOCAL_MODELS_DIR, settings.NATIVE_LLM_MODEL)
+                    
+                    if not os.path.exists(model_path):
+                        return None # Need to download model
+
+                    print(f"Loading Native LLM engine: {model_path}...")
+                    _native_model_instance = Llama(
+                        model_path=model_path,
+                        n_ctx=2048,
+                        n_threads=os.cpu_count(),
+                        verbose=False
+                    )
+                    print("Native engine loaded successfully.")
+                except ImportError:
+                    print("llama-cpp-python not installed. Native execution unavailable.")
+                    return None
+                except Exception as e:
+                    print(f"Failed to load native engine: {e}")
+                    return None
+            return _native_model_instance
+
+    async def _generate_native_response(self, messages: List[Dict[str, str]], max_tokens=None, temp=None) -> str:
+        """Primary generation via embedded llama-cpp engine."""
+        engine = await self._get_native_engine()
+        if not engine:
+            raise Exception("Native engine not initialized.")
+
+        # Format prompt for Llama 3/Instruct style
+        prompt = ""
+        for m in messages:
+            role = m["role"]
+            content = m["content"]
+            if role == "system":
+                prompt += f"<|system|>\n{content}<|end|>\n"
+            elif role == "user":
+                prompt += f"<|user|>\n{content}<|end|>\n"
+            elif role == "assistant":
+                prompt += f"<|assistant|>\n{content}<|end|>\n"
+        prompt += "<|assistant|>\n"
+
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: engine(
+                prompt,
+                max_tokens=max_tokens or self.max_tokens,
+                temperature=temp or self.temperature,
+                stop=["<|end|>", "User:", "Assistant:"]
+            )
+        )
+        
+        content = response["choices"][0]["text"].strip()
+        # Add the [NATIVE] tag for visibility as requested
+        return f"[NATIVE] {content}"
 
     async def _generate_ollama_response(self, messages: List[Dict[str, str]]) -> str:
         """Primary generation via local Ollama instance"""

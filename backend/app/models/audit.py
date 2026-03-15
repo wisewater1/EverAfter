@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, JSON, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, Boolean, JSON, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -13,7 +13,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(String, primary_key=True, default=generate_cuid)
-    userId = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    userId = Column(String, nullable=True)
     action = Column(String, nullable=False)
     provider = Column(String, nullable=True)
     snapshotId = Column(String, nullable=True)
@@ -43,7 +43,7 @@ class JITAccessRequest(Base):
     __tablename__ = "jit_access_requests"
 
     id = Column(String, primary_key=True, default=generate_cuid)
-    userId = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(String, nullable=False)
     targetResource = Column(String, nullable=False)
     reason = Column(String, nullable=False)
     status = Column(String, default="PENDING", nullable=False)

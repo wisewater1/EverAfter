@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, AlertCircle, Activity, CheckCircle, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../lib/env';
 
 interface Control {
@@ -11,6 +12,7 @@ interface Control {
 }
 
 export default function ContinuousControls() {
+    const navigate = useNavigate();
     const [score, setScore] = useState(100);
     const [controls, setControls] = useState<Control[]>([]);
     const [loading, setLoading] = useState(true);
@@ -101,7 +103,10 @@ export default function ContinuousControls() {
                                         </div>
                                     </div>
                                 </div>
-                                <button className="text-xs text-slate-400 hover:text-amber-400 underline underline-offset-2">
+                                <button
+                                    onClick={() => navigate(`/anthony-dashboard?tab=flow&focus=${encodeURIComponent(control.controlId)}`)}
+                                    className="text-xs text-slate-400 hover:text-amber-400 underline underline-offset-2"
+                                >
                                     View Evidence Graph
                                 </button>
                             </div>

@@ -13,6 +13,7 @@ from app.models.finance import (
     WiseGoldLedgerEntry,
     WiseGoldPolicyState,
     WiseGoldSocialStanding,
+    WiseGoldCovenantAttestation,
     WiseGoldWallet,
 )
 from app.services.finance_service import FinanceService
@@ -27,6 +28,7 @@ WISEGOLD_TABLES = [
     WiseGoldLedgerEntry.__table__,
     WiseGoldPolicyState.__table__,
     WiseGoldSocialStanding.__table__,
+    WiseGoldCovenantAttestation.__table__,
 ]
 
 

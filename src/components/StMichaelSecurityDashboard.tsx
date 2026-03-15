@@ -2,7 +2,7 @@ import { useState, useEffect, type ComponentType } from 'react';
 import { Shield, Lock, Activity, Eye, CheckCircle, Search, RefreshCw, ArrowLeft, Globe, Database, Fingerprint, AlertTriangle, FileText, ClipboardCheck, MessageCircle, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getSecurityIntegrity, getAuditHistory, runCAIAudit, triggerLiveScan, IntegrityReport, SecurityAlert, AuditRecord } from '../lib/michael/security';
+import { getSecurityIntegrity, getAuditHistory, getMonitoringStatus, runCAIAudit, triggerLiveScan, IntegrityReport, SecurityAlert, AuditRecord, MonitoringStatusResponse } from '../lib/michael/security';
 import { getSaintStatuses, onSaintEvent, SaintStatus } from '../lib/saintBridge';
 import { emitSaintEvent, SAINT_EVENT_TYPES } from '../lib/saintBridge';
 import SaintChat from './SaintChat';
@@ -14,7 +14,6 @@ import CompliancePanel from './michael/CompliancePanel';
 import GuardianLog from './michael/GuardianLog';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DHTAnomalyAlertChain from './michael/DHTAnomalyAlertChain';
-import { API_BASE_URL } from '../lib/env';
 
 interface CAIState {
     integrityScore: number;
@@ -53,6 +52,16 @@ export default function StMichaelSecurityDashboard() {
         systemIntegrity: number;
         ledgerEntryId?: string;
     } | null>(null);
+    const criticalAlerts = alerts.filter((alert) => alert.severity === 'critical' || alert.severity === 'high');
+    const accessAlerts = alerts.filter((alert) => alert.type === 'access' || alert.type === 'pii_leak' || alert.type === 'leak_prevention');
+    const threatLevel =
+        criticalAlerts.length > 0 ? 'HIGH' :
+        (report?.overallScore || 100) < 90 ? 'ELEVATED' :
+        'LOW';
+    const privacyTitle = accessAlerts.length > 0 ? 'Guardian Watch' : 'Standard Privacy';
+    const privacySubtitle = accessAlerts.length > 0 ? `${accessAlerts.length} protected events under review` : 'All consent tokens valid';
+    const leakStatus = criticalAlerts.length > 0 ? 'WATCH' : 'ACTIVE';
+    const isolationStatus = report && report.privacyStatus < 100 ? 'REVIEW' : 'SECURE';
 
     useEffect(() => {
         if (user) loadData();
@@ -162,7 +171,7 @@ export default function StMichaelSecurityDashboard() {
                                 <Shield className="w-6 h-6 text-sky-400" />
                                 <h1 className="text-3xl font-light tracking-tight text-white">St. Michael Security</h1>
                             </div>
-                            <p className="text-slate-500 text-sm">Wazuh-Inspired XDR & SIEM — Autonomous Guardian</p>
+                            <p className="text-slate-500 text-sm">Wazuh-Inspired XDR & SIEM - Autonomous Guardian</p>
                         </div>
                     </div>
                     <button onClick={handleManualScan} disabled={scanning}
@@ -247,15 +256,15 @@ export default function StMichaelSecurityDashboard() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-slate-400">Leak Prevention</span>
-                                        <span className="text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">ACTIVE</span>
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${leakStatus === 'ACTIVE' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>{leakStatus}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-slate-400">Health Data Isolation</span>
-                                        <span className="text-sky-400 text-xs font-bold bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">SECURE</span>
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${isolationStatus === 'SECURE' ? 'text-sky-400 bg-sky-500/10 border-sky-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>{isolationStatus}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-slate-400">Unauthorized Access</span>
-                                        <span className="text-slate-500 text-xs font-bold bg-slate-800 px-2 py-0.5 rounded border border-white/5">0 DETECTED</span>
+                                        <span className="text-slate-500 text-xs font-bold bg-slate-800 px-2 py-0.5 rounded border border-white/5">{accessAlerts.length} DETECTED</span>
                                     </div>
                                 </div>
                             </div>
@@ -271,8 +280,8 @@ export default function StMichaelSecurityDashboard() {
                                         <Activity className="w-6 h-6 text-emerald-400" />
                                     </div>
                                     <div>
-                                        <span className="block text-white text-xl font-medium">Standard Privacy</span>
-                                        <span className="text-[10px] text-slate-500 uppercase font-black">All Consent Tokens Valid</span>
+                                        <span className="block text-white text-xl font-medium">{privacyTitle}</span>
+                                        <span className="text-[10px] text-slate-500 uppercase font-black">{privacySubtitle}</span>
                                     </div>
                                 </div>
                             </div>
@@ -419,18 +428,18 @@ export default function StMichaelSecurityDashboard() {
                     </div>
                     <div className="flex items-center gap-8">
                         <div className="text-center">
-                            <div className="text-2xl font-light text-white">0</div>
+                            <div className="text-2xl font-light text-white">{criticalAlerts.length}</div>
                             <div className="text-[10px] text-slate-600 uppercase font-black">Security Breaches</div>
                         </div>
                         <div className="w-px h-8 bg-white/5" />
                         <div className="text-center">
-                            <div className="text-2xl font-light text-white">100%</div>
+                            <div className="text-2xl font-light text-white">{report?.overallScore || 100}%</div>
                             <div className="text-[10px] text-slate-600 uppercase font-black">Integrity Rating</div>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <Globe className="w-4 h-4 text-slate-600" />
-                        <span className="text-xs text-slate-600 font-medium">Global Threat Level: <span className="text-emerald-500">LOW</span></span>
+                        <span className="text-xs text-slate-600 font-medium">Global Threat Level: <span className={threatLevel === 'LOW' ? 'text-emerald-500' : threatLevel === 'ELEVATED' ? 'text-amber-500' : 'text-rose-500'}>{threatLevel}</span></span>
                     </div>
                 </div>
             </div>
@@ -442,7 +451,7 @@ export default function StMichaelSecurityDashboard() {
 
 function SaintsNetworkPanel() {
     const [statuses, setStatuses] = useState<SaintStatus[]>(() => getSaintStatuses());
-    const [systemStatus, setSystemStatus] = useState<any>(null);
+    const [systemStatus, setSystemStatus] = useState<MonitoringStatusResponse | null>(null);
 
     const statusColor: Record<string, string> = {
         online: 'text-emerald-400', offline: 'text-slate-500', warning: 'text-amber-400',
@@ -450,6 +459,26 @@ function SaintsNetworkPanel() {
     const secColor: Record<string, string> = {
         green: 'bg-emerald-500', yellow: 'bg-amber-500', red: 'bg-rose-500',
     };
+    const saintCards = statuses.map((saint) => {
+        const liveStatus = systemStatus?.[saint.id as keyof MonitoringStatusResponse] as MonitoringStatusResponse['michael'] | undefined;
+        const normalizedStatus =
+            liveStatus?.status === 'critical' ? 'warning' :
+            liveStatus?.status === 'active' ? 'online' :
+            liveStatus?.status === 'error' ? 'warning' :
+            liveStatus?.status || saint.status;
+        const normalizedSecurity =
+            liveStatus?.status === 'critical' || liveStatus?.status === 'error' ? 'red' :
+            liveStatus?.status === 'warning' ? 'yellow' :
+            saint.securityLevel;
+
+        return {
+            ...saint,
+            status: normalizedStatus,
+            securityLevel: normalizedSecurity,
+            activeAgents: liveStatus?.metrics ? Math.max(saint.activeAgents, Object.keys(liveStatus.metrics).length || 1) : saint.activeAgents,
+            message: liveStatus?.message,
+        };
+    });
 
     // Real-time Status Sync from Bridge
     useEffect(() => {
@@ -463,12 +492,7 @@ function SaintsNetworkPanel() {
     useEffect(() => {
         const fetchStatus = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/monitoring/status`);
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log("System Status API Data:", data); // DEBUG
-                    setSystemStatus(data);
-                }
+                setSystemStatus(await getMonitoringStatus());
             } catch (e) {
                 console.error("Failed to fetch system status", e);
             }
@@ -487,7 +511,7 @@ function SaintsNetworkPanel() {
 
             {/* Saint Status Cards - Using existing logic for now, could be updated to use systemStatus too */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {statuses.map(saint => (
+                {saintCards.map((saint) => (
                     <div key={saint.id} className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 hover:border-sky-500/20 transition-all">
                         <div className="flex items-center justify-between mb-3">
                             <h4 className="text-sm font-medium text-white">{saint.name}</h4>
@@ -511,6 +535,9 @@ function SaintsNetworkPanel() {
                                 <span>Last Activity</span>
                                 <span className="text-slate-500">{new Date(saint.lastActivity).toLocaleTimeString()}</span>
                             </div>
+                            {'message' in saint && saint.message && (
+                                <div className="pt-2 text-[11px] text-slate-500">{saint.message}</div>
+                            )}
                         </div>
                     </div>
                 ))}

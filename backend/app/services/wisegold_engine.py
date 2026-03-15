@@ -15,6 +15,7 @@ from app.models.finance import (
     WiseGoldWallet,
 )
 from app.services.social_reputation_service import social_reputation_service
+from app.services.wisegold_policy_service import WiseGoldPolicyService
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +211,7 @@ class GoldenSovereignEngine:
 
         total_outflow = 0.0
         recipient_count = 0
+        policy_service = WiseGoldPolicyService(self.session)
 
         for wallet in wallets:
             if self.daily_manna_pool <= 0:
@@ -228,6 +230,29 @@ class GoldenSovereignEngine:
             final_amount = min(final_amount, self.daily_manna_pool)
 
             if final_amount <= 0:
+                continue
+
+            evaluation = await policy_service.evaluate_action(
+                user_id=wallet.user_id,
+                action="mint",
+                amount=final_amount,
+                wallet_address=wallet.solana_pubkey,
+            )
+            if not evaluation["allowed"]:
+                await self._record_entry(
+                    user_id=wallet.user_id,
+                    wallet=wallet,
+                    entry_type="MANNA_DISTRIBUTION",
+                    direction="info",
+                    amount=0.0,
+                    balance_after=float(wallet.balance or 0.0),
+                    status="FAILED",
+                    description=f"Manna distribution held: {evaluation['reason']}",
+                    metadata={
+                        "reason_code": evaluation["reason_code"],
+                        "effective_limit": evaluation["effective_limit"],
+                    },
+                )
                 continue
 
             await self.execute_with_failover("Manna_Distribution", final_amount, str(wallet.id))

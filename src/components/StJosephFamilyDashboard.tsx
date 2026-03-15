@@ -2,7 +2,7 @@ import { useState, useEffect, type ComponentType } from 'react';
 import {
     Users, Home, Calendar, ShoppingCart,
     CheckSquare, Clock, MapPin, Info, MessageSquare,
-    Activity, RefreshCw, ArrowLeft,
+    Activity, RefreshCw, ArrowLeft, Bell, Link as LinkIcon,
     GitBranch, UserCheck, History, MessageCircle, Search,
     Scale, Archive, Sparkles, Brain
 } from 'lucide-react';
@@ -24,6 +24,7 @@ import PersonalityQuiz from './joseph/PersonalityQuiz';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
+import FamilyPredictionIntelligencePanel from './joseph/FamilyPredictionIntelligencePanel';
 import CustomEngramsDashboard from './CustomEngramsDashboard';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DelphiView from './dht/DelphiView';
@@ -51,6 +52,33 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'engrams', label: 'Custom Engrams', icon: Brain },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
+
+const HEADER_ACTIONS = [
+    {
+        key: 'council',
+        label: 'Council',
+        title: 'Council of Saints',
+        icon: Scale,
+        className: 'text-indigo-300 border-indigo-500/20 bg-indigo-500/10 hover:bg-indigo-500/20 hover:text-indigo-200',
+        action: '/council',
+    },
+    {
+        key: 'vault',
+        label: 'Vault',
+        title: 'Time Capsule Vault',
+        icon: Archive,
+        className: 'text-amber-300 border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-200',
+        action: '/time-capsules',
+    },
+    {
+        key: 'rituals',
+        label: 'Rituals',
+        title: 'Ritual Altar',
+        icon: Sparkles,
+        className: 'text-rose-300 border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 hover:text-rose-200',
+        action: '/rituals',
+    },
+] as const;
 
 function sanitizeDashboardCopy(value: string) {
     return value
@@ -85,7 +113,7 @@ export default function StJosephFamilyDashboard() {
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
     const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
-    const showTopTellMyStoryBanner = !['members', 'quiz', 'predictions', 'create-ai'].includes(activeTab);
+    const showTopTellMyStoryBanner = !['members', 'quiz', 'predictions', 'create-ai', 'delphi'].includes(activeTab);
 
     const handleTrainMember = (engramId: string) => {
         setTrainingTargetId(engramId);
@@ -217,17 +245,19 @@ export default function StJosephFamilyDashboard() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center md:justify-end shrink-0 md:ml-auto gap-4">
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => navigate('/council')} className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all group shrink-0" title="Council of Saints">
-                                <Scale className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            </button>
-                            <button onClick={() => navigate('/time-capsules')} className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all group shrink-0" title="Time Capsule Vault">
-                                <Archive className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            </button>
-                            <button onClick={() => navigate('/rituals')} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20 transition-all group shrink-0" title="Ritual Altar">
-                                <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            </button>
+                    <div className="flex items-center justify-center md:justify-end shrink-0 md:ml-auto gap-3">
+                        <div className="flex items-center gap-1 rounded-2xl border border-white/8 bg-slate-900/70 p-1.5 shadow-[0_10px_30px_rgba(2,6,23,0.28)] backdrop-blur-sm">
+                            {HEADER_ACTIONS.map(({ key, label, title, icon: ActionIcon, className, action }) => (
+                                <button
+                                    key={key}
+                                    onClick={() => navigate(action)}
+                                    title={title}
+                                    className={`group flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-xl border px-3 transition-all duration-200 shrink-0 ${className}`}
+                                >
+                                    <ActionIcon className="h-4.5 w-4.5 transition-transform group-hover:scale-110" />
+                                    <span className="hidden xl:inline text-[11px] font-medium tracking-wide">{label}</span>
+                                </button>
+                            ))}
                         </div>
                         <SecurityIntegrityBadge />
                     </div>
@@ -300,17 +330,8 @@ export default function StJosephFamilyDashboard() {
                     {activeTab === 'predictions' && (
                         <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
                             <SharedPredictionPanel saint="joseph" />
+                            {user?.id && <FamilyPredictionIntelligencePanel userId={user.id} />}
                             <FamilyHealthHeatmap />
-                            <div className="rounded-2xl border border-teal-500/20 bg-gradient-to-br from-teal-500/10 via-cyan-500/5 to-transparent p-4">
-                                <div className="flex items-center gap-2 text-teal-300 mb-2">
-                                    <Activity className="w-4 h-4" />
-                                    <span className="text-xs font-semibold uppercase tracking-[0.2em]">Prediction Inputs</span>
-                                </div>
-                                <h3 className="text-lg font-medium text-white">Predictions use OCEAN + medical records</h3>
-                                <p className="mt-1 text-sm text-slate-300 leading-relaxed">
-                                    EverAfter predictions in this view are derived from OCEAN behavioral patterns, family health context, and connected medical record data. This panel no longer routes through TellMyStory.ai.
-                                </p>
-                            </div>
                         </div>
                     )}
                     {activeTab === 'training' && (
@@ -558,18 +579,77 @@ export default function StJosephFamilyDashboard() {
                                                     {new Date(event.startTime).toLocaleString('default', { month: 'short' })}
                                                 </div>
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-white">{event.title}</div>
-                                                <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    <span className="mx-1 opacity-20">|</span>
-                                                    <Users className="w-3 h-3" />
-                                                    {event.attendees.join(', ')}
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                                                    <div>
+                                                        <div className="text-sm font-medium text-white">{event.title}</div>
+                                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px]">
+                                                            <span className="px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                                                                {event.calendarTitle || 'Family Sync'}
+                                                            </span>
+                                                            <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-400 uppercase">
+                                                                {event.allDay ? 'All day' : (event.availability || 'busy')}
+                                                            </span>
+                                                            {event.recurrenceRule && (
+                                                                <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-400">
+                                                                    {event.recurrenceRule}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {event.riskSummary && (
+                                                        <div className="max-w-md rounded-xl border border-amber-500/15 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                                                            {event.riskSummary}
+                                                        </div>
+                                                    )}
                                                 </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10px] text-slate-400">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="w-3 h-3" />
+                                                        {event.allDay
+                                                            ? 'All day'
+                                                            : `${new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(event.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Users className="w-3 h-3" />
+                                                        {(event.attendees || []).join(', ') || 'No attendees'}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {event.location || 'Location pending'}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Bell className="w-3 h-3" />
+                                                        {event.alarms?.map((alarm: { label?: string; date?: string }) => alarm.label || alarm.date).filter(Boolean).join(', ') || 'No reminders'}
+                                                    </div>
+                                                </div>
+
+                                                {(event.notes || event.description) && (
+                                                    <p className="text-sm text-slate-300 leading-relaxed">
+                                                        {event.notes || event.description}
+                                                    </p>
+                                                )}
+
+                                                {event.url && (
+                                                    <a
+                                                        href={event.url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-2 text-xs text-indigo-300 hover:text-indigo-200"
+                                                    >
+                                                        <LinkIcon className="w-3.5 h-3.5" />
+                                                        Open linked record
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
+                                    {events.length === 0 && (
+                                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-sm text-slate-500">
+                                            No family calendar events are available yet.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

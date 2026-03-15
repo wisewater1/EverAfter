@@ -202,20 +202,20 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
     };
 
     return (
-        <div className="min-h-screen bg-black text-amber-100 p-8 font-serif">
-            <div className="max-w-6xl mx-auto space-y-12">
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-[#111827] text-slate-100 p-8 font-serif">
+            <div className="max-w-6xl mx-auto space-y-12 rounded-[32px] border border-amber-500/10 bg-gradient-to-br from-slate-900/95 via-[#151922]/95 to-slate-900/95 p-9 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
                 <header className="space-y-4">
                     <div className="flex justify-between items-start">
                         <div>
                             <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-amber-600">
                                 Personality training center
                             </h1>
-                            <p className="text-amber-300/60">Evolve your engrams through memories, analysis, and council mentorship.</p>
+                            <p className="text-slate-300/80">Evolve your engrams through memories, analysis, and council mentorship.</p>
                         </div>
                         <button
                             onClick={fetchEngrams}
                             disabled={loading}
-                            className="px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-sm hover:bg-amber-500/20 transition-colors flex items-center gap-2 group"
+                            className="px-4 py-2 rounded-xl bg-slate-800/80 border border-amber-500/25 text-amber-300 text-sm hover:bg-slate-800 transition-colors flex items-center gap-2 group"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
                             {loading ? "Syncing..." : "Re-Sync OASIS"}
@@ -226,27 +226,27 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     {/* Engram Selector */}
                     <div className="space-y-6">
-                        <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">Select engram</label>
+                        <label className="text-sm uppercase tracking-widest text-amber-300 font-bold">Select engram</label>
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                             {loading && engrams.length === 0 ? (
-                                <div className="p-8 text-center animate-pulse">
+                                <div className="rounded-2xl border border-slate-700/60 bg-slate-800/50 p-8 text-center animate-pulse">
                                     <Sparkles className="w-8 h-8 mx-auto mb-2 text-amber-500/20" />
-                                    <p className="text-xs text-amber-500/40 uppercase font-bold">Scanning Engrams...</p>
+                                    <p className="text-xs text-slate-400 uppercase font-bold">Scanning Engrams...</p>
                                 </div>
                             ) : engrams.length > 0 ? (
                                 engrams.map(e => (
                                     <button
                                         key={e.id}
                                         onClick={() => setSelectedId(e.id)}
-                                        className={`w-full p-4 rounded-xl border text-left transition-all ${selectedId === e.id ? 'bg-amber-900/20 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.1)]' : 'bg-white/5 border-white/10 opacity-60 hover:opacity-100'
+                                        className={`w-full p-4 rounded-2xl border text-left transition-all ${selectedId === e.id ? 'bg-gradient-to-br from-amber-500/15 to-amber-400/5 border-amber-400/60 shadow-[0_0_24px_rgba(245,158,11,0.12)]' : 'bg-slate-800/55 border-slate-700/60 hover:bg-slate-800/80 hover:border-slate-500/80'
                                             }`}
                                     >
-                                        <p className="font-bold text-amber-200">{e.name}</p>
-                                        <p className="text-xs text-amber-400/40 uppercase tracking-tighter mt-1">Readiness: {e.ai_readiness_score}%</p>
+                                        <p className="font-bold text-white">{e.name}</p>
+                                        <p className="text-xs text-slate-400 uppercase tracking-tighter mt-1">Readiness: {e.ai_readiness_score}%</p>
                                     </button>
                                 ))
                             ) : (
-                                <div className="p-8 text-center border-2 border-dashed border-white/5 rounded-2xl opacity-40">
+                                <div className="p-8 text-center border-2 border-dashed border-slate-700/60 rounded-2xl bg-slate-800/35 text-slate-400">
                                     <p className="text-sm">No engrams found.</p>
                                 </div>
                             )}
@@ -258,15 +258,15 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                         {selectedId ? (
                             <div className="space-y-8 animate-in fade-in duration-500">
                                 {/* Path 1: Personality Quiz */}
-                                <section className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+                                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-bold flex items-center gap-2">
                                             <Brain className="w-5 h-5 text-amber-500" />
                                             Personality Assessment
                                         </h3>
-                                        <span className="text-[10px] uppercase tracking-widest text-amber-500/40">Path 1</span>
+                                        <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 1</span>
                                     </div>
-                                    <p className="text-xs text-amber-400/40">
+                                    <p className="text-xs text-slate-300/80">
                                         50 scientifically-grounded questions covering all OCEAN sub-facets. Results auto-populate the trait radar.
                                     </p>
                                     <PersonalityQuiz onProfileComplete={(profile) => {
@@ -277,16 +277,16 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                 </section>
 
                                 {/* Path 2: Bulk Ingestion */}
-                                <section className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+                                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-bold flex items-center gap-2">
                                             <Upload className="w-5 h-5 text-amber-500" />
                                             Knowledge Ingestion
                                         </h3>
-                                        <span className="text-[10px] uppercase tracking-widest text-amber-500/40">Path 2</span>
+                                        <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 2</span>
                                     </div>
                                     <textarea
-                                        className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-4 text-amber-100 focus:outline-none focus:border-amber-500/50"
+                                        className="w-full h-32 bg-slate-950/70 border border-slate-600/70 rounded-2xl p-4 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500/50"
                                         placeholder="Paste a memory, story, or diary entry to train this agent..."
                                         value={vignette}
                                         onChange={(e) => setVignette(e.target.value)}
@@ -323,20 +323,20 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {/* Path 3: Trait Radar */}
-                                    <section className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+                                    <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold flex items-center gap-2">
                                                 <Activity className="w-5 h-5 text-amber-500" />
                                                 Trait Evolution
                                             </h3>
-                                            <span className="text-[10px] uppercase tracking-widest text-amber-500/40">Path 3</span>
+                                            <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 3</span>
                                         </div>
                                         <div className="h-64 flex items-center justify-center">
                                             {traits.length > 0 ? (
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={traits}>
-                                                        <PolarGrid stroke="#451a03" />
-                                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#d97706', fontSize: 10 }} />
+                                                        <PolarGrid stroke="#334155" />
+                                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#fbbf24', fontSize: 10 }} />
                                                         <Radar
                                                             name="Personality"
                                                             dataKey="A"
@@ -347,7 +347,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                                     </RadarChart>
                                                 </ResponsiveContainer>
                                             ) : (
-                                                <div className="text-center text-amber-500/20 italic text-sm">Run analysis to see radar</div>
+                                                <div className="text-center text-slate-400 italic text-sm">Run analysis to see radar</div>
                                             )}
                                         </div>
                                         <button
@@ -360,26 +360,26 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                     </section>
 
                                     {/* Path 4: Council Mirroring */}
-                                    <section className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+                                    <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-6">
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-lg font-bold flex items-center gap-2">
                                                 <Users className="w-5 h-5 text-amber-500" />
                                                 Council Mirroring
                                             </h3>
-                                            <span className="text-[10px] uppercase tracking-widest text-amber-500/40">Path 4</span>
+                                            <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 4</span>
                                         </div>
                                         <div className="space-y-4">
-                                            <label className="text-[10px] uppercase tracking-widest text-amber-500/60 block">Assign Mentor Saint</label>
+                                            <label className="text-[10px] uppercase tracking-widest text-slate-300 block">Assign Mentor Saint</label>
                                             <select
                                                 value={mentor}
                                                 onChange={(e) => setMentor(e.target.value)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-amber-100 text-sm focus:outline-none"
+                                                className="w-full bg-slate-950/70 border border-slate-600/70 rounded-xl p-3 text-slate-100 text-sm focus:outline-none"
                                             >
                                                 <option value="raphael">St. Raphael (Empathy/Health)</option>
                                                 <option value="michael">St. Michael (Protection/Integrity)</option>
                                                 <option value="joseph">St. Joseph (Legacy/Discretion)</option>
                                             </select>
-                                            <p className="text-xs text-amber-400/40 italic">
+                                            <p className="text-xs text-slate-300/75 italic">
                                                 The mentor will run background "Coaching Sessions" with your engram to instill core virtues.
                                             </p>
                                         </div>
@@ -395,9 +395,10 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                 </div>
                             </div>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl opacity-30">
-                                <Brain className="w-16 h-16 mb-4" />
-                                <p>Select an engram to begin training</p>
+                            <div className="h-full min-h-[520px] flex flex-col items-center justify-center border-2 border-dashed border-slate-700/70 rounded-3xl bg-gradient-to-br from-slate-800/45 to-slate-900/45 text-slate-300">
+                                <Brain className="w-16 h-16 mb-4 text-amber-200/60" />
+                                <p className="text-lg font-medium">Select an engram to begin training</p>
+                                <p className="mt-2 text-sm text-slate-400">Assessment, ingestion, radar analysis, and mentorship will load here.</p>
                             </div>
                         )}
                     </div>

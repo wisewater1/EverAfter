@@ -268,6 +268,12 @@ export interface ShoppingItem {
   status: 'needed' | 'bought';
 }
 
+export interface CalendarAlarm {
+  date?: string;
+  relativeOffsetMinutes?: number;
+  label?: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -275,6 +281,18 @@ export interface CalendarEvent {
   endTime: string;
   location?: string;
   attendees?: string[];
+  notes?: string;
+  description?: string;
+  url?: string;
+  allDay?: boolean;
+  availability?: 'busy' | 'free' | 'tentative';
+  calendarTitle?: string;
+  recurrenceRule?: string;
+  alarms?: CalendarAlarm[];
+  source?: string;
+  memberName?: string;
+  type?: string;
+  riskSummary?: string;
 }
 
 export interface BulletinMessage {

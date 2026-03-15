@@ -43,6 +43,7 @@ async def trigger_michael_scan(
     user_id = current_user.get("id")
     vulnerability_service.session = session # Temporary session injection
     scan_results = await vulnerability_service.perform_full_security_scan(user_id)
+    await session.rollback()
 
     ledger = LedgerService(session)
     michael_scan_log = await ledger.log_event(

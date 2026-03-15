@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { AlertTriangle, Shield, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Shield, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getThreatEvents, ThreatEvent, ThreatSeverity, MitreCategory } from '../../lib/michael/security';
+import { getLiveThreatEvents, ThreatEvent, ThreatSeverity, MitreCategory } from '../../lib/michael/security';
 
 const SEVERITY_STYLES: Record<ThreatSeverity, { bg: string; border: string; text: string; badge: string }> = {
     critical: { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', badge: 'bg-rose-500 text-white' },
@@ -18,10 +18,24 @@ const CATEGORY_LABELS: Record<MitreCategory, string> = {
 };
 
 export default function ThreatDetection() {
-    const [threats, setThreats] = useState<ThreatEvent[]>(() => getThreatEvents());
+    const [threats, setThreats] = useState<ThreatEvent[]>([]);
     const [filterSeverity, setFilterSeverity] = useState<ThreatSeverity | null>(null);
     const [mitigatingId, setMitigatingId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const loadThreats = async () => {
+        setLoading(true);
+        try {
+            setThreats(await getLiveThreatEvents());
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadThreats();
+    }, []);
 
     const filtered = filterSeverity ? threats.filter(t => t.severity === filterSeverity) : threats;
 
@@ -45,6 +59,21 @@ export default function ThreatDetection() {
 
     return (
         <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h3 className="text-xl font-light text-white">Threat Detection</h3>
+                    <p className="text-xs text-slate-500 mt-1">Live Michael findings and tracked high-risk vulnerabilities.</p>
+                </div>
+                <button
+                    onClick={loadThreats}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 transition-all hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    {loading ? 'Refreshing...' : 'Refresh Feed'}
+                </button>
+            </div>
+
             {/* Summary stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {(['critical', 'high', 'medium', 'low'] as ThreatSeverity[]).map(sev => {
@@ -78,6 +107,11 @@ export default function ThreatDetection() {
 
             {/* Threat Feed */}
             <div className="space-y-3">
+                {!loading && filtered.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-white/5 bg-slate-900/20 px-6 py-12 text-center text-sm text-slate-500">
+                        No live threats are currently flagged by St. Michael.
+                    </div>
+                )}
                 {filtered.map(threat => {
                     const s = SEVERITY_STYLES[threat.severity];
                     const isMitigating = mitigatingId === threat.id;

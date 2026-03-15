@@ -21,11 +21,23 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     CHAINLINK_RPC_URL: str = ""
     CHAINLINK_XAU_USD_FEED: str = ""
+    PLAID_CLIENT_ID: str = ""
+    PLAID_SECRET: str = ""
+    PLAID_ENV: str = "sandbox"
+    PLAID_PRODUCTS: str = "transactions"
+    PLAID_COUNTRY_CODES: str = "US"
+    PLAID_REDIRECT_URI: str = ""
+    PLAID_WEBHOOK_URL: str = ""
+    BANK_CONNECTOR_SECRET: str = ""
     WISEGOLD_ORACLE_API_KEY: str = ""
     WGOLD_TOKEN_CONTRACT: str = ""
     WGOLD_REPUTATION_ORACLE_CONTRACT: str = ""
+    WGOLD_POLICY_CONTROLLER_CONTRACT: str = ""
+    WGOLD_COVENANT_VERIFIER_CONTRACT: str = ""
     WISEGOLD_CHAINLINK_ROUTER: str = ""
     WISEGOLD_CHAINLINK_DON_ID: str = ""
+    WISEGOLD_AUTOMATION_REGISTRAR: str = ""
+    WISEGOLD_AUTOMATION_REGISTRY: str = ""
 
     OLLAMA_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "mistral"
@@ -76,6 +88,18 @@ class Settings(BaseSettings):
     @property
     def saint_action_auto_approve_enabled(self) -> bool:
         return self.SAINT_ACTION_AUTO_APPROVE and not self.is_production
+
+    @property
+    def plaid_products_list(self) -> List[str]:
+        return [value.strip() for value in self.PLAID_PRODUCTS.split(",") if value.strip()]
+
+    @property
+    def plaid_country_codes_list(self) -> List[str]:
+        return [value.strip() for value in self.PLAID_COUNTRY_CODES.split(",") if value.strip()]
+
+    @property
+    def plaid_is_configured(self) -> bool:
+        return bool(self.PLAID_CLIENT_ID.strip() and self.PLAID_SECRET.strip())
 
 
 settings = Settings()

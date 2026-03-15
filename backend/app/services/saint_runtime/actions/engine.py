@@ -1,10 +1,12 @@
+﻿import json
 import logging
-import json
 import re
+import uuid
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.saint import GuardianIntercession
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,6 @@ class ActionEngine:
         
         for action_str in actions_found:
             try:
-                # Sometimes LLMs add markdown code blocks inside the XML tags
                 clean_json = action_str.strip()
                 if clean_json.startswith("```json"):
                     clean_json = clean_json[7:]
@@ -48,12 +49,8 @@ class ActionEngine:
                 
                 if tool_name in self.tools:
                     logger.info(f"ActionEngine: Drafting '{tool_name}' for user {user_id} by {saint_id}")
-                    
-                    # Instead of executing it, create a drafted intercession
-                    import uuid
                     user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
                     
-                    # Generate a human-readable description for the UI
                     description = f"Proposed Action: {tool_name}"
                     if tool_name == "send_email":
                         description = f"Draft an email to {kwargs.get('to')} regarding '{kwargs.get('subject')}'"
@@ -61,6 +58,17 @@ class ActionEngine:
                         description = f"Create a calendar event for '{kwargs.get('title')}' on {kwargs.get('date')}"
                     elif tool_name == "order_delivery":
                         description = f"Initiate a delivery order via {kwargs.get('service')}"
+
+                    execution_result = None
+                    status = "pending"
+                    if settings.saint_action_auto_approve_enabled:
+                        try:
+                            execution_result = self.tools[tool_name](user_id=str(user_uuid), **kwargs)
+                            status = "executed"
+                        except Exception as exc:
+                            logger.error(f"ActionEngine: Auto-approval execution failed for '{tool_name}': {exc}")
+                            execution_result = {"error": str(exc)}
+                            status = "failed"
                     
                     new_intercession = GuardianIntercession(
                         user_id=user_uuid,
@@ -68,16 +76,21 @@ class ActionEngine:
                         description=description,
                         tool_name=tool_name,
                         tool_kwargs=kwargs,
-                        status="pending"
+                        status=status,
+                        execution_result=execution_result,
                     )
                     
                     session.add(new_intercession)
-                    # We don't commit here, we let the caller (SaintAgentService.chat) commit the transaction.
-                    
                     drafted_actions.append({
                         "tool": tool_name,
                         "description": description,
-                        "status": "pending_approval"
+                        "status": (
+                            "auto_approved"
+                            if status == "executed"
+                            else "execution_failed"
+                            if status == "failed"
+                            else "pending_approval"
+                        )
                     })
                 else:
                     logger.warning(f"ActionEngine: Tool '{tool_name}' not found.")
@@ -89,12 +102,17 @@ class ActionEngine:
                 
         return cleaned_response, drafted_actions
 
+    def execute_intercession(self, intercession: GuardianIntercession, user_id: str) -> Dict[str, Any]:
+        tool = self.tools.get(intercession.tool_name)
+        if not tool:
+            raise ValueError(f"Unsupported tool: {intercession.tool_name}")
+        return tool(user_id=user_id, **(intercession.tool_kwargs or {}))
+
     # --- Tool Implementations (Simulated for Phase 1) ---
 
     def _action_send_email(self, user_id: str, to: str, subject: str, body: str) -> Dict[str, Any]:
         """Simulates sending an email on behalf of the user."""
         logger.info(f"[SIMULATED EMAIL] To: {to}, Subject: {subject}")
-        # In a real impl, this would call SendGrid, AWS SES, or an SMTP server
         return {
             "status": "success",
             "message": f"Drafted simulated email to {to}",
@@ -104,7 +122,6 @@ class ActionEngine:
     def _action_create_calendar_event(self, user_id: str, title: str, date: str, time: str, attendees: Optional[List[str]] = None) -> Dict[str, Any]:
         """Simulates creating a household calendar event."""
         logger.info(f"[SIMULATED CALENDAR EVENT] {title} at {date} {time}")
-        # In a real impl, this would insert into the FamilyEvent DB or call Google Calendar API
         return {
             "status": "success",
             "message": f"Added '{title}' to the household calendar.",
@@ -114,7 +131,6 @@ class ActionEngine:
     def _action_order_delivery(self, user_id: str, service: str, items: List[str], address: str) -> Dict[str, Any]:
         """Simulates ordering groceries or food delivery."""
         logger.info(f"[SIMULATED DELIVERY] Service: {service}, Items: {items}")
-        # In a real impl, this would hit the Instacart or DoorDash API
         return {
             "status": "success",
             "message": f"Initiated simulated {service} delivery order.",
