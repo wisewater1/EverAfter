@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import asyncio
 
 if sys.platform == 'win32':
@@ -17,40 +17,52 @@ from app.api import (
     integrity, marketplace_assets, causal_twin, governance
 )
 from contextlib import asynccontextmanager
-# ... (imports omit)
 
-# ... (middleware omit)
 
-# Lifespan context manager for startup/shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     print("Startup: Initializing resources...")
     from app.services.saint_runtime import saint_runtime
     from app.services.compliance_service import compliance_autopilot
-    asyncio.create_task(saint_runtime.listen_for_events())
-    asyncio.create_task(saint_runtime.run_vigils())
-    asyncio.create_task(compliance_autopilot.run_continuous_audits())
+    from app.services.wisegold_scheduler import ensure_wisegold_tables, wisegold_scheduler
+
+    background_tasks = []
+    await ensure_wisegold_tables()
+    if settings.ENABLE_SAINT_EVENT_LISTENER:
+        background_tasks.append(asyncio.create_task(saint_runtime.listen_for_events(), name="saint-event-listener"))
+    if settings.ENABLE_SAINT_BACKGROUND_VIGILS:
+        background_tasks.append(asyncio.create_task(saint_runtime.run_vigils(), name="saint-vigils"))
+    if settings.ENABLE_COMPLIANCE_AUTOPILOT:
+        background_tasks.append(asyncio.create_task(compliance_autopilot.run_continuous_audits(), name="compliance-autopilot"))
+    if settings.ENABLE_WISEGOLD_TICKER:
+        background_tasks.append(asyncio.create_task(wisegold_scheduler.run_forever(), name="wisegold-scheduler"))
+
+    app.state.background_tasks = background_tasks
     yield
-    # Shutdown
+
     print("Shutdown: Cleaning up resources...")
+    for task in getattr(app.state, "background_tasks", []):
+        task.cancel()
+    if getattr(app.state, "background_tasks", None):
+        await asyncio.gather(*app.state.background_tasks, return_exceptions=True)
+
 
 app = FastAPI(
-    title=settings.PROJECT_NAME, 
+    title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan
 )
 
-# Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_origin_regex=settings.CORS_ORIGIN_REGEX or None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
 app.add_middleware(JWTAuthMiddleware)
 
 app.include_router(engrams.router)
@@ -91,7 +103,6 @@ app.include_router(dht_api.router)
 
 from app.api.endpoints import audit
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
-
 
 
 @app.get("/health")

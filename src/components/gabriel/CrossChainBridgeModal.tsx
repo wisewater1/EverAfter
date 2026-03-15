@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, Share2, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../lib/env';
 
 interface BridgeModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentBalance: number;
     token: string;
+    onSuccess?: () => void;
 }
 
-export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance, token }: BridgeModalProps) {
+export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance, token, onSuccess }: BridgeModalProps) {
     const [destinationChain, setDestinationChain] = useState<'Arbitrum' | 'Polygon' | 'Base'>('Arbitrum');
     const [amount, setAmount] = useState<string>('');
     const [address, setAddress] = useState<string>('');
@@ -40,7 +42,7 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
         setErrorMessage('');
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002'}/api/v1/finance/wisegold/bridge/ccip`, {
+            const res = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/bridge/ccip`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -58,6 +60,7 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
             if (res.ok && data.status === 'success') {
                 setTxHash(data.message_id);
                 setStatus('success');
+                onSuccess?.();
             } else {
                 throw new Error(data.detail || "Bridge request failed");
             }

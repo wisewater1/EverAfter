@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from datetime import date, datetime
 from uuid import UUID
@@ -9,6 +9,7 @@ from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.finance_service import FinanceService
 from app.services.chainlink_service import ChainlinkService
+from app.core.config import settings
 
 router = APIRouter(prefix="/api/v1/finance", tags=["finance"])
 
@@ -47,6 +48,18 @@ class EnvelopeSummary(BaseModel):
     assigned: float
     activity: float
     available: float
+
+
+class CovenantAmountRequest(BaseModel):
+    amount: float
+
+
+def _require_oracle_key(x_wisegold_oracle_key: Optional[str]) -> None:
+    configured_key = settings.WISEGOLD_ORACLE_API_KEY.strip()
+    if not configured_key:
+        raise HTTPException(status_code=503, detail="WISEGOLD_ORACLE_API_KEY is not configured")
+    if not x_wisegold_oracle_key or x_wisegold_oracle_key != configured_key:
+        raise HTTPException(status_code=401, detail="Invalid oracle credentials")
 
 # Endpoints
 
@@ -193,6 +206,54 @@ async def get_wisegold_covenants(
     user_id = str(current_user.get("sub"))
     service = FinanceService(session)
     return await service.get_wisegold_covenants(user_id)
+
+
+@router.get("/wisegold/ledger")
+async def get_wisegold_ledger(
+    limit: int = 12,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Get recent WiseGold ledger activity for the authenticated wallet."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_recent_wisegold_ledger(user_id, limit)
+
+
+@router.get("/wisegold/social-standing")
+async def get_wisegold_social_standing(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Get the authenticated user's current social standing for WiseGold emissions."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    return await service.get_wisegold_social_standing(user_id)
+
+
+@router.get("/wisegold/oracle/reputation/{user_id}")
+async def get_wisegold_oracle_reputation(
+    user_id: str,
+    wallet_address: Optional[str] = None,
+    x_wisegold_oracle_key: Optional[str] = Header(default=None),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Chainlink Functions-safe reputation endpoint.
+    Protect it with a backend oracle key rather than end-user auth.
+    """
+    _require_oracle_key(x_wisegold_oracle_key)
+    service = FinanceService(session)
+    snapshot = await service.get_wisegold_social_standing(user_id, wallet_address=wallet_address)
+    return {
+        "user_id": user_id,
+        "wallet_address": wallet_address,
+        "reputation_bps": snapshot["reputation_bps"],
+        "daily_manna_multiplier_bps": snapshot["daily_manna_multiplier_bps"],
+        "governance_weight_bps": snapshot["governance_weight_bps"],
+        "tier": snapshot["tier"],
+        "last_calculated_at": snapshot["last_calculated_at"],
+    }
     
 @router.post("/wisegold/heartbeat")
 async def register_heartbeat(
@@ -205,6 +266,19 @@ async def register_heartbeat(
     success = await service.record_heartbeat(user_id)
     return {"success": success}
 
+
+@router.post("/wisegold/tick")
+async def run_wisegold_tick(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Manually run the WiseGold engine tick in non-production environments."""
+    if settings.is_production:
+        raise HTTPException(status_code=403, detail="Manual WiseGold tick is disabled in production")
+
+    service = FinanceService(session)
+    return await service.run_wisegold_tick()
+
 @router.get("/wisegold/price")
 async def get_wisegold_price():
     """Get the live XAU/USD price from Chainlink Data Feeds"""
@@ -214,14 +288,22 @@ async def get_wisegold_price():
 @router.post("/wisegold/bridge/ccip")
 async def bridge_wisegold_ccip(
     request: CCIPBridgeRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Initiate a Cross-Chain transfer of WGOLD using Chainlink CCIP"""
     user_id = str(current_user.get("sub"))
-    
-    # In a full implementation, this step would first check the user's WGOLD balance
-    # and lock/burn tokens on Solana before initiating the CCIP message.
-    
+    service = FinanceService(session)
+    try:
+        await service.record_bridge_transfer(
+            user_id,
+            amount=request.amount,
+            destination_chain=request.destination_chain,
+            destination_address=request.destination_address,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     result = await ChainlinkService.initiate_ccip_transfer(
         user_id=user_id,
         amount=request.amount,
@@ -230,5 +312,37 @@ async def bridge_wisegold_ccip(
     )
     
     return result
+
+
+@router.post("/wisegold/covenants/{covenant_id}/deposit")
+async def deposit_into_covenant(
+    covenant_id: UUID,
+    request: CovenantAmountRequest,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Deposit WGOLD into a covenant vault."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    try:
+        return await service.deposit_into_covenant(user_id, covenant_id, request.amount)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/wisegold/covenants/{covenant_id}/withdraw")
+async def withdraw_from_covenant(
+    covenant_id: UUID,
+    request: CovenantAmountRequest,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Withdraw or request withdrawal from a covenant vault."""
+    user_id = str(current_user.get("sub"))
+    service = FinanceService(session)
+    try:
+        return await service.withdraw_from_covenant(user_id, covenant_id, request.amount)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 

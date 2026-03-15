@@ -4,7 +4,7 @@ St. Gabriel Finance Models
 Models for the Envelope Budgeting system.
 """
 
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Boolean, Date, Integer
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Boolean, Date, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.session import Base
@@ -73,6 +73,7 @@ class WiseGoldWallet(Base):
     # Relationships
     ritual_bond = relationship("RitualBondNFT", back_populates="wallet", uselist=False, cascade="all, delete-orphan")
     living_will = relationship("LivingWill", back_populates="wallet", uselist=False, cascade="all, delete-orphan")
+    ledger_entries = relationship("WiseGoldLedgerEntry", back_populates="wallet")
 
 
 class RitualBondNFT(Base):
@@ -113,4 +114,64 @@ class SovereignCovenant(Base):
     total_vault = Column(Float, default=0.0)
     members = Column(String, nullable=False) # JSON serialized list of member IDs and specific covenant data
     created_at = Column(DateTime, default=datetime.utcnow)
+    ledger_entries = relationship("WiseGoldLedgerEntry", back_populates="covenant")
+
+
+class WiseGoldLedgerEntry(Base):
+    """Auditable ledger for all WGOLD movements and covenant actions."""
+    __tablename__ = "wisegold_ledger_entries"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String, nullable=False, index=True)
+    wallet_id = Column(UUID(as_uuid=True), ForeignKey("wisegold_wallets.id"), nullable=True, index=True)
+    covenant_id = Column(UUID(as_uuid=True), ForeignKey("wisegold_covenants.id"), nullable=True, index=True)
+    entry_type = Column(String, nullable=False, index=True)
+    direction = Column(String, nullable=False, default="credit")  # credit, debit, info
+    amount = Column(Float, nullable=False, default=0.0)
+    balance_after = Column(Float, nullable=True)
+    status = Column(String, nullable=False, default="COMPLETED")  # COMPLETED, PENDING_QUORUM, FAILED
+    description = Column(String, nullable=False)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    wallet = relationship("WiseGoldWallet", back_populates="ledger_entries")
+    covenant = relationship("SovereignCovenant", back_populates="ledger_entries")
+
+
+class WiseGoldPolicyState(Base):
+    """Persisted global policy state for the Sovereign 3.0 engine."""
+    __tablename__ = "wisegold_policy_state"
+
+    id = Column(Integer, primary_key=True, default=1)
+    current_tax_rate = Column(Float, default=0.005)
+    current_base_manna = Column(Float, default=0.5)
+    daily_manna_pool = Column(Float, default=35762.61)
+    total_circulating = Column(Float, default=1045260.91)
+    last_gold_price = Column(Float, default=72.0)
+    stress_level = Column(Float, default=0.0)
+    last_tick_velocity = Column(Float, default=0.0)
+    last_gold_delta = Column(Float, default=0.0)
+    last_tick_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WiseGoldSocialStanding(Base):
+    """Persisted social standing snapshot used for WGOLD reputation and emissions."""
+    __tablename__ = "wisegold_social_standings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String, nullable=False, unique=True, index=True)
+    reputation_bps = Column(Integer, default=5000)
+    normalized_score = Column(Float, default=0.5)
+    daily_manna_multiplier_bps = Column(Integer, default=10000)
+    governance_weight_bps = Column(Integer, default=10000)
+    total_interactions = Column(Integer, default=0)
+    distinct_peers = Column(Integer, default=0)
+    reciprocal_peers = Column(Integer, default=0)
+    inbound_sentiment_avg = Column(Float, default=0.5)
+    inbound_rapport_avg = Column(Float, default=0.5)
+    outbound_sentiment_avg = Column(Float, default=0.5)
+    last_calculated_at = Column(DateTime, default=datetime.utcnow)
+    last_synced_onchain_at = Column(DateTime, nullable=True)
+    last_synced_wallet_address = Column(String, nullable=True)
 

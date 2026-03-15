@@ -11,6 +11,7 @@ import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
 import GabrielDHTSummary from './GabrielDHTSummary';
 import WiseGoldPanel from './WiseGoldPanel';
 import { useAuth } from '../../contexts/AuthContext';
+import { API_BASE_URL, isProduction } from '../../lib/env';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
@@ -25,14 +26,18 @@ export default function StGabrielFinanceDashboard() {
         const fetchWallet = async () => {
             const token = session?.access_token || '';
             if (!token) {
-                // Fallback to mock data if no auth token (prevents infinite skips)
-                setWgoldBalance(1450.50);
-                setWgoldPriceUsd(89.50);
+                if (!isProduction) {
+                    setWgoldBalance(1450.50);
+                    setWgoldPriceUsd(89.50);
+                } else {
+                    setWgoldBalance(0);
+                    setWgoldPriceUsd(0);
+                }
                 return;
             }
 
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002'}/api/v1/finance/wisegold/wallet`, {
+                const res = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/wallet`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -44,7 +49,7 @@ export default function StGabrielFinanceDashboard() {
                 }
 
                 // Fetch live Gold Price from Chainlink (via backend)
-                const priceRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002'}/api/v1/finance/wisegold/price`, {
+                const priceRes = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/price`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (priceRes.ok) {
@@ -55,13 +60,17 @@ export default function StGabrielFinanceDashboard() {
                 }
             } catch (err) {
                 console.error("Failed to fetch WiseGold balance or Chainlink price:", err);
-                // Fallback to mock data if backend is offline
-                setWgoldBalance(1450.50);
-                setWgoldPriceUsd(89.50);
+                if (!isProduction) {
+                    setWgoldBalance(1450.50);
+                    setWgoldPriceUsd(89.50);
+                } else {
+                    setWgoldBalance(0);
+                    setWgoldPriceUsd(0);
+                }
             }
         };
         fetchWallet();
-    }, []);
+    }, [session]);
 
     // Mock USD Net Worth base plus dynamic Chainlink WGOLD value
     const baseNetWorth = 142593.00;
