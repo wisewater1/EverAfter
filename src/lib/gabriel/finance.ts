@@ -70,6 +70,30 @@ export interface BankStatusResponse {
   connections: BankConnectionSummary[];
 }
 
+const FINANCE_CACHE_KEYS = {
+  transactions: 'everafter_finance_transactions_cache',
+  bankStatus: 'everafter_finance_bank_status_cache',
+} as const;
+
+function readFinanceCache<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeFinanceCache<T>(key: string, value: T) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore private-mode and quota failures.
+  }
+}
+
 function getCandidateUrls(endpoint: string): string[] {
   const candidates = new Set<string>();
 
@@ -212,14 +236,30 @@ export const financeApi = {
   },
 
   createTransaction: async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-    return fetchJsonWithAuth<Transaction>('/api/v1/finance/transactions', {
+    const created = await fetchJsonWithAuth<Transaction>('/api/v1/finance/transactions', {
       method: 'POST',
       body: JSON.stringify(transaction),
     });
+    const cached = readFinanceCache<Transaction[]>(FINANCE_CACHE_KEYS.transactions, []);
+    writeFinanceCache(
+      FINANCE_CACHE_KEYS.transactions,
+      [created, ...cached.filter((item) => item.id !== created.id)].slice(0, 100),
+    );
+    return created;
   },
 
   getTransactions: async (limit: number = 50): Promise<Transaction[]> => {
-    return fetchJsonWithAuth<Transaction[]>(`/api/v1/finance/transactions?limit=${limit}`);
+    try {
+      const transactions = await fetchJsonWithAuth<Transaction[]>(`/api/v1/finance/transactions?limit=${limit}`);
+      writeFinanceCache(FINANCE_CACHE_KEYS.transactions, transactions);
+      return transactions;
+    } catch (error) {
+      const cached = readFinanceCache<Transaction[]>(FINANCE_CACHE_KEYS.transactions, []);
+      if (cached.length > 0) {
+        return cached.slice(0, limit);
+      }
+      throw error;
+    }
   },
 
   transferFunds: async (transfer: TransferRequest): Promise<void> => {
@@ -237,7 +277,20 @@ export const financeApi = {
   },
 
   getBankStatus: async (): Promise<BankStatusResponse> => {
-    return fetchJsonWithAuth<BankStatusResponse>('/api/v1/finance/bank/status');
+    try {
+      const status = await fetchJsonWithAuth<BankStatusResponse>('/api/v1/finance/bank/status');
+      writeFinanceCache(FINANCE_CACHE_KEYS.bankStatus, status);
+      return status;
+    } catch (error) {
+      const cached = readFinanceCache<BankStatusResponse | null>(FINANCE_CACHE_KEYS.bankStatus, null);
+      if (cached) {
+        return {
+          ...cached,
+          sync_recommended: false,
+        };
+      }
+      throw error;
+    }
   },
 
   createBankLinkToken: async (): Promise<{ link_token: string; expiration?: string | null }> => {

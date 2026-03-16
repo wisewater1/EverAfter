@@ -33,7 +33,7 @@ import PhoneHealthConnect from '../components/PhoneHealthConnect';
 import ComprehensiveHealthConnectors from '../components/ComprehensiveHealthConnectors';
 import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge';
 import { apiClient } from '../lib/api-client';
-import { API_BASE_URL } from '../lib/env';
+import { requestBackendJson } from '../lib/backend-request';
 
 interface Insight {
     text: string;
@@ -50,70 +50,6 @@ interface VitalsData {
 }
 
 type ActiveView = 'overview' | 'simulation' | 'lab' | 'governance' | 'analytics' | 'trajectory' | 'chat';
-
-const RAPHAEL_API_BASE = API_BASE_URL;
-
-function getRaphaelCandidateUrls(endpoint: string): string[] {
-    const candidates = new Set<string>();
-
-    if (endpoint.startsWith('/')) {
-        candidates.add(endpoint);
-    }
-
-    if (RAPHAEL_API_BASE) {
-        candidates.add(`${RAPHAEL_API_BASE}${endpoint}`);
-    }
-
-    if (import.meta.env.DEV && endpoint.startsWith('/api/v1')) {
-        candidates.add(`http://localhost:8010${endpoint}`);
-    }
-
-    return Array.from(candidates);
-}
-
-async function parseRaphaelJson<T>(response: Response, endpoint: string): Promise<T> {
-    const text = await response.text();
-
-    if (!text) {
-        return {} as T;
-    }
-
-    try {
-        return JSON.parse(text) as T;
-    } catch {
-        const compact = text.trim().slice(0, 160).replace(/\s+/g, ' ');
-        if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-            throw new Error(`Backend returned HTML for ${endpoint}. Check the local API route.`);
-        }
-        throw new Error(`Backend returned invalid JSON for ${endpoint}.`);
-    }
-}
-
-async function requestRaphaelJson<T>(endpoint: string, headers: HeadersInit): Promise<T> {
-    let lastError: Error | null = null;
-
-    for (const candidateUrl of getRaphaelCandidateUrls(endpoint)) {
-        try {
-            const response = await fetch(candidateUrl, { headers });
-
-            if (!response.ok) {
-                const message = await response.text();
-                const compact = message.trim().slice(0, 160).replace(/\s+/g, ' ');
-                if (import.meta.env.DEV && (compact.startsWith('<!doctype') || compact.startsWith('<html'))) {
-                    lastError = new Error(`Backend returned HTML for ${endpoint}. Check the local API route.`);
-                    continue;
-                }
-                throw new Error(compact || `Request failed for ${endpoint}: ${response.status}`);
-            }
-
-            return await parseRaphaelJson<T>(response, endpoint);
-        } catch (error) {
-            lastError = error instanceof Error ? error : new Error(`Request failed for ${endpoint}`);
-        }
-    }
-
-    throw lastError || new Error(`Request failed for ${endpoint}`);
-}
 
 export default function StRaphaelHealthHub() {
     const navigate = useNavigate();
@@ -513,11 +449,8 @@ function SynapsePulse() {
         setResult(null);
         setError(null);
         try {
-            const headers = await apiClient.getAuthHeaders({
-                'Content-Type': 'application/json',
-                'Bypass-Tunnel-Reminder': 'true',
-            });
-            const data = await requestRaphaelJson<any>('/api/v1/causal-twin/predictions', headers);
+            const headers = await apiClient.getAuthHeaders();
+            const data = await requestBackendJson<any>('/api/v1/causal-twin/predictions', { headers }, 'Failed to trigger synapse pulse.');
             const prediction = data?.predictions?.[0];
             if (!prediction) {
                 throw new Error('No synapse prediction was returned.');
@@ -617,11 +550,8 @@ function FamilyHealthHeatmap() {
 
         const loadFamilyMap = async () => {
             try {
-                const headers = await apiClient.getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    'Bypass-Tunnel-Reminder': 'true',
-                });
-                const data = await requestRaphaelJson<any>('/api/v1/causal-twin/ancestry/family-map', headers);
+                const headers = await apiClient.getAuthHeaders();
+                const data = await requestBackendJson<any>('/api/v1/causal-twin/ancestry/family-map', { headers }, 'Failed to load family risk map.');
                 if (!cancelled) {
                     setMembers(data.family_map || []);
                     setError(null);

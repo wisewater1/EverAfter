@@ -20,6 +20,7 @@ export default function TransactionLedger() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offlineMode, setOfflineMode] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [bankStatus, setBankStatus] = useState<BankStatusResponse | null>(null);
   const [bankLoading, setBankLoading] = useState(false);
@@ -32,10 +33,13 @@ export default function TransactionLedger() {
   }, []);
 
   async function bootstrap() {
+    let lastKnownStatus: BankStatusResponse | null = null;
     try {
       setLoading(true);
       const status = await financeApi.getBankStatus();
       setBankStatus(status);
+      lastKnownStatus = status;
+      setOfflineMode(false);
 
       if (status.connected && status.sync_recommended) {
         try {
@@ -50,9 +54,13 @@ export default function TransactionLedger() {
       const data = await financeApi.getTransactions(100);
       setTransactions(data);
       setError(null);
+      setOfflineMode(false);
     } catch (err: any) {
       console.error('Failed to load transactions:', err);
-      setError(err?.message || 'Failed to load transaction ledger');
+      setError(null);
+      setOfflineMode(true);
+      setBankStatus((current) => current || lastKnownStatus);
+      setTransactions((current) => current);
     } finally {
       setLoading(false);
     }
@@ -215,6 +223,11 @@ export default function TransactionLedger() {
         </div>
 
         <div className="mt-4 flex flex-col gap-3 md:flex-row md:flex-wrap">
+          {offlineMode && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              Live finance services are temporarily unavailable. This ledger is staying online with the last known data instead of failing.
+            </div>
+          )}
           <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3">
             <div className="text-[11px] uppercase tracking-wider text-slate-500">Bank Sync</div>
             <div className="mt-1 text-sm text-slate-200">

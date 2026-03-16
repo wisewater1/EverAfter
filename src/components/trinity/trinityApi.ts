@@ -2,7 +2,7 @@
  * Trinity API helper - shared fetch wrapper for all Trinity Synapse actions.
  * Falls back to a local, wire-compatible data model when the backend path is unavailable.
  */
-import { API_BASE_URL } from '../../lib/env';
+import { requestBackendJson } from '../../lib/backend-request';
 import {
     describeRelationship,
     findRelationshipPath,
@@ -11,7 +11,6 @@ import {
     getRelationships,
 } from '../../lib/joseph/genealogy';
 
-const BASE = API_BASE_URL;
 const TRINITY_GOALS_KEY = 'everafter_trinity_goals';
 const TRINITY_WHATIF_HISTORY_KEY = 'everafter_trinity_whatif_history';
 
@@ -1293,30 +1292,24 @@ export async function trinitySynapse<T = any>(action: string, body: AnyRecord = 
     const payload = { action, ...body };
 
     try {
-        const endpoint = `${BASE}/api/v1/trinity/synapse`;
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-            const text = await res.text();
-            const compact = text.trim().slice(0, 160).replace(/\s+/g, ' ');
-            if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-                throw new Error(`Trinity endpoint returned HTML for ${action}.`);
-            }
-            const data = text ? JSON.parse(text) : {};
-            if (action === 'cross_saint_whatif' && data) recordTrinityWhatIf(data);
-            if (action === 'cross_saint_goal' && data?.goal_name) persistTrinityGoal(data);
-            if (action === 'seasonal_calendar' && data) {
-                return normalizeSeasonalCalendarPayload(data) as T;
-            }
-            if (action === 'inheritance_directive' && data) {
-                return normalizeInheritanceDirectivePayload(data) as T;
-            }
-            return data;
+        const data = await requestBackendJson<any>(
+            '/api/v1/trinity/synapse',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            },
+            `Trinity synapse failed for ${action}`,
+        );
+        if (action === 'cross_saint_whatif' && data) recordTrinityWhatIf(data);
+        if (action === 'cross_saint_goal' && data?.goal_name) persistTrinityGoal(data);
+        if (action === 'seasonal_calendar' && data) {
+            return normalizeSeasonalCalendarPayload(data) as T;
         }
+        if (action === 'inheritance_directive' && data) {
+            return normalizeInheritanceDirectivePayload(data) as T;
+        }
+        return data;
     } catch {
         // Fall through to local fallback below.
     }

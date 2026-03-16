@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Brain, Mail, Lock, AlertCircle, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { attemptAuthConfigRecovery, isInvalidApiKeyError } from '../lib/auth-config-recovery';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -27,7 +28,13 @@ export default function Login() {
       const { error } = await signIn(email, password);
 
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
+        if (isInvalidApiKeyError(error.message)) {
+          if (attemptAuthConfigRecovery('/login')) {
+            setError('Refreshing authentication configuration...');
+            return;
+          }
+          setError('Authentication configuration is stale. Refresh the page and try again.');
+        } else if (error.message.includes('Invalid login credentials')) {
           setError('Invalid email or password. Please check your credentials and try again.');
         } else if (error.message.includes('Email not confirmed')) {
           setError('Please confirm your email address before logging in.');
@@ -40,7 +47,12 @@ export default function Login() {
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
+      if (isInvalidApiKeyError(message) && attemptAuthConfigRecovery('/login')) {
+        setError('Refreshing authentication configuration...');
+        return;
+      }
+      setError(message);
       setSubmitting(false);
     }
   };

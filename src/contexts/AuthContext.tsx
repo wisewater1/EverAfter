@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
+import { withTimeout } from '../lib/withTimeout';
+import { attemptAuthConfigRecovery, isInvalidApiKeyError } from '../lib/auth-config-recovery';
 
 export interface ErrorNotificationHook {
   showError: (message: string, severity?: 'critical' | 'warning' | 'info') => void;
@@ -21,6 +23,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const AUTH_BOOT_TIMEOUT_MS = 8000;
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await withTimeout(
+          supabase.auth.getSession(),
+          AUTH_BOOT_TIMEOUT_MS,
+          'Timed out while restoring the current session'
+        );
         if (error) throw error;
 
         console.log('AuthContext: Session retrieved', { hasSession: !!session });
@@ -44,6 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
       } catch (err) {
         console.error('AuthContext: Session retrieval crash', err);
+        const message = err instanceof Error ? err.message : String(err);
+
+        if (isInvalidApiKeyError(message)) {
+          if (attemptAuthConfigRecovery(window.location.pathname)) {
+            return;
+          }
+        }
+
         // Don't swallow the error, trigger the global overlay if possible
         if (window.onerror) {
           window.onerror(`Auth Initialization Failed: ${err}`, 'AuthContext.tsx', 0, 0, err as Error);
@@ -55,6 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
 
+    const loadingWatchdog = window.setTimeout(() => {
+      console.warn('AuthContext: Loading watchdog released auth spinner');
+      setLoading(false);
+    }, AUTH_BOOT_TIMEOUT_MS + 2000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       console.log('AuthContext: Auth state changed', { event: _event, hasSession: !!session });
       setSession(session);
@@ -62,7 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(loadingWatchdog);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {

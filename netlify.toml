@@ -5,6 +5,24 @@
 [build.environment]
   SECRETS_SCAN_ENABLED = "false"
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+    Pragma = "no-cache"
+
+[[redirects]]
+  from = "/api/v1/*"
+  to = "https://everafter-api.onrender.com/api/v1/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://everafter-api.onrender.com/health"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

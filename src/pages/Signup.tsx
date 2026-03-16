@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Brain, Mail, Lock, AlertCircle, Loader, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { attemptAuthConfigRecovery, isInvalidApiKeyError } from '../lib/auth-config-recovery';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -53,7 +54,13 @@ export default function Signup() {
       const { error } = await signUp(email, password);
 
       if (error) {
-        if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+        if (isInvalidApiKeyError(error.message)) {
+          if (attemptAuthConfigRecovery('/signup')) {
+            setError('Refreshing authentication configuration...');
+            return;
+          }
+          setError('Authentication configuration is stale. Refresh the page and try again.');
+        } else if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
           setError('This email is already registered. Please login instead.');
         } else {
           setError(error.message);
@@ -64,7 +71,12 @@ export default function Signup() {
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
+      if (isInvalidApiKeyError(message) && attemptAuthConfigRecovery('/signup')) {
+        setError('Refreshing authentication configuration...');
+        return;
+      }
+      setError(message);
       setSubmitting(false);
     }
   };

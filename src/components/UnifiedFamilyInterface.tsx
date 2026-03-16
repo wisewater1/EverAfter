@@ -635,7 +635,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           ))}
 
           {questionResponses.length === 0 && (
-            <div className="bg-slate-900/30 border border-dashed border-slate-700/50 rounded-xl p-12 text-center">
+            <div className="bg-slate-900/30 border border-dashed border-slate-700/50 rounded-xl px-6 py-8 sm:px-8 sm:py-10 text-center">
               <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-slate-400 mb-2">No OCEAN Responses Yet</h3>
               <p className="text-sm text-slate-500">Completed OCEAN answers from family members will appear here</p>

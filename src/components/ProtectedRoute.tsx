@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
+import { withTimeout } from '../lib/withTimeout';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
+  const ONBOARDING_CHECK_TIMEOUT_MS = 6000;
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
@@ -33,11 +35,15 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
           return;
         }
 
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('has_completed_onboarding, onboarding_skipped')
-          .eq('id', user.id)
-          .single();
+        const { data: profile, error } = await withTimeout(
+          supabase
+            .from('profiles')
+            .select('has_completed_onboarding, onboarding_skipped')
+            .eq('id', user.id)
+            .single(),
+          ONBOARDING_CHECK_TIMEOUT_MS,
+          'Timed out while checking onboarding status'
+        );
 
         if (error) {
           console.error('Error checking onboarding status:', error);
@@ -62,6 +68,17 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
       setCheckingOnboarding(false);
     }
   }, [user, authLoading, skipOnboardingCheck, isExemptRoute]);
+
+  useEffect(() => {
+    if (!authLoading && checkingOnboarding) {
+      const watchdog = window.setTimeout(() => {
+        console.warn('ProtectedRoute: Onboarding watchdog released route guard');
+        setCheckingOnboarding(false);
+      }, ONBOARDING_CHECK_TIMEOUT_MS + 1500);
+
+      return () => clearTimeout(watchdog);
+    }
+  }, [authLoading, checkingOnboarding]);
 
   if (authLoading || checkingOnboarding) {
     return (

@@ -390,7 +390,6 @@ export default function Dashboard() {
               <HolisticTimeline />
               <SocietyFeed />
               <UnifiedActivityCenter />
-              <div className="h-[60vh]"></div>
             </div>
           )}
           {selectedView === 'engrams' && (
@@ -399,14 +398,12 @@ export default function Dashboard() {
               <FamilyEngrams />
               <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
               <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
-              <div className="h-[60vh]"></div>
             </>
           )}
 
           {selectedView === 'chat' && (
             <>
               <UnifiedChatInterface />
-              <div className="h-[60vh]"></div>
             </>
           )}
         </div>

@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { clearHealthProfileDraft, saveHealthProfileDraft } from '../../lib/onboardingDraft';
 import {
-  User,
-  Scale,
-  Ruler,
   Heart,
   Target,
   Activity,
@@ -48,14 +46,14 @@ const HEALTH_CONDITIONS = [
 ];
 
 const HEALTH_GOALS = [
-  { id: 'lose_weight', label: 'Lose Weight', icon: Scale },
-  { id: 'gain_muscle', label: 'Build Muscle', icon: Activity },
-  { id: 'sleep_better', label: 'Sleep Better', icon: Activity },
-  { id: 'reduce_stress', label: 'Reduce Stress', icon: Heart },
-  { id: 'improve_cardio', label: 'Improve Cardio', icon: Activity },
-  { id: 'eat_healthier', label: 'Eat Healthier', icon: Target },
-  { id: 'manage_condition', label: 'Manage Condition', icon: Heart },
-  { id: 'more_energy', label: 'More Energy', icon: Activity },
+  { id: 'lose_weight', label: 'Lose Weight' },
+  { id: 'gain_muscle', label: 'Build Muscle' },
+  { id: 'sleep_better', label: 'Sleep Better' },
+  { id: 'reduce_stress', label: 'Reduce Stress' },
+  { id: 'improve_cardio', label: 'Improve Cardio' },
+  { id: 'eat_healthier', label: 'Eat Healthier' },
+  { id: 'manage_condition', label: 'Manage Condition' },
+  { id: 'more_energy', label: 'More Energy' },
 ];
 
 const ACTIVITY_LEVELS = [
@@ -66,6 +64,72 @@ const ACTIVITY_LEVELS = [
   { id: 'extremely_active', label: 'Extremely Active', description: 'Very hard exercise, physical job' },
 ];
 
+function normalizeHealthProfile(data: HealthProfileData): HealthProfileData {
+  return {
+    dateOfBirth: data.dateOfBirth || undefined,
+    gender: data.gender || undefined,
+    weightKg:
+      typeof data.weightKg === 'number' && Number.isFinite(data.weightKg) ? data.weightKg : undefined,
+    heightCm:
+      typeof data.heightCm === 'number' && Number.isFinite(data.heightCm) ? data.heightCm : undefined,
+    healthConditions: Array.from(new Set(data.healthConditions.filter(Boolean))),
+    allergies: Array.from(
+      new Set(
+        data.allergies
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ),
+    healthGoals: Array.from(new Set(data.healthGoals.filter(Boolean))),
+    activityLevel: data.activityLevel || undefined,
+  };
+}
+
+async function ensureProfileRecord(userId: string) {
+  if (!supabase || !userId) {
+    return;
+  }
+
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (existingProfileError) {
+    throw existingProfileError;
+  }
+
+  if (existingProfile) {
+    return;
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
+  }
+
+  const email = user?.email ?? `${userId}@everafter.local`;
+  const displayName = email.split('@')[0] || 'User';
+
+  const { error: insertError } = await supabase.from('profiles').upsert(
+    {
+      id: userId,
+      email,
+      display_name: displayName,
+    },
+    { onConflict: 'id' }
+  );
+
+  if (insertError) {
+    throw insertError;
+  }
+}
+
 export default function HealthProfileStep({
   data,
   onUpdate,
@@ -74,89 +138,128 @@ export default function HealthProfileStep({
   saving,
   userId,
 }: HealthProfileStepProps) {
-  const [localData, setLocalData] = useState<HealthProfileData>(data);
+  const [localData, setLocalData] = useState<HealthProfileData>(normalizeHealthProfile(data));
   const [newAllergy, setNewAllergy] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const updateField = <K extends keyof HealthProfileData>(
-    field: K,
-    value: HealthProfileData[K]
-  ) => {
-    const updated = { ...localData, [field]: value };
+  useEffect(() => {
+    setLocalData(normalizeHealthProfile(data));
+  }, [data]);
+
+  useEffect(() => {
+    if (userId) {
+      saveHealthProfileDraft(userId, normalizeHealthProfile(localData));
+    }
+  }, [localData, userId]);
+
+  const updateField = <K extends keyof HealthProfileData>(field: K, value: HealthProfileData[K]) => {
+    const updated = normalizeHealthProfile({ ...localData, [field]: value });
     setLocalData(updated);
     onUpdate(updated);
+    if (errors.submit) {
+      setErrors((prev) => {
+        const nextErrors = { ...prev };
+        delete nextErrors.submit;
+        return nextErrors;
+      });
+    }
   };
 
   const toggleCondition = (conditionId: string) => {
     const conditions = localData.healthConditions.includes(conditionId)
-      ? localData.healthConditions.filter((c) => c !== conditionId)
+      ? localData.healthConditions.filter((condition) => condition !== conditionId)
       : [...localData.healthConditions, conditionId];
     updateField('healthConditions', conditions);
   };
 
   const toggleGoal = (goalId: string) => {
     const goals = localData.healthGoals.includes(goalId)
-      ? localData.healthGoals.filter((g) => g !== goalId)
+      ? localData.healthGoals.filter((goal) => goal !== goalId)
       : [...localData.healthGoals, goalId];
     updateField('healthGoals', goals);
   };
 
   const addAllergy = () => {
-    if (newAllergy.trim() && !localData.allergies.includes(newAllergy.trim())) {
-      updateField('allergies', [...localData.allergies, newAllergy.trim()]);
-      setNewAllergy('');
+    const candidate = newAllergy.trim();
+    if (!candidate || localData.allergies.includes(candidate)) {
+      return;
     }
+
+    updateField('allergies', [...localData.allergies, candidate]);
+    setNewAllergy('');
   };
 
   const removeAllergy = (allergy: string) => {
     updateField(
       'allergies',
-      localData.allergies.filter((a) => a !== allergy)
+      localData.allergies.filter((item) => item !== allergy)
     );
   };
 
   const validateAndSave = async () => {
-    const newErrors: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
+    const normalizedData = normalizeHealthProfile(localData);
+    const savedLocally = saveHealthProfileDraft(userId, normalizedData);
 
-    // Optional validation - these fields are not required
-    if (localData.weightKg && (localData.weightKg < 20 || localData.weightKg > 300)) {
-      newErrors.weight = 'Please enter a valid weight';
-    }
-    if (localData.heightCm && (localData.heightCm < 50 || localData.heightCm > 250)) {
-      newErrors.height = 'Please enter a valid height';
+    if (normalizedData.weightKg && (normalizedData.weightKg < 20 || normalizedData.weightKg > 300)) {
+      nextErrors.weight = 'Please enter a valid weight';
     }
 
-    setErrors(newErrors);
+    if (normalizedData.heightCm && (normalizedData.heightCm < 50 || normalizedData.heightCm > 250)) {
+      nextErrors.height = 'Please enter a valid height';
+    }
 
-    if (Object.keys(newErrors).length > 0) {
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
     setSavingProfile(true);
+
     try {
-      // Save to database
+      if (!supabase || !userId) {
+        if (savedLocally) {
+          onNext();
+          return;
+        }
+
+        throw new Error('Supabase is unavailable and the local draft could not be saved.');
+      }
+
+      await ensureProfileRecord(userId);
+
       const { error } = await supabase.from('health_demographics').upsert(
         {
           user_id: userId,
-          date_of_birth: localData.dateOfBirth || null,
-          gender: localData.gender || null,
-          weight_kg: localData.weightKg || null,
-          height_cm: localData.heightCm || null,
-          health_conditions: localData.healthConditions,
-          allergies: localData.allergies,
-          health_goals: localData.healthGoals,
-          activity_level: localData.activityLevel || null,
+          date_of_birth: normalizedData.dateOfBirth ?? null,
+          gender: normalizedData.gender ?? null,
+          weight_kg: normalizedData.weightKg ?? null,
+          height_cm: normalizedData.heightCm ?? null,
+          health_conditions: normalizedData.healthConditions,
+          allergies: normalizedData.allergies,
+          health_goals: normalizedData.healthGoals,
+          activity_level: normalizedData.activityLevel ?? null,
         },
         { onConflict: 'user_id' }
       );
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
+      clearHealthProfileDraft(userId);
+      setErrors({});
       onNext();
     } catch (error) {
       console.error('Error saving health profile:', error);
-      setErrors({ submit: 'Failed to save profile. Please try again.' });
+      const message = error instanceof Error ? error.message : 'Unknown save error';
+      setErrors({
+        submit: savedLocally
+          ? `Saved locally on this device, but cloud sync failed: ${message}`
+          : `Failed to save profile: ${message}`,
+      });
     } finally {
       setSavingProfile(false);
     }
@@ -164,7 +267,6 @@ export default function HealthProfileStep({
 
   return (
     <div>
-      {/* Header */}
       <div className="text-center mb-6">
         <div className="w-16 h-16 mx-auto bg-gradient-to-br from-red-600 to-pink-600 rounded-xl flex items-center justify-center mb-4">
           <Heart className="w-8 h-8 text-white" />
@@ -176,14 +278,13 @@ export default function HealthProfileStep({
       </div>
 
       <div className="space-y-6">
-        {/* Basic Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Date of Birth</label>
             <input
               type="date"
               value={localData.dateOfBirth || ''}
-              onChange={(e) => updateField('dateOfBirth', e.target.value)}
+              onChange={(event) => updateField('dateOfBirth', event.target.value)}
               className="w-full bg-gray-700/50 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
           </div>
@@ -191,7 +292,7 @@ export default function HealthProfileStep({
             <label className="block text-sm text-gray-400 mb-1">Gender</label>
             <select
               value={localData.gender || ''}
-              onChange={(e) => updateField('gender', e.target.value)}
+              onChange={(event) => updateField('gender', event.target.value)}
               className="w-full bg-gray-700/50 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             >
               <option value="">Select...</option>
@@ -199,41 +300,40 @@ export default function HealthProfileStep({
               <option value="female">Female</option>
               <option value="non_binary">Non-binary</option>
               <option value="prefer_not_to_say">Prefer not to say</option>
+              <option value="other">Other</option>
             </select>
           </div>
         </div>
 
-        {/* Physical Measurements */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Weight (kg)</label>
             <input
               type="number"
               value={localData.weightKg || ''}
-              onChange={(e) => updateField('weightKg', parseFloat(e.target.value) || undefined)}
+              onChange={(event) => updateField('weightKg', parseFloat(event.target.value) || undefined)}
               placeholder="e.g., 70"
               className={`w-full bg-gray-700/50 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
                 errors.weight ? 'ring-2 ring-red-500' : ''
               }`}
             />
-            {errors.weight && <p className="text-red-400 text-xs mt-1">{errors.weight}</p>}
+            {errors.weight ? <p className="text-red-400 text-xs mt-1">{errors.weight}</p> : null}
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Height (cm)</label>
             <input
               type="number"
               value={localData.heightCm || ''}
-              onChange={(e) => updateField('heightCm', parseFloat(e.target.value) || undefined)}
+              onChange={(event) => updateField('heightCm', parseFloat(event.target.value) || undefined)}
               placeholder="e.g., 175"
               className={`w-full bg-gray-700/50 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
                 errors.height ? 'ring-2 ring-red-500' : ''
               }`}
             />
-            {errors.height && <p className="text-red-400 text-xs mt-1">{errors.height}</p>}
+            {errors.height ? <p className="text-red-400 text-xs mt-1">{errors.height}</p> : null}
           </div>
         </div>
 
-        {/* Health Conditions */}
         <div>
           <label className="block text-sm text-gray-400 mb-2">
             Health Conditions (select any that apply)
@@ -242,6 +342,7 @@ export default function HealthProfileStep({
             {HEALTH_CONDITIONS.map((condition) => (
               <button
                 key={condition.id}
+                type="button"
                 onClick={() => toggleCondition(condition.id)}
                 className={`px-3 py-1.5 rounded-full text-sm transition-all ${
                   localData.healthConditions.includes(condition.id)
@@ -255,7 +356,6 @@ export default function HealthProfileStep({
           </div>
         </div>
 
-        {/* Allergies */}
         <div>
           <label className="block text-sm text-gray-400 mb-2">Allergies</label>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -265,7 +365,7 @@ export default function HealthProfileStep({
                 className="px-3 py-1.5 bg-red-500/20 text-red-300 rounded-full text-sm flex items-center gap-1"
               >
                 {allergy}
-                <button onClick={() => removeAllergy(allergy)} className="hover:text-white">
+                <button type="button" onClick={() => removeAllergy(allergy)} className="hover:text-white">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -275,12 +375,18 @@ export default function HealthProfileStep({
             <input
               type="text"
               value={newAllergy}
-              onChange={(e) => setNewAllergy(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAllergy())}
+              onChange={(event) => setNewAllergy(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  addAllergy();
+                }
+              }}
               placeholder="Add allergy..."
               className="flex-1 bg-gray-700/50 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
             <button
+              type="button"
               onClick={addAllergy}
               className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500"
             >
@@ -289,7 +395,6 @@ export default function HealthProfileStep({
           </div>
         </div>
 
-        {/* Health Goals */}
         <div>
           <label className="block text-sm text-gray-400 mb-2">
             Health Goals (what do you want to improve?)
@@ -298,6 +403,7 @@ export default function HealthProfileStep({
             {HEALTH_GOALS.map((goal) => (
               <button
                 key={goal.id}
+                type="button"
                 onClick={() => toggleGoal(goal.id)}
                 className={`p-3 rounded-lg text-sm text-center transition-all ${
                   localData.healthGoals.includes(goal.id)
@@ -311,13 +417,13 @@ export default function HealthProfileStep({
           </div>
         </div>
 
-        {/* Activity Level */}
         <div>
           <label className="block text-sm text-gray-400 mb-2">Activity Level</label>
           <div className="space-y-2">
             {ACTIVITY_LEVELS.map((level) => (
               <button
                 key={level.id}
+                type="button"
                 onClick={() => updateField('activityLevel', level.id)}
                 className={`w-full p-3 rounded-lg text-left transition-all ${
                   localData.activityLevel === level.id
@@ -326,22 +432,22 @@ export default function HealthProfileStep({
                 }`}
               >
                 <span className="font-medium">{level.label}</span>
-                <span className="text-sm text-gray-400 ml-2">— {level.description}</span>
+                <span className="text-sm text-gray-400 ml-2">- {level.description}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {errors.submit && (
+        {errors.submit ? (
           <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
             {errors.submit}
           </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Actions */}
       <div className="flex justify-between mt-8">
         <button
+          type="button"
           onClick={onBack}
           disabled={saving || savingProfile}
           className="px-6 py-3 text-gray-400 hover:text-white transition-colors flex items-center gap-2"
@@ -350,6 +456,7 @@ export default function HealthProfileStep({
           Back
         </button>
         <button
+          type="button"
           onClick={validateAndSave}
           disabled={saving || savingProfile}
           className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 flex items-center gap-2"

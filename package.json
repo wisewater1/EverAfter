@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
     "dev:worker": "tsx server/workers/scheduler.ts",
-    "build": "vite build",
+    "build": "node scripts/validate-build-env.mjs && vite build",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",

@@ -108,6 +108,8 @@ export interface AnthonyFlowMapResponse {
     evidence: AnthonyFlowMapEvidence[];
 }
 
+const FALLBACK_FLOW_NODE_POSITIONS = ['mobile_app', 'api_gateway', 'saint_runtime', 'postgres', 'st_michael', 'st_anthony'] as const;
+
 function normalizeAnthonyFlowNode(node: any): AnthonyFlowMapNode {
     return {
         id: String(node?.id || ''),
@@ -169,6 +171,218 @@ function normalizeAnthonyFlowMap(response: any): AnthonyFlowMapResponse {
         nodes: Array.isArray(response?.nodes) ? response.nodes.map(normalizeAnthonyFlowNode).filter((node) => node.id) : [],
         edges: Array.isArray(response?.edges) ? response.edges.map(normalizeAnthonyFlowEdge).filter((edge) => edge.id && edge.from && edge.to) : [],
         evidence: Array.isArray(response?.evidence) ? response.evidence.map(normalizeAnthonyFlowEvidence).filter((item) => item.id) : [],
+    };
+}
+
+function fallbackSeverityStatus(score: number): 'healthy' | 'warning' | 'critical' {
+    if (score >= 3) return 'critical';
+    if (score >= 1) return 'warning';
+    return 'healthy';
+}
+
+function fallbackComponentToNode(component?: string | null): typeof FALLBACK_FLOW_NODE_POSITIONS[number] {
+    const value = (component || '').toLowerCase();
+    if (value.includes('mobile') || value.includes('frontend') || value.includes('client') || value.includes('browser') || value.includes('ui')) {
+        return 'mobile_app';
+    }
+    if (value.includes('auth') || value.includes('api') || value.includes('gateway') || value.includes('edge')) {
+        return 'api_gateway';
+    }
+    if (value.includes('db') || value.includes('database') || value.includes('postgres') || value.includes('sql') || value.includes('vault')) {
+        return 'postgres';
+    }
+    return 'saint_runtime';
+}
+
+function fallbackRank(value?: string | null): number {
+    const severity = (value || '').toLowerCase();
+    if (severity === 'critical') return 4;
+    if (severity === 'high' || severity === 'error') return 3;
+    if (severity === 'warning' || severity === 'medium') return 2;
+    if (severity === 'low' || severity === 'active') return 1;
+    return 0;
+}
+
+async function buildAnthonyFlowFallback(): Promise<AnthonyFlowMapResponse> {
+    const [monitoring, vulnerabilities, ledger] = await Promise.allSettled([
+        getMonitoringStatus(),
+        getLiveVulnerabilities(),
+        getAnthonyLedger(20),
+    ]);
+
+    const monitoringData = monitoring.status === 'fulfilled' ? monitoring.value : null;
+    const vulnerabilitiesData = vulnerabilities.status === 'fulfilled' ? vulnerabilities.value : [];
+    const ledgerData = ledger.status === 'fulfilled' ? ledger.value : [];
+    const michael = monitoringData?.michael || {};
+    const recentFindings = Array.isArray(michael.recent_findings) ? michael.recent_findings : [];
+    const currentTimestamp = monitoringData?.timestamp || new Date().toISOString();
+
+    const evidence: AnthonyFlowMapEvidence[] = [];
+    const evidenceIdsByNode: Record<typeof FALLBACK_FLOW_NODE_POSITIONS[number], string[]> = {
+        mobile_app: [],
+        api_gateway: [],
+        saint_runtime: [],
+        postgres: [],
+        st_michael: [],
+        st_anthony: [],
+    };
+    const riskByNode: Record<typeof FALLBACK_FLOW_NODE_POSITIONS[number], number> = {
+        mobile_app: 0,
+        api_gateway: 0,
+        saint_runtime: 0,
+        postgres: 0,
+        st_michael: 0,
+        st_anthony: 0,
+    };
+
+    for (const finding of recentFindings) {
+        const nodeId = fallbackComponentToNode(finding?.source || finding?.type || finding?.message);
+        const evidenceId = String(finding?.id || `finding-${evidence.length + 1}`);
+        const severity = String(finding?.severity || 'warning');
+        evidence.push({
+            id: evidenceId,
+            type: String(finding?.type || 'finding'),
+            title: String(finding?.message || 'Guardian finding'),
+            summary: String(finding?.details || finding?.message || 'St. Michael reported a live security finding.'),
+            severity,
+            timestamp: finding?.timestamp || currentTimestamp,
+            provider: 'st_michael',
+            action: 'security/live_finding',
+            metadata: finding,
+        });
+        evidenceIdsByNode[nodeId].push(evidenceId);
+        evidenceIdsByNode.st_michael.push(evidenceId);
+        riskByNode[nodeId] = Math.max(riskByNode[nodeId], fallbackRank(severity));
+        riskByNode.st_michael = Math.max(riskByNode.st_michael, fallbackRank(severity));
+    }
+
+    for (const vulnerability of vulnerabilitiesData) {
+        const nodeId = fallbackComponentToNode(vulnerability.affectedComponent);
+        const evidenceId = String(vulnerability.id || vulnerability.cveId || `vuln-${evidence.length + 1}`);
+        evidence.push({
+            id: evidenceId,
+            type: 'vulnerability',
+            title: String(vulnerability.title || vulnerability.cveId || 'Tracked vulnerability'),
+            summary: String(vulnerability.description || 'Vulnerability tracked by St. Michael.'),
+            severity: vulnerability.severity,
+            timestamp: vulnerability.publishedDate || currentTimestamp,
+            provider: 'st_michael',
+            action: 'security/vulnerability_tracked',
+            metadata: vulnerability as Record<string, any>,
+        });
+        evidenceIdsByNode[nodeId].push(evidenceId);
+        evidenceIdsByNode.st_michael.push(evidenceId);
+        riskByNode[nodeId] = Math.max(riskByNode[nodeId], fallbackRank(vulnerability.severity));
+        riskByNode.st_michael = Math.max(riskByNode.st_michael, fallbackRank(vulnerability.severity));
+    }
+
+    const anthonyLedgerEntry = ledgerData.find((entry) => entry.provider === 'st_anthony' || entry.action.includes('anthony'));
+    if (anthonyLedgerEntry) {
+        evidence.push({
+            id: anthonyLedgerEntry.id,
+            type: 'audit_handoff',
+            title: 'Anthony ledger handoff recorded',
+            summary: 'Audit evidence is present in Anthony’s ledger even though the dedicated flow payload was unavailable.',
+            severity: 'healthy',
+            timestamp: anthonyLedgerEntry.ts || currentTimestamp,
+            provider: anthonyLedgerEntry.provider,
+            action: anthonyLedgerEntry.action,
+            metadata: anthonyLedgerEntry.metadata || null,
+        });
+        evidenceIdsByNode.st_anthony.push(anthonyLedgerEntry.id);
+        evidenceIdsByNode.postgres.push(anthonyLedgerEntry.id);
+    }
+
+    const integrity = typeof michael.integrity === 'string'
+        ? Number.parseInt(michael.integrity.replace('%', ''), 10)
+        : Number(michael.integrity || 0) || null;
+
+    const findingsCount = Number(michael.findings || recentFindings.length || 0);
+    const vulnerabilitiesCount = vulnerabilitiesData.length;
+    const criticalVulnerabilities = vulnerabilitiesData.filter((item) => (item.severity || '').toLowerCase() === 'critical').length;
+    const latestScanStatus = String(michael.status || (findingsCount > 0 ? 'warning' : 'healthy'));
+
+    const nodes: AnthonyFlowMapNode[] = [
+        {
+            id: 'mobile_app',
+            label: 'Mobile App',
+            kind: 'system',
+            status: fallbackSeverityStatus(riskByNode.mobile_app),
+            details: 'User-facing capture surface entering the protected data path.',
+            evidenceCount: evidenceIdsByNode.mobile_app.length,
+            evidenceIds: evidenceIdsByNode.mobile_app,
+        },
+        {
+            id: 'api_gateway',
+            label: 'API Gateway',
+            kind: 'boundary',
+            status: fallbackSeverityStatus(Math.max(riskByNode.api_gateway, fallbackRank(latestScanStatus))),
+            details: `Guardian status ${latestScanStatus}. Findings: ${findingsCount}.`,
+            evidenceCount: evidenceIdsByNode.api_gateway.length,
+            evidenceIds: evidenceIdsByNode.api_gateway,
+        },
+        {
+            id: 'saint_runtime',
+            label: 'Saint Runtime',
+            kind: 'compute',
+            status: fallbackSeverityStatus(riskByNode.saint_runtime),
+            details: 'Protected runtime where Saint services and audit logic execute.',
+            evidenceCount: evidenceIdsByNode.saint_runtime.length,
+            evidenceIds: evidenceIdsByNode.saint_runtime,
+        },
+        {
+            id: 'postgres',
+            label: 'Postgres',
+            kind: 'storage',
+            status: fallbackSeverityStatus(riskByNode.postgres),
+            details: 'Evidence and operational state sealed into the ledger-backed database.',
+            evidenceCount: evidenceIdsByNode.postgres.length,
+            evidenceIds: evidenceIdsByNode.postgres,
+        },
+        {
+            id: 'st_michael',
+            label: 'St. Michael',
+            kind: 'guardian',
+            status: fallbackSeverityStatus(Math.max(riskByNode.st_michael, fallbackRank(latestScanStatus))),
+            details: `Live monitoring reports ${findingsCount} findings and ${vulnerabilitiesCount} tracked vulnerabilities.`,
+            evidenceCount: evidenceIdsByNode.st_michael.length,
+            evidenceIds: evidenceIdsByNode.st_michael,
+        },
+        {
+            id: 'st_anthony',
+            label: 'St. Anthony',
+            kind: 'audit',
+            status: fallbackSeverityStatus(riskByNode.st_anthony),
+            details: anthonyLedgerEntry
+                ? 'Anthony has ledger evidence available for review.'
+                : 'Anthony is awaiting a completed handoff entry.',
+            evidenceCount: evidenceIdsByNode.st_anthony.length,
+            evidenceIds: evidenceIdsByNode.st_anthony,
+        },
+    ];
+
+    const edges: AnthonyFlowMapEdge[] = [
+        { id: 'mobile-to-api', from: 'mobile_app', to: 'api_gateway', label: 'User traffic', severity: nodes[1].status, evidenceIds: evidenceIdsByNode.api_gateway },
+        { id: 'api-to-runtime', from: 'api_gateway', to: 'saint_runtime', label: 'Protected runtime ingress', severity: nodes[2].status, evidenceIds: evidenceIdsByNode.saint_runtime },
+        { id: 'runtime-to-db', from: 'saint_runtime', to: 'postgres', label: 'Ledger + state writes', severity: nodes[3].status, evidenceIds: evidenceIdsByNode.postgres },
+        { id: 'runtime-to-michael', from: 'saint_runtime', to: 'st_michael', label: 'Guardian inspection', severity: nodes[4].status, evidenceIds: evidenceIdsByNode.st_michael },
+        { id: 'michael-to-anthony', from: 'st_michael', to: 'st_anthony', label: 'Audit handoff', severity: anthonyLedgerEntry ? 'healthy' : nodes[4].status, evidenceIds: anthonyLedgerEntry ? [anthonyLedgerEntry.id] : [] },
+    ];
+
+    return {
+        success: true,
+        generatedAt: currentTimestamp,
+        summary: {
+            latestScanStatus,
+            findingsCount,
+            vulnerabilitiesCount,
+            criticalVulnerabilities,
+            integrity,
+            anthonyHandoffStatus: anthonyLedgerEntry ? 'completed' : 'pending',
+        },
+        nodes,
+        edges,
+        evidence,
     };
 }
 
@@ -736,11 +950,16 @@ export async function triggerLiveScan(): Promise<SecurityScanResult> {
 }
 
 export async function getAnthonyFlowMap(): Promise<AnthonyFlowMapResponse> {
-    const response = await axiosWithAuthRetry<AnthonyFlowMapResponse>(
-        'get',
-        '/api/v1/audit/flow-map',
-    );
-    return normalizeAnthonyFlowMap(response);
+    try {
+        const response = await axiosWithAuthRetry<AnthonyFlowMapResponse>(
+            'get',
+            '/api/v1/audit/flow-map',
+        );
+        return normalizeAnthonyFlowMap(response);
+    } catch (error) {
+        console.warn('Falling back to synthesized Anthony flow map:', error);
+        return buildAnthonyFlowFallback();
+    }
 }
 
 export async function getJITAccessRequests(): Promise<JITAccessRequestRecord[]> {

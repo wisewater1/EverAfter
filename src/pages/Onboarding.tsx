@@ -11,6 +11,8 @@ import MediaPermissionsStep from '../components/onboarding/MediaPermissionsStep'
 import FirstEngramStep from '../components/onboarding/FirstEngramStep';
 import OnboardingComplete from '../components/onboarding/OnboardingComplete';
 import { Loader2 } from 'lucide-react';
+import { withTimeout } from '../lib/withTimeout';
+import { loadHealthProfileDraft } from '../lib/onboardingDraft';
 
 export type OnboardingStep =
   | 'welcome'
@@ -70,12 +72,14 @@ export interface OnboardingData {
 }
 
 export default function Onboarding() {
+  const ONBOARDING_LOAD_TIMEOUT_MS = 7000;
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadWarning, setLoadWarning] = useState<string | null>(null);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     healthProfile: {
       healthConditions: [],
@@ -109,25 +113,52 @@ export default function Onboarding() {
   }, [user, authLoading, navigate]);
 
   const checkOnboardingStatus = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
+      if (!supabase) {
+        setLoadWarning('Supabase is unavailable. Onboarding is running in limited mode.');
+        return;
+      }
+
       // Check if user has already completed onboarding
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('has_completed_onboarding, onboarding_skipped')
-        .eq('id', user?.id)
-        .maybeSingle();
+      const [{ data: profile }, { data: status }, { data: demographics }] = await Promise.all([
+        withTimeout(
+          supabase
+            .from('profiles')
+            .select('has_completed_onboarding, onboarding_skipped')
+            .eq('id', user.id)
+            .maybeSingle(),
+          ONBOARDING_LOAD_TIMEOUT_MS,
+          'Timed out while loading the profile'
+        ),
+        withTimeout(
+          supabase
+            .from('onboarding_status')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          ONBOARDING_LOAD_TIMEOUT_MS,
+          'Timed out while loading onboarding status'
+        ),
+        withTimeout(
+          supabase
+            .from('health_demographics')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          ONBOARDING_LOAD_TIMEOUT_MS,
+          'Timed out while loading health demographics'
+        ),
+      ]);
 
       if (profile?.has_completed_onboarding) {
         navigate('/dashboard');
         return;
       }
-
-      // Get existing onboarding progress
-      const { data: status } = await supabase
-        .from('onboarding_status')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
 
       if (status) {
         setCompletedSteps(status.completed_steps || []);
@@ -139,24 +170,15 @@ export default function Onboarding() {
         }
       } else {
         // Initialize onboarding for new user
-        await supabase.from('onboarding_status').insert({
-          user_id: user?.id,
+        void supabase.from('onboarding_status').insert({
+          user_id: user.id,
           current_step: 1,
           completed_steps: [],
         });
       }
 
-      // Load existing health demographics if any
-      const { data: demographics } = await supabase
-        .from('health_demographics')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
-
-      if (demographics) {
-        setOnboardingData((prev) => ({
-          ...prev,
-          healthProfile: {
+      const healthProfileFromDatabase = demographics
+        ? {
             dateOfBirth: demographics.date_of_birth,
             gender: demographics.gender,
             weightKg: demographics.weight_kg,
@@ -165,15 +187,46 @@ export default function Onboarding() {
             allergies: demographics.allergies || [],
             healthGoals: demographics.health_goals || [],
             activityLevel: demographics.activity_level,
+          }
+        : null;
+
+      const healthProfileDraft = loadHealthProfileDraft(user.id);
+
+      if (healthProfileFromDatabase || healthProfileDraft) {
+        setOnboardingData((prev) => ({
+          ...prev,
+          healthProfile: {
+            ...prev.healthProfile,
+            ...(healthProfileFromDatabase || {}),
+            ...(healthProfileDraft || {}),
           },
         }));
+
+        if (healthProfileDraft && !healthProfileFromDatabase) {
+          setLoadWarning(
+            'Recovered an unsynced health profile draft from this device. Continue onboarding to retry cloud save.'
+          );
+        }
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
+      setLoadWarning('Onboarding loaded in recovery mode. Progress details may be delayed, but you can continue.');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!authLoading && loading) {
+      const watchdog = window.setTimeout(() => {
+        console.warn('Onboarding: Loading watchdog released spinner');
+        setLoadWarning('Onboarding took too long to load. Recovery mode is active.');
+        setLoading(false);
+      }, ONBOARDING_LOAD_TIMEOUT_MS + 2000);
+
+      return () => clearTimeout(watchdog);
+    }
+  }, [authLoading, loading]);
 
   const handleStepComplete = async (step: OnboardingStep) => {
     setSaving(true);
@@ -323,6 +376,11 @@ export default function Onboarding() {
         <div className="relative overflow-hidden rounded-[32px] border border-cyan-400/10 bg-slate-950/55 p-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_120px_rgba(2,6,23,0.75)] backdrop-blur-2xl sm:p-8">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.12),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(168,85,247,0.08),_transparent_26%)]" />
           <div className="relative">
+          {loadWarning && (
+            <div className="mb-6 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              {loadWarning}
+            </div>
+          )}
           {currentStep === 'welcome' && (
             <WelcomeStep
               onNext={() => handleStepComplete('welcome')}

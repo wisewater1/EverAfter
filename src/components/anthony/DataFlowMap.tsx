@@ -122,7 +122,8 @@ export default function DataFlowMap() {
             await loadFlow();
         } catch (scanError) {
             console.error('Failed to trigger Michael scan from Anthony flow map:', scanError);
-            setError('St. Michael did not complete the full scan. Anthony cannot refresh the audit map yet.');
+            setError('The live Michael scan did not complete cleanly. Anthony reloaded the latest available audit evidence instead.');
+            await loadFlow();
         } finally {
             setRunningScan(false);
         }
