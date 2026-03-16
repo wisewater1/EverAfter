@@ -75,6 +75,9 @@ export default function DataFlowMap() {
     const [error, setError] = useState<string | null>(null);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const focus = searchParams.get('focus');
+    const flowNodes = flow?.nodes ?? [];
+    const flowEdges = flow?.edges ?? [];
+    const flowEvidence = flow?.evidence ?? [];
 
     const loadFlow = async () => {
         try {
@@ -82,10 +85,11 @@ export default function DataFlowMap() {
             const response = await getAnthonyFlowMap();
             setFlow(response);
             setSelectedNodeId((current) => {
-                if (current && response.nodes.some((node) => node.id === current)) {
+                const nodes = response.nodes ?? [];
+                if (current && nodes.some((node) => node.id === current)) {
                     return current;
                 }
-                return response.nodes.find((node) => node.status !== 'healthy')?.id ?? response.nodes[0]?.id ?? null;
+                return nodes.find((node) => node.status !== 'healthy')?.id ?? nodes[0]?.id ?? null;
             });
         } catch (loadError) {
             console.error('Failed to load Anthony flow map:', loadError);
@@ -100,14 +104,15 @@ export default function DataFlowMap() {
     }, []);
 
     const selectedNode = useMemo(
-        () => flow?.nodes.find((node) => node.id === selectedNodeId) ?? flow?.nodes[0] ?? null,
-        [flow, selectedNodeId]
+        () => flowNodes.find((node) => node.id === selectedNodeId) ?? flowNodes[0] ?? null,
+        [flowNodes, selectedNodeId]
     );
 
     const selectedEvidence = useMemo<AnthonyFlowMapEvidence[]>(() => {
         if (!flow || !selectedNode) return [];
-        return flow.evidence.filter((item) => selectedNode.evidenceIds.includes(item.id));
-    }, [flow, selectedNode]);
+        const evidenceIds = selectedNode.evidenceIds ?? [];
+        return flowEvidence.filter((item) => evidenceIds.includes(item.id));
+    }, [flow, flowEvidence, selectedNode]);
 
     const handleRunScan = async () => {
         try {
@@ -201,7 +206,7 @@ export default function DataFlowMap() {
                     <div className="relative min-h-[640px] lg:min-h-[760px] w-full border border-slate-800/50 rounded-xl bg-slate-950 p-8 lg:p-10 overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(148,163,184,0.08),transparent_55%)] pointer-events-none" />
                         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            {flow?.edges.map((edge) => {
+                            {flowEdges.map((edge) => {
                                 const from = NODE_POSITIONS[edge.from];
                                 const to = NODE_POSITIONS[edge.to];
                                 if (!from || !to) return null;
@@ -219,7 +224,7 @@ export default function DataFlowMap() {
                             })}
                         </svg>
 
-                        {flow?.nodes.map((node) => {
+                        {flowNodes.map((node) => {
                             const position = NODE_POSITIONS[node.id];
                             if (!position) return null;
                             const { icon: Icon, tone } = getNodeVisuals(node);
@@ -245,6 +250,17 @@ export default function DataFlowMap() {
                                 </button>
                             );
                         })}
+
+                        {flowNodes.length === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="rounded-xl border border-slate-800 bg-slate-900/80 px-5 py-4 text-center">
+                                    <div className="text-sm text-slate-200">No audit graph nodes are available yet.</div>
+                                    <div className="mt-1 text-xs text-slate-500">
+                                        Run a Michael scan or reload once audit evidence is present.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950/80 overflow-hidden">

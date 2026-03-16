@@ -67,20 +67,101 @@ class APIClient {
     return this.buildAuthHeaders(extraHeaders);
   }
 
+  private getBackendCandidateUrls(endpoint: string): string[] {
+    const candidates = new Set<string>();
+
+    if (endpoint.startsWith('/')) {
+      candidates.add(endpoint);
+    }
+
+    if (API_BASE_URL) {
+      candidates.add(`${API_BASE_URL}${endpoint}`);
+    }
+
+    if (import.meta.env.DEV && endpoint.startsWith('/api/v1')) {
+      candidates.add(`http://localhost:8010${endpoint}`);
+    }
+
+    return Array.from(candidates);
+  }
+
+  private async parseJsonBody<T>(response: Response, endpoint: string): Promise<T> {
+    const text = await response.text();
+
+    if (!text) {
+      return {} as T;
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      const compact = text.trim().slice(0, 160).replace(/\s+/g, ' ');
+      if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
+        throw new Error(`Backend returned HTML for ${endpoint}. Check local API routing.`);
+      }
+      throw new Error(`Backend returned invalid JSON for ${endpoint}.`);
+    }
+  }
+
   private async parseBackendError(response: Response, fallbackLabel: string): Promise<Error> {
     let message = `${fallbackLabel}: ${response.status}`;
 
     try {
-      const data = await response.json();
-      const detail = data?.detail || data?.error || data?.message;
-      if (typeof detail === 'string' && detail.trim()) {
-        message = detail;
+      const text = await response.text();
+      if (text) {
+        try {
+          const data = JSON.parse(text);
+          const detail = data?.detail || data?.error || data?.message;
+          if (typeof detail === 'string' && detail.trim()) {
+            message = detail;
+          }
+        } catch {
+          const compact = text.trim().slice(0, 160).replace(/\s+/g, ' ');
+          if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
+            message = `${fallbackLabel}: backend returned HTML instead of JSON`;
+          } else if (compact) {
+            message = compact;
+          }
+        }
       }
     } catch {
       // Ignore invalid error payloads and keep the status-based fallback.
     }
 
     return new Error(message);
+  }
+
+  private async requestBackendJson<T>(
+    endpoint: string,
+    init: RequestInit,
+    fallbackLabel: string,
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (const candidateUrl of this.getBackendCandidateUrls(endpoint)) {
+      try {
+        const response = await this.withRetry(() => fetch(candidateUrl, init));
+
+        if (!response.ok) {
+          const backendError = await this.parseBackendError(response, fallbackLabel);
+          const shouldRetryOnHtml = import.meta.env.DEV && backendError.message.toLowerCase().includes('html');
+          if (shouldRetryOnHtml) {
+            lastError = backendError;
+            continue;
+          }
+          throw backendError;
+        }
+
+        return await this.parseJsonBody<T>(response, endpoint);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(fallbackLabel);
+        if (!import.meta.env.DEV) {
+          break;
+        }
+      }
+    }
+
+    throw lastError || new Error(fallbackLabel);
   }
 
   /**
@@ -514,18 +595,12 @@ class APIClient {
 
   async getSaintsStatus(): Promise<Exclude<EdgeFunctionResponse<any>['data'], undefined>> {
     return this.deduplicate('saints-status', async () => {
-      const API_BASE = `${API_BASE_URL}`;
       const headers = await this.buildAuthHeaders({
         'Bypass-Tunnel-Reminder': 'true',
       });
 
       try {
-        const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/status`, {
-          headers
-        }));
-
-        if (!response.ok) throw await this.parseBackendError(response, 'Unable to load saints status');
-        return await response.json();
+        return await this.requestBackendJson('/api/v1/saints/status', { headers }, 'Unable to load saints status');
       } catch (error) {
         console.error("Get Saints Status Error:", error);
         throw error;
@@ -534,19 +609,15 @@ class APIClient {
   }
 
   async bootstrapSaint(saintId: string): Promise<{ engram_id: string, saint_id: string, name: string }> {
-    const API_BASE = `${API_BASE_URL}`;
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
 
     try {
-      const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/${saintId}/bootstrap`, {
+      return await this.requestBackendJson(`/api/v1/saints/${saintId}/bootstrap`, {
         method: 'POST',
         headers
-      }));
-
-      if (!response.ok) throw await this.parseBackendError(response, `Unable to bootstrap saint ${saintId}`);
-      return await response.json();
+      }, `Unable to bootstrap saint ${saintId}`);
     } catch (error) {
       console.error("Bootstrap Saint Error:", error);
       throw error;
@@ -554,21 +625,17 @@ class APIClient {
   }
 
   async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false, context?: string): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
-    const API_BASE = `${API_BASE_URL}`;
     const headers = await this.buildAuthHeaders({
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
     });
 
     try {
-      const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/${saintId}/chat`, {
+      const data = await this.requestBackendJson<any>(`/api/v1/saints/${saintId}/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ message, coordination_mode: coordinationMode, context })
-      }));
-
-      if (!response.ok) throw await this.parseBackendError(response, `Unable to chat with saint ${saintId}`);
-      const data = await response.json();
+      }, `Unable to chat with saint ${saintId}`);
 
       // Map backend response to ChatResponse format expected by UI
       return {
@@ -589,23 +656,17 @@ class APIClient {
   }
 
   async getSaintKnowledge(saintId: string, category?: string): Promise<any[]> {
-    const API_BASE = `${API_BASE_URL}`;
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
 
-    let url = `${API_BASE}/api/v1/saints/${saintId}/knowledge`;
+    let endpoint = `/api/v1/saints/${saintId}/knowledge`;
     if (category) {
-      url += `?category=${category}`;
+      endpoint += `?category=${category}`;
     }
 
     try {
-      const response = await this.withRetry(() => fetch(url, {
-        headers
-      }));
-
-      if (!response.ok) throw await this.parseBackendError(response, `Unable to load saint knowledge for ${saintId}`);
-      return await response.json();
+      return await this.requestBackendJson(endpoint, { headers }, `Unable to load saint knowledge for ${saintId}`);
     } catch (error) {
       console.error("Get Saint Knowledge Error:", error);
       throw error;
@@ -637,18 +698,12 @@ class APIClient {
   }
 
   async getChatHistory(saintId: string): Promise<any[]> {
-    const API_BASE = `${API_BASE_URL}`;
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
 
     try {
-      const response = await this.withRetry(() => fetch(`${API_BASE}/api/v1/saints/${saintId}/history`, {
-        headers
-      }));
-
-      if (!response.ok) throw await this.parseBackendError(response, `Unable to load saint chat history for ${saintId}`);
-      return await response.json();
+      return await this.requestBackendJson(`/api/v1/saints/${saintId}/history`, { headers }, `Unable to load saint chat history for ${saintId}`);
     } catch (error) {
       console.error("Get Chat History Error:", error);
       throw error;
@@ -656,41 +711,28 @@ class APIClient {
   }
 
   async deliberate(query: string, context?: string, coordinationMode: boolean = false): Promise<{ transcript: any[], consensus: string, action_items: string[] }> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/council/deliberate`, {
+      return await this.requestBackendJson(`/api/v1/saints/council/deliberate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ query, context, coordination_mode: coordinationMode }),
         signal: AbortSignal.timeout(60000) // 60s timeout for LLM
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      }, 'Unable to deliberate with the financial council');
     } catch (error) {
       console.error("Council Deliberation Error:", error);
       throw error;
     }
   }
   async getActiveMissions(): Promise<any[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/missions/active`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      return await this.requestBackendJson(`/api/v1/saints/missions/active`, { headers }, 'Unable to load active missions');
     } catch (error) {
       console.error("Get Missions Error:", error);
       // Return empty array on error to prevent UI crash
@@ -699,18 +741,10 @@ class APIClient {
   }
 
   async getPendingIntercessions(): Promise<any[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/intercessions/pending`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      return await this.requestBackendJson(`/api/v1/saints/intercessions/pending`, { headers }, 'Unable to load pending intercessions');
     } catch (error) {
       console.error("Get Pending Intercessions Error:", error);
       return [];
@@ -718,19 +752,13 @@ class APIClient {
   }
 
   async processIntercession(intercessionId: string, action: 'approve' | 'deny'): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/intercessions/${intercessionId}/${action}`, {
+      return await this.requestBackendJson(`/api/v1/saints/intercessions/${intercessionId}/${action}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+      }, `Unable to ${action} intercession`);
     } catch (error) {
       console.error(`Process Intercession Error (${action}):`, error);
       throw error;
@@ -738,18 +766,10 @@ class APIClient {
   }
 
   async getSaintCognitionStatus(saintId: string): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/${saintId}/cognition/status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      return await this.requestBackendJson(`/api/v1/saints/${saintId}/cognition/status`, { headers }, `Unable to load cognition status for ${saintId}`);
     } catch (error) {
       console.error("Get Saint Cognition Status Error:", error);
       // Return sensible fallback so PersonalityRadar degrades gracefully

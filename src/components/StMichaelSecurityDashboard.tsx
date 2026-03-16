@@ -22,6 +22,59 @@ interface CAIState {
     status: 'clean' | 'compromised' | 'warning';
 }
 
+type ScanBannerStatus = 'active' | 'warning' | 'critical' | 'failed';
+interface ScanBannerState {
+    status: ScanBannerStatus;
+    findingsCount: number;
+    vulnerabilitiesCount: number;
+    systemIntegrity: number;
+    ledgerEntryId?: string;
+}
+
+function normalizeBannerStatus(
+    status: SecurityScanResult['status'] | ScanBannerStatus,
+    findingsCount: number,
+    vulnerabilitiesCount: number,
+    systemIntegrity: number,
+): ScanBannerStatus {
+    if (status === 'critical') return 'critical';
+    if (status === 'warning') return 'warning';
+
+    if (status === 'failed') {
+        if (systemIntegrity >= 95 && findingsCount === 0 && vulnerabilitiesCount === 0) {
+            return 'warning';
+        }
+        return 'failed';
+    }
+
+    if (findingsCount > 0 || vulnerabilitiesCount > 0 || systemIntegrity < 90) {
+        return 'warning';
+    }
+
+    return 'active';
+}
+
+function buildBannerState(input: {
+    status: SecurityScanResult['status'] | ScanBannerStatus;
+    findingsCount: number;
+    vulnerabilitiesCount: number;
+    systemIntegrity: number;
+    ledgerEntryId?: string;
+}): ScanBannerState {
+    return {
+        status: normalizeBannerStatus(
+            input.status,
+            input.findingsCount,
+            input.vulnerabilitiesCount,
+            input.systemIntegrity,
+        ),
+        findingsCount: input.findingsCount,
+        vulnerabilitiesCount: input.vulnerabilitiesCount,
+        systemIntegrity: input.systemIntegrity,
+        ledgerEntryId: input.ledgerEntryId,
+    };
+}
+
 type MichaelTab = 'overview' | 'threats' | 'vulnerabilities' | 'integrity' | 'compliance' | 'network' | 'chat' | 'health-dht';
 
 const TABS: { key: MichaelTab; label: string; icon: ComponentType<{ className?: string }> }[] = [
@@ -31,7 +84,7 @@ const TABS: { key: MichaelTab; label: string; icon: ComponentType<{ className?: 
     { key: 'integrity', label: 'File Integrity', icon: FileText },
     { key: 'compliance', label: 'Compliance', icon: ClipboardCheck },
     { key: 'network', label: 'Saints Network', icon: Network },
-    { key: 'health-dht', label: '⚕ Health Alerts', icon: Activity },
+    { key: 'health-dht', label: 'Health Alerts', icon: Activity },
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
@@ -45,13 +98,7 @@ export default function StMichaelSecurityDashboard() {
     const [loading, setLoading] = useState(true);
     const [scanning, setScanning] = useState(false);
     const [activeTab, setActiveTab] = useState<MichaelTab>('overview');
-    const [lastScanHandoff, setLastScanHandoff] = useState<{
-        status: string;
-        findingsCount: number;
-        vulnerabilitiesCount: number;
-        systemIntegrity: number;
-        ledgerEntryId?: string;
-    } | null>(null);
+    const [lastScanHandoff, setLastScanHandoff] = useState<ScanBannerState | null>(null);
     const criticalAlerts = alerts.filter((alert) => alert.severity === 'critical' || alert.severity === 'high');
     const accessAlerts = alerts.filter((alert) => alert.type === 'access' || alert.type === 'pii_leak' || alert.type === 'leak_prevention');
     const threatLevel =
@@ -62,6 +109,32 @@ export default function StMichaelSecurityDashboard() {
     const privacySubtitle = accessAlerts.length > 0 ? `${accessAlerts.length} protected events under review` : 'All consent tokens valid';
     const leakStatus = criticalAlerts.length > 0 ? 'WATCH' : 'ACTIVE';
     const isolationStatus = report && report.privacyStatus < 100 ? 'REVIEW' : 'SECURE';
+
+    const scanBannerTitle = (status: ScanBannerStatus) => {
+        switch (status) {
+            case 'failed':
+                return 'failed';
+            case 'critical':
+                return 'completed with critical findings';
+            case 'warning':
+                return 'completed with warnings';
+            default:
+                return 'completed';
+        }
+    };
+
+    const scanBannerClasses = (status: ScanBannerStatus) => {
+        switch (status) {
+            case 'failed':
+                return 'border border-rose-500/20 bg-rose-500/10';
+            case 'critical':
+                return 'border border-amber-500/20 bg-amber-500/10';
+            case 'warning':
+                return 'border border-amber-500/20 bg-amber-500/10';
+            default:
+                return 'border border-sky-500/20 bg-sky-500/10';
+        }
+    };
 
     useEffect(() => {
         if (user) loadData();
@@ -80,6 +153,16 @@ export default function StMichaelSecurityDashboard() {
             setAudits(auditData);
             setAlerts(integrityData.alerts);
             setCaiData(caiAudit);
+            setLastScanHandoff((current) => current ?? buildBannerState({
+                status: integrityData.alerts.some((alert) => alert.severity === 'critical')
+                    ? 'critical'
+                    : integrityData.alerts.some((alert) => alert.severity === 'high' || alert.severity === 'medium')
+                        ? 'warning'
+                        : 'active',
+                findingsCount: integrityData.alerts.length,
+                vulnerabilitiesCount: 0,
+                systemIntegrity: integrityData.overallScore,
+            }));
         } catch (err) {
             console.error('Failed to load security data:', err);
         } finally {
@@ -91,48 +174,69 @@ export default function StMichaelSecurityDashboard() {
         setScanning(true);
         try {
             const scanResult = await triggerLiveScan();
+            const findings = Array.isArray(scanResult.findings) ? scanResult.findings : [];
+            const vulnerabilities = Array.isArray(scanResult.vulnerabilities) ? scanResult.vulnerabilities : [];
 
             setReport((current) => ({
                 overallScore: scanResult.system_integrity,
                 dataIntegrity: current?.dataIntegrity ?? scanResult.system_integrity,
                 privacyStatus: current?.privacyStatus ?? 100,
                 lastScan: scanResult.timestamp,
-                alerts: scanResult.findings,
+                alerts: findings,
             }));
-            setAlerts(scanResult.findings);
+            setAlerts(findings);
 
-            setLastScanHandoff({
+            setLastScanHandoff(buildBannerState({
                 status: scanResult.status,
                 findingsCount: scanResult.findings_count,
-                vulnerabilitiesCount: scanResult.vulnerabilities.length,
+                vulnerabilitiesCount: vulnerabilities.length,
                 systemIntegrity: scanResult.system_integrity,
                 ledgerEntryId: scanResult.audit_handoff?.ledger_entry_id,
-            });
+            }));
 
-            emitSaintEvent('michael', 'anthony', SAINT_EVENT_TYPES.SCAN_COMPLETE, {
-                status: scanResult.status,
-                findings_count: scanResult.findings_count,
-                vulnerabilities_count: scanResult.vulnerabilities.length,
-                system_integrity: scanResult.system_integrity,
-                audit_handoff: scanResult.audit_handoff,
-            }, { urgency: scanResult.status === 'critical' ? 'high' : 'normal' });
-            emitSaintEvent('anthony', 'broadcast', SAINT_EVENT_TYPES.INTEGRITY_CHECK, {
-                received_from: 'michael',
-                ledger_entry_id: scanResult.audit_handoff?.ledger_entry_id,
-                scan_log_id: scanResult.audit_handoff?.scan_log_id,
-                findings_count: scanResult.findings_count,
-                status: 'archived_for_audit',
-            });
+            try {
+                emitSaintEvent('michael', 'anthony', SAINT_EVENT_TYPES.SCAN_COMPLETE, {
+                    status: scanResult.status,
+                    findings_count: scanResult.findings_count,
+                    vulnerabilities_count: vulnerabilities.length,
+                    system_integrity: scanResult.system_integrity,
+                    audit_handoff: scanResult.audit_handoff,
+                }, { urgency: scanResult.status === 'critical' ? 'high' : scanResult.status === 'warning' ? 'normal' : 'low' });
+                emitSaintEvent('anthony', 'broadcast', SAINT_EVENT_TYPES.INTEGRITY_CHECK, {
+                    received_from: 'michael',
+                    ledger_entry_id: scanResult.audit_handoff?.ledger_entry_id,
+                    scan_log_id: scanResult.audit_handoff?.scan_log_id,
+                    findings_count: scanResult.findings_count,
+                    status: 'archived_for_audit',
+                });
 
-            await loadData();
+                await loadData();
+            } catch (postScanError) {
+                console.error('St. Michael scan completed but post-scan synchronization failed:', postScanError);
+            }
         } catch (error) {
             console.error('Failed to run full security scan:', error);
-            setLastScanHandoff({
-                status: 'failed',
-                findingsCount: 0,
-                vulnerabilitiesCount: 0,
-                systemIntegrity: report?.overallScore || 100,
-            });
+            try {
+                const liveStatus = await getMonitoringStatus();
+                const michael = liveStatus?.michael;
+                const fallbackFindings = Array.isArray(michael?.recent_findings) ? michael.recent_findings.length : alerts.length;
+                const fallbackIntegrity = Number.parseInt(String(michael?.integrity || report?.overallScore || 100).replace('%', ''), 10) || 100;
+
+                setLastScanHandoff(buildBannerState({
+                    status: michael?.status === 'critical' || michael?.status === 'warning' ? michael.status : 'active',
+                    findingsCount: fallbackFindings,
+                    vulnerabilitiesCount: 0,
+                    systemIntegrity: fallbackIntegrity,
+                }));
+            } catch (statusError) {
+                console.error('Unable to refresh Michael status after scan failure:', statusError);
+                setLastScanHandoff((current) => current ?? buildBannerState({
+                    status: 'failed',
+                    findingsCount: alerts.length,
+                    vulnerabilitiesCount: 0,
+                    systemIntegrity: report?.overallScore || 100,
+                }));
+            }
         } finally {
             setScanning(false);
         }
@@ -182,11 +286,11 @@ export default function StMichaelSecurityDashboard() {
                 </div>
 
                 {lastScanHandoff && (
-                    <div className="mb-6 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-5 py-4">
+                    <div className={`mb-6 rounded-2xl px-5 py-4 ${scanBannerClasses(lastScanHandoff.status)}`}>
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-white">
-                                    St. Michael full-app gauntlet {lastScanHandoff.status === 'failed' ? 'failed' : 'completed'}
+                                    St. Michael full-app gauntlet {scanBannerTitle(lastScanHandoff.status)}
                                 </p>
                                 <p className="text-xs text-slate-300 mt-1">
                                     Integrity {lastScanHandoff.systemIntegrity}% • Findings {lastScanHandoff.findingsCount} • Vulnerabilities {lastScanHandoff.vulnerabilitiesCount}

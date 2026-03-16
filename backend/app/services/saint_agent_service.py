@@ -19,7 +19,7 @@ import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, desc
 from sqlalchemy.exc import ProgrammingError
 
 from app.models.engram import ArchetypalAI, AIConversation, AIMessage
@@ -281,9 +281,9 @@ class SaintAgentService:
                     ArchetypalAI.user_id == user_uuid,
                     ArchetypalAI.name == saint_name
                 )
-            )
+            ).order_by(desc(ArchetypalAI.updated_at), desc(ArchetypalAI.created_at))
             result = await session.execute(query)
-            engram = result.scalar_one_or_none()
+            engram = result.scalars().first()
 
             if engram:
                 if not engram.is_ai_active:
@@ -818,9 +818,10 @@ class SaintAgentService:
                     ArchetypalAI.user_id == user_uuid,
                     ArchetypalAI.name == saint_def["name"],
                 )
-            )
+            ).order_by(desc(ArchetypalAI.updated_at), desc(ArchetypalAI.created_at))
             result = await session.execute(query)
-            engram = result.scalar_one_or_none()
+            engram = result.scalars().first()
+            engram_id = str(engram.id) if engram else None
 
             # Count knowledge items
             try:
@@ -844,7 +845,7 @@ class SaintAgentService:
                 "name": saint_def["name"],
                 "title": saint_def["title"],
                 "domain": saint_def["domain"],
-                "engram_id": str(engram.id) if engram else None,
+                "engram_id": engram_id,
                 "is_active": engram is not None,
                 "knowledge_count": len(knowledge_items),
             })

@@ -14,6 +14,7 @@ import random
 from datetime import datetime
 from typing import Any, List, Dict
 from sqlalchemy import select
+from sqlalchemy.exc import ProgrammingError
 from app.db.session import get_session_factory
 from app.models.genealogy import FamilyNode
 from app.services.causal_twin.counterfactual_engine import counterfactual_engine
@@ -23,6 +24,9 @@ from app.services.health.health_constants import (
     age_from_birth_year, risk_level, wellness_to_risk,
     BEHAVIOUR_BASELINES, DEFAULT_AGE,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Trait → behaviour proxy mappings
@@ -159,8 +163,17 @@ class AncestryEngine:
         session_factory = get_session_factory()
         async with session_factory() as session:
             query = select(FamilyNode).where(FamilyNode.user_id == user_id)
-            result = await session.execute(query)
-            nodes = result.scalars().all()
+            try:
+                result = await session.execute(query)
+                nodes = result.scalars().all()
+            except ProgrammingError as exc:
+                logger.warning(
+                    "Falling back to an empty family risk map because the family_nodes table is unavailable for user %s: %s",
+                    user_id,
+                    exc,
+                )
+                await session.rollback()
+                return []
             
             members = []
             for node in nodes:

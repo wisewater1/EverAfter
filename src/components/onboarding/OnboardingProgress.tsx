@@ -10,11 +10,11 @@ interface OnboardingProgressProps {
 
 const STEP_DISPLAY_NAMES: Record<string, string> = {
   welcome: 'Welcome',
-  meet_raphael: 'Meet Raphael',
-  health_profile: 'Health Profile',
-  health_connections: 'Connect Health',
+  meet_raphael: 'Raphael',
+  health_profile: 'Health',
+  health_connections: 'Connect',
   media_permissions: 'Permissions',
-  first_engram: 'Create AI',
+  first_engram: 'AI + Family',
 };
 
 export default function OnboardingProgress({
@@ -27,24 +27,23 @@ export default function OnboardingProgress({
 
   return (
     <div className="mb-8">
-      {/* Progress Bar */}
-      <div className="relative">
-        <div className="flex justify-between mb-2">
-          <span className="text-sm text-gray-400">
+      <div className="rounded-[28px] border border-cyan-400/10 bg-slate-950/45 px-4 py-5 shadow-[0_12px_40px_rgba(2,6,23,0.4)] backdrop-blur-xl">
+        <div className="relative">
+        <div className="mb-3 flex justify-between">
+          <span className="text-sm text-slate-300">
             Step {currentStep + 1} of {totalSteps}
           </span>
-          <span className="text-sm text-indigo-400">{progressPercentage}% complete</span>
+          <span className="text-sm text-cyan-300">{progressPercentage}% complete</span>
         </div>
-        <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-500 shadow-[0_0_18px_rgba(56,189,248,0.55)] transition-all duration-500"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
       </div>
 
-      {/* Step Indicators - Desktop */}
-      <div className="hidden sm:flex justify-between mt-6">
+      <div className="relative mt-6 hidden sm:flex justify-between">
         {stepLabels.map((step, index) => {
           const isCompleted = completedSteps.includes(step);
           const isCurrent = index === currentStep;
@@ -52,27 +51,27 @@ export default function OnboardingProgress({
           return (
             <div key={step} className="flex flex-col items-center flex-1">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all ${
                   isCompleted
-                    ? 'bg-green-500 text-white'
+                    ? 'bg-emerald-500 text-white shadow-[0_0_14px_rgba(16,185,129,0.55)]'
                     : isCurrent
-                    ? 'bg-indigo-600 text-white ring-4 ring-indigo-600/20'
-                    : 'bg-gray-700 text-gray-400'
+                    ? 'bg-gradient-to-r from-cyan-400 to-violet-500 text-slate-950 ring-4 ring-cyan-400/15 shadow-[0_0_18px_rgba(56,189,248,0.5)]'
+                    : 'bg-slate-800 text-slate-400 border border-white/5'
                 }`}
               >
                 {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
               </div>
               <span
                 className={`mt-2 text-xs text-center ${
-                  isCurrent ? 'text-white font-medium' : 'text-gray-500'
+                  isCurrent ? 'text-white font-medium' : 'text-slate-500'
                 }`}
               >
                 {STEP_DISPLAY_NAMES[step] || step}
               </span>
               {index < stepLabels.length - 1 && (
                 <div
-                  className={`absolute h-0.5 top-4 ${
-                    isCompleted ? 'bg-green-500' : 'bg-gray-700'
+                  className={`absolute top-5 h-0.5 ${
+                    isCompleted ? 'bg-emerald-500/70' : 'bg-white/5'
                   }`}
                   style={{
                     left: `calc(${(index + 1) * (100 / stepLabels.length)}% - 4rem)`,
@@ -85,8 +84,7 @@ export default function OnboardingProgress({
         })}
       </div>
 
-      {/* Step Indicator - Mobile */}
-      <div className="flex sm:hidden justify-center mt-4 gap-1.5">
+      <div className="mt-4 flex justify-center gap-1.5 sm:hidden">
         {stepLabels.map((step, index) => {
           const isCompleted = completedSteps.includes(step);
           const isCurrent = index === currentStep;
@@ -96,14 +94,15 @@ export default function OnboardingProgress({
               key={step}
               className={`w-2 h-2 rounded-full transition-all ${
                 isCompleted
-                  ? 'bg-green-500'
+                  ? 'bg-emerald-500'
                   : isCurrent
-                  ? 'bg-indigo-500 w-6'
-                  : 'bg-gray-600'
+                  ? 'bg-cyan-400 w-6'
+                  : 'bg-slate-600'
               }`}
             />
           );
         })}
+      </div>
       </div>
     </div>
   );

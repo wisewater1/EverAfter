@@ -53,6 +53,20 @@ export interface OnboardingData {
     name: string;
     archetype: string;
   };
+  personalityQuiz: {
+    answers: Record<string, number>;
+    scores?: Record<string, number>;
+  };
+  familySetup: {
+    selfName?: string;
+    relatives: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      relationship: 'parent' | 'sibling' | 'spouse' | 'child';
+      birthYear?: string;
+    }>;
+  };
 }
 
 export default function Onboarding() {
@@ -75,6 +89,12 @@ export default function Onboarding() {
       allowFaceDetection: false,
       allowExpressionAnalysis: false,
     },
+    personalityQuiz: {
+      answers: {},
+    },
+    familySetup: {
+      relatives: [],
+    },
   });
 
   useEffect(() => {
@@ -95,9 +115,9 @@ export default function Onboarding() {
         .from('profiles')
         .select('has_completed_onboarding, onboarding_skipped')
         .eq('id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.has_completed_onboarding || profile?.onboarding_skipped) {
+      if (profile?.has_completed_onboarding) {
         navigate('/dashboard');
         return;
       }
@@ -107,17 +127,15 @@ export default function Onboarding() {
         .from('onboarding_status')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (status) {
         setCompletedSteps(status.completed_steps || []);
-        // Resume from last incomplete step
-        const lastCompleted = status.completed_steps?.[status.completed_steps.length - 1];
-        if (lastCompleted) {
-          const nextStepIndex = STEP_ORDER.indexOf(lastCompleted) + 1;
-          if (nextStepIndex < STEP_ORDER.length) {
-            setCurrentStep(STEP_ORDER[nextStepIndex]);
-          }
+        const savedStepIndex = Math.max((status.current_step ?? 1) - 1, 0);
+        const savedStep = STEP_ORDER[Math.min(savedStepIndex, STEP_ORDER.length - 2)];
+
+        if (savedStep) {
+          setCurrentStep(savedStep);
         }
       } else {
         // Initialize onboarding for new user
@@ -133,7 +151,7 @@ export default function Onboarding() {
         .from('health_demographics')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (demographics) {
         setOnboardingData((prev) => ({
@@ -160,7 +178,7 @@ export default function Onboarding() {
   const handleStepComplete = async (step: OnboardingStep) => {
     setSaving(true);
     try {
-      const newCompletedSteps = [...completedSteps, step];
+      const newCompletedSteps = Array.from(new Set([...completedSteps, step]));
       setCompletedSteps(newCompletedSteps);
 
       // Update onboarding status in database
@@ -196,6 +214,8 @@ export default function Onboarding() {
   const handleSkip = async () => {
     setSaving(true);
     try {
+      const skippedStepIndex = Math.max(STEP_ORDER.indexOf(currentStep), 0) + 1;
+
       // Mark onboarding as skipped
       await supabase
         .from('profiles')
@@ -210,6 +230,8 @@ export default function Onboarding() {
         .update({
           skipped_steps: [...(completedSteps.length > 0 ? [] : STEP_ORDER.slice(0, -1))],
           skip_reason: 'User chose to skip',
+          current_step: skippedStepIndex,
+          last_step_at: new Date().toISOString(),
         })
         .eq('user_id', user?.id);
 
@@ -237,6 +259,7 @@ export default function Onboarding() {
         .from('profiles')
         .update({
           has_completed_onboarding: true,
+          onboarding_skipped: false,
         })
         .eq('id', user?.id);
 
@@ -270,8 +293,9 @@ export default function Onboarding() {
   const totalSteps = STEP_ORDER.length - 1; // Exclude 'complete' from count
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_28%),radial-gradient(circle_at_80%_10%,_rgba(129,140,248,0.18),_transparent_24%),linear-gradient(180deg,_#050816_0%,_#070b16_48%,_#04070f_100%)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20" />
+      <div className="relative max-w-6xl mx-auto px-4 py-8">
         {/* Progress Bar */}
         {currentStep !== 'complete' && (
           <OnboardingProgress
@@ -296,7 +320,9 @@ export default function Onboarding() {
         )}
 
         {/* Step Content */}
-        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl border border-gray-700/50 p-6 sm:p-8">
+        <div className="relative overflow-hidden rounded-[32px] border border-cyan-400/10 bg-slate-950/55 p-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_120px_rgba(2,6,23,0.75)] backdrop-blur-2xl sm:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.12),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(168,85,247,0.08),_transparent_26%)]" />
+          <div className="relative">
           {currentStep === 'welcome' && (
             <WelcomeStep
               onNext={() => handleStepComplete('welcome')}
@@ -345,6 +371,35 @@ export default function Onboarding() {
 
           {currentStep === 'first_engram' && (
             <FirstEngramStep
+              data={{
+                firstEngram: onboardingData.firstEngram,
+                personalityQuiz: onboardingData.personalityQuiz,
+                familySetup: onboardingData.familySetup,
+              }}
+              hasHealthProfile={
+                Boolean(onboardingData.healthProfile.dateOfBirth) ||
+                Boolean(onboardingData.healthProfile.gender) ||
+                Boolean(onboardingData.healthProfile.weightKg) ||
+                Boolean(onboardingData.healthProfile.heightCm) ||
+                onboardingData.healthProfile.healthConditions.length > 0 ||
+                onboardingData.healthProfile.allergies.length > 0 ||
+                onboardingData.healthProfile.healthGoals.length > 0
+              }
+              onUpdate={(firstEngramData) =>
+                updateOnboardingData({
+                  firstEngram: firstEngramData.firstEngram,
+                  personalityQuiz: firstEngramData.personalityQuiz,
+                  familySetup: firstEngramData.familySetup,
+                })
+              }
+              userId={user?.id || ''}
+              userEmail={user?.email || ''}
+              userName={
+                user?.user_metadata?.full_name ||
+                user?.user_metadata?.name ||
+                user?.email?.split('@')[0] ||
+                ''
+              }
               onNext={() => handleStepComplete('first_engram')}
               onBack={handleBack}
               onSkip={() => {
@@ -357,6 +412,7 @@ export default function Onboarding() {
           {currentStep === 'complete' && (
             <OnboardingComplete onFinish={handleComplete} saving={saving} />
           )}
+          </div>
         </div>
       </div>
     </div>

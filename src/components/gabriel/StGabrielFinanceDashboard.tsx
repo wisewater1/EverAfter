@@ -11,7 +11,6 @@ import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
 import GabrielDHTSummary from './GabrielDHTSummary';
 import WiseGoldPanel from './WiseGoldPanel';
 import { useAuth } from '../../contexts/AuthContext';
-import { API_BASE_URL, isProduction } from '../../lib/env';
 import { BankStatusResponse, Transaction, financeApi } from '../../lib/gabriel/finance';
 import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 
@@ -45,25 +44,21 @@ export default function StGabrielFinanceDashboard() {
 
             try {
                 const [walletResult, priceResult, bankStatusResult, transactionsResult] = await Promise.allSettled([
-                    fetch(`${API_BASE_URL}/api/v1/finance/wisegold/wallet`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch(`${API_BASE_URL}/api/v1/finance/wisegold/price`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
+                    financeApi.getWiseGoldWallet(),
+                    financeApi.getWiseGoldPrice(),
                     financeApi.getBankStatus(),
                     financeApi.getTransactions(200),
                 ]);
 
-                if (walletResult.status === 'fulfilled' && walletResult.value.ok) {
-                    const data = await walletResult.value.json();
+                if (walletResult.status === 'fulfilled') {
+                    const data = walletResult.value;
                     setWgoldBalance(Number(data?.wallet?.balance || 0));
                 } else {
                     setWgoldBalance(0);
                 }
 
-                if (priceResult.status === 'fulfilled' && priceResult.value.ok) {
-                    const priceData = await priceResult.value.json();
+                if (priceResult.status === 'fulfilled') {
+                    const priceData = priceResult.value;
                     setWgoldPriceUsd(Number(priceData?.xau_usd_price || 0));
                 } else {
                     setWgoldPriceUsd(0);

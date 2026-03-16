@@ -22,21 +22,32 @@ function TrajectoryWindowCard({ window: trajectoryWindow, compact = false }: { w
 
     return (
         <div
-            className={`flex flex-col gap-1.5 rounded-xl border ${compact ? 'p-2' : 'p-3'}`}
+            className={`flex flex-col gap-2 rounded-2xl border ${compact ? 'p-3' : 'p-4'}`}
             style={{ borderColor: `${config.color}25`, backgroundColor: config.bg }}
         >
-            <div className="flex items-center gap-1.5">
-                <Icon className="h-3 w-3" style={{ color: config.color }} />
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: config.color }}>
-                    {HORIZON_LABELS[trajectoryWindow.horizon] || trajectoryWindow.horizon}
-                </span>
-            </div>
-            <p className="text-sm font-semibold text-white">{config.label}</p>
             <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-slate-500">Confidence: {Math.round((trajectoryWindow.confidence || 0) * 100)}%</span>
-                <div className="mx-2 h-1 flex-1 overflow-hidden rounded bg-white/5">
+                <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950/35">
+                        <Icon className="h-4 w-4" style={{ color: config.color }} />
+                    </div>
+                    <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: config.color }}>
+                            {HORIZON_LABELS[trajectoryWindow.horizon] || trajectoryWindow.horizon}
+                        </span>
+                        <p className="text-sm font-semibold text-white">{config.label}</p>
+                    </div>
+                </div>
+                <span className="text-[10px] text-slate-400">{Math.round((trajectoryWindow.confidence || 0) * 100)}%</span>
+            </div>
+
+            <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Confidence</span>
+                    <span>{Math.round((trajectoryWindow.confidence || 0) * 100)}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                     <div
-                        className="h-full rounded transition-all"
+                        className="h-full rounded-full transition-all"
                         style={{
                             width: `${(trajectoryWindow.confidence || 0) * 100}%`,
                             backgroundColor: config.color,
@@ -44,13 +55,15 @@ function TrajectoryWindowCard({ window: trajectoryWindow, compact = false }: { w
                     />
                 </div>
             </div>
+
             {!compact && trajectoryWindow.narrative && (
-                <p className="text-[10px] leading-relaxed text-slate-400">{trajectoryWindow.narrative}</p>
+                <p className="text-[11px] leading-relaxed text-slate-300">{trajectoryWindow.narrative}</p>
             )}
+
             {!compact && trajectoryWindow.key_drivers?.length > 0 && (
-                <div className="mt-0.5 flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                     {trajectoryWindow.key_drivers.slice(0, 3).map((driver: string) => (
-                        <span key={driver} className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] text-slate-400">
+                        <span key={driver} className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-300">
                             {driver}
                         </span>
                     ))}
@@ -87,7 +100,7 @@ export default function DHTPanel({ personId, compact = false, showRefresh = true
 
     if (loading) {
         return (
-            <div className="flex items-center gap-2 p-4 text-xs text-slate-500">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-xs text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Calculating trajectory...
             </div>
@@ -96,10 +109,12 @@ export default function DHTPanel({ personId, compact = false, showRefresh = true
 
     if (!data) {
         return (
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center">
-                <Activity className="mx-auto mb-2 h-6 w-6 text-slate-600" />
-                <p className="text-xs text-slate-500">No health data yet.</p>
-                <p className="mt-1 text-[10px] text-slate-600">Add measurements to generate a Delphi trajectory.</p>
+            <div className="rounded-3xl border border-dashed border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-900/60 p-8 text-center">
+                <Activity className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+                <p className="text-sm font-medium text-white">Delphi is waiting for health data</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    Add recent measurements in Raphael to generate short-, mid-, and long-horizon trajectory guidance.
+                </p>
             </div>
         );
     }
@@ -108,22 +123,23 @@ export default function DHTPanel({ personId, compact = false, showRefresh = true
     const OverallIcon = overallConfig.icon;
 
     return (
-        <div className={`rounded-2xl border border-white/5 bg-gradient-to-br from-[#1a1a24] to-[#13131a] ${compact ? 'p-3' : 'p-5'}`}>
-            <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: overallConfig.bg }}>
-                        <OverallIcon className="h-3.5 w-3.5" style={{ color: overallConfig.color }} />
+        <div className={`rounded-3xl border border-white/5 bg-gradient-to-br from-[#181b25] via-[#171c28] to-[#121721] ${compact ? 'p-4' : 'p-6'}`}>
+            <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: overallConfig.bg }}>
+                        <OverallIcon className="h-5 w-5" style={{ color: overallConfig.color }} />
                     </div>
                     <div>
-                        <p className="text-xs font-semibold text-white">Delphi trajectory</p>
-                        <p className="text-[10px] text-slate-500">
-                            {data.observation_count} observations · {data.data_quality} data quality
+                        <p className="text-base font-semibold text-white">Delphi trajectory</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                            {data.observation_count} observations, {data.data_quality} data quality, {overallConfig.label.toLowerCase()} current direction.
                         </p>
                     </div>
                 </div>
+
                 <div className="flex items-center gap-2">
                     <span
-                        className="rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                        className="rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
                         style={{
                             color: overallConfig.color,
                             borderColor: `${overallConfig.color}40`,
@@ -137,17 +153,20 @@ export default function DHTPanel({ personId, compact = false, showRefresh = true
                             type="button"
                             onClick={() => load(false)}
                             disabled={refreshing}
-                            className="rounded-lg p-1 text-slate-600 transition-colors hover:text-slate-400 disabled:opacity-50"
+                            className="rounded-xl border border-white/8 bg-white/[0.03] p-2 text-slate-500 transition-colors hover:text-slate-300 disabled:opacity-50"
                         >
-                            <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="mb-3 flex items-center gap-2">
-                <span className="shrink-0 text-[10px] text-slate-500">Overall confidence</span>
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+            <div className="mb-5 rounded-2xl border border-white/5 bg-slate-950/35 p-4">
+                <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Overall confidence</span>
+                    <span>{Math.round((data.confidence || 0) * 100)}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/5">
                     <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -156,20 +175,19 @@ export default function DHTPanel({ personId, compact = false, showRefresh = true
                         }}
                     />
                 </div>
-                <span className="shrink-0 text-[10px] text-slate-400">{Math.round((data.confidence || 0) * 100)}%</span>
             </div>
 
-            <div className={`grid gap-2 ${compact ? 'grid-cols-3' : 'grid-cols-1 sm:grid-cols-3'}`}>
+            <div className={`grid gap-3 ${compact ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-3'}`}>
                 {data.short_term && <TrajectoryWindowCard window={data.short_term} compact={compact} />}
                 {data.mid_term && <TrajectoryWindowCard window={data.mid_term} compact={compact} />}
                 {data.long_term && <TrajectoryWindowCard window={data.long_term} compact={compact} />}
             </div>
 
             {data.anomalies?.length > 0 && (
-                <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-400" />
-                    <p className="text-[10px] text-red-300">
-                        {data.anomalies.length} anomalous reading{data.anomalies.length !== 1 ? 's' : ''} detected — see risk cards.
+                <div className="mt-4 flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
+                    <p className="text-xs text-red-200">
+                        {data.anomalies.length} anomalous reading{data.anomalies.length !== 1 ? 's' : ''} detected. Use Risk Cards for domain-level context.
                     </p>
                 </div>
             )}

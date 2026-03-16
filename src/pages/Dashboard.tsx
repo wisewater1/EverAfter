@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bot, Brain, Heart, LogOut, Sparkles } from 'lucide-react';
+import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import MobileMenu from '../components/MobileMenu';
 import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
 import FamilyEngrams from '../components/FamilyEngrams';
@@ -14,12 +15,39 @@ import SocietyFeed from '../components/SocietyFeed';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 import HolisticTimeline from '../components/HolisticTimeline';
 
+const ONBOARDING_STEPS = [
+  'Welcome',
+  'Raphael',
+  'Health',
+  'Connect',
+  'Permissions',
+  'AI + Family',
+];
+
+interface OnboardingResumeState {
+  visible: boolean;
+  progressPercent: number;
+  completedCount: number;
+  currentLabel: string;
+  skipped: boolean;
+  lastUpdated: string | null;
+}
+
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [onboardingResume, setOnboardingResume] = useState<OnboardingResumeState>({
+    visible: false,
+    progressPercent: 0,
+    completedCount: 0,
+    currentLabel: ONBOARDING_STEPS[0],
+    skipped: false,
+    lastUpdated: null,
+  });
+  const [loadingOnboardingResume, setLoadingOnboardingResume] = useState(true);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,6 +62,54 @@ export default function Dashboard() {
   useEffect(() => {
     // Initial configuration or analytics tracking could go here
   }, []);
+
+  useEffect(() => {
+    async function loadOnboardingResume() {
+      if (!user?.id || !supabase) {
+        setLoadingOnboardingResume(false);
+        return;
+      }
+
+      try {
+        const [{ data: profile }, { data: status }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('has_completed_onboarding, onboarding_skipped')
+            .eq('id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('onboarding_status')
+            .select('current_step, completed_steps, onboarding_complete, last_step_at')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+        ]);
+
+        const isComplete = Boolean(profile?.has_completed_onboarding || status?.onboarding_complete);
+        const completedSteps = Array.isArray(status?.completed_steps) ? status.completed_steps : [];
+        const currentStepIndex = Math.min(
+          Math.max((status?.current_step ?? completedSteps.length + 1) - 1, 0),
+          ONBOARDING_STEPS.length - 1,
+        );
+
+        setOnboardingResume({
+          visible: !isComplete,
+          progressPercent: Math.round((completedSteps.length / ONBOARDING_STEPS.length) * 100),
+          completedCount: completedSteps.length,
+          currentLabel: ONBOARDING_STEPS[currentStepIndex] ?? ONBOARDING_STEPS[0],
+          skipped: Boolean(profile?.onboarding_skipped),
+          lastUpdated: status?.last_step_at ?? null,
+        });
+      } catch (error) {
+        console.error('Failed to load onboarding resume state:', error);
+      } finally {
+        setLoadingOnboardingResume(false);
+      }
+    }
+
+    if (!loading) {
+      loadOnboardingResume();
+    }
+  }, [user?.id, loading]);
 
   if (loading) {
     return (
@@ -233,6 +309,82 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[250px] safe-bottom w-full">
         <div className="space-y-8">
+          {!loadingOnboardingResume && onboardingResume.visible && (
+            <section className="relative overflow-hidden rounded-3xl border border-cyan-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.14),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(129,140,248,0.12),_transparent_28%)]" />
+              <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300/80">
+                        Setup Progress
+                      </p>
+                      <h2 className="text-xl font-semibold text-white">
+                        {onboardingResume.skipped ? 'Resume onboarding' : 'Continue onboarding'}
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="max-w-2xl text-sm text-slate-300">
+                    The dashboard is available, but your core setup is not finished yet. Resume onboarding to complete
+                    Raphael, Joseph, health, permissions, and AI-family setup.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-emerald-300">
+                      {onboardingResume.progressPercent}% complete
+                    </span>
+                    <span>{onboardingResume.completedCount} of {ONBOARDING_STEPS.length} steps complete</span>
+                    <span className="text-slate-400">Current step: {onboardingResume.currentLabel}</span>
+                  </div>
+                  <div className="h-2.5 w-full max-w-2xl overflow-hidden rounded-full bg-slate-900/70">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 shadow-[0_0_18px_rgba(56,189,248,0.45)] transition-all"
+                      style={{ width: `${Math.max(onboardingResume.progressPercent, 6)}%` }}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {ONBOARDING_STEPS.map((step, index) => {
+                      const isDone = index < onboardingResume.completedCount;
+                      const isCurrent = step === onboardingResume.currentLabel;
+
+                      return (
+                        <span
+                          key={step}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                            isDone
+                              ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
+                              : isCurrent
+                                ? 'border-cyan-400/25 bg-cyan-400/10 text-cyan-200'
+                                : 'border-slate-700/70 bg-slate-900/60 text-slate-400'
+                          }`}
+                        >
+                          {step}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-start gap-3 lg:items-end">
+                  {onboardingResume.lastUpdated && (
+                    <p className="text-xs text-slate-400">
+                      Last updated {new Date(onboardingResume.lastUpdated).toLocaleString()}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => navigate('/onboarding')}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-medium text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/15"
+                  >
+                    Resume onboarding
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
           {selectedView === 'activities' && (
             <div className="space-y-8">
               <HolisticTimeline />

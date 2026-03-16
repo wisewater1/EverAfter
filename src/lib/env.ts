@@ -57,6 +57,11 @@ export const env = validateEnv();
 export const isProduction = import.meta.env.PROD;
 export const isDevelopment = import.meta.env.DEV;
 
-const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8010' : '');
+// In local Vite dev, prefer the relative proxy paths exposed on :5000.
+// This avoids bypassing the proxy and accidentally hitting a frontend HTML route
+// when a stale absolute API base is configured in `.env`.
+const configuredApiBaseUrl = import.meta.env.DEV
+  ? ''
+  : (import.meta.env.VITE_API_BASE_URL || '');
 
 export const API_BASE_URL = configuredApiBaseUrl.replace(/\/$/, '');

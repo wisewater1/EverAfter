@@ -44,7 +44,7 @@ export interface AuditLedgerEntry {
 
 export interface SecurityScanResult {
     timestamp: string;
-    status: 'active' | 'critical';
+    status: 'active' | 'warning' | 'critical';
     findings_count: number;
     findings: SecurityAlert[];
     vulnerabilities: Vulnerability[];
@@ -106,6 +106,70 @@ export interface AnthonyFlowMapResponse {
     nodes: AnthonyFlowMapNode[];
     edges: AnthonyFlowMapEdge[];
     evidence: AnthonyFlowMapEvidence[];
+}
+
+function normalizeAnthonyFlowNode(node: any): AnthonyFlowMapNode {
+    return {
+        id: String(node?.id || ''),
+        label: String(node?.label || 'Unnamed node'),
+        kind: String(node?.kind || 'system'),
+        status:
+            node?.status === 'critical' || node?.status === 'warning'
+                ? node.status
+                : 'healthy',
+        details: String(node?.details || 'No audit detail available yet.'),
+        evidenceCount: Number.isFinite(Number(node?.evidenceCount)) ? Number(node.evidenceCount) : 0,
+        evidenceIds: Array.isArray(node?.evidenceIds) ? node.evidenceIds.filter(Boolean).map(String) : [],
+    };
+}
+
+function normalizeAnthonyFlowEdge(edge: any): AnthonyFlowMapEdge {
+    return {
+        id: String(edge?.id || ''),
+        from: String(edge?.from || ''),
+        to: String(edge?.to || ''),
+        label: String(edge?.label || 'Flow edge'),
+        severity:
+            edge?.severity === 'critical' || edge?.severity === 'warning'
+                ? edge.severity
+                : 'healthy',
+        evidenceIds: Array.isArray(edge?.evidenceIds) ? edge.evidenceIds.filter(Boolean).map(String) : [],
+    };
+}
+
+function normalizeAnthonyFlowEvidence(item: any): AnthonyFlowMapEvidence {
+    return {
+        id: String(item?.id || ''),
+        type: String(item?.type || 'ledger'),
+        title: String(item?.title || 'Untitled evidence'),
+        summary: String(item?.summary || 'No evidence summary available.'),
+        severity: String(item?.severity || 'healthy'),
+        timestamp: item?.timestamp || null,
+        provider: item?.provider || null,
+        action: item?.action || null,
+        metadata: item?.metadata && typeof item.metadata === 'object' ? item.metadata : null,
+    };
+}
+
+function normalizeAnthonyFlowMap(response: any): AnthonyFlowMapResponse {
+    const summary = response?.summary && typeof response.summary === 'object' ? response.summary : {};
+
+    return {
+        success: Boolean(response?.success),
+        generatedAt: response?.generatedAt || new Date().toISOString(),
+        requestedBy: response?.requestedBy,
+        summary: {
+            latestScanStatus: String(summary.latestScanStatus || 'unknown'),
+            findingsCount: Number.isFinite(Number(summary.findingsCount)) ? Number(summary.findingsCount) : 0,
+            vulnerabilitiesCount: Number.isFinite(Number(summary.vulnerabilitiesCount)) ? Number(summary.vulnerabilitiesCount) : 0,
+            criticalVulnerabilities: Number.isFinite(Number(summary.criticalVulnerabilities)) ? Number(summary.criticalVulnerabilities) : 0,
+            integrity: summary.integrity ?? null,
+            anthonyHandoffStatus: String(summary.anthonyHandoffStatus || 'pending'),
+        },
+        nodes: Array.isArray(response?.nodes) ? response.nodes.map(normalizeAnthonyFlowNode).filter((node) => node.id) : [],
+        edges: Array.isArray(response?.edges) ? response.edges.map(normalizeAnthonyFlowEdge).filter((edge) => edge.id && edge.from && edge.to) : [],
+        evidence: Array.isArray(response?.evidence) ? response.evidence.map(normalizeAnthonyFlowEvidence).filter((item) => item.id) : [],
+    };
 }
 
 export interface JITAccessRequestRecord {
@@ -672,10 +736,11 @@ export async function triggerLiveScan(): Promise<SecurityScanResult> {
 }
 
 export async function getAnthonyFlowMap(): Promise<AnthonyFlowMapResponse> {
-    return axiosWithAuthRetry<AnthonyFlowMapResponse>(
+    const response = await axiosWithAuthRetry<AnthonyFlowMapResponse>(
         'get',
         '/api/v1/audit/flow-map',
     );
+    return normalizeAnthonyFlowMap(response);
 }
 
 export async function getJITAccessRequests(): Promise<JITAccessRequestRecord[]> {

@@ -113,7 +113,6 @@ export default function StJosephFamilyDashboard() {
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
     const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
-    const showTopTellMyStoryBanner = !['members', 'quiz', 'predictions', 'create-ai', 'delphi'].includes(activeTab);
 
     const handleTrainMember = (engramId: string) => {
         setTrainingTargetId(engramId);
@@ -285,14 +284,6 @@ export default function StJosephFamilyDashboard() {
             {/* Full-width genealogy tabs */}
             {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams' || activeTab === 'create-ai') && (
                 <div className="max-w-7xl mx-auto">
-                    {showTopTellMyStoryBanner && (
-                        <div className="mb-4">
-                            <TellMyStoryPartnerCard
-                                title="New family memory AI feature"
-                                description="EverAfter has partnered with TellMyStory.ai so your family can capture guided memories, voice stories, and relationship context that can feed future AI experiences."
-                            />
-                        </div>
-                    )}
                     {activeTab === 'tree' && (
                         <FamilyTreeView
                             onTrainMember={handleTrainMember}

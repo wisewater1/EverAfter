@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import CrossChainBridgeModal from './CrossChainBridgeModal';
-import { API_BASE_URL, isProduction } from '../../lib/env';
+import { isProduction } from '../../lib/env';
+import { financeApi } from '../../lib/gabriel/finance';
 
 interface WiseGoldWallet {
   id: string;
@@ -259,17 +260,6 @@ export default function WiseGoldPanel() {
       return;
     }
 
-    if (!API_BASE_URL) {
-      const message = 'WiseGold API base URL is not configured.';
-      if (isProduction) {
-        setError(message);
-      } else {
-        applyDevFallback(message);
-      }
-      setLoading(false);
-      return;
-    }
-
     if (!token) {
       const message = 'WiseGold requires an authenticated session.';
       if (isProduction) {
@@ -282,42 +272,14 @@ export default function WiseGoldPanel() {
     }
 
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const [walletRes, covRes, ledgerRes, priceRes, attestationRes, policySummaryRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/wallet`, { headers }),
-        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/covenants`, { headers }),
-        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/ledger?limit=12`, { headers }),
-        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/price`, { headers }),
-        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/attestations`, { headers }),
-        fetch(`${API_BASE_URL}/api/v1/finance/wisegold/policy/summary`, { headers }),
+      const [walletData, covenantData, ledgerData, priceData, attestationData, policySummaryData] = await Promise.all([
+        financeApi.getWiseGoldWallet(),
+        financeApi.getWiseGoldCovenants(),
+        financeApi.getWiseGoldLedger(12),
+        financeApi.getWiseGoldPrice(),
+        financeApi.getWiseGoldAttestations(),
+        financeApi.getWiseGoldPolicySummary(),
       ]);
-
-      if (!walletRes.ok) {
-        const detail = await walletRes.text();
-        throw new Error(detail || 'Failed to load WiseGold wallet.');
-      }
-      if (!covRes.ok) {
-        const detail = await covRes.text();
-        throw new Error(detail || 'Failed to load covenants.');
-      }
-      if (!ledgerRes.ok) {
-        const detail = await ledgerRes.text();
-        throw new Error(detail || 'Failed to load ledger.');
-      }
-      if (!attestationRes.ok) {
-        const detail = await attestationRes.text();
-        throw new Error(detail || 'Failed to load covenant attestations.');
-      }
-      if (!policySummaryRes.ok) {
-        const detail = await policySummaryRes.text();
-        throw new Error(detail || 'Failed to load WiseGold policy summary.');
-      }
-
-      const walletData: WalletResponse = await walletRes.json();
-      const covenantData: SovereignCovenant[] = await covRes.json();
-      const ledgerData: LedgerEntry[] = await ledgerRes.json();
-      const attestationData: WiseGoldAttestation[] = await attestationRes.json();
-      const policySummaryData: PolicySummary = await policySummaryRes.json();
 
       setWallet(walletData.wallet);
       setBond(walletData.ritual_bond);
@@ -329,13 +291,7 @@ export default function WiseGoldPanel() {
       setAttestations(attestationData);
       setPolicySummary(policySummaryData || walletData.policy_summary || null);
       setError(null);
-
-      if (priceRes.ok) {
-        const priceData = await priceRes.json();
-        setWgoldPriceUsd(priceData.xau_usd_price ?? null);
-      } else {
-        setWgoldPriceUsd(null);
-      }
+      setWgoldPriceUsd(priceData?.xau_usd_price ?? null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch WiseGold data.';
       console.error('WiseGold data load failed:', err);
@@ -368,14 +324,7 @@ export default function WiseGoldPanel() {
     setHeartbeatSending(true);
     setActionMessage(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/heartbeat`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const detail = await res.text();
-        throw new Error(detail || 'Failed to sync heartbeat.');
-      }
+      await financeApi.syncWiseGoldHeartbeat();
       setActionMessage('Proof-of-life heartbeat synchronized.');
       await loadWiseGoldData();
     } catch (err) {
@@ -398,19 +347,7 @@ export default function WiseGoldPanel() {
     setActiveCovenantAction(`${action}:${covenantId}`);
     setActionMessage(null);
     try {
-      const endpoint = `${API_BASE_URL}/api/v1/finance/wisegold/covenants/${covenantId}/${action}`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || `Failed to ${action} WGOLD.`);
-      }
+      const data = await financeApi.submitWiseGoldCovenantAction(covenantId, action, amount);
 
       setActionMessage(
         action === 'deposit'
@@ -823,7 +760,6 @@ export default function WiseGoldPanel() {
         isOpen={isBridgeModalOpen}
         onClose={() => setIsBridgeModalOpen(false)}
         currentBalance={wallet.balance}
-        token={token}
         maxBridgeLimit={policySummary.limits.bridge}
         onSuccess={() => {
           void loadWiseGoldData();

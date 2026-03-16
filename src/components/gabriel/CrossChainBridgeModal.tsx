@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, Share2, AlertCircle } from 'lucide-react';
-import { API_BASE_URL } from '../../lib/env';
+import { financeApi } from '../../lib/gabriel/finance';
 
 interface BridgeModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentBalance: number;
     maxBridgeLimit?: number;
-    token: string;
     onSuccess?: () => void;
 }
 
-export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance, maxBridgeLimit, token, onSuccess }: BridgeModalProps) {
+export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance, maxBridgeLimit, onSuccess }: BridgeModalProps) {
     const [destinationChain, setDestinationChain] = useState<'Arbitrum' | 'Polygon' | 'Base'>('Arbitrum');
     const [amount, setAmount] = useState<string>('');
     const [address, setAddress] = useState<string>('');
@@ -48,22 +47,13 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
         setErrorMessage('');
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/v1/finance/wisegold/bridge/ccip`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    destination_chain: destinationChain,
-                    destination_address: address,
-                    amount: bridgeAmount
-                })
+            const data = await financeApi.submitWiseGoldBridge({
+                destination_chain: destinationChain,
+                destination_address: address,
+                amount: bridgeAmount
             });
 
-            const data = await res.json();
-
-            if (res.ok && (data.status === 'success' || data.status === 'submitted')) {
+            if (data.status === 'success' || data.status === 'submitted') {
                 setTxHash(data.message_id || 'pending');
                 setStatus('success');
                 onSuccess?.();

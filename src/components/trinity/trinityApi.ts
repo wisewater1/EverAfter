@@ -11,7 +11,7 @@ import {
     getRelationships,
 } from '../../lib/joseph/genealogy';
 
-const BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+const BASE = API_BASE_URL;
 const TRINITY_GOALS_KEY = 'everafter_trinity_goals';
 const TRINITY_WHATIF_HISTORY_KEY = 'everafter_trinity_whatif_history';
 
@@ -1293,14 +1293,20 @@ export async function trinitySynapse<T = any>(action: string, body: AnyRecord = 
     const payload = { action, ...body };
 
     try {
-        const res = await fetch(`${BASE}/api/v1/trinity/synapse`, {
+        const endpoint = `${BASE}/api/v1/trinity/synapse`;
+        const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
 
         if (res.ok) {
-            const data = await res.json();
+            const text = await res.text();
+            const compact = text.trim().slice(0, 160).replace(/\s+/g, ' ');
+            if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
+                throw new Error(`Trinity endpoint returned HTML for ${action}.`);
+            }
+            const data = text ? JSON.parse(text) : {};
             if (action === 'cross_saint_whatif' && data) recordTrinityWhatIf(data);
             if (action === 'cross_saint_goal' && data?.goal_name) persistTrinityGoal(data);
             if (action === 'seasonal_calendar' && data) {

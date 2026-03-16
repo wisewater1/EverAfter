@@ -8,11 +8,15 @@ import asyncio
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy import select, func
+from sqlalchemy.exc import ProgrammingError
 from app.services.causal_twin.uncertainty_engine import uncertainty_engine
 from app.services.causal_twin.safety_guardrails import safety_guardrails, WELLNESS_DISCLAIMER
 from app.ai.llm_client import get_llm_client
 from app.db.session import get_session_factory
 from app.models.health import Metric
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Metric baselines for simulation (used when user has no historical data)
 DEFAULT_BASELINES = {
@@ -144,9 +148,18 @@ class CounterfactualEngine:
                     Metric.type == metric_type,
                     Metric.ts >= start_date
                 )
-                
-                result = await session.execute(query)
-                row = result.fetchone()
+
+                try:
+                    result = await session.execute(query)
+                    row = result.fetchone()
+                except ProgrammingError as exc:
+                    logger.warning(
+                        "Falling back to default baselines because the metrics table is unavailable for user %s: %s",
+                        user_id,
+                        exc,
+                    )
+                    await session.rollback()
+                    return baselines
                 
                 if row and row.avg is not None:
                     baselines[metric_key]["mean"] = float(row.avg)
@@ -163,9 +176,18 @@ class CounterfactualEngine:
                 func.min(Metric.ts).label("first_ts"),
                 func.count(Metric.id).label("total_count")
             ).where(Metric.sourceId == user_id)
-            
-            result = await session.execute(query)
-            row = result.fetchone()
+
+            try:
+                result = await session.execute(query)
+                row = result.fetchone()
+            except ProgrammingError as exc:
+                logger.warning(
+                    "Falling back to default history stats because the metrics table is unavailable for user %s: %s",
+                    user_id,
+                    exc,
+                )
+                await session.rollback()
+                return {"history_days": 0, "completeness": 0.0}
             
             history_days = 0
             completeness = 0.0

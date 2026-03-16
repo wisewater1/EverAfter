@@ -13,11 +13,10 @@ import {
   Wallet,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { API_BASE_URL } from '../../lib/env';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiClient } from '../../lib/api-client';
 import { financeApi } from '../../lib/gabriel/finance';
 import { fetchHealthMetrics, type HealthDataPoint } from '../../lib/raphael/healthDataService';
+import { trinitySynapse } from './trinityApi';
 import {
   getFamilyMembers,
   getRelationships,
@@ -327,37 +326,24 @@ export default function EmergencyAlertChain() {
         }
 
         const normalized = normalizeMetricForAlert(rankedMetric);
-        const headers = await apiClient.getAuthHeaders({
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true',
+        const chainData = await trinitySynapse<ChainResponse>('emergency_alert', {
+          member_id: primaryMember?.id || user?.id || 'user',
+          critical_metric: normalized.criticalMetric,
+          critical_value: normalized.criticalValue,
+          metrics_history: healthMetrics.map(metric => ({
+            metric_type: metric.metric_type,
+            value: metric.value,
+            timestamp: metric.recorded_at,
+            unit: metric.unit,
+            source: metric.source,
+          })),
+          budget_envelopes: budgetEnvelopes,
+          family_members: familyMembers,
         });
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/trinity/synapse`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            action: 'emergency_alert',
-            member_id: primaryMember?.id || user?.id || 'user',
-            critical_metric: normalized.criticalMetric,
-            critical_value: normalized.criticalValue,
-            metrics_history: healthMetrics.map(metric => ({
-              metric_type: metric.metric_type,
-              value: metric.value,
-              timestamp: metric.recorded_at,
-              unit: metric.unit,
-              source: metric.source,
-            })),
-            budget_envelopes: budgetEnvelopes,
-            family_members: familyMembers,
-          }),
-        });
-
-        if (!response.ok) {
-          const detail = await response.text();
-          throw new Error(detail || `Failed to load emergency alert chain (${response.status})`);
+        if (!chainData) {
+          throw new Error('Unable to build the emergency alert chain right now.');
         }
-
-        const chainData = (await response.json()) as ChainResponse;
 
         if (chainData?.cascade?.raphael) {
           chainData.cascade.raphael.message = `${METRIC_LABELS[normalized.criticalMetric] || normalized.criticalMetric} at ${normalized.detail} — risk level: ${chainData.cascade.raphael.risk_level}`;

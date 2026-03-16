@@ -11,7 +11,7 @@ interface FamilyMember {
   name: string;
   email: string;
   relationship: string;
-  status: 'active' | 'pending' | 'inactive';
+  status: 'active' | 'pending' | 'inactive' | 'declined';
   access_level: string;
   invited_at: string;
   accepted_at?: string;
@@ -49,6 +49,9 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     email: '',
     relationship: ''
   });
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [generatedInviteLink, setGeneratedInviteLink] = useState('');
   const [questionText, setQuestionText] = useState('');
   const [loading, setLoading] = useState(false);
   const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'pdf'>('json');
@@ -59,6 +62,26 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     profiles: true
   });
 
+  const mapFamilyMember = (member: any): FamilyMember => {
+    const permissions =
+      member?.permissions && typeof member.permissions === 'object' && !Array.isArray(member.permissions)
+        ? member.permissions
+        : {};
+
+    return {
+      id: member.id,
+      name: member.name,
+      email: member.email,
+      relationship: member.relationship || permissions.relationship || member.role || 'family',
+      status: member.status || 'pending',
+      access_level: member.access_level || permissions.access_level || 'viewer',
+      invited_at: member.invited_at || member.created_at || new Date().toISOString(),
+      accepted_at: member.accepted_at || undefined,
+      personality_questions_sent: member.personality_questions_sent || 0,
+      personality_questions_answered: member.personality_questions_answered || 0,
+    };
+  };
+
   const loadFamilyMembers = useCallback(async () => {
     const { data } = await supabase
       .from('family_members')
@@ -66,7 +89,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (data) setFamilyMembers(data);
+    if (data) setFamilyMembers(data.map(mapFamilyMember));
   }, [userId]);
 
   const loadQuestionResponses = useCallback(async () => {
@@ -123,34 +146,108 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     }
   }, [preselectedAIId]);
 
+  const normalizeRelationship = (relationship: string) => relationship.trim().toLowerCase();
+
+  const getInviteRole = (relationship: string) =>
+    ['parent', 'child', 'sibling', 'spouse', 'grandparent', 'grandchild'].includes(relationship) ? 'family' : 'friend';
+
+  const buildInviteLink = (email: string, relationship: string) =>
+    `${window.location.origin}/signup?family_invite=${encodeURIComponent(email)}&relationship=${encodeURIComponent(relationship)}&invited_by=${encodeURIComponent(userId)}`;
+
+  const clearInviteFeedback = () => {
+    setInviteError('');
+    setInviteSuccess('');
+    setGeneratedInviteLink('');
+  };
+
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearInviteFeedback();
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      const name = inviteForm.name.trim();
+      const email = inviteForm.email.trim().toLowerCase();
+      const relationship = normalizeRelationship(inviteForm.relationship);
+
+      if (!name || !email || !relationship) {
+        throw new Error('Name, email, and relationship are required.');
+      }
+
+      if (familyMembers.some((member) => member.email.trim().toLowerCase() === email)) {
+        throw new Error('That family member has already been invited.');
+      }
+
+      const inviteLink = buildInviteLink(email, relationship);
+
+      const primaryInsert = await supabase
         .from('family_members')
         .insert([{
           user_id: userId,
-          name: inviteForm.name,
-          email: inviteForm.email,
-          relationship: inviteForm.relationship,
+          name,
+          email,
+          relationship,
           status: 'pending',
-          access_level: 'viewer',
-          personality_questions_sent: 0,
-          personality_questions_answered: 0
+          invited_at: new Date().toISOString(),
         }]);
 
-      if (error) throw error;
+      let insertError = primaryInsert.error;
 
-      setShowInviteModal(false);
+      if (insertError) {
+        const fallbackInsert = await supabase
+          .from('family_members')
+          .insert([{
+            user_id: userId,
+            name,
+            email,
+            role: getInviteRole(relationship),
+            status: 'pending',
+            permissions: {
+              relationship,
+              access_level: 'viewer',
+              invite_link: inviteLink,
+            },
+          }]);
+
+        insertError = fallbackInsert.error;
+      }
+
+      if (insertError) throw insertError;
+
       setInviteForm({ name: '', email: '', relationship: '' });
-      loadFamilyMembers();
+      setGeneratedInviteLink(inviteLink);
+      setInviteSuccess('Invitation created. Share the link below or open it in your email client.');
+      await loadFamilyMembers();
     } catch (error) {
       console.error('Error inviting member:', error);
+      setInviteError(error instanceof Error ? error.message : 'Failed to create invitation.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!generatedInviteLink) return;
+
+    try {
+      await navigator.clipboard.writeText(generatedInviteLink);
+      setInviteSuccess('Invite link copied.');
+      setInviteError('');
+    } catch (error) {
+      console.error('Failed to copy invite link:', error);
+      setInviteError('Failed to copy invite link. Copy it manually from the field below.');
+    }
+  };
+
+  const handleOpenEmailDraft = () => {
+    if (!generatedInviteLink) return;
+
+    const subject = encodeURIComponent('Your EverAfter family invitation');
+    const body = encodeURIComponent(
+      `You have been invited to EverAfter.\n\nUse this link to get started:\n${generatedInviteLink}`,
+    );
+
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleSendQuestion = async (e: React.FormEvent) => {
@@ -673,7 +770,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">Invite Family Member</h3>
               <button
-                onClick={() => setShowInviteModal(false)}
+                onClick={() => {
+                  setShowInviteModal(false);
+                  clearInviteFeedback();
+                }}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -685,7 +785,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 <input
                   type="text"
                   value={inviteForm.name}
-                  onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+                  onChange={(e) => {
+                    setInviteForm({ ...inviteForm, name: e.target.value });
+                    if (inviteError) setInviteError('');
+                  }}
                   className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
                   required
                 />
@@ -695,22 +798,72 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 <input
                   type="email"
                   value={inviteForm.email}
-                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                  onChange={(e) => {
+                    setInviteForm({ ...inviteForm, email: e.target.value });
+                    if (inviteError) setInviteError('');
+                  }}
                   className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Relationship</label>
-                <input
-                  type="text"
+                <select
                   value={inviteForm.relationship}
-                  onChange={(e) => setInviteForm({ ...inviteForm, relationship: e.target.value })}
-                  placeholder="e.g., Parent, Sibling, Child"
+                  onChange={(e) => {
+                    setInviteForm({ ...inviteForm, relationship: e.target.value });
+                    if (inviteError) setInviteError('');
+                  }}
                   className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
                   required
-                />
+                >
+                  <option value="">Select relationship</option>
+                  <option value="parent">Parent</option>
+                  <option value="child">Child</option>
+                  <option value="sibling">Sibling</option>
+                  <option value="spouse">Spouse</option>
+                  <option value="grandparent">Grandparent</option>
+                  <option value="grandchild">Grandchild</option>
+                  <option value="friend">Friend</option>
+                  <option value="caregiver">Caregiver</option>
+                </select>
               </div>
+              {inviteError && (
+                <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                  {inviteError}
+                </div>
+              )}
+              {inviteSuccess && (
+                <div className="space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                  <p>{inviteSuccess}</p>
+                  {generatedInviteLink && (
+                    <>
+                      <input
+                        type="text"
+                        readOnly
+                        value={generatedInviteLink}
+                        className="w-full rounded-lg border border-emerald-400/15 bg-slate-950/70 px-3 py-2 text-xs text-emerald-100"
+                      />
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyInviteLink}
+                          className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-100 transition hover:bg-emerald-400/15"
+                        >
+                          Copy Invite Link
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleOpenEmailDraft}
+                          className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-medium text-cyan-100 transition hover:bg-cyan-400/15"
+                        >
+                          Open Email Draft
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={loading}
