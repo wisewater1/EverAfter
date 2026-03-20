@@ -226,10 +226,21 @@ function saveToStorage<T>(key: string, data: T[]): void {
 
 // ── In-memory caches (loaded once from backend) ────────────
 
-let _members: FamilyMember[] = [];
-let _relationships: Relationship[] = [];
-let _events: FamilyEvent[] = [];
-let _sources: SourceCitation[] = [];
+const INITIAL_GENEALOGY = mergeStoredGenealogy(
+    loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members),
+    loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships),
+    loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events),
+    DEFAULT_MEMBERS,
+    DEFAULT_RELATIONSHIPS,
+    DEFAULT_EVENTS,
+);
+
+let _members: FamilyMember[] = INITIAL_GENEALOGY.members;
+let _relationships: Relationship[] = INITIAL_GENEALOGY.relationships;
+let _events: FamilyEvent[] = INITIAL_GENEALOGY.events;
+let _sources: SourceCitation[] = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
+let _genealogyHydrationPromise: Promise<void> | null = null;
+let _genealogyHydrated = false;
 
 function normalizeName(value: string | undefined | null): string {
     return String(value || '')
@@ -244,6 +255,26 @@ function memberFullName(member: Pick<FamilyMember, 'firstName' | 'lastName'>): s
 
 function memberBirthDate(member: Partial<FamilyMember>): string {
     return String(member.birthDate || '').slice(0, 10);
+}
+
+function localMemberMatch(left: Partial<FamilyMember>, right: Partial<FamilyMember>): boolean {
+    const leftName = normalizeName(memberFullName({
+        firstName: String(left.firstName || ''),
+        lastName: String(left.lastName || ''),
+    }));
+    const rightName = normalizeName(memberFullName({
+        firstName: String(right.firstName || ''),
+        lastName: String(right.lastName || ''),
+    }));
+
+    if (leftName && rightName && leftName === rightName) {
+        const leftBirth = memberBirthDate(left);
+        const rightBirth = memberBirthDate(right);
+        if (!leftBirth || !rightBirth) return true;
+        return leftBirth === rightBirth;
+    }
+
+    return false;
 }
 
 function backendBirthDate(node: any): string {
@@ -263,6 +294,77 @@ function relationshipKey(rel: Pick<Relationship, 'fromId' | 'toId' | 'type'>): s
         return [rel.fromId, rel.toId].sort().join('::') + `::${rel.type}`;
     }
     return `${rel.fromId}::${rel.toId}::${rel.type}`;
+}
+
+function mergeStoredGenealogy(
+    storedMembers: FamilyMember[] | null,
+    storedRelationships: Relationship[] | null,
+    storedEvents: FamilyEvent[] | null,
+    defaultsMembers: FamilyMember[],
+    defaultsRelationships: Relationship[],
+    defaultsEvents: FamilyEvent[],
+) {
+    const mergedMembers = [...defaultsMembers];
+    const oldToResolvedIds = new Map<string, string>();
+
+    for (const storedMember of storedMembers || []) {
+        const matched = mergedMembers.find((member) =>
+            member.id === storedMember.id || localMemberMatch(member, storedMember),
+        );
+
+        if (matched) {
+            oldToResolvedIds.set(storedMember.id, matched.id);
+            const index = mergedMembers.findIndex((member) => member.id === matched.id);
+            mergedMembers[index] = {
+                ...matched,
+                ...storedMember,
+                id: matched.id,
+            };
+            continue;
+        }
+
+        mergedMembers.push(storedMember);
+    }
+
+    const remapId = (id: string) => oldToResolvedIds.get(id) || id;
+    const mergedRelationships = new Map<string, Relationship>();
+
+    for (const rel of defaultsRelationships) {
+        mergedRelationships.set(relationshipKey(rel), rel);
+    }
+
+    for (const rel of storedRelationships || []) {
+        const remapped: Relationship = {
+            ...rel,
+            fromId: remapId(rel.fromId),
+            toId: remapId(rel.toId),
+        };
+        mergedRelationships.set(relationshipKey(remapped), remapped);
+    }
+
+    const mergedEvents = [...defaultsEvents];
+    const seenEventKeys = new Set(
+        defaultsEvents.map((event) => `${event.memberId}::${event.type}::${String(event.date).slice(0, 10)}::${event.title}`),
+    );
+
+    for (const event of storedEvents || []) {
+        const remappedEvent: FamilyEvent = {
+            ...event,
+            memberId: remapId(event.memberId),
+        };
+        const key = `${remappedEvent.memberId}::${remappedEvent.type}::${String(remappedEvent.date).slice(0, 10)}::${remappedEvent.title}`;
+        if (seenEventKeys.has(key)) {
+            continue;
+        }
+        seenEventKeys.add(key);
+        mergedEvents.push(remappedEvent);
+    }
+
+    return {
+        members: mergedMembers,
+        relationships: Array.from(mergedRelationships.values()),
+        events: mergedEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    };
 }
 
 function mergeCanonicalGenealogy(
@@ -358,9 +460,17 @@ function mergeCanonicalGenealogy(
 
 // Helper to fetch from the new Postgres Backend Router
 async function loadGenealogyFromBackend() {
-    const baseMembers = loadFromStorage(STORAGE_KEYS.members, DEFAULT_MEMBERS);
-    const baseRelationships = loadFromStorage(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
-    const baseEvents = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
+    const mergedLocal = mergeStoredGenealogy(
+        loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members),
+        loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships),
+        loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events),
+        DEFAULT_MEMBERS,
+        DEFAULT_RELATIONSHIPS,
+        DEFAULT_EVENTS,
+    );
+    const baseMembers = mergedLocal.members;
+    const baseRelationships = mergedLocal.relationships;
+    const baseEvents = mergedLocal.events;
     const baseSources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
 
     try {
@@ -398,11 +508,32 @@ async function loadGenealogyFromBackend() {
     _sources = baseSources;
 }
 
-// Block module execution until hydrated from Postgres!
-await loadGenealogyFromBackend();
+export function hydrateGenealogyInBackground(force = false): Promise<void> {
+    if (_genealogyHydrated && !force) {
+        return Promise.resolve();
+    }
+
+    if (_genealogyHydrationPromise && !force) {
+        return _genealogyHydrationPromise;
+    }
+
+    _genealogyHydrationPromise = loadGenealogyFromBackend()
+        .catch((error) => {
+            console.warn('Genealogy hydration fell back to local cache', error);
+        })
+        .finally(() => {
+            _genealogyHydrated = true;
+            _genealogyHydrationPromise = null;
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('everafter:genealogy-hydrated'));
+            }
+        });
+
+    return _genealogyHydrationPromise;
+}
 
 function ensureLoaded() {
-    // Top-level await guarantees arrays are hydrated.
+    void hydrateGenealogyInBackground();
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -523,10 +654,17 @@ export function getParents(memberId: string): FamilyMember[] {
 
 export function buildFamilyTree(): FamilyTreeNode[] {
     ensureLoaded();
-    const roots = _members!.filter(m => {
+    let roots = _members!.filter(m => {
         const hasParents = _relationships!.some(r => r.type === 'parent' && r.toId === m.id);
         return !hasParents && m.gender === 'male';
     });
+
+    if (roots.length === 0) {
+        roots = _members!.filter(m => {
+            const hasParents = _relationships!.some(r => r.type === 'parent' && r.toId === m.id);
+            return !hasParents;
+        });
+    }
 
     function buildNode(member: FamilyMember): FamilyTreeNode {
         const spouse = getSpouse(member.id);

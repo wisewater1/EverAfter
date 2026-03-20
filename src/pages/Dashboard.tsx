@@ -1,22 +1,23 @@
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import MobileMenu from '../components/MobileMenu';
-import UnifiedActivityCenter from '../components/UnifiedActivityCenter';
-import FamilyEngrams from '../components/FamilyEngrams';
-import UnifiedFamilyInterface from '../components/UnifiedFamilyInterface';
-import CustomEngramsDashboard from '../components/CustomEngramsDashboard';
-import UnifiedChatInterface from '../components/UnifiedChatInterface';
 import SaintsNavigation from '../components/SaintsNavigation';
-
-import SocietyFeed from '../components/SocietyFeed';
-import TrajectoryDashboard from '../components/TrajectoryDashboard';
-import HolisticTimeline from '../components/HolisticTimeline';
+import { lazyWithRetry } from '../lib/lazyWithRetry';
 import { loadStarterEngramDraft } from '../lib/onboardingDraft';
 import { getOnboardingStatus } from '../lib/onboardingApi';
 import { readStoredPersonalityProfile } from '../lib/joseph/personalityProfiles';
+
+const UnifiedActivityCenter = lazyWithRetry(() => import('../components/UnifiedActivityCenter'), 'components/UnifiedActivityCenter');
+const FamilyEngrams = lazyWithRetry(() => import('../components/FamilyEngrams'), 'components/FamilyEngrams');
+const UnifiedFamilyInterface = lazyWithRetry(() => import('../components/UnifiedFamilyInterface'), 'components/UnifiedFamilyInterface');
+const CustomEngramsDashboard = lazyWithRetry(() => import('../components/CustomEngramsDashboard'), 'components/CustomEngramsDashboard');
+const UnifiedChatInterface = lazyWithRetry(() => import('../components/UnifiedChatInterface'), 'components/UnifiedChatInterface');
+const SocietyFeed = lazyWithRetry(() => import('../components/SocietyFeed'), 'components/SocietyFeed');
+const TrajectoryDashboard = lazyWithRetry(() => import('../components/TrajectoryDashboard'), 'components/TrajectoryDashboard');
+const HolisticTimeline = lazyWithRetry(() => import('../components/HolisticTimeline'), 'components/HolisticTimeline');
 
 const ONBOARDING_STEPS = [
   'Welcome',
@@ -42,6 +43,20 @@ interface PersonalityResumeState {
   memberName: string;
   answered: number;
   total: number;
+}
+
+function DashboardSectionFallback({ label }: { label: string }) {
+  return (
+    <div className="rounded-3xl border border-slate-800/70 bg-slate-950/55 px-6 py-8 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
+      <div className="flex items-center gap-3">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-400" />
+        <div>
+          <p className="text-sm font-medium text-slate-200">{label}</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Loading in background</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -476,23 +491,39 @@ export default function Dashboard() {
 
           {selectedView === 'activities' && (
             <div className="space-y-8">
-              <HolisticTimeline />
-              <SocietyFeed />
-              <UnifiedActivityCenter />
+              <Suspense fallback={<DashboardSectionFallback label="Holistic Timeline" />}>
+                <HolisticTimeline />
+              </Suspense>
+              <Suspense fallback={<DashboardSectionFallback label="Society Feed" />}>
+                <SocietyFeed />
+              </Suspense>
+              <Suspense fallback={<DashboardSectionFallback label="Unified Activity Center" />}>
+                <UnifiedActivityCenter />
+              </Suspense>
             </div>
           )}
           {selectedView === 'engrams' && (
             <>
-              <TrajectoryDashboard userId={user.id} />
-              <FamilyEngrams />
-              <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
-              <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+              <Suspense fallback={<DashboardSectionFallback label="Trajectory Dashboard" />}>
+                <TrajectoryDashboard userId={user.id} />
+              </Suspense>
+              <Suspense fallback={<DashboardSectionFallback label="Family Engrams" />}>
+                <FamilyEngrams />
+              </Suspense>
+              <Suspense fallback={<DashboardSectionFallback label="Family Hub" />}>
+                <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
+              </Suspense>
+              <Suspense fallback={<DashboardSectionFallback label="Engram Training Center" />}>
+                <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+              </Suspense>
             </>
           )}
 
           {selectedView === 'chat' && (
             <>
-              <UnifiedChatInterface />
+              <Suspense fallback={<DashboardSectionFallback label="Unified Chat Interface" />}>
+                <UnifiedChatInterface />
+              </Suspense>
             </>
           )}
         </div>

@@ -22,7 +22,7 @@ import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
 import MediaIntelligencePanel from './joseph/MediaIntelligencePanel';
 import PersonalityQuiz from './joseph/PersonalityQuiz';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
-import { getFamilyMembers } from '../lib/joseph/genealogy';
+import { getFamilyMembers, hydrateGenealogyInBackground } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
 import FamilyPredictionIntelligencePanel from './joseph/FamilyPredictionIntelligencePanel';
 import CustomEngramsDashboard from './CustomEngramsDashboard';
@@ -74,6 +74,30 @@ function deriveFamilyStatus() {
         }));
 }
 
+const JOSEPH_BOOTSTRAP_TIMEOUT_MS = 3500;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+            reject(new Error(`${label} timed out after ${timeoutMs}ms.`));
+        }, timeoutMs);
+
+        promise
+            .then((value) => resolve(value))
+            .catch((error) => reject(error))
+            .finally(() => window.clearTimeout(timeoutId));
+    });
+}
+
+function buildFallbackSummary(tasks: FamilyTask[], shopping: ShoppingItem[], events: FamilyEvent[]): HouseholdSummary {
+    return {
+        activeTasks: tasks.filter(task => task.status === 'pending').length,
+        upcomingEvents: events.length,
+        shoppingListCount: shopping.filter(item => item.status === 'needed').length,
+        familyStatus: deriveFamilyStatus(),
+    };
+}
+
 export default function StJosephFamilyDashboard() {
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -85,6 +109,8 @@ export default function StJosephFamilyDashboard() {
     const [bulletin, setBulletin] = useState<{ id: string; text: string; author: string }[]>([]);
     const [newBulletin, setNewBulletin] = useState('');
     const [loading, setLoading] = useState(true);
+    const [degradedMode, setDegradedMode] = useState(false);
+    const [loadWarning, setLoadWarning] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
     const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
@@ -107,26 +133,42 @@ export default function StJosephFamilyDashboard() {
             return;
         }
         setLoading(true);
+        setLoadWarning(null);
+        setDegradedMode(false);
         try {
-            const [t, shop, e, bull] = await Promise.all([
-                apiClient.getFamilyTasks(user.id),
-                apiClient.getShoppingList(user.id),
-                apiClient.getFamilyCalendar(user.id),
-                apiClient.getFamilyBulletin(),
+            const results = await Promise.allSettled([
+                withTimeout(apiClient.getFamilyTasks(user.id), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Family tasks'),
+                withTimeout(apiClient.getShoppingList(user.id), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Shopping list'),
+                withTimeout(apiClient.getFamilyCalendar(user.id), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Family calendar'),
+                withTimeout(apiClient.getFamilyBulletin(), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Family bulletin'),
+                withTimeout(hydrateGenealogyInBackground(), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Genealogy'),
             ]);
-            setTasks(t as FamilyTask[]);
-            setShopping(shop as ShoppingItem[]);
-            setEvents(e as FamilyEvent[]);
-            setBulletin(bull);
-            // Build summary from loaded data
-            setSummary({
-                activeTasks: (t as FamilyTask[]).filter(x => x.status === 'pending').length,
-                upcomingEvents: (e as FamilyEvent[]).length,
-                shoppingListCount: (shop as ShoppingItem[]).filter((x: any) => x.status === 'needed').length,
-                familyStatus: deriveFamilyStatus(),
-            });
+
+            const nextTasks = results[0].status === 'fulfilled' ? results[0].value as FamilyTask[] : [];
+            const nextShopping = results[1].status === 'fulfilled' ? results[1].value as ShoppingItem[] : [];
+            const nextEvents = results[2].status === 'fulfilled' ? results[2].value as FamilyEvent[] : [];
+            const nextBulletin = results[3].status === 'fulfilled' ? results[3].value : [];
+            const hasFailures = results.some((result) => result.status === 'rejected');
+
+            setTasks(nextTasks);
+            setShopping(nextShopping);
+            setEvents(nextEvents);
+            setBulletin(nextBulletin);
+            setSummary(buildFallbackSummary(nextTasks, nextShopping, nextEvents));
+
+            if (hasFailures) {
+                setDegradedMode(true);
+                setLoadWarning('St. Joseph entered recovery mode. Slow backend calls were skipped so the dashboard could render immediately.');
+            }
         } catch (error) {
             console.error('Error loading family data:', error);
+            setTasks([]);
+            setShopping([]);
+            setEvents([]);
+            setBulletin([]);
+            setSummary(buildFallbackSummary([], [], []));
+            setDegradedMode(true);
+            setLoadWarning(error instanceof Error ? error.message : 'St. Joseph switched to recovery mode.');
         } finally {
             setLoading(false);
         }
@@ -171,6 +213,15 @@ export default function StJosephFamilyDashboard() {
     }, [authLoading, user]);
 
     useEffect(() => {
+        const handleHydrated = () => {
+            setSummary((current) => current ? { ...current, familyStatus: deriveFamilyStatus() } : buildFallbackSummary(tasks, shopping, events));
+        };
+
+        window.addEventListener('everafter:genealogy-hydrated', handleHydrated);
+        return () => window.removeEventListener('everafter:genealogy-hydrated', handleHydrated);
+    }, [events, shopping, tasks]);
+
+    useEffect(() => {
         const requestedTab = searchParams.get('tab');
         const requestedMemberId = searchParams.get('memberId');
         if (!requestedTab && !requestedMemberId) return;
@@ -192,7 +243,7 @@ export default function StJosephFamilyDashboard() {
         setSearchParams(nextSearchParams, { replace: true });
     }, [searchParams, setSearchParams]);
 
-    if (authLoading || loading) {
+    if (authLoading) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
@@ -202,6 +253,8 @@ export default function StJosephFamilyDashboard() {
             </div>
         );
     }
+
+    const resolvedSummary = summary ?? buildFallbackSummary(tasks, shopping, events);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
@@ -232,6 +285,19 @@ export default function StJosephFamilyDashboard() {
                 </div>
 
                 <SaintsQuickNav />
+
+                {(loading || degradedMode || loadWarning) && (
+                    <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${degradedMode || loadWarning ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : 'border-slate-800 bg-slate-900/60 text-slate-300'}`}>
+                        <div className="flex items-center gap-2">
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : 'text-amber-400'}`} />
+                            <span>
+                                {loading
+                                    ? 'St. Joseph is loading the remaining panels in the background.'
+                                    : loadWarning || 'St. Joseph is running in recovery mode.'}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full max-w-[calc(100vw-2rem)] md:max-w-none hide-scrollbar">
                     {TABS.map(({ key, label, icon: TabIcon }) => (
@@ -396,7 +462,7 @@ export default function StJosephFamilyDashboard() {
                                         Family Status
                                     </h3>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        {summary?.familyStatus.map((member, i) => (
+                                        {resolvedSummary.familyStatus.map((member, i) => (
                                             <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-3">
                                                 <div className={`w-2 h-2 rounded-full ${member.status === 'home' ? 'bg-emerald-400' :
                                                     member.status === 'away' ? 'bg-slate-500' : 'bg-amber-400'
@@ -575,21 +641,21 @@ export default function StJosephFamilyDashboard() {
                                         <CheckSquare className="w-4 h-4 text-slate-400" />
                                         <span className="text-xs text-slate-400 uppercase tracking-wide">Active Tasks</span>
                                     </div>
-                                    <span className="text-lg font-light text-white">{summary?.activeTasks}</span>
+                                    <span className="text-lg font-light text-white">{resolvedSummary.activeTasks}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
                                     <div className="flex items-center gap-3">
                                         <Calendar className="w-4 h-4 text-slate-400" />
                                         <span className="text-xs text-slate-400 uppercase tracking-wide">Family Events</span>
                                     </div>
-                                    <span className="text-lg font-light text-white">{summary?.upcomingEvents}</span>
+                                    <span className="text-lg font-light text-white">{resolvedSummary.upcomingEvents}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
                                     <div className="flex items-center gap-3">
                                         <ShoppingCart className="w-4 h-4 text-slate-400" />
                                         <span className="text-xs text-slate-400 uppercase tracking-wide">Items Needed</span>
                                     </div>
-                                    <span className="text-lg font-light text-white">{summary?.shoppingListCount}</span>
+                                    <span className="text-lg font-light text-white">{resolvedSummary.shoppingListCount}</span>
                                 </div>
                             </div>
                         </div>
