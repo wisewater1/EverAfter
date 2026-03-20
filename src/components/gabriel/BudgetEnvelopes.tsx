@@ -1,123 +1,162 @@
-import { useState, useEffect } from 'react';
-import { MoreHorizontal, Loader2 } from 'lucide-react';
-import { financeApi, BudgetEnvelope } from '../../lib/gabriel/finance';
+import { useEffect, useState } from 'react';
+import { Loader2, MoreHorizontal } from 'lucide-react';
+
 import CategoryManager from './CategoryManager';
+import { BudgetEnvelope, financeApi } from '../../lib/gabriel/finance';
 
 export default function BudgetEnvelopes() {
-    const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>([]);
+    const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(() => financeApi.getCachedBudget());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [degradedMode, setDegradedMode] = useState(false);
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
 
     useEffect(() => {
-        loadBudget();
+        void loadBudget();
     }, []);
 
     async function loadBudget() {
+        setLoading(true);
+        setDegradedMode(false);
+
+        const liveRequest = financeApi.getBudget();
+
         try {
-            setLoading(true);
-            const data = await financeApi.getBudget();
-            setEnvelopes(data);
+            const timeoutResult = await Promise.race([
+                liveRequest.then((data) => ({ kind: 'data' as const, data })),
+                new Promise<{ kind: 'timeout' }>((resolve) => {
+                    window.setTimeout(() => resolve({ kind: 'timeout' }), 4500);
+                }),
+            ]);
+
+            if (timeoutResult.kind === 'timeout') {
+                const cached = financeApi.getCachedBudget();
+                setEnvelopes(cached);
+                setDegradedMode(true);
+                setError(
+                    cached.length > 0
+                        ? 'Live budget sync is taking longer than expected. Showing the last known envelope snapshot.'
+                        : 'Live budget sync is taking longer than expected. Recovery mode is active until Gabriel reconnects.'
+                );
+                setLoading(false);
+
+                try {
+                    const recovered = await liveRequest;
+                    setEnvelopes(recovered);
+                    setError(null);
+                    setDegradedMode(false);
+                } catch (err: any) {
+                    console.error('Budget recovery fetch failed:', err);
+                    setEnvelopes(financeApi.getCachedBudget());
+                    setDegradedMode(true);
+                    setError(err?.message || 'Failed to load budget envelopes');
+                }
+                return;
+            }
+
+            setEnvelopes(timeoutResult.data);
             setError(null);
         } catch (err: any) {
             console.error('Failed to load budget:', err);
+            setEnvelopes(financeApi.getCachedBudget());
+            setDegradedMode(true);
             setError(err?.message || 'Failed to load budget envelopes');
         } finally {
             setLoading(false);
         }
     }
 
-    if (loading) {
-        return (
-            <div className="flex h-64 items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-            </div>
-        );
-    }
-
-    // Group envelopes by 'group' property
-    const groupedEnvelopes = envelopes.reduce((groups, env) => {
-        const group = env.group;
+    const groupedEnvelopes = envelopes.reduce((groups, envelope) => {
+        const group = envelope.group || 'Uncategorized';
         if (!groups[group]) {
             groups[group] = [];
         }
-        groups[group].push(env);
+        groups[group].push(envelope);
         return groups;
     }, {} as Record<string, BudgetEnvelope[]>);
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800/50">
+            <div className="flex items-center justify-between rounded-2xl border border-slate-800/50 bg-slate-900/50 p-4">
                 <div>
                     <h2 className="text-lg font-semibold text-white">Monthly Budget</h2>
                     <p className="text-sm text-slate-500">Assign your income to envelopes</p>
                 </div>
                 <button
                     onClick={() => setIsCategoryManagerOpen(true)}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors border border-slate-700 hover:border-slate-600"
+                    className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-slate-600 hover:bg-slate-700"
                 >
                     Manage Categories
                 </button>
             </div>
 
             {error && (
-                <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-sm">
-                    <strong>⚠ API Error:</strong> {error}
+                <div className={`rounded-xl border p-4 text-sm ${degradedMode ? 'border-amber-500/20 bg-amber-500/10 text-amber-200' : 'border-rose-500/20 bg-rose-500/10 text-rose-400'}`}>
+                    <strong>{degradedMode ? 'Recovery mode:' : 'API error:'}</strong> {error}
                     {error.includes('401') && (
-                        <p className="text-xs text-rose-300/60 mt-1">Your session may have expired. Try logging out and back in.</p>
+                        <p className="mt-1 text-xs text-rose-300/60">Your session may have expired. Try logging out and back in.</p>
                     )}
                 </div>
             )}
 
+            {loading && (
+                <div className="flex items-center gap-3 rounded-xl border border-sky-500/20 bg-sky-500/10 p-4 text-sm text-sky-200">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>
+                        {envelopes.length > 0
+                            ? 'Refreshing live finance data. Showing the last known envelope snapshot while Gabriel reconnects.'
+                            : 'Connecting to live finance data. The envelope view will fail open if the backend stays slow.'}
+                    </span>
+                </div>
+            )}
+
             {Object.entries(groupedEnvelopes).map(([groupName, groupEnvelopes]) => (
-                <div key={groupName} className="bg-slate-900/50 rounded-2xl border border-slate-800/50 overflow-hidden">
-                    <div className="px-6 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">{groupName}</h3>
-                        <div className="text-xs text-slate-500 font-mono">
-                            Available: ${groupEnvelopes.reduce((sum, e) => sum + e.available, 0).toLocaleString()}
+                <div key={groupName} className="overflow-hidden rounded-2xl border border-slate-800/50 bg-slate-900/50">
+                    <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-3">
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">{groupName}</h3>
+                        <div className="font-mono text-xs text-slate-500">
+                            Available: ${groupEnvelopes.reduce((sum, envelope) => sum + envelope.available, 0).toLocaleString()}
                         </div>
                     </div>
                     <div>
-                        {groupEnvelopes.map(env => (
-                            <div key={env.id} className="flex items-center px-6 py-4 hover:bg-slate-800/30 transition-colors border-b border-slate-800/50 last:border-0 group">
+                        {groupEnvelopes.map((envelope) => (
+                            <div key={envelope.id} className="group flex items-center border-b border-slate-800/50 px-6 py-4 transition-colors last:border-0 hover:bg-slate-800/30">
                                 <div className="w-1/3 min-w-[200px]">
-                                    <div className="font-medium text-slate-200">{env.category_name}</div>
+                                    <div className="font-medium text-slate-200">{envelope.category_name}</div>
                                 </div>
-                                <div className="flex-1 grid grid-cols-3 gap-4 text-right font-mono text-sm">
+                                <div className="grid flex-1 grid-cols-3 gap-4 text-right font-mono text-sm">
                                     <div className="text-right">
                                         <input
                                             type="number"
-                                            className="w-24 bg-transparent text-right text-slate-400 focus:text-white focus:outline-none border-b border-transparent focus:border-emerald-500 transition-colors"
-                                            defaultValue={env.assigned}
-                                            onBlur={(e) => {
-                                                const val = parseFloat(e.target.value);
-                                                if (!isNaN(val) && val !== env.assigned) {
-                                                    financeApi.updateEnvelope(env.id, val).then(() => loadBudget());
+                                            className="w-24 border-b border-transparent bg-transparent text-right text-slate-400 transition-colors focus:border-emerald-500 focus:text-white focus:outline-none"
+                                            defaultValue={envelope.assigned}
+                                            onBlur={(event) => {
+                                                const value = parseFloat(event.target.value);
+                                                if (!Number.isNaN(value) && value !== envelope.assigned) {
+                                                    void financeApi.updateEnvelope(envelope.id, value).then(() => loadBudget());
                                                 }
                                             }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.currentTarget.blur();
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.currentTarget.blur();
                                                 }
                                             }}
                                         />
                                     </div>
-                                    <div className="text-slate-400 text-rose-400">${Math.abs(env.activity).toLocaleString()}</div>
-                                    <div className={`font-medium ${env.available < 0 ? 'text-rose-400' : env.available === 0 ? 'text-slate-500' : 'text-emerald-400'}`}>
-                                        ${env.available.toLocaleString()}
+                                    <div className="text-rose-400">${Math.abs(envelope.activity).toLocaleString()}</div>
+                                    <div className={`font-medium ${envelope.available < 0 ? 'text-rose-400' : envelope.available === 0 ? 'text-slate-500' : 'text-emerald-400'}`}>
+                                        ${envelope.available.toLocaleString()}
                                     </div>
                                 </div>
-                                <div className="w-32 ml-6">
-                                    {/* Progress Bar */}
-                                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div className="ml-6 w-32">
+                                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                                         <div
-                                            className={`h-full rounded-full ${env.available < 0 ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                                            // Simple progress calculation: spending / assigned
-                                            style={{ width: `${Math.min(100, Math.abs(env.activity / (env.assigned || 1) * 100)) || 0}%` }}
-                                        ></div>
+                                            className={`h-full rounded-full ${envelope.available < 0 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                                            style={{ width: `${Math.min(100, Math.abs(envelope.activity / (envelope.assigned || 1) * 100)) || 0}%` }}
+                                        />
                                     </div>
                                 </div>
-                                <button className="ml-4 p-1 text-slate-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all">
+                                <button className="ml-4 p-1 text-slate-600 opacity-0 transition-all hover:text-white group-hover:opacity-100">
                                     <MoreHorizontal className="w-4 h-4" />
                                 </button>
                             </div>
@@ -127,8 +166,21 @@ export default function BudgetEnvelopes() {
             ))}
 
             {envelopes.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                    No budget envelopes found. Add a category to start budgeting.
+                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 py-14 text-center text-slate-400">
+                    <p className="text-sm font-medium text-slate-200">
+                        {loading
+                            ? 'Loading finance data...'
+                            : degradedMode
+                                ? 'Gabriel is online in degraded mode.'
+                                : 'No budget envelopes found yet.'}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-500">
+                        {loading
+                            ? 'Live budget data is still loading. If the backend remains unavailable, this panel will stay usable instead of hanging.'
+                            : degradedMode
+                            ? 'Live finance data is unavailable, so the center pane is falling open with an empty envelope view instead of hanging.'
+                            : 'Add a category to start budgeting.'}
+                    </p>
                 </div>
             )}
 

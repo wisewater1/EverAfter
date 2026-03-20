@@ -25,9 +25,8 @@ import {
 import {
   buildRadarDataFromScores,
   storePersonalityProfile,
-  toOceanScores,
 } from '../../lib/joseph/personalityProfiles';
-import { apiClient } from '../../lib/api-client';
+import { importLocalOnboarding } from '../../lib/onboardingApi';
 import { saveStarterEngramDraft } from '../../lib/onboardingDraft';
 
 interface FirstEngramData {
@@ -534,12 +533,6 @@ export default function FirstEngramStep({
       });
       storePersonalityProfile(primaryMember.id, storedProfile);
 
-      try {
-        await apiClient.submitOceanProfile(primaryMember.id, toOceanScores(storedProfile.scores));
-      } catch (syncError) {
-        console.error('Failed to sync onboarding OCEAN profile:', syncError);
-      }
-
       relatives.forEach((relative) => ensureRelativeMember(relative, primaryMember.id));
 
       saveStarterEngramDraft(userId, {
@@ -557,6 +550,27 @@ export default function FirstEngramStep({
         },
         primaryMemberId: primaryMember.id,
       });
+
+      try {
+        await importLocalOnboarding({
+          completed_steps: ['first_engram'],
+          first_engram: {
+            name: engramName.trim(),
+            archetype: selectedArchetype || archetype.id,
+          },
+          personality_quiz: {
+            answers: quizAnswers,
+            scores,
+          },
+          family_setup: {
+            selfName: selfName.trim(),
+            relatives,
+          },
+          primary_member_id: primaryMember.id,
+        });
+      } catch (syncError) {
+        console.error('Failed to import onboarding family/personality state into canonical backend:', syncError);
+      }
 
       onNext();
     } catch (creationError) {

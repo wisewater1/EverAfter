@@ -212,9 +212,18 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
 
             {/* Tree */}
             <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
-                <div className="space-y-2">
-                    {tree.map(root => renderNode(root))}
-                </div>
+                {tree.length > 0 ? (
+                    <div className="space-y-2">
+                        {tree.map(root => renderNode(root))}
+                    </div>
+                ) : (
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
+                        <div className="text-sm text-slate-300">No family members are visible yet.</div>
+                        <div className="mt-2 text-xs text-slate-500">
+                            Seeded demo relatives or your saved family records should appear here. If they do not, refresh the page or add a member to initialize the tree.
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Member Detail Panel */}

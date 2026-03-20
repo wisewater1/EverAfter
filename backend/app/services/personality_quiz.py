@@ -398,10 +398,21 @@ class PersonalityQuizEngine:
         self,
         session_id: str,
         answers: Dict[str, int],
+        member_id: str = "",
+        member_name: str = "",
     ) -> Dict[str, Any]:
         session = self._sessions.get(session_id)
         if not session:
-            return {"error": "Session not found"}
+            if not member_id:
+                return {"error": "Session not found"}
+            session = {
+                "session_id": session_id or str(uuid.uuid4())[:12],
+                "member_id": member_id,
+                "member_name": member_name,
+                "answers": {},
+                "started_at": datetime.utcnow().isoformat(),
+                "completed": False,
+            }
 
         session["answers"] = answers
         session["completed"] = True

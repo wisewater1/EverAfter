@@ -37,9 +37,18 @@ async def submit_answers(payload: Dict[str, Any] = Body(...)):
     """Submit all answers and get the personality profile."""
     session_id = payload.get("session_id", "")
     answers = payload.get("answers", {})
-    if not session_id:
-        return {"error": "session_id is required"}
-    return _engine().submit_answers(session_id, answers)
+    member_id = payload.get("member_id", "")
+    member_name = payload.get("member_name", "")
+
+    if not session_id and not member_id:
+        return {"error": "session_id or member_id is required"}
+
+    return _engine().submit_answers(
+        session_id=session_id,
+        answers=answers,
+        member_id=member_id,
+        member_name=member_name,
+    )
 
 
 @router.get("/profile/{member_id}")

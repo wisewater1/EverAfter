@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { reconcileOnboarding } from '../../lib/onboardingApi';
 import {
   Camera,
   Image,
@@ -102,6 +103,21 @@ export default function MediaPermissionsStep({
     setError(null);
 
     try {
+      try {
+        await reconcileOnboarding({
+          media_consent: localData,
+          completed_steps: ['media_permissions'],
+        });
+        onNext();
+        return;
+      } catch (backendError) {
+        console.warn('Canonical media consent sync failed, falling back to Supabase:', backendError);
+      }
+
+      if (!supabase) {
+        throw new Error('Supabase is unavailable.');
+      }
+
       // Save consent to database
       const { error: dbError } = await supabase.from('media_consent').upsert(
         {

@@ -1,6 +1,14 @@
 import { API_BASE_URL, isDevelopment } from './env';
 
-const EXPLICIT_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const BACKEND_BASE_URL_CANDIDATES = [
+  import.meta.env.VITE_API_BASE_URL,
+  import.meta.env.VITE_API_FALLBACK_URL,
+  import.meta.env.VITE_API_TUNNEL_URL,
+  import.meta.env.VITE_RENDER_API_URL,
+  import.meta.env.VITE_LOCAL_API_URL,
+]
+  .map((value) => String(value || '').replace(/\/$/, ''))
+  .filter(Boolean);
 const DEFAULT_BACKEND_TIMEOUT_MS = 8000;
 
 function normalizeErrorMessage(message: string, endpoint: string): string {
@@ -22,8 +30,8 @@ export function getBackendCandidateUrls(endpoint: string): string[] {
     candidates.add(`${API_BASE_URL}${endpoint}`);
   }
 
-  if (EXPLICIT_API_BASE_URL) {
-    candidates.add(`${EXPLICIT_API_BASE_URL}${endpoint}`);
+  for (const baseUrl of BACKEND_BASE_URL_CANDIDATES) {
+    candidates.add(`${baseUrl}${endpoint}`);
   }
 
   if (isDevelopment && endpoint.startsWith('/api/v1')) {

@@ -88,6 +88,7 @@ export default function StJosephFamilyDashboard() {
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
     const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
+    const [activeQuizMemberId, setActiveQuizMemberId] = useState<string | null>(null);
 
     const handleTrainMember = (engramId: string) => {
         setTrainingTargetId(engramId);
@@ -96,6 +97,7 @@ export default function StJosephFamilyDashboard() {
 
     const handleStartPersonalityQuiz = (memberId: string) => {
         setQuizTargetMemberId(memberId);
+        setActiveQuizMemberId(memberId);
         setActiveTab('quiz');
     };
 
@@ -181,6 +183,7 @@ export default function StJosephFamilyDashboard() {
 
         if (requestedMemberId) {
             setQuizTargetMemberId(requestedMemberId);
+            setActiveQuizMemberId(requestedMemberId);
         }
 
         const nextSearchParams = new URLSearchParams(searchParams);
@@ -270,8 +273,9 @@ export default function StJosephFamilyDashboard() {
                             <PersonalityQuiz
                                 initialMemberId={quizTargetMemberId}
                                 onAutoStartConsumed={() => setQuizTargetMemberId(null)}
+                                onActiveMemberChange={setActiveQuizMemberId}
                             />
-                            {user?.id && <OceanBehavioralLayer personId={user.id} />}
+                            {(activeQuizMemberId || user?.id) && <OceanBehavioralLayer personId={activeQuizMemberId || user!.id} />}
                             <TellMyStoryPartnerCard
                                 title="Create Your AI from OCEAN + story data"
                                 description="Use TellMyStory.ai to collect the narrative context behind each family member’s OCEAN profile, then carry that memory layer back into EverAfter."

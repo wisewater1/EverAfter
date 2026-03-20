@@ -1,4 +1,4 @@
-import { API_BASE_URL, isDevelopment } from '../../lib/env';
+import { requestBackendJson, requestBackendResponse } from '../backend-request';
 import { supabase } from '../supabase';
 
 export interface TransactionCategory {
@@ -71,6 +71,7 @@ export interface BankStatusResponse {
 }
 
 const FINANCE_CACHE_KEYS = {
+  budget: 'everafter_finance_budget_cache',
   transactions: 'everafter_finance_transactions_cache',
   bankStatus: 'everafter_finance_bank_status_cache',
 } as const;
@@ -94,116 +95,52 @@ function writeFinanceCache<T>(key: string, value: T) {
   }
 }
 
-function getCandidateUrls(endpoint: string): string[] {
-  const candidates = new Set<string>();
-
-  if (endpoint.startsWith('/')) {
-    candidates.add(endpoint);
-  }
-
-  if (API_BASE_URL) {
-    candidates.add(`${API_BASE_URL}${endpoint}`);
-  }
-
-  if (isDevelopment && endpoint.startsWith('/api/v1')) {
-    candidates.add(`http://localhost:8010${endpoint}`);
-  }
-
-  return Array.from(candidates);
-}
-
-function parseJsonText<T>(text: string, endpoint: string): T {
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    const compact = text.trim().slice(0, 120).replace(/\s+/g, ' ');
-    if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-      throw new Error(`Finance API returned HTML for ${endpoint}. Check backend routing or VITE_API_BASE_URL.`);
-    }
-    throw new Error(`Finance API returned invalid JSON for ${endpoint}.`);
-  }
-}
-
-async function readJsonResponse<T>(response: Response, endpoint: string): Promise<T> {
-  const text = await response.text();
-  if (!text) {
-    return {} as T;
-  }
-  return parseJsonText<T>(text, endpoint);
-}
-
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
   const token = sessionResult.data.session?.access_token;
 
-  const headers = {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  return requestBackendResponse(endpoint, { ...options, headers }, `Finance API request failed for ${endpoint}.`);
+}
+
+async function fetchJsonWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+  const token = sessionResult.data.session?.access_token;
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  let lastError: Error | null = null;
-
-  for (const candidateUrl of getCandidateUrls(endpoint)) {
-    try {
-      const response = await fetch(candidateUrl, {
-        ...options,
-        headers,
-      });
-
-      const contentType = response.headers.get('content-type') || '';
-
-      if (!response.ok) {
-        let detail = '';
-        const bodyText = await response.text();
-        if (bodyText) {
-          try {
-            const parsed = JSON.parse(bodyText);
-            detail = parsed?.detail || parsed?.error || '';
-          } catch {
-            detail = bodyText.trim().slice(0, 160);
-          }
-        }
-
-        if (detail.startsWith('<!doctype') || detail.startsWith('<html')) {
-          lastError = new Error(`Finance API route ${candidateUrl} returned HTML instead of JSON.`);
-          continue;
-        }
-
-        throw new Error(detail || `API Error ${response.status}: ${response.statusText}`);
-      }
-
-      if (!contentType.includes('application/json')) {
-        const bodyText = await response.text();
-        const compact = bodyText.trim().slice(0, 120).replace(/\s+/g, ' ');
-        if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-          lastError = new Error(`Finance API route ${candidateUrl} returned HTML instead of JSON.`);
-          continue;
-        }
-        throw new Error(`Finance API returned unsupported content for ${endpoint}.`);
-      }
-
-      return response;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Finance API request failed.');
-      if (!isDevelopment) {
-        break;
-      }
-    }
-  }
-
-  throw lastError || new Error(`Finance API request failed for ${endpoint}.`);
-}
-
-async function fetchJsonWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetchWithAuth(endpoint, options);
-  return readJsonResponse<T>(response, endpoint);
+  return requestBackendJson<T>(
+    endpoint,
+    { ...options, headers },
+    `Finance API request failed for ${endpoint}.`,
+  );
 }
 
 export const financeApi = {
   getBudget: async (month?: string): Promise<BudgetEnvelope[]> => {
     const query = month ? `?month=${month}` : '';
-    return fetchJsonWithAuth<BudgetEnvelope[]>(`/api/v1/finance/budget${query}`);
+    try {
+      const budget = await fetchJsonWithAuth<BudgetEnvelope[]>(`/api/v1/finance/budget${query}`);
+      writeFinanceCache(FINANCE_CACHE_KEYS.budget, budget);
+      return budget;
+    } catch (error) {
+      const cached = readFinanceCache<BudgetEnvelope[]>(FINANCE_CACHE_KEYS.budget, []);
+      if (cached.length > 0) {
+        return cached;
+      }
+      throw error;
+    }
+  },
+
+  getCachedBudget: (): BudgetEnvelope[] => {
+    return readFinanceCache<BudgetEnvelope[]>(FINANCE_CACHE_KEYS.budget, []);
   },
 
   getCategories: async (): Promise<{ id: string; name: string; group?: string }[]> => {
@@ -262,6 +199,10 @@ export const financeApi = {
     }
   },
 
+  getCachedTransactions: (limit: number = 50): Transaction[] => {
+    return readFinanceCache<Transaction[]>(FINANCE_CACHE_KEYS.transactions, []).slice(0, limit);
+  },
+
   transferFunds: async (transfer: TransferRequest): Promise<void> => {
     await fetchWithAuth('/api/v1/finance/budget/transfer', {
       method: 'POST',
@@ -291,6 +232,10 @@ export const financeApi = {
       }
       throw error;
     }
+  },
+
+  getCachedBankStatus: (): BankStatusResponse | null => {
+    return readFinanceCache<BankStatusResponse | null>(FINANCE_CACHE_KEYS.bankStatus, null);
   },
 
   createBankLinkToken: async (): Promise<{ link_token: string; expiration?: string | null }> => {

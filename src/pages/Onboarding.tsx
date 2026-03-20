@@ -13,6 +13,7 @@ import OnboardingComplete from '../components/onboarding/OnboardingComplete';
 import { Loader2 } from 'lucide-react';
 import { withTimeout } from '../lib/withTimeout';
 import { loadHealthProfileDraft, loadStarterEngramDraft, saveStarterEngramDraft } from '../lib/onboardingDraft';
+import { getOnboardingStatus, reconcileOnboarding } from '../lib/onboardingApi';
 
 export type OnboardingStep =
   | 'welcome'
@@ -119,6 +120,95 @@ export default function Onboarding() {
     }
 
     try {
+      try {
+        const statusBundle = await withTimeout(
+          getOnboardingStatus(),
+          ONBOARDING_LOAD_TIMEOUT_MS,
+          'Timed out while loading canonical onboarding status'
+        );
+
+        const profile = statusBundle?.profile;
+        const status = statusBundle?.onboarding_status;
+        const demographics = statusBundle?.health_profile;
+        const mediaConsent = statusBundle?.media_consent;
+
+        if (profile?.has_completed_onboarding) {
+          navigate('/dashboard');
+          return;
+        }
+
+        if (status) {
+          setCompletedSteps(status.completed_steps || []);
+          const savedStepIndex = Math.max((status.current_step ?? 1) - 1, 0);
+          const savedStep = STEP_ORDER[Math.min(savedStepIndex, STEP_ORDER.length - 2)];
+
+          if (savedStep) {
+            setCurrentStep(savedStep);
+          }
+        }
+
+        const healthProfileFromBackend = demographics
+          ? {
+              dateOfBirth: demographics.date_of_birth,
+              gender: demographics.gender,
+              weightKg: demographics.weight_kg,
+              heightCm: demographics.height_cm,
+              healthConditions: demographics.health_conditions || [],
+              allergies: demographics.allergies || [],
+              healthGoals: demographics.health_goals || [],
+              activityLevel: demographics.activity_level,
+            }
+          : null;
+
+        const mediaConsentFromBackend = mediaConsent
+          ? {
+              photoLibraryAccess: Boolean(mediaConsent.photo_library_access),
+              cameraAccess: Boolean(mediaConsent.camera_access),
+              videoAccess: Boolean(mediaConsent.video_access),
+              allowFaceDetection: Boolean(mediaConsent.allow_face_detection),
+              allowExpressionAnalysis: Boolean(mediaConsent.allow_expression_analysis),
+            }
+          : null;
+
+        const healthProfileDraft = loadHealthProfileDraft(user.id);
+        const starterEngramDraft = loadStarterEngramDraft(user.id);
+
+        setOnboardingData((prev) => ({
+          ...prev,
+          healthProfile: {
+            ...prev.healthProfile,
+            ...(healthProfileFromBackend || {}),
+            ...(healthProfileDraft || {}),
+          },
+          mediaConsent: mediaConsentFromBackend || prev.mediaConsent,
+          firstEngram:
+            statusBundle?.first_engram
+              ? {
+                  name: statusBundle.first_engram.name,
+                  archetype: statusBundle.first_engram.archetype,
+                }
+              : starterEngramDraft?.firstEngram || prev.firstEngram,
+          personalityQuiz:
+            statusBundle?.personality_quiz || starterEngramDraft?.personalityQuiz || prev.personalityQuiz,
+          familySetup:
+            statusBundle?.family_setup || starterEngramDraft?.familySetup || prev.familySetup,
+        }));
+
+        if (healthProfileDraft && !healthProfileFromBackend) {
+          setLoadWarning(
+            'Recovered an unsynced health profile draft from this device. Continue onboarding to retry canonical backend sync.'
+          );
+        } else if (starterEngramDraft && !statusBundle?.family_setup) {
+          setLoadWarning(
+            'Recovered your AI and family setup from this device. Continue onboarding to import it into the canonical onboarding backend.'
+          );
+        }
+
+        return;
+      } catch (backendError) {
+        console.warn('Canonical onboarding status unavailable, falling back to Supabase reads:', backendError);
+      }
+
       if (!supabase) {
         setLoadWarning('Supabase is unavailable. Onboarding is running in limited mode.');
         return;
@@ -264,6 +354,15 @@ export default function Onboarding() {
       const newCompletedSteps = Array.from(new Set([...completedSteps, step]));
       setCompletedSteps(newCompletedSteps);
 
+      try {
+        await reconcileOnboarding({
+          current_step: STEP_ORDER.indexOf(step) + 2,
+          completed_steps: newCompletedSteps,
+        });
+      } catch (backendError) {
+        console.warn('Canonical onboarding step sync failed, falling back to Supabase:', backendError);
+      }
+
       // Update onboarding status in database
       await supabase
         .from('onboarding_status')
@@ -299,6 +398,17 @@ export default function Onboarding() {
     try {
       const skippedStepIndex = Math.max(STEP_ORDER.indexOf(currentStep), 0) + 1;
 
+      try {
+        await reconcileOnboarding({
+          current_step: skippedStepIndex,
+          completed_steps: completedSteps,
+          onboarding_skipped: true,
+          skip_reason: 'User chose to skip',
+        });
+      } catch (backendError) {
+        console.warn('Canonical onboarding skip sync failed, falling back to Supabase:', backendError);
+      }
+
       // Mark onboarding as skipped
       await supabase
         .from('profiles')
@@ -329,6 +439,20 @@ export default function Onboarding() {
   const handleComplete = async () => {
     setSaving(true);
     try {
+      try {
+        await reconcileOnboarding({
+          current_step: STEP_ORDER.length,
+          completed_steps: Array.from(new Set([...completedSteps, 'first_engram'])),
+          onboarding_complete: true,
+          onboarding_skipped: false,
+          family_setup: onboardingData.familySetup,
+          first_engram: onboardingData.firstEngram,
+          personality_quiz: onboardingData.personalityQuiz,
+        });
+      } catch (backendError) {
+        console.warn('Canonical onboarding completion sync failed, falling back to Supabase:', backendError);
+      }
+
       // Mark onboarding as complete
       await supabase
         .from('onboarding_status')

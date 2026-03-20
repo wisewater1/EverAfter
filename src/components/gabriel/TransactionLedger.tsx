@@ -17,12 +17,12 @@ type FilterMode = 'all' | 'bank' | 'manual';
 type SortMode = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
 
 export default function TransactionLedger() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => financeApi.getCachedTransactions(100));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [bankStatus, setBankStatus] = useState<BankStatusResponse | null>(null);
+  const [bankStatus, setBankStatus] = useState<BankStatusResponse | null>(() => financeApi.getCachedBankStatus());
   const [bankLoading, setBankLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
@@ -141,14 +141,6 @@ export default function TransactionLedger() {
     });
   }, [transactions, searchQuery, filterMode, sortMode]);
 
-  if (loading && transactions.length === 0) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-      </div>
-    );
-  }
-
   const bankButtonLabel = bankStatus?.connected ? 'Sync Bank' : 'Connect Bank';
 
   return (
@@ -223,6 +215,19 @@ export default function TransactionLedger() {
         </div>
 
         <div className="mt-4 flex flex-col gap-3 md:flex-row md:flex-wrap">
+          {loading && (
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>
+                  {transactions.length > 0
+                    ? 'Refreshing live ledger data. Showing the last known transaction snapshot while Gabriel reconnects.'
+                    : 'Connecting to live ledger data. This screen will fall open instead of hanging if the backend stays slow.'}
+                </span>
+              </div>
+            </div>
+          )}
+
           {offlineMode && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
               Live finance services are temporarily unavailable. This ledger is staying online with the last known data instead of failing.

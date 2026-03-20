@@ -110,6 +110,8 @@ from app.api import dht_api
 app.include_router(dht_api.router)
 from app.api import invitations
 app.include_router(invitations.router)
+from app.api import onboarding
+app.include_router(onboarding.router)
 
 from app.api.endpoints import audit
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])

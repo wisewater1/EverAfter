@@ -79,9 +79,19 @@ export default function SaintChat({
     const [loading, setLoading] = useState(false);
     const [bootstrapping, setBootstrapping] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [degradedMode, setDegradedMode] = useState(false);
     const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
     const [showKnowledge, setShowKnowledge] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const buildInitialAssistantMessage = (degraded: boolean): Message => ({
+        id: degraded ? 'init-degraded' : 'init',
+        role: 'assistant',
+        content: degraded
+            ? `${initialMessage || `Greetings. I am ${saintName}, ${saintTitle}.`} Live backend context is temporarily unavailable, so I am running in degraded mode. I will stay visible instead of failing closed, but live knowledge, history, and response quality may be limited until the backend recovers.`
+            : initialMessage || `Greetings. I am ${saintName}, ${saintTitle}. How may I assist you today?`,
+        timestamp: new Date().toISOString()
+    });
 
     // Auto-scroll to bottom of chat
     const scrollToBottom = () => {
@@ -94,9 +104,19 @@ export default function SaintChat({
 
     useEffect(() => {
         const init = async () => {
+            let fallbackTimer: number | null = null;
             try {
                 setBootstrapping(true);
                 setError(null);
+                setDegradedMode(false);
+                setMessages([buildInitialAssistantMessage(false)]);
+
+                fallbackTimer = window.setTimeout(() => {
+                    setDegradedMode(true);
+                    setError((prev) => prev || 'Live Saint services are taking longer than expected. Gabriel is staying visible in degraded mode until the backend reconnects.');
+                    setMessages((prev) => (prev.length > 0 ? prev : [buildInitialAssistantMessage(true)]));
+                    setBootstrapping(false);
+                }, 2500);
 
                 await apiClient.bootstrapSaint(saintId);
 
@@ -126,18 +146,17 @@ export default function SaintChat({
                         console.error('Failed to load saint history:', historyResult.reason);
                         setError(prev => prev || formatSaintError('history', historyResult.reason));
                     }
-
-                    setMessages([{
-                        id: 'init',
-                        role: 'assistant',
-                        content: initialMessage || `Greetings. I am ${saintName}, ${saintTitle}. How may I assist you today?`,
-                        timestamp: new Date().toISOString()
-                    }]);
                 }
             } catch (err) {
                 console.error('Failed to initialize saint:', err);
+                setDegradedMode(true);
                 setError(formatSaintError('bootstrap', err));
+                setKnowledge([]);
+                setMessages([buildInitialAssistantMessage(true)]);
             } finally {
+                if (fallbackTimer) {
+                    window.clearTimeout(fallbackTimer);
+                }
                 setBootstrapping(false);
             }
         };
@@ -230,58 +249,57 @@ export default function SaintChat({
 
                 {/* Chat Body */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
-                    {bootstrapping ? (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
-                            <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-${primaryColor}-500`}></div>
-                            <p className="text-sm font-medium animate-pulse">Establishing spiritual connection...</p>
-                        </div>
-                    ) : (
-                        <>
-                            {error && (
-                                <div className="p-4 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 mx-4 border border-red-100">
-                                    {/* AlertCircle was unused so removed, just use text for now or re-add if needed */}
-                                    <span>{error}</span>
-                                </div>
-                            )}
+                    <>
+                        {bootstrapping && (
+                            <div className="mx-4 flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-700">
+                                <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-${primaryColor}-500`}></div>
+                                <span>Establishing spiritual connection...</span>
+                            </div>
+                        )}
 
-                            {messages.map((msg) => (
+                        {error && (
+                            <div className={`mx-4 flex items-center gap-2 rounded-lg border p-4 text-sm ${degradedMode ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-red-100 bg-red-50 text-red-600'}`}>
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {messages.map((msg) => (
+                            <div
+                                key={msg.id}
+                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            >
                                 <div
-                                    key={msg.id}
-                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
+                                        ? `bg-${primaryColor}-600 text-white`
+                                        : 'bg-white border border-slate-100 text-slate-700'
+                                        }`}
                                 >
-                                    <div
-                                        className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
-                                            ? `bg-${primaryColor}-600 text-white`
-                                            : 'bg-white border border-slate-100 text-slate-700'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-2 mb-1.5 opacity-80 border-b border-white/10 pb-1">
-                                            {msg.role === 'user' ? (
-                                                <User className="w-3 h-3" />
-                                            ) : (
-                                                <Icon className="w-3 h-3" />
-                                            )}
-                                            <span className="text-xs font-semibold uppercase tracking-wider">
-                                                {msg.role === 'user' ? 'You' : saintName}
-                                            </span>
-                                        </div>
-                                        <div className="whitespace-pre-wrap leading-relaxed text-sm">
-                                            {msg.content}
-                                        </div>
+                                    <div className="flex items-center gap-2 mb-1.5 opacity-80 border-b border-white/10 pb-1">
+                                        {msg.role === 'user' ? (
+                                            <User className="w-3 h-3" />
+                                        ) : (
+                                            <Icon className="w-3 h-3" />
+                                        )}
+                                        <span className="text-xs font-semibold uppercase tracking-wider">
+                                            {msg.role === 'user' ? 'You' : saintName}
+                                        </span>
+                                    </div>
+                                    <div className="whitespace-pre-wrap leading-relaxed text-sm">
+                                        {msg.content}
                                     </div>
                                 </div>
-                            ))}
-                            {loading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3">
-                                        <Icon className={`w-4 h-4 text-${primaryColor}-500 animate-bounce`} />
-                                        <span className="text-sm text-slate-500">Thinking...</span>
-                                    </div>
+                            </div>
+                        ))}
+                        {loading && (
+                            <div className="flex justify-start">
+                                <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+                                    <Icon className={`w-4 h-4 text-${primaryColor}-500 animate-bounce`} />
+                                    <span className="text-sm text-slate-500">Thinking...</span>
                                 </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </>
-                    )}
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </>
                 </div>
 
                 {/* Input Area */}
@@ -295,6 +313,7 @@ export default function SaintChat({
                             placeholder={`Ask ${saintName} for guidance...`}
                             className="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm"
                             disabled={loading || bootstrapping}
+                            aria-disabled={loading || bootstrapping}
                         />
                         <button
                             onClick={handleSend}

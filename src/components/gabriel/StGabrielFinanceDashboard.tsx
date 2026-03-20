@@ -17,15 +17,33 @@ import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
     const { user, session } = useAuth();
+    const cachedBankStatus = financeApi.getCachedBankStatus();
+    const cachedTransactions = financeApi.getCachedTransactions(200);
+    const cachedMonthCashFlow = (() => {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+        const bankTransactions = cachedTransactions.filter(
+            (transaction) =>
+                transaction.source === 'bank' &&
+                new Date(transaction.date).getTime() >= startOfMonth.getTime(),
+        );
+
+        if (bankTransactions.length === 0) {
+            return null;
+        }
+
+        return bankTransactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+    })();
     const [activeView, setActiveView] = useState<'budget' | 'ledger' | 'reports' | 'wisegold'>('budget');
     const [showCouncil, setShowCouncil] = useState(true);
     const [wgoldBalance, setWgoldBalance] = useState(0);
     const [wgoldPriceUsd, setWgoldPriceUsd] = useState(72.00);
-    const [bankStatus, setBankStatus] = useState<BankStatusResponse | null>(null);
+    const [bankStatus, setBankStatus] = useState<BankStatusResponse | null>(cachedBankStatus);
     const [bankActionLoading, setBankActionLoading] = useState(false);
-    const [financeCardLoading, setFinanceCardLoading] = useState(true);
+    const [financeCardLoading, setFinanceCardLoading] = useState(false);
     const [financeCardError, setFinanceCardError] = useState<string | null>(null);
-    const [monthCashFlow, setMonthCashFlow] = useState<number | null>(null);
+    const [monthCashFlow, setMonthCashFlow] = useState<number | null>(cachedMonthCashFlow);
 
     useEffect(() => {
         const fetchFinanceCardState = async () => {

@@ -11,6 +11,8 @@ interface CategoryManagerProps {
 export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryManagerProps) {
     const [categories, setCategories] = useState<{ id: string, name: string, group: string }[]>([]); // Simplified type
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [degradedMode, setDegradedMode] = useState(false);
 
     // New Category State
     const [newCatName, setNewCatName] = useState('');
@@ -26,6 +28,8 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
     async function loadCategories() {
         try {
             setLoading(true);
+            setError(null);
+            setDegradedMode(false);
             // We need a way to get *all* categories including hidden ones if we want to unhide them
             // But for now, let's just use what we have available. 
             // Ideally backend should provide a comprehensive list endpoint.
@@ -40,6 +44,9 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
             setCategories(cats as any);
         } catch (error) {
             console.error('Failed to load categories', error);
+            setCategories([]);
+            setDegradedMode(true);
+            setError(error instanceof Error ? error.message : 'Failed to load categories');
         } finally {
             setLoading(false);
         }
@@ -99,6 +106,12 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    {error && (
+                        <div className={`rounded-xl border p-4 text-sm ${degradedMode ? 'border-amber-500/20 bg-amber-500/10 text-amber-200' : 'border-rose-500/20 bg-rose-500/10 text-rose-400'}`}>
+                            <strong>{degradedMode ? 'Recovery mode:' : 'Error:'}</strong> {error}
+                        </div>
+                    )}
+
                     {/* Add New */}
                     <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
                         <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wider">Add New Category</h3>
@@ -141,6 +154,21 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
 
                     {/* List Existing */}
                     <div className="space-y-6">
+                        {loading && (
+                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Loading categories...
+                            </div>
+                        )}
+
+                        {!loading && existingGroups.length === 0 && (
+                            <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/50 p-6 text-sm text-slate-400">
+                                {degradedMode
+                                    ? 'Category management is online in degraded mode. Live categories are unavailable right now, but you can retry later without the modal hanging.'
+                                    : 'No categories were found yet.'}
+                            </div>
+                        )}
+
                         {existingGroups.map(group => (
                             <div key={group}>
                                 <h3 className="text-sm font-semibold text-slate-300 mb-3 pl-2 border-l-2 border-emerald-500/50">{group}</h3>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { reconcileOnboarding } from '../../lib/onboardingApi';
 import { clearHealthProfileDraft, saveHealthProfileDraft } from '../../lib/onboardingDraft';
 import {
   Heart,
@@ -238,6 +239,19 @@ export default function HealthProfileStep({
     setSavingProfile(true);
 
     try {
+      try {
+        await reconcileOnboarding({
+          health_profile: normalizedData,
+          completed_steps: ['health_profile'],
+        });
+        clearHealthProfileDraft(userId);
+        setErrors({});
+        onNext();
+        return;
+      } catch (backendError) {
+        console.warn('Canonical onboarding health sync failed, falling back to Supabase:', backendError);
+      }
+
       if (!supabase || !userId) {
         if (savedLocally) {
           onNext();

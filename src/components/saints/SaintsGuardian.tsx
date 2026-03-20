@@ -8,8 +8,8 @@ import {
     AlertTriangle,
     XCircle
 } from 'lucide-react';
-import { financeApi } from '../../lib/gabriel/finance';
-import { API_BASE_URL } from '../../lib/env';
+import { requestBackendJson } from '../../lib/backend-request';
+import { supabase } from '../../lib/supabase';
 
 interface MonitoringStatus {
     role: string;
@@ -34,32 +34,21 @@ export default function SaintsGuardian() {
     const fetchStatus = async () => {
         try {
             setLoading(true);
-            // We can reuse financeApi's fetchWithAuth or create a new client
-            // Since we need to hit a new endpoint, we'll use a direct fetch with the token
-            // But for simplicity let's assume we can add a method to financeApi or use fetchWithAuth exposed
-            // actually, let's just use the fetchWithAuth from finance.ts if we can, or replicate it
-
-            // To be safe and clean, we'll import the auth logic or just assume the financeApi can be extended
-            // For this specific widget, I'll extend financeApi in a separate step, but for now let's use a direct fetch
-            // assuming we have the token in localStorage or similar? No, Supabase handles it.
-
-            // Let's use the same pattern as finance.ts for now
-            const { data: { session } } = await import('../../lib/supabase').then(m => m.supabase.auth.getSession());
+            const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
-
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
-
-            const response = await fetch(`${API_BASE}/api/v1/monitoring/status`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setStatus(data);
-                setLastUpdated(new Date());
-            }
+            const data = await requestBackendJson<SystemStatus>(
+                '/api/v1/monitoring/status',
+                {
+                    method: 'GET',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                },
+                'Unable to load Saints API guardian status.'
+            );
+            setStatus(data);
+            setLastUpdated(new Date());
         } catch (err) {
             console.error("Monitoring failed", err);
+            setStatus(null);
         } finally {
             setLoading(false);
         }

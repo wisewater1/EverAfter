@@ -2,10 +2,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { installChunkLoadRecovery } from './lib/lazyWithRetry';
 // Deployment sync trigger - Debugging blank screen
 
 console.log('EVERAFTER AI DIAGNOSTIC BUILD TRACE: 02-27-2026');
 console.log('EVERAFTER: main.tsx initializing... Build Time: ' + new Date().toISOString());
+
+installChunkLoadRecovery();
 
 window.onerror = (message, source, lineno, colno, error) => {
   const msg = `CRITICAL RUNTIME ERROR: ${message} at ${source}:${lineno}:${colno}`;

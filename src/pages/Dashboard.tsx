@@ -15,6 +15,7 @@ import SocietyFeed from '../components/SocietyFeed';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 import HolisticTimeline from '../components/HolisticTimeline';
 import { loadStarterEngramDraft } from '../lib/onboardingDraft';
+import { getOnboardingStatus } from '../lib/onboardingApi';
 import { readStoredPersonalityProfile } from '../lib/joseph/personalityProfiles';
 
 const ONBOARDING_STEPS = [
@@ -88,18 +89,30 @@ export default function Dashboard() {
       }
 
       try {
-        const [{ data: profile }, { data: status }] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('has_completed_onboarding, onboarding_skipped')
-            .eq('id', user.id)
-            .maybeSingle(),
-          supabase
-            .from('onboarding_status')
-            .select('current_step, completed_steps, onboarding_complete, last_step_at')
-            .eq('user_id', user.id)
-            .maybeSingle(),
-        ]);
+        let profile: any = null;
+        let status: any = null;
+
+        try {
+          const bundle = await getOnboardingStatus();
+          profile = bundle?.profile || null;
+          status = bundle?.onboarding_status || null;
+        } catch (backendError) {
+          console.warn('Canonical onboarding status unavailable on dashboard, falling back to Supabase:', backendError);
+          const [{ data: fallbackProfile }, { data: fallbackStatus }] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('has_completed_onboarding, onboarding_skipped')
+              .eq('id', user.id)
+              .maybeSingle(),
+            supabase
+              .from('onboarding_status')
+              .select('current_step, completed_steps, onboarding_complete, last_step_at')
+              .eq('user_id', user.id)
+              .maybeSingle(),
+          ]);
+          profile = fallbackProfile;
+          status = fallbackStatus;
+        }
 
         const isComplete = Boolean(profile?.has_completed_onboarding || status?.onboarding_complete);
         const completedSteps = Array.isArray(status?.completed_steps) ? status.completed_steps : [];

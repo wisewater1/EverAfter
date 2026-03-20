@@ -1,3 +1,22 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import dotenv from 'dotenv';
+
+const mode = process.env.MODE || process.env.NODE_ENV || 'production';
+const envFiles = [
+  '.env',
+  '.env.local',
+  `.env.${mode}`,
+  `.env.${mode}.local`,
+];
+
+for (const envFile of envFiles) {
+  const path = resolve(process.cwd(), envFile);
+  if (existsSync(path)) {
+    dotenv.config({ path, override: false });
+  }
+}
+
 const isProductionBuild =
   process.env.CONTEXT === 'production' ||
   process.env.NODE_ENV === 'production' ||

@@ -988,14 +988,15 @@ class APIClient {
   }
   /** Get family tasks from the backend. */
   async getFamilyTasks(_userId: string): Promise<FamilyTask[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/tasks`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const headers = await this.getAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      const data = await response.json();
+      const data = await this.requestBackendJson<{ tasks?: FamilyTask[] }>(
+        '/api/v1/family-home/tasks',
+        { headers },
+        'Get Family Tasks Error',
+      );
       return data.tasks || [];
     } catch (error) {
       console.error("Get Family Tasks Error:", error);
@@ -1004,15 +1005,10 @@ class APIClient {
   }
 
   async getPersonalityQuizProfile(memberId: string): Promise<any | null> {
-    const API_BASE = `${API_BASE_URL}`;
-
     try {
-      const response = await fetch(`${API_BASE}/api/v1/personality-quiz/profile/${memberId}`);
-      if (!response.ok) {
-        throw await this.parseBackendError(response, 'Get Personality Quiz Profile Error');
-      }
-
-      const data = await response.json();
+      const data = await this.requestBackendJson(`/api/v1/personality-quiz/profile/${memberId}`, {
+        method: 'GET',
+      }, 'Get Personality Quiz Profile Error');
       return data?.error ? null : data;
     } catch (error) {
       console.error('Get Personality Quiz Profile Error:', error);
@@ -1024,35 +1020,28 @@ class APIClient {
     personId: string,
     scores: { O: number; C: number; E: number; A: number; N: number }
   ): Promise<any> {
-    const API_BASE = `${API_BASE_URL}`;
     const headers = await this.getAuthHeaders({
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
     });
 
-    const response = await fetch(`${API_BASE}/api/v1/dht/ocean/${personId}`, {
+    return await this.requestBackendJson(`/api/v1/dht/ocean/${personId}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(scores),
-    });
-
-    if (!response.ok) {
-      throw await this.parseBackendError(response, 'Submit OCEAN Profile Error');
-    }
-
-    return await response.json();
+    }, 'Submit OCEAN Profile Error');
   }
 
   /** Mark a task complete. */
   async completeTask(taskId: string): Promise<void> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/tasks/${taskId}/complete`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+      const headers = await this.getAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      await this.requestBackendJson(`/api/v1/family-home/tasks/${taskId}/complete`, {
+        method: 'POST',
+        headers,
+      }, 'Complete Task Error');
     } catch (error) {
       console.error("Complete Task Error:", error);
       throw error;
@@ -1061,14 +1050,15 @@ class APIClient {
 
   /** Get shopping list. */
   async getShoppingList(_userId: string): Promise<ShoppingItem[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/shopping`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const headers = await this.getAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      const data = await response.json();
+      const data = await this.requestBackendJson<{ items?: ShoppingItem[] }>(
+        '/api/v1/family-home/shopping',
+        { headers },
+        'Get Shopping List Error',
+      );
       return data.items || [];
     } catch (error) {
       console.error("Get Shopping List Error:", error);
@@ -1078,14 +1068,14 @@ class APIClient {
 
   /** Mark a shopping item as bought. */
   async markItemBought(itemId: string): Promise<void> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/shopping/${itemId}/bought`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+      const headers = await this.getAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      await this.requestBackendJson(`/api/v1/family-home/shopping/${itemId}/bought`, {
+        method: 'POST',
+        headers,
+      }, 'Mark Item Bought Error');
     } catch (error) {
       console.error("Mark Item Bought Error:", error);
       throw error;
@@ -1094,14 +1084,15 @@ class APIClient {
 
   /** Get family calendar events. */
   async getFamilyCalendar(_userId: string): Promise<CalendarEvent[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/calendar`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const headers = await this.getAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      const data = await response.json();
+      const data = await this.requestBackendJson<{ events?: CalendarEvent[] }>(
+        '/api/v1/family-home/calendar',
+        { headers },
+        'Get Family Calendar Error',
+      );
       const events = Array.isArray(data.events) ? data.events : [];
       if (events.length > 0) {
         return events.map((event: CalendarEvent, index: number) => this.normalizeCalendarEvent(event, index));
@@ -1115,14 +1106,15 @@ class APIClient {
 
   /** Get family bulletin messages. */
   async getFamilyBulletin(): Promise<BulletinMessage[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const headers = await this.getAuthHeaders({
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      const data = await response.json();
+      const data = await this.requestBackendJson<{ messages?: BulletinMessage[] }>(
+        '/api/v1/family-home/bulletin',
+        { headers },
+        'Get Family Bulletin Error',
+      );
       return data.messages || [];
     } catch (error) {
       console.error("Get Family Bulletin Error:", error);
@@ -1132,18 +1124,16 @@ class APIClient {
 
   /** Post a bulletin message. */
   async postBulletinMessage(text: string, author: string): Promise<void> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/family-home/bulletin`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true'
-        },
-        body: JSON.stringify({ text, author }),
+      const headers = await this.getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Bypass-Tunnel-Reminder': 'true',
       });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+      await this.requestBackendJson('/api/v1/family-home/bulletin', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text, author }),
+      }, 'Post Bulletin Message Error');
     } catch (error) {
       console.error("Post Bulletin Message Error:", error);
       throw error;

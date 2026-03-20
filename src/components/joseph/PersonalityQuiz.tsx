@@ -35,6 +35,20 @@ interface QuizQuestion {
     number: number;
 }
 
+interface QuizQuestionsResponse {
+    questions?: QuizQuestion[];
+    total?: number;
+}
+
+interface QuizStartResponse {
+    session_id?: string;
+    member_id?: string;
+    member_name?: string;
+    total_questions?: number;
+    questions?: QuizQuestion[];
+    error?: string;
+}
+
 interface FacetDetail {
     score: number;
     label: string;
@@ -116,12 +130,14 @@ interface PersonalityQuizProps {
     onProfileComplete?: (profile: PersonalityProfile) => void;
     initialMemberId?: string | null;
     onAutoStartConsumed?: () => void;
+    onActiveMemberChange?: (memberId: string | null) => void;
 }
 
 export default function PersonalityQuiz({
     onProfileComplete,
     initialMemberId = null,
     onAutoStartConsumed,
+    onActiveMemberChange,
 }: PersonalityQuizProps = {}) {
     const members = getFamilyMembers();
 
@@ -136,6 +152,8 @@ export default function PersonalityQuiz({
     const [expandedTrait, setExpandedTrait] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'profile' | 'causal-twin' | 'what-if' | 'experiments' | 'evidence' | 'model-health'>('profile');
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [questionBank, setQuestionBank] = useState<QuizQuestion[]>([]);
+    const [persistStatus, setPersistStatus] = useState<'idle' | 'saving' | 'saved' | 'local-only' | 'error'>('idle');
 
     const TABS = [
         { id: 'profile', label: 'Traits', icon: Brain },
@@ -161,12 +179,33 @@ export default function PersonalityQuiz({
 
     const loadSessionIntoState = useCallback((member: FamilyMember, session: StoredQuizSession) => {
         setSelectedMember(member);
+        onActiveMemberChange?.(member.id);
         setSessionId(session.sessionId);
         setQuestions(session.questions as QuizQuestion[]);
         setAnswers(session.answers || {});
         setCurrentQ(session.currentQ || 0);
         setPhase('quiz');
-    }, []);
+    }, [onActiveMemberChange]);
+
+    const fetchQuestionBank = useCallback(async () => {
+        if (questionBank.length > 0) {
+            return questionBank;
+        }
+
+        const data = await requestBackendJson<QuizQuestionsResponse>(
+            '/api/v1/personality-quiz/questions',
+            { method: 'GET' },
+            'Failed to load personality questions.',
+        );
+
+        const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
+        if (nextQuestions.length === 0) {
+            throw new Error('Personality question bank is empty.');
+        }
+
+        setQuestionBank(nextQuestions);
+        return nextQuestions;
+    }, [questionBank]);
 
     /* ── Start quiz ──────────────────────────────────────── */
 
@@ -182,7 +221,7 @@ export default function PersonalityQuiz({
 
         setLoading(true);
         try {
-            const data = await requestBackendJson<any>(
+            const data = await requestBackendJson<QuizStartResponse>(
                 '/api/v1/personality-quiz/start',
                 {
                     method: 'POST',
@@ -194,11 +233,21 @@ export default function PersonalityQuiz({
                 },
                 'Failed to start personality quiz session.',
             );
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
+            if (!data.session_id || nextQuestions.length === 0) {
+                throw new Error('Quiz session started without a valid question set.');
+            }
+
             const session: StoredQuizSession = {
                 memberId: member.id,
                 memberName: fullName,
                 sessionId: data.session_id,
-                questions: (data.questions || []) as StoredQuizQuestion[],
+                questions: nextQuestions as StoredQuizQuestion[],
                 answers: {},
                 currentQ: 0,
                 startedAt: new Date().toISOString(),
@@ -208,13 +257,33 @@ export default function PersonalityQuiz({
             saveStoredQuizSession(session);
             return session;
         } catch (error) {
-            console.error('Failed to start quiz session', error);
-            setStatusMessage(`Could not start the quiz for ${fullName}.`);
-            return null;
+            console.error('Failed to start quiz session, falling back to stateless mode', error);
+
+            try {
+                const nextQuestions = await fetchQuestionBank();
+                const session: StoredQuizSession = {
+                    memberId: member.id,
+                    memberName: fullName,
+                    sessionId: `local-${member.id}-${Date.now()}`,
+                    questions: nextQuestions as StoredQuizQuestion[],
+                    answers: {},
+                    currentQ: 0,
+                    startedAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    sentCount: 0,
+                };
+                saveStoredQuizSession(session);
+                setStatusMessage(`Loaded quiz questions for ${fullName}.`);
+                return session;
+            } catch (fallbackError) {
+                console.error('Failed to load question bank fallback', fallbackError);
+                setStatusMessage(`Questions could not be loaded for ${fullName}.`);
+                return null;
+            }
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchQuestionBank]);
 
     const shareQuizWithFamily = useCallback(async (member: FamilyMember) => {
         const session = await ensureQuizSession(member);
@@ -270,6 +339,12 @@ export default function PersonalityQuiz({
     }, [statusMessage]);
 
     useEffect(() => {
+        void fetchQuestionBank().catch((error) => {
+            console.error('Failed to preload question bank', error);
+        });
+    }, [fetchQuestionBank]);
+
+    useEffect(() => {
         if (phase !== 'quiz' || !selectedMember || !sessionId || questions.length === 0) return;
 
         const existing = readStoredQuizSession(selectedMember.id);
@@ -311,12 +386,23 @@ export default function PersonalityQuiz({
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId, answers }),
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        member_id: selectedMember?.id,
+                        member_name: selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : '',
+                        answers,
+                    }),
                 },
                 'Failed to submit personality quiz.',
             );
+
+                if ((data as any)?.error) {
+                    throw new Error((data as any).error);
+                }
+
                 setProfile(data);
                 setPhase('results');
+                setPersistStatus('saving');
 
                 // Wipe local storage file since we submitted
                 if (selectedMember) {
@@ -349,8 +435,11 @@ export default function PersonalityQuiz({
 
                     try {
                         await apiClient.submitOceanProfile(selectedMember.id, normalizedOceanScores);
+                        setPersistStatus('saved');
                     } catch (err) {
                         console.error('Failed to sync OCEAN profile to DHT:', err);
+                        setPersistStatus('local-only');
+                        setStatusMessage(`Saved ${selectedMember.firstName}'s profile locally, but canonical OCEAN sync failed.`);
                     }
 
                     // Trigger Guardian Word bulletin
@@ -361,8 +450,13 @@ export default function PersonalityQuiz({
                         console.error('Failed to post Guardian word bulletin:', err);
                     }
                 }
+                else {
+                    setPersistStatus('saved');
+                }
         } catch (err) {
             console.error('Submit failed:', err);
+            setPersistStatus('error');
+            setStatusMessage('Failed to save personality profile.');
         }
         setLoading(false);
     }, [sessionId, answers, selectedMember, onProfileComplete]);
@@ -375,6 +469,8 @@ export default function PersonalityQuiz({
         setAnswers({});
         setCurrentQ(0);
         setExpandedTrait(null);
+        setPersistStatus('idle');
+        onActiveMemberChange?.(null);
     };
 
     const saveAndExit = () => {
@@ -383,6 +479,8 @@ export default function PersonalityQuiz({
         }
         setPhase('select');
         setSelectedMember(null);
+        setPersistStatus('idle');
+        onActiveMemberChange?.(null);
     };
 
     /* ═══════════════════════════════════════════════════════
@@ -835,11 +933,28 @@ export default function PersonalityQuiz({
                         >
                             <RefreshCw className="w-3.5 h-3.5" /> New Quiz
                         </button>
-                        <button
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-amber-500/20 border border-purple-500/20 text-purple-300 text-xs font-medium transition hover:opacity-90"
+                        <div
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium ${
+                                persistStatus === 'saved'
+                                    ? 'bg-gradient-to-r from-purple-500/20 to-amber-500/20 border-purple-500/20 text-purple-300'
+                                    : persistStatus === 'saving'
+                                        ? 'bg-sky-500/10 border-sky-500/20 text-sky-300'
+                                        : persistStatus === 'local-only'
+                                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                                            : persistStatus === 'error'
+                                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-300'
+                                            : 'bg-white/5 border-white/10 text-slate-400'
+                            }`}
+                            role="status"
+                            aria-live="polite"
                         >
-                            <CheckCircle className="w-3.5 h-3.5" /> Profile Saved
-                        </button>
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            {persistStatus === 'saved' && 'Canonical Profile Saved'}
+                            {persistStatus === 'saving' && 'Syncing Canonical Profile'}
+                            {persistStatus === 'local-only' && 'Saved Locally Only'}
+                            {persistStatus === 'error' && 'Canonical Save Failed'}
+                            {persistStatus === 'idle' && 'Awaiting Save Status'}
+                        </div>
                     </div>
                 </div>
             )}

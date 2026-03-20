@@ -2,7 +2,9 @@
 // With localStorage persistence, AI Agent personality generation,
 // and GeneWeb-inspired genealogy tools (GEDCOM, relationship paths, source citations)
 
-import { API_BASE_URL, isDevelopment } from '../env';
+import { requestBackendJson } from '../backend-request';
+import { isDevelopment } from '../env';
+import { supabase } from '../supabase';
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
 export type EventType = 'birth' | 'marriage' | 'death' | 'milestone' | 'adoption';
@@ -229,58 +231,171 @@ let _relationships: Relationship[] = [];
 let _events: FamilyEvent[] = [];
 let _sources: SourceCitation[] = [];
 
-// Helper to fetch from the new Postgres Backend Router
-async function loadGenealogyFromBackend() {
-    try {
-        const tokenStr = localStorage.getItem('supabase.auth.token');
-        let token = '';
-        if (tokenStr) {
-            try {
-                const session = JSON.parse(tokenStr);
-                token = session?.currentSession?.access_token || '';
-            } catch (e) { }
+function normalizeName(value: string | undefined | null): string {
+    return String(value || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+}
+
+function memberFullName(member: Pick<FamilyMember, 'firstName' | 'lastName'>): string {
+    return `${member.firstName} ${member.lastName}`.trim();
+}
+
+function memberBirthDate(member: Partial<FamilyMember>): string {
+    return String(member.birthDate || '').slice(0, 10);
+}
+
+function backendBirthDate(node: any): string {
+    return String(node?.birthDate || '').slice(0, 10);
+}
+
+function splitBackendName(name: string | undefined | null): { firstName: string; lastName: string } {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    return {
+        firstName: parts[0] || 'Family',
+        lastName: parts.slice(1).join(' ') || 'Member',
+    };
+}
+
+function relationshipKey(rel: Pick<Relationship, 'fromId' | 'toId' | 'type'>): string {
+    if (rel.type === 'spouse' || rel.type === 'sibling') {
+        return [rel.fromId, rel.toId].sort().join('::') + `::${rel.type}`;
+    }
+    return `${rel.fromId}::${rel.toId}::${rel.type}`;
+}
+
+function mergeCanonicalGenealogy(
+    backendNodes: any[],
+    backendRelationships: any[],
+    baseMembers: FamilyMember[],
+    baseRelationships: Relationship[],
+    baseEvents: FamilyEvent[],
+) {
+    const mergedMembers = [...baseMembers];
+    const oldToCanonicalIds = new Map<string, string>();
+
+    const findMemberMatch = (node: any) => {
+        const nodeName = normalizeName(node?.name);
+        const nodeBirth = backendBirthDate(node);
+
+        return mergedMembers.find((member) => {
+            const sameName = normalizeName(memberFullName(member)) === nodeName;
+            if (!sameName) return false;
+
+            const birth = memberBirthDate(member);
+            if (!nodeBirth || !birth) return true;
+            return birth === nodeBirth;
+        });
+    };
+
+    for (const node of backendNodes) {
+        const matched = findMemberMatch(node);
+        const canonicalId = String(node.id);
+        const { firstName, lastName } = splitBackendName(node.name);
+
+        if (matched) {
+            oldToCanonicalIds.set(matched.id, canonicalId);
+            const index = mergedMembers.findIndex((member) => member.id === matched.id);
+            mergedMembers[index] = {
+                ...matched,
+                id: canonicalId,
+                firstName,
+                lastName,
+                gender: (node.gender || matched.gender || 'other') as Gender,
+                birthDate: node.birthDate || matched.birthDate,
+                deathDate: node.deathDate || matched.deathDate,
+                generation: matched.generation,
+            };
+            continue;
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/v1/genealogy/tree`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        mergedMembers.push({
+            id: canonicalId,
+            firstName,
+            lastName,
+            gender: (node.gender || 'other') as Gender,
+            birthDate: node.birthDate,
+            deathDate: node.deathDate,
+            generation: 0,
         });
+    }
 
-        if (res.ok) {
-            const data = await res.json();
-            // Transform backend snake_case to frontend camelCase
-            if (data.nodes && data.nodes.length > 0) {
-                _members = data.nodes.map((n: any) => ({
-                    id: n.id,
-                    firstName: n.name.split(' ')[0],
-                    lastName: n.name.split(' ').slice(1).join(' '),
-                    gender: n.gender || 'other',
-                    birthDate: n.birthDate,
-                    deathDate: n.deathDate,
-                    healthMetrics: n.healthMetrics,
-                    generation: 0,
-                }));
-                _relationships = data.relationships.map((r: any) => ({
-                    id: r.id,
-                    fromId: r.fromNodeId,
-                    toId: r.toNodeId,
-                    type: r.relationType,
-                }));
-                _events = loadStoredOrDevDefaults(STORAGE_KEYS.events, DEFAULT_EVENTS);
-                _sources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
-                return;
-            }
+    const remapId = (id: string) => oldToCanonicalIds.get(id) || id;
+
+    const mergedRelationships = new Map<string, Relationship>();
+
+    for (const rel of baseRelationships) {
+        const remapped: Relationship = {
+            ...rel,
+            fromId: remapId(rel.fromId),
+            toId: remapId(rel.toId),
+        };
+        mergedRelationships.set(relationshipKey(remapped), remapped);
+    }
+
+    for (const rel of backendRelationships) {
+        const canonicalRel: Relationship = {
+            id: String(rel.id),
+            fromId: String(rel.fromNodeId),
+            toId: String(rel.toNodeId),
+            type: rel.relationType,
+        };
+        mergedRelationships.set(relationshipKey(canonicalRel), canonicalRel);
+    }
+
+    const mergedEvents = baseEvents.map((event) => ({
+        ...event,
+        memberId: remapId(event.memberId),
+    }));
+
+    return {
+        members: mergedMembers,
+        relationships: Array.from(mergedRelationships.values()),
+        events: mergedEvents,
+    };
+}
+
+// Helper to fetch from the new Postgres Backend Router
+async function loadGenealogyFromBackend() {
+    const baseMembers = loadFromStorage(STORAGE_KEYS.members, DEFAULT_MEMBERS);
+    const baseRelationships = loadFromStorage(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
+    const baseEvents = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
+    const baseSources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
+
+    try {
+        const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+        const token = sessionResult.data.session?.access_token;
+        const data = await requestBackendJson<{ nodes?: any[]; relationships?: any[] }>(
+            '/api/v1/genealogy/tree',
+            {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            },
+            'Failed to load genealogy from backend',
+        );
+
+        if (data.nodes && data.nodes.length > 0) {
+            const merged = mergeCanonicalGenealogy(
+                data.nodes,
+                Array.isArray(data.relationships) ? data.relationships : [],
+                baseMembers,
+                baseRelationships,
+                baseEvents,
+            );
+            _members = merged.members;
+            _relationships = merged.relationships;
+            _events = merged.events;
+            _sources = baseSources;
+            return;
         }
     } catch (error) {
         console.warn('Failed to load genealogy from backend', error);
     }
 
-    // In production, fall back only to user-created local state. Dev keeps seeded defaults.
-    _members = loadStoredOrDevDefaults(STORAGE_KEYS.members, DEFAULT_MEMBERS);
-    _relationships = loadStoredOrDevDefaults(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
-    _events = loadStoredOrDevDefaults(STORAGE_KEYS.events, DEFAULT_EVENTS);
-    _sources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
+    _members = baseMembers;
+    _relationships = baseRelationships;
+    _events = baseEvents;
+    _sources = baseSources;
 }
 
 // Block module execution until hydrated from Postgres!
