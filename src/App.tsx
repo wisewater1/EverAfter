@@ -11,9 +11,10 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Dashboard from './pages/Dashboard';
+import Onboarding from './pages/Onboarding';
 
 const Landing = lazy(() => import('./pages/Landing'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const StRaphaelHealthHub = lazy(() => import('./pages/StRaphaelHealthHub'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const Pricing = lazy(() => import('./pages/Pricing'));
@@ -37,7 +38,6 @@ const DarkGlassCarouselShowcase = lazy(() => import('./pages/DarkGlassCarouselSh
 const DeviceCheck = lazy(() => import('./pages/DeviceCheck'));
 const Career = lazy(() => import('./pages/Career'));
 const PublicCareerChat = lazy(() => import('./pages/PublicCareerChat'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
 const StMichaelSecurityDashboard = lazy(() => import('./components/StMichaelSecurityDashboard'));
 const StJosephFamilyDashboard = lazy(() => import('./components/StJosephFamilyDashboard'));
 const CouncilOracle = lazy(() => import('./components/council/CouncilOracle'));
