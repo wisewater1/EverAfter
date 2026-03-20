@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronRight, Clock, Database, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { buildApiUrl } from '../../lib/env';
 
 const EVIDENCE_ICONS: Record<string, React.ReactNode> = {
     causal_trial: <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />,
@@ -25,7 +23,7 @@ export default function EvidenceLedgerView({ memberId }: { memberId?: string }) 
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/evidence${params}`);
+            const res = await fetch(buildApiUrl(`/api/v1/causal-twin/evidence${params}`));
             const data = await res.json();
             setEntries(data.entries || []);
             setQuality(data.quality_trend || null);
@@ -35,7 +33,7 @@ export default function EvidenceLedgerView({ memberId }: { memberId?: string }) 
 
     async function loadDetail(id: string) {
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/evidence/${id}`);
+            const res = await fetch(buildApiUrl(`/api/v1/causal-twin/evidence/${id}`));
             const data = await res.json();
             setSelectedEntry(data);
         } catch (e) { console.error(e); }

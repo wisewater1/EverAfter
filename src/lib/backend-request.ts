@@ -1,4 +1,4 @@
-import { API_BASE_URL, isDevelopment } from './env';
+import { API_BASE_URL, isDevelopment, normalizeApiBaseUrl } from './env';
 
 const BACKEND_BASE_URL_CANDIDATES = [
   import.meta.env.VITE_API_BASE_URL,
@@ -7,7 +7,7 @@ const BACKEND_BASE_URL_CANDIDATES = [
   import.meta.env.VITE_RENDER_API_URL,
   import.meta.env.VITE_LOCAL_API_URL,
 ]
-  .map((value) => String(value || '').replace(/\/$/, ''))
+  .map((value) => normalizeApiBaseUrl(String(value || '')))
   .filter(Boolean);
 const DEFAULT_BACKEND_TIMEOUT_MS = 8000;
 

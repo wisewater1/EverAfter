@@ -2,9 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, Brain, Play, Sliders, Sparkles, TrendingUp } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { buildApiUrl } from '../../lib/env';
 
 const BEHAVIOR_SLIDERS = [
     { key: 'sleep_hours', label: 'Sleep', min: 4, max: 10, step: 0.5, default: 7, unit: 'hours', group: 'Recovery' },
@@ -50,7 +48,7 @@ export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const response = await fetch(`${API_BASE}/api/v1/causal-twin/simulate${params}`, {
+            const response = await fetch(buildApiUrl(`/api/v1/causal-twin/simulate${params}`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ behavior_changes: values }),

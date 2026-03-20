@@ -5,10 +5,8 @@ import {
     ChevronDown, ChevronUp, Lock, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_BASE_URL } from '../../lib/env';
+import { buildApiUrl } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 interface Proposal {
     id: string;
@@ -39,7 +37,7 @@ export default function GovernanceView() {
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
             });
-            const response = await fetch(`${API_BASE}/governance/proposals`, { headers });
+            const response = await fetch(buildApiUrl('/governance/proposals'), { headers });
             if (response.ok) {
                 const data = await response.json();
                 setProposals(data.proposals || []);
@@ -62,7 +60,7 @@ export default function GovernanceView() {
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
             });
-            const response = await fetch(`${API_BASE}/governance/proposals/${id}/${action}`, {
+            const response = await fetch(buildApiUrl(`/governance/proposals/${id}/${action}`), {
                 method: 'POST',
                 headers,
             });
@@ -85,7 +83,7 @@ export default function GovernanceView() {
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
             });
-            const response = await fetch(`${API_BASE}/governance/check-drift`, { method: 'POST', headers });
+            const response = await fetch(buildApiUrl('/governance/check-drift'), { method: 'POST', headers });
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
                 throw new Error(data?.detail || `Failed to run drift scan (${response.status}).`);

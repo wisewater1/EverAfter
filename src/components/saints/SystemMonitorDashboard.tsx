@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { API_BASE_URL } from '../../lib/env';
+import { buildApiUrl } from '../../lib/env';
 
 interface MetricPoint {
     time: string;
@@ -48,9 +48,7 @@ export default function SystemMonitorDashboard() {
         try {
             const { data: { session } } = await import('../../lib/supabase').then(m => m.supabase.auth.getSession());
             const token = session?.access_token;
-            const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
-
-            const response = await fetch(`${API_BASE}/api/v1/monitoring/metrics`, {
+            const response = await fetch(buildApiUrl('/api/v1/monitoring/metrics'), {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}
             });
 

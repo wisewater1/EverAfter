@@ -8,9 +8,7 @@ import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 import { supabase } from '../../lib/supabase';
 import { apiClient } from '../../lib/api-client';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { buildApiUrl } from '../../lib/env';
 
 import type { EngramResponse } from '../../types/database.types';
 type ArchetypalAI = EngramResponse;
@@ -155,7 +153,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
     const startQuiz = useCallback(async () => {
         setQuizLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/personality-quiz/start`, {
+            const res = await fetch(buildApiUrl('/api/v1/personality-quiz/start'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -200,7 +198,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
             let profileData: PersonalityProfile | null = null;
 
             if (!sessionId.startsWith('local-')) {
-                const res = await fetch(`${API_BASE}/api/v1/personality-quiz/submit`, {
+                const res = await fetch(buildApiUrl('/api/v1/personality-quiz/submit'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ session_id: sessionId, answers }),

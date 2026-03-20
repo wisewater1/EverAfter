@@ -3,9 +3,7 @@ import { X, TrendingUp, AlertTriangle, CheckCircle, Lightbulb, Archive, ChevronR
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { buildApiUrl } from '../../lib/env';
 
 interface AncestryResult {
     member_name: string;
@@ -59,7 +57,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/ancestry/predict`, {
+            const res = await fetch(buildApiUrl('/api/v1/causal-twin/ancestry/predict'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -84,7 +82,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
     async function archiveToLegacy() {
         if (!result) return;
         // Record in evidence ledger
-        await fetch(`${API_BASE}/api/v1/causal-twin/evidence`, {
+        await fetch(buildApiUrl('/api/v1/causal-twin/evidence'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

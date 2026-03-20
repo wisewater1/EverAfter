@@ -57,11 +57,39 @@ export const env = validateEnv();
 export const isProduction = import.meta.env.PROD;
 export const isDevelopment = import.meta.env.DEV;
 
-// In local Vite dev, prefer the relative proxy paths exposed on :5000.
-// This avoids bypassing the proxy and accidentally hitting a frontend HTML route
-// when a stale absolute API base is configured in `.env`.
-const configuredApiBaseUrl = import.meta.env.DEV
-  ? ''
-  : (import.meta.env.VITE_API_BASE_URL || '');
+function isLocalhostUrl(url: string): boolean {
+  return /https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+}
 
-export const API_BASE_URL = configuredApiBaseUrl.replace(/\/$/, '');
+export function normalizeApiBaseUrl(value: string): string {
+  const normalized = String(value || '').trim().replace(/\/$/, '');
+  if (!normalized) {
+    return '';
+  }
+
+  if (!isDevelopment && isLocalhostUrl(normalized)) {
+    console.warn('Ignoring localhost API base URL in production build; falling back to same-origin API routes.');
+    return '';
+  }
+
+  return normalized;
+}
+
+// In local Vite dev, prefer the relative proxy paths exposed on :5000.
+// In production, ignore localhost values so deployed bundles never call a visitor's machine.
+const configuredApiBaseUrl = isDevelopment ? '' : (import.meta.env.VITE_API_BASE_URL || '');
+
+export const API_BASE_URL = normalizeApiBaseUrl(configuredApiBaseUrl);
+
+export function buildApiUrl(path: string): string {
+  if (!path) {
+    return API_BASE_URL;
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}

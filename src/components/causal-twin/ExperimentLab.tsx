@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
-import { API_BASE_URL } from '../../lib/env';
+import { buildApiUrl } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,7 +31,6 @@ import {
   type DrugRecall,
 } from '../../lib/connectors/openfda-service';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 const METRIC_OPTIONS = ['sleep_quality', 'hrv', 'mood', 'energy', 'resting_hr', 'glucose_variability', 'recovery_score'];
 
 const HEALTH_CONDITION_LABELS: Record<string, string> = {
@@ -269,7 +268,7 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
       const headers = await apiClient.getAuthHeaders({
         'Bypass-Tunnel-Reminder': 'true',
       });
-      const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`, { headers });
+      const res = await fetch(buildApiUrl(`/api/v1/causal-twin/experiments${params}`), { headers });
       const data = await res.json();
       setExperiments(data.experiments || []);
     } catch (error) {
@@ -395,7 +394,7 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
       });
-      const res = await fetch(`${API_BASE}/api/v1/causal-twin/experiments${params}`, {
+      const res = await fetch(buildApiUrl(`/api/v1/causal-twin/experiments${params}`), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -432,7 +431,7 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
       });
-      await fetch(`${API_BASE}/api/v1/causal-twin/experiments/${id}`, {
+      await fetch(buildApiUrl(`/api/v1/causal-twin/experiments/${id}`), {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ action }),

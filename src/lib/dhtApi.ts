@@ -1,10 +1,10 @@
 /**
  * DHT API helper — shared fetch wrapper for Delphi Health Trajectory endpoints.
  */
-import { API_BASE_URL } from './env';
+import { buildApiUrl } from './env';
 import type { DelphiTrajectory } from '../types/database.types';
 
-const BASE = import.meta.env.VITE_API_BASE_URL || API_BASE_URL;
+const BASE = buildApiUrl('');
 
 export interface RiskCard {
     id?: string;

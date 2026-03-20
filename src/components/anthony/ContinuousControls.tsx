@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, AlertCircle, Activity, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../../lib/env';
+import { buildApiUrl } from '../../lib/env';
 
 interface Control {
     id: string;
@@ -20,8 +20,7 @@ export default function ContinuousControls() {
     useEffect(() => {
         const fetchControls = async () => {
             try {
-                const url = `${import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`}/api/v1/audit/controls/readiness`;
-                const res = await fetch(url);
+                const res = await fetch(buildApiUrl('/api/v1/audit/controls/readiness'));
                 if (res.ok) {
                     const data = await res.json();
                     setScore(data.readiness_score);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { API_BASE_URL } from '../lib/env';
+import { buildApiUrl } from '../lib/env';
 import {
   ArrowLeft,
   Plus,
@@ -110,8 +110,7 @@ export default function CreatorDashboard() {
       setTemplates(templatesData || []);
 
       // Fetch Mineable Engrams
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
-      const mineableRes = await fetch(`${API_BASE_URL}/api/v1/marketplace/assets/mining`, {
+      const mineableRes = await fetch(buildApiUrl('/api/v1/marketplace/assets/mining'), {
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         }
@@ -128,8 +127,7 @@ export default function CreatorDashboard() {
 
   const toggleTrainingPermit = async (engramId: string, currentStatus: boolean) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
-      const res = await fetch(`${API_BASE_URL}/api/v1/marketplace/assets/mining/${engramId}/permit?permit=${!currentStatus}`, {
+      const res = await fetch(buildApiUrl(`/api/v1/marketplace/assets/mining/${engramId}/permit?permit=${!currentStatus}`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`

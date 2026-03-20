@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { API_BASE_URL } from '../lib/env';
+import { buildApiUrl } from '../lib/env';
 import {
   Heart, Plus, Edit, Trash2, DollarSign, Calendar, Users, FileText,
   Download, Upload, Shield, TrendingUp, AlertCircle, CheckCircle2,
@@ -92,8 +92,7 @@ export default function EternalCareInsurance() {
       ]);
 
       // Fetch Dividends from Custom API
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
-      const dividendRes = await fetch(`${API_BASE_URL}/api/v1/integrity/dividends`, {
+      const dividendRes = await fetch(buildApiUrl('/api/v1/integrity/dividends'), {
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         }

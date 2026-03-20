@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, TrendingUp, AlertTriangle, RefreshCw, CheckCircle, Activity } from 'lucide-react';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { buildApiUrl } from '../../lib/env';
 
 export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     const [health, setHealth] = useState<any>(null);
@@ -14,7 +12,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const res = await fetch(`${API_BASE}/api/v1/causal-twin/model-health${params}`);
+            const res = await fetch(buildApiUrl(`/api/v1/causal-twin/model-health${params}`));
             const data = await res.json();
             setHealth(data);
         } catch (e) { console.error(e); }

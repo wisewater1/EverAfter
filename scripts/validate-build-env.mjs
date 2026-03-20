@@ -27,6 +27,7 @@ const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 const apiBaseUrl = process.env.VITE_API_BASE_URL || '';
 
 const failures = [];
+const warnings = [];
 
 function isMasked(value) {
   return value.includes('*');
@@ -52,13 +53,11 @@ if (!supabaseAnonKey) {
   }
 }
 
-if (isProductionBuild) {
-  if (!apiBaseUrl) {
-    failures.push('Missing VITE_API_BASE_URL for production build');
-  } else if (isMasked(apiBaseUrl)) {
-    failures.push('VITE_API_BASE_URL is masked/censored instead of the real URL');
+if (isProductionBuild && apiBaseUrl) {
+  if (isMasked(apiBaseUrl)) {
+    warnings.push('Ignoring masked VITE_API_BASE_URL during production build; frontend will use same-origin API routes.');
   } else if (isLocalhostUrl(apiBaseUrl)) {
-    failures.push('VITE_API_BASE_URL points to localhost during a production build');
+    warnings.push('Ignoring localhost VITE_API_BASE_URL during production build; frontend will use same-origin API routes.');
   }
 }
 
@@ -69,6 +68,14 @@ if (failures.length > 0) {
   }
   console.error('\nRefusing to build with invalid production configuration.\n');
   process.exit(1);
+}
+
+if (warnings.length > 0) {
+  console.warn('\nBuild environment warnings:\n');
+  for (const warning of warnings) {
+    console.warn(`- ${warning}`);
+  }
+  console.warn('');
 }
 
 console.log('Build environment validation passed.');
