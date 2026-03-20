@@ -13,13 +13,13 @@
 
 [[redirects]]
   from = "/api/v1/*"
-  to = "https://everafter-api.onrender.com/api/v1/:splat"
+  to = "https://tall-nights-crash.loca.lt/api/v1/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/health"
-  to = "https://everafter-api.onrender.com/health"
+  to = "https://tall-nights-crash.loca.lt/health"
   status = 200
   force = true
 
