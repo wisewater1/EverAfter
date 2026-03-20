@@ -1,19 +1,61 @@
-from typing import Dict, List
+from __future__ import annotations
+
 import asyncio
+import hashlib
+import math
 from functools import lru_cache
-from sentence_transformers import SentenceTransformer
-import torch
+from typing import Any, Dict, List
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    SentenceTransformer = None
+
+try:
+    import torch
+except Exception:
+    torch = None
+
+
+EMBEDDING_DIMENSION = 384
+
+
+def build_fallback_embedding(text: str, dimension: int = EMBEDDING_DIMENSION) -> List[float]:
+    digest = hashlib.sha256(text.encode("utf-8")).digest()
+    values: List[float] = []
+    counter = 0
+
+    while len(values) < dimension:
+        block = hashlib.sha256(digest + counter.to_bytes(4, "big")).digest()
+        for idx in range(0, len(block), 4):
+            chunk = block[idx:idx + 4]
+            if len(chunk) < 4:
+                continue
+            integer = int.from_bytes(chunk, "big", signed=False)
+            values.append((integer / 0xFFFFFFFF) * 2.0 - 1.0)
+            if len(values) >= dimension:
+                break
+        counter += 1
+
+    magnitude = math.sqrt(sum(value * value for value in values)) or 1.0
+    return [value / magnitude for value in values]
 
 
 class NLPEngine:
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.model_name = model_name
         self._model = None
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"NLPEngine initialized. Device: {self._device}")
+        self._device = "cuda" if torch and torch.cuda.is_available() else "cpu"
+        self._ml_available = SentenceTransformer is not None
+        if self._ml_available:
+            print(f"NLPEngine initialized. Device: {self._device}")
+        else:
+            print("NLPEngine initialized in degraded mode (ML extras unavailable).")
 
     @property
-    def model(self):
+    def model(self) -> Any:
+        if not self._ml_available:
+            raise RuntimeError("sentence-transformers is unavailable")
         if self._model is None:
             print(f"Loading ML model: {self.model_name}...")
             self._model = SentenceTransformer(self.model_name, device=self._device)
@@ -21,6 +63,8 @@ class NLPEngine:
         return self._model
 
     async def generate_embedding(self, text: str) -> List[float]:
+        if not self._ml_available:
+            return build_fallback_embedding(text)
         loop = asyncio.get_event_loop()
         embedding = await loop.run_in_executor(
             None,
@@ -29,6 +73,8 @@ class NLPEngine:
         return embedding.tolist()
 
     async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+        if not self._ml_available:
+            return [build_fallback_embedding(text) for text in texts]
         loop = asyncio.get_event_loop()
         embeddings = await loop.run_in_executor(
             None,
@@ -36,7 +82,7 @@ class NLPEngine:
         )
         return [emb.tolist() for emb in embeddings]
 
-    async def understand_question(self, question: str) -> Dict[str, any]:
+    async def understand_question(self, question: str) -> Dict[str, Any]:
         question_lower = question.lower()
 
         intents = {

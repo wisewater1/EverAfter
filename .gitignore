@@ -3,6 +3,7 @@
 logs
 *.log
 backend/*.txt
+!backend/requirements-ml.txt
 backend/*.log
 *.tmp
 npm-debug.log*

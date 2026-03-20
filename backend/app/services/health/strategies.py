@@ -106,9 +106,7 @@ class GlucoseStrategy(HealthAnalysisStrategy):
 # --- Prediction Strategies (The Prophet) ---
 
 from .core import HealthPredictionStrategy, PredictionResult, PredictionPoint
-from .delphi_model import DelphiModel, DelphiConfig
 from app.ai.llm_client import get_llm_client
-import torch
 from datetime import datetime, timedelta
 import random
 
@@ -193,9 +191,18 @@ class DelphiPredictionStrategy(HealthPredictionStrategy):
     Predicts health trajectories using a generative transformer model (Delphi-inspired).
     """
     def __init__(self):
-        self.config = DelphiConfig(n_layer=4, n_head=4, n_embd=128) # Smaller for local execution
-        self.model = DelphiModel(self.config)
+        self.config = None
+        self.model = None
         self.llm = get_llm_client()
+        self._model_error = None
+
+        try:
+            from .delphi_model import DelphiConfig, DelphiModel
+
+            self.config = DelphiConfig(n_layer=4, n_head=4, n_embd=128)
+            self.model = DelphiModel(self.config)
+        except Exception as exc:
+            self._model_error = str(exc)
 
     async def predict(self, user_id: str, context_data: Dict[str, Any]) -> PredictionResult:
         # Context data should contain 'metrics_history'
@@ -209,6 +216,19 @@ class DelphiPredictionStrategy(HealthPredictionStrategy):
                 horizon="long-term",
                 risk_level="unknown",
                 contributing_factors=["insufficient_historical_data"]
+            )
+
+        if self.model is None:
+            return PredictionResult(
+                prediction_type="delphi_trajectory",
+                predicted_value=0.0,
+                confidence=0.25,
+                horizon="24h",
+                risk_level="unknown",
+                contributing_factors=[
+                    "Delphi ML dependencies are unavailable; returning degraded forecast mode.",
+                    self._model_error or "Optional ML extras not installed.",
+                ]
             )
 
         # Delphi-specific trajectory mapping

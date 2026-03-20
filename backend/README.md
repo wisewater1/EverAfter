@@ -62,6 +62,12 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+Optional local ML extras:
+
+```bash
+pip install -r requirements-ml.txt
+```
+
 ### 2. Environment Configuration
 
 Copy `.env.example` to `.env` and configure:
@@ -188,6 +194,8 @@ pytest
 
 ### Environment Variables
 Ensure all required environment variables are set in production.
+
+`requirements.txt` is the production-safe install set. The heavy ML stack is now optional and lives in `requirements-ml.txt` so deployments like Render do not need to install `torch` and `sentence-transformers` just to boot the API.
 
 ### Database Migrations
 The backend uses existing Supabase database schema. Ensure migrations are applied:

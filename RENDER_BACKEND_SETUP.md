@@ -23,6 +23,18 @@ This repo now includes [render.yaml](/C:/Users/wisea/EverAfter/EverAfter/render.
    - `OPENAI_API_KEY` if you want OpenAI fallback enabled
 4. Deploy the service.
 
+### ML extras
+
+The Render API boot path now uses `backend/requirements.txt`, which excludes the heavy local ML stack so the service can build and boot more reliably.
+
+Optional local/offline ML dependencies live in `backend/requirements-ml.txt`:
+
+- `torch`
+- `transformers`
+- `sentence-transformers`
+
+Those are no longer required for the public API to start. Features that depend on them now degrade instead of preventing the backend from booting.
+
 ### After Render gives you a URL
 
 Set this in Netlify:
