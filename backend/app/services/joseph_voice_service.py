@@ -97,7 +97,7 @@ class JosephVoiceService:
         session: AsyncSession,
         owner_user_id: str,
         family_member_id: str,
-    ) -> FamilyNode:
+    ) -> Optional[FamilyNode]:
         result = await session.execute(
             select(FamilyNode).where(
                 FamilyNode.id == family_member_id,
@@ -105,8 +105,6 @@ class JosephVoiceService:
             )
         )
         node = result.scalar_one_or_none()
-        if not node:
-            raise ValueError("Family member not found for the current user")
         return node
 
     async def _get_profile(
@@ -236,7 +234,7 @@ class JosephVoiceService:
             profile.consent_snapshot_json = {
                 "consent_phrase": consent_phrase.strip(),
                 "captured_at": datetime.now(timezone.utc).isoformat(),
-                "family_member_name": member.name,
+                "family_member_name": member.name if member else family_member_id,
             }
         if engram_id:
             profile.engram_id = engram_id

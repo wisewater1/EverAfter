@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { reconcileOnboarding } from '../../lib/onboardingApi';
 import { clearHealthProfileDraft, saveHealthProfileDraft } from '../../lib/onboardingDraft';
 import {
@@ -84,70 +83,6 @@ function normalizeHealthProfile(data: HealthProfileData): HealthProfileData {
     healthGoals: Array.from(new Set(data.healthGoals.filter(Boolean))),
     activityLevel: data.activityLevel || undefined,
   };
-}
-
-async function ensureProfileRecord(userId: string) {
-  if (!supabase || !userId) {
-    return;
-  }
-
-  const { data: existingProfile, error: existingProfileError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (existingProfileError) {
-    throw existingProfileError;
-  }
-
-  if (existingProfile) {
-    return;
-  }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError) {
-    throw userError;
-  }
-
-  const email = user?.email ?? `${userId}@everafter.local`;
-  const name = (user?.user_metadata?.full_name || user?.user_metadata?.name || email.split('@')[0] || 'User').trim();
-
-  const candidatePayloads = [
-    {
-      id: userId,
-      email,
-      full_name: name,
-    },
-    {
-      id: userId,
-      email,
-      display_name: name,
-    },
-  ];
-
-  let lastError: any = null;
-
-  for (const payload of candidatePayloads) {
-    const { error: insertError } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
-    if (!insertError) {
-      return;
-    }
-
-    lastError = insertError;
-
-    if (!/column .* does not exist/i.test(insertError.message || '')) {
-      break;
-    }
-  }
-
-  if (lastError) {
-    throw lastError;
-  }
 }
 
 export default function HealthProfileStep({
@@ -239,48 +174,10 @@ export default function HealthProfileStep({
     setSavingProfile(true);
 
     try {
-      try {
-        await reconcileOnboarding({
-          health_profile: normalizedData,
-          completed_steps: ['health_profile'],
-        });
-        clearHealthProfileDraft(userId);
-        setErrors({});
-        onNext();
-        return;
-      } catch (backendError) {
-        console.warn('Canonical onboarding health sync failed, falling back to Supabase:', backendError);
-      }
-
-      if (!supabase || !userId) {
-        if (savedLocally) {
-          onNext();
-          return;
-        }
-
-        throw new Error('Supabase is unavailable and the local draft could not be saved.');
-      }
-
-      await ensureProfileRecord(userId);
-
-      const { error } = await supabase.from('health_demographics').upsert(
-        {
-          user_id: userId,
-          date_of_birth: normalizedData.dateOfBirth ?? null,
-          gender: normalizedData.gender ?? null,
-          weight_kg: normalizedData.weightKg ?? null,
-          height_cm: normalizedData.heightCm ?? null,
-          health_conditions: normalizedData.healthConditions,
-          allergies: normalizedData.allergies,
-          health_goals: normalizedData.healthGoals,
-          activity_level: normalizedData.activityLevel ?? null,
-        },
-        { onConflict: 'user_id' }
-      );
-
-      if (error) {
-        throw error;
-      }
+      await reconcileOnboarding({
+        health_profile: normalizedData,
+        completed_steps: ['health_profile'],
+      });
 
       clearHealthProfileDraft(userId);
       setErrors({});

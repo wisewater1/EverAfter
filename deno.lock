@@ -12,6 +12,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@eslint/js@^9.9.1",
+        "npm:@netlify/neon@~0.1.2",
         "npm:@playwright/test@^1.56.1",
         "npm:@prisma/client@6",
         "npm:@supabase/supabase-js@^2.57.4",

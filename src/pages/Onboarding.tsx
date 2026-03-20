@@ -352,27 +352,12 @@ export default function Onboarding() {
     setSaving(true);
     try {
       const newCompletedSteps = Array.from(new Set([...completedSteps, step]));
+      await reconcileOnboarding({
+        current_step: STEP_ORDER.indexOf(step) + 2,
+        completed_steps: newCompletedSteps,
+      });
       setCompletedSteps(newCompletedSteps);
-
-      try {
-        await reconcileOnboarding({
-          current_step: STEP_ORDER.indexOf(step) + 2,
-          completed_steps: newCompletedSteps,
-        });
-      } catch (backendError) {
-        console.warn('Canonical onboarding step sync failed, falling back to Supabase:', backendError);
-      }
-
-      // Update onboarding status in database
-      await supabase
-        .from('onboarding_status')
-        .update({
-          completed_steps: newCompletedSteps,
-          current_step: STEP_ORDER.indexOf(step) + 2,
-          last_step_at: new Date().toISOString(),
-          [`${step}_completed`]: true,
-        })
-        .eq('user_id', user?.id);
+      setLoadWarning(null);
 
       // Move to next step
       const currentIndex = STEP_ORDER.indexOf(step);
@@ -381,6 +366,11 @@ export default function Onboarding() {
       }
     } catch (error) {
       console.error('Error saving step progress:', error);
+      setLoadWarning(
+        error instanceof Error
+          ? `Canonical onboarding sync failed: ${error.message}. Your local draft is preserved, but progress was not marked complete.`
+          : 'Canonical onboarding sync failed. Your local draft is preserved, but progress was not marked complete.'
+      );
     } finally {
       setSaving(false);
     }
@@ -397,40 +387,22 @@ export default function Onboarding() {
     setSaving(true);
     try {
       const skippedStepIndex = Math.max(STEP_ORDER.indexOf(currentStep), 0) + 1;
-
-      try {
-        await reconcileOnboarding({
-          current_step: skippedStepIndex,
-          completed_steps: completedSteps,
-          onboarding_skipped: true,
-          skip_reason: 'User chose to skip',
-        });
-      } catch (backendError) {
-        console.warn('Canonical onboarding skip sync failed, falling back to Supabase:', backendError);
-      }
-
-      // Mark onboarding as skipped
-      await supabase
-        .from('profiles')
-        .update({
-          onboarding_skipped: true,
-          onboarding_skipped_at: new Date().toISOString(),
-        })
-        .eq('id', user?.id);
-
-      await supabase
-        .from('onboarding_status')
-        .update({
-          skipped_steps: [...(completedSteps.length > 0 ? [] : STEP_ORDER.slice(0, -1))],
-          skip_reason: 'User chose to skip',
-          current_step: skippedStepIndex,
-          last_step_at: new Date().toISOString(),
-        })
-        .eq('user_id', user?.id);
+      await reconcileOnboarding({
+        current_step: skippedStepIndex,
+        completed_steps: completedSteps,
+        onboarding_skipped: true,
+        skip_reason: 'User chose to skip',
+      });
+      setLoadWarning(null);
 
       navigate('/dashboard');
     } catch (error) {
       console.error('Error skipping onboarding:', error);
+      setLoadWarning(
+        error instanceof Error
+          ? `Could not mark onboarding as skipped canonically: ${error.message}.`
+          : 'Could not mark onboarding as skipped canonically.'
+      );
     } finally {
       setSaving(false);
     }
@@ -439,43 +411,25 @@ export default function Onboarding() {
   const handleComplete = async () => {
     setSaving(true);
     try {
-      try {
-        await reconcileOnboarding({
-          current_step: STEP_ORDER.length,
-          completed_steps: Array.from(new Set([...completedSteps, 'first_engram'])),
-          onboarding_complete: true,
-          onboarding_skipped: false,
-          family_setup: onboardingData.familySetup,
-          first_engram: onboardingData.firstEngram,
-          personality_quiz: onboardingData.personalityQuiz,
-        });
-      } catch (backendError) {
-        console.warn('Canonical onboarding completion sync failed, falling back to Supabase:', backendError);
-      }
-
-      // Mark onboarding as complete
-      await supabase
-        .from('onboarding_status')
-        .update({
-          onboarding_complete: true,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('user_id', user?.id);
-
-      await supabase
-        .from('profiles')
-        .update({
-          has_completed_onboarding: true,
-          onboarding_skipped: false,
-          ...(onboardingData.familySetup.selfName?.trim()
-            ? { full_name: onboardingData.familySetup.selfName.trim() }
-            : {}),
-        })
-        .eq('id', user?.id);
+      await reconcileOnboarding({
+        current_step: STEP_ORDER.length,
+        completed_steps: Array.from(new Set([...completedSteps, 'first_engram'])),
+        onboarding_complete: true,
+        onboarding_skipped: false,
+        family_setup: onboardingData.familySetup,
+        first_engram: onboardingData.firstEngram,
+        personality_quiz: onboardingData.personalityQuiz,
+      });
+      setLoadWarning(null);
 
       navigate('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      setLoadWarning(
+        error instanceof Error
+          ? `Could not complete onboarding canonically: ${error.message}.`
+          : 'Could not complete onboarding canonically.'
+      );
     } finally {
       setSaving(false);
     }

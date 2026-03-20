@@ -95,6 +95,44 @@ async def test_create_voice_profile_with_explicit_consent(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_create_voice_profile_allows_unreconciled_family_member(monkeypatch):
+    service = JosephVoiceService()
+    session = _FakeSession(execute_results=[_ScalarResult([])])
+
+    async def fake_member_access(_session, _owner_user_id, _family_member_id):
+        return None
+
+    async def fake_get_profile(_session, _owner_user_id, _family_member_id):
+        return None
+
+    async def fake_refresh(_session, profile):
+        profile.status = "collecting"
+        profile.training_status = "collecting"
+        profile.sample_count = 0
+        profile.approved_seconds = 0.0
+        profile.guided_sample_progress = {}
+
+    async def fake_health():
+        return {"available": False, "configured": False, "status": "offline"}
+
+    monkeypatch.setattr(service, "_ensure_family_access", fake_member_access)
+    monkeypatch.setattr(service, "_get_profile", fake_get_profile)
+    monkeypatch.setattr(service, "_refresh_profile_metrics", fake_refresh)
+    monkeypatch.setattr("app.services.joseph_voice_service.voice_ai_service.health", fake_health)
+
+    result = await service.create_or_update_profile(
+        session,
+        owner_user_id="user-1",
+        family_member_id="member-local-only",
+        consent_granted=True,
+        consent_phrase="I consent to private family voice storage.",
+    )
+
+    assert result["profile"]["family_member_id"] == "member-local-only"
+    assert result["profile"]["consent_status"] == "opted_in"
+
+
+@pytest.mark.asyncio
 async def test_start_training_rejects_without_explicit_consent(monkeypatch):
     service = JosephVoiceService()
     session = _FakeSession()

@@ -27,6 +27,21 @@ const CLIP_TYPE_LABELS: Record<string, string> = {
   free_speech: 'Free speech',
 };
 
+function normalizeVoiceProfileError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error || '');
+  const compact = message.trim();
+
+  if (!compact || compact === 'Internal Server Error') {
+    return 'Voice profile storage is temporarily unavailable. Try again after the backend reconnects.';
+  }
+
+  if (compact.includes('Family member not found')) {
+    return 'This family member is not reconciled with backend storage yet. The voice profile card is waiting for backend sync.';
+  }
+
+  return compact;
+}
+
 function formatVoiceStatus(profile: JosephVoiceProfile | null): string {
   if (!profile) return 'No profile yet';
   if (profile.model_ref) return 'Voice available';
@@ -74,17 +89,30 @@ export default function JosephVoiceProfileCard({
     setError(null);
 
     try {
-      const [health, bundle] = await Promise.all([
+      const [healthResult, bundleResult] = await Promise.allSettled([
         getJosephVoiceHealth(),
         getJosephVoiceProfile(familyMemberId),
       ]);
-      setVoiceHealth(health);
-      setProfile(bundle.profile);
-      setSamples(bundle.samples || []);
-      setConsentGranted(bundle.profile?.consent_status === 'opted_in');
-      setVoiceStyleNotes(bundle.profile?.voice_style_notes || '');
+
+      if (healthResult.status === 'fulfilled') {
+        setVoiceHealth(healthResult.value);
+      } else {
+        setVoiceHealth(null);
+      }
+
+      if (bundleResult.status === 'fulfilled') {
+        const bundle = bundleResult.value;
+        setProfile(bundle.profile);
+        setSamples(bundle.samples || []);
+        setConsentGranted(bundle.profile?.consent_status === 'opted_in');
+        setVoiceStyleNotes(bundle.profile?.voice_style_notes || '');
+      } else {
+        setProfile(null);
+        setSamples([]);
+        setError(normalizeVoiceProfileError(bundleResult.reason));
+      }
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load voice profile.');
+      setError(normalizeVoiceProfileError(loadError));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -126,7 +154,7 @@ export default function JosephVoiceProfileCard({
       setProfile(bundle.profile);
       setSamples(bundle.samples || []);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Failed to save voice profile.');
+      setError(normalizeVoiceProfileError(saveError));
     } finally {
       setSavingProfile(false);
     }
@@ -158,7 +186,7 @@ export default function JosephVoiceProfileCard({
       setSamples((current) => [result.sample, ...current]);
       recorder.clearRecording();
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Failed to upload voice sample.');
+      setError(normalizeVoiceProfileError(uploadError));
     } finally {
       setUploadingSample(false);
     }
@@ -184,7 +212,7 @@ export default function JosephVoiceProfileCard({
       });
       setProfile(result.profile);
     } catch (trainError) {
-      setError(trainError instanceof Error ? trainError.message : 'Failed to start voice training.');
+      setError(normalizeVoiceProfileError(trainError));
     } finally {
       setTraining(false);
     }

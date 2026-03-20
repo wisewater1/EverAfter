@@ -30,10 +30,12 @@ export default function SaintsGuardian() {
     const [status, setStatus] = useState<SystemStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [error, setError] = useState<string | null>(null);
 
     const fetchStatus = async () => {
         try {
             setLoading(true);
+            setError(null);
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
             const data = await requestBackendJson<SystemStatus>(
@@ -48,7 +50,7 @@ export default function SaintsGuardian() {
             setLastUpdated(new Date());
         } catch (err) {
             console.error("Monitoring failed", err);
-            setStatus(null);
+            setError(err instanceof Error ? err.message : 'Unable to load Saints API guardian status.');
         } finally {
             setLoading(false);
         }
@@ -78,7 +80,28 @@ export default function SaintsGuardian() {
         }
     };
 
-    if (!status) return null;
+    const resolvedStatus: SystemStatus = status ?? {
+        michael: {
+            role: 'security',
+            status: 'warning',
+            integrity: '0%',
+            message: 'Live monitoring unavailable. Using degraded status mode.',
+            metrics: {},
+        },
+        gabriel: {
+            role: 'finance',
+            status: 'warning',
+            message: 'Finance monitoring is temporarily unavailable.',
+            metrics: {},
+        },
+        anthony: {
+            role: 'audit',
+            status: 'warning',
+            message: 'Audit monitoring is temporarily unavailable.',
+            metrics: {},
+        },
+        timestamp: lastUpdated.toISOString(),
+    };
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden mb-8">
@@ -107,6 +130,12 @@ export default function SaintsGuardian() {
                 </div>
             </div>
 
+            {error && (
+                <div className="mx-4 mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    Recovery mode: {error}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-1 p-1 bg-slate-800/50">
                 {/* St. Michael - Security */}
                 <div className="bg-slate-900 p-4 hover:bg-slate-800/50 transition-colors">
@@ -115,17 +144,17 @@ export default function SaintsGuardian() {
                             <Shield className="w-4 h-4 text-blue-400" />
                             <span className="font-medium text-slate-300">St. Michael</span>
                         </div>
-                        {getStatusIcon(status.michael.status)}
+                        {getStatusIcon(resolvedStatus.michael.status)}
                     </div>
-                    <div className="text-sm text-slate-400 mb-2 min-h-[40px]">{status.michael.message}</div>
+                    <div className="text-sm text-slate-400 mb-2 min-h-[40px]">{resolvedStatus.michael.message}</div>
                     <div className="flex items-center gap-2 mt-3">
                         <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                                style={{ width: status.michael.integrity || '100%' }}
+                                style={{ width: resolvedStatus.michael.integrity || '100%' }}
                             />
                         </div>
-                        <span className="text-xs font-mono text-blue-400">{status.michael.integrity}</span>
+                        <span className="text-xs font-mono text-blue-400">{resolvedStatus.michael.integrity}</span>
                     </div>
                 </div>
 
@@ -136,15 +165,15 @@ export default function SaintsGuardian() {
                             <Activity className="w-4 h-4 text-emerald-400" />
                             <span className="font-medium text-slate-300">St. Gabriel</span>
                         </div>
-                        {getStatusIcon(status.gabriel.status)}
+                        {getStatusIcon(resolvedStatus.gabriel.status)}
                     </div>
-                    <div className="text-sm text-slate-400 mb-2 min-h-[40px]">{status.gabriel.message}</div>
+                    <div className="text-sm text-slate-400 mb-2 min-h-[40px]">{resolvedStatus.gabriel.message}</div>
                     <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
                         <div className="bg-slate-800/50 px-2 py-1 rounded text-slate-400">
-                            DB: <span className="text-emerald-400 font-mono">{status.gabriel.metrics.db_latency}</span>
+                            DB: <span className="text-emerald-400 font-mono">{resolvedStatus.gabriel.metrics.db_latency ?? 'degraded'}</span>
                         </div>
                         <div className="bg-slate-800/50 px-2 py-1 rounded text-slate-400">
-                            Orphans: <span className="text-emerald-400 font-mono">{status.gabriel.metrics.uncategorized_tx}</span>
+                            Orphans: <span className="text-emerald-400 font-mono">{resolvedStatus.gabriel.metrics.uncategorized_tx ?? 'unknown'}</span>
                         </div>
                     </div>
                 </div>
@@ -156,12 +185,12 @@ export default function SaintsGuardian() {
                             <Search className="w-4 h-4 text-amber-400" />
                             <span className="font-medium text-slate-300">St. Anthony</span>
                         </div>
-                        {getStatusIcon(status.anthony.status)}
+                        {getStatusIcon(resolvedStatus.anthony.status)}
                     </div>
-                    <div className="text-sm text-slate-400 mb-2 min-h-[40px]">{status.anthony.message}</div>
+                    <div className="text-sm text-slate-400 mb-2 min-h-[40px]">{resolvedStatus.anthony.message}</div>
                     <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
-                        <span>Errors: {status.anthony.metrics.system_errors}</span>
-                        <span>Recovered: {status.anthony.metrics.recovered_items}</span>
+                        <span>Errors: {resolvedStatus.anthony.metrics.system_errors ?? 'unknown'}</span>
+                        <span>Recovered: {resolvedStatus.anthony.metrics.recovered_items ?? 'unknown'}</span>
                     </div>
                 </div>
             </div>

@@ -60,7 +60,7 @@ function DashboardSectionFallback({ label }: { label: string }) {
 }
 
 export default function Dashboard() {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState<'activities' | 'engrams' | 'chat'>('engrams');
   const [selectedAIId, setSelectedAIId] = useState<string | null>(null);
@@ -262,7 +262,7 @@ export default function Dashboard() {
               >
                 <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <LogOut className="w-4 h-4 relative z-10" />
-                <span className="hidden sm:inline relative z-10">Sign Out</span>
+                <span className="hidden sm:inline relative z-10">{isDemoMode ? 'Exit Demo' : 'Sign Out'}</span>
               </button>
             </div>
           </div>

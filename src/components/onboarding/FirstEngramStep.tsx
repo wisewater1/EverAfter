@@ -26,7 +26,7 @@ import {
   buildRadarDataFromScores,
   storePersonalityProfile,
 } from '../../lib/joseph/personalityProfiles';
-import { importLocalOnboarding } from '../../lib/onboardingApi';
+import { reconcileOnboarding } from '../../lib/onboardingApi';
 import { saveStarterEngramDraft } from '../../lib/onboardingDraft';
 
 interface FirstEngramData {
@@ -551,31 +551,28 @@ export default function FirstEngramStep({
         primaryMemberId: primaryMember.id,
       });
 
-      try {
-        await importLocalOnboarding({
-          completed_steps: ['first_engram'],
-          first_engram: {
-            name: engramName.trim(),
-            archetype: selectedArchetype || archetype.id,
-          },
-          personality_quiz: {
-            answers: quizAnswers,
-            scores,
-          },
-          family_setup: {
-            selfName: selfName.trim(),
-            relatives,
-          },
-          primary_member_id: primaryMember.id,
-        });
-      } catch (syncError) {
-        console.error('Failed to import onboarding family/personality state into canonical backend:', syncError);
-      }
+      await reconcileOnboarding({
+        completed_steps: ['first_engram'],
+        first_engram: {
+          name: engramName.trim(),
+          archetype: selectedArchetype || archetype.id,
+        },
+        personality_quiz: {
+          answers: quizAnswers,
+          scores,
+        },
+        family_setup: {
+          selfName: selfName.trim(),
+          relatives,
+        },
+        primary_member_id: primaryMember.id,
+      });
 
       onNext();
     } catch (creationError) {
       console.error('Failed to create onboarding seed:', creationError);
-      setError('Could not finish AI and family setup.');
+      const message = creationError instanceof Error ? creationError.message : 'Unknown sync error';
+      setError(`Could not finish AI and family setup canonically. Local draft is preserved: ${message}`);
     } finally {
       setCreating(false);
     }
