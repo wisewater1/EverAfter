@@ -243,11 +243,119 @@ class DailyQuestionPool(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-# Family member invitations - for future implementation with actual family members table
-# Current schema uses family_members table differently
+class FamilyMemberInvitation(Base):
+    __tablename__ = "family_member_invitations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    inviter_user_id = Column(UUID(as_uuid=True), nullable=False)
+    invitee_email = Column(String, nullable=False, index=True)
+    invitee_name = Column(String, nullable=False)
+    invitation_token = Column(String, nullable=False, unique=True, index=True)
+    invitation_message = Column(Text, nullable=False)
+    status = Column(String, default="pending", nullable=False)
+    delivery_status = Column(String, default="pending", nullable=False)
+    delivery_error = Column(Text)
+    questions_to_answer = Column(Integer, default=365, nullable=False)
+    questions_answered = Column(Integer, default=0, nullable=False)
+    sent_at = Column(DateTime(timezone=True))
+    accepted_at = Column(DateTime(timezone=True))
+    last_response_at = Column(DateTime(timezone=True))
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
-# External responses - for future implementation
+class ExternalResponse(Base):
+    __tablename__ = "external_responses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    invitation_id = Column(UUID(as_uuid=True), ForeignKey("family_member_invitations.id", ondelete="CASCADE"), nullable=False, index=True)
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False, index=True)
+    question_text = Column(Text, nullable=False)
+    response_text = Column(Text, nullable=False)
+    question_category = Column(String)
+    dimension_id = Column(UUID(as_uuid=True))
+    day_number = Column(Integer, nullable=False)
+    response_length = Column(Integer, default=0)
+    is_processed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class VoiceProfile(Base):
+    __tablename__ = "voice_profiles"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_user_id = Column(String, nullable=False, index=True)
+    family_member_id = Column(String, nullable=False, index=True)
+    engram_id = Column(String, index=True)
+    status = Column(String, default="collecting", nullable=False)
+    consent_status = Column(String, default="pending", nullable=False)
+    training_status = Column(String, default="collecting", nullable=False)
+    sample_count = Column(Integer, default=0, nullable=False)
+    approved_seconds = Column(Float, default=0.0, nullable=False)
+    model_ref = Column(String)
+    voice_style_notes = Column(Text)
+    guided_sample_progress = Column(JSON, default=dict)
+    consent_snapshot_json = Column(JSON, default=dict)
+    last_trained_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VoiceSample(Base):
+    __tablename__ = "voice_samples"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    voice_profile_id = Column(UUID(as_uuid=True), ForeignKey("voice_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, nullable=False, index=True)
+    family_member_id = Column(String, nullable=False, index=True)
+    clip_type = Column(String, nullable=False)
+    prompt_text = Column(Text)
+    storage_path = Column(String, nullable=False)
+    transcript = Column(Text)
+    transcript_confidence = Column(Float, default=0.0, nullable=False)
+    duration_seconds = Column(Float, default=0.0, nullable=False)
+    quality_json = Column(JSON, default=dict)
+    approved = Column(Boolean, default=False, nullable=False)
+    review_status = Column(String, default="pending", nullable=False)
+    derived_quiz_question_id = Column(String)
+    consent_snapshot_json = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VoiceTrainingRun(Base):
+    __tablename__ = "voice_training_runs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    voice_profile_id = Column(UUID(as_uuid=True), ForeignKey("voice_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, nullable=False, index=True)
+    status = Column(String, default="queued", nullable=False)
+    sample_count = Column(Integer, default=0, nullable=False)
+    approved_seconds = Column(Float, default=0.0, nullable=False)
+    sidecar_job_ref = Column(String)
+    request_payload = Column(JSON, default=dict)
+    result_json = Column(JSON, default=dict)
+    error_text = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VoiceSynthSession(Base):
+    __tablename__ = "voice_synth_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    voice_profile_id = Column(UUID(as_uuid=True), ForeignKey("voice_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, nullable=False, index=True)
+    family_member_id = Column(String, nullable=False, index=True)
+    engram_id = Column(String, index=True)
+    text_content = Column(Text, nullable=False)
+    status = Column(String, default="pending", nullable=False)
+    sidecar_request_json = Column(JSON, default=dict)
+    result_json = Column(JSON, default=dict)
+    output_ref = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class TraitTaskAssociation(Base):

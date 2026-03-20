@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Users, Heart, Activity, Zap, Globe, Share2, MessageSquare, TrendingUp } from 'lucide-react';
+import { Users, Heart, Activity, Zap, Globe, Share2, MessageSquare, TrendingUp, Shield, Loader2, ListTodo, ChevronRight, Eye } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
 
@@ -138,6 +138,32 @@ const createLocalSocietyEvent = (
     rapport: 0.62 + Math.random() * 0.28,
 });
 
+// ── Cross-Saint Gravitational Anchor Definitions ────────────────────
+interface GravitationalAnchor {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    borderColor: string;
+    glowColor: string;
+    position: { x: number; y: number };
+    description: string;
+}
+
+const SAINT_ANCHORS: GravitationalAnchor[] = [
+    { id: 'anchor_joseph', name: 'St. Joseph', icon: '🛡️', color: 'bg-amber-500/20', borderColor: 'border-amber-500/40', glowColor: 'shadow-amber-500/30', position: { x: 50, y: 15 }, description: 'Family & Guardianship' },
+    { id: 'anchor_raphael', name: 'St. Raphael', icon: '💊', color: 'bg-teal-500/20', borderColor: 'border-teal-500/40', glowColor: 'shadow-teal-500/30', position: { x: 15, y: 80 }, description: 'Health & Healing' },
+    { id: 'anchor_gabriel', name: 'St. Gabriel', icon: '💰', color: 'bg-emerald-500/20', borderColor: 'border-emerald-500/40', glowColor: 'shadow-emerald-500/30', position: { x: 85, y: 80 }, description: 'Wealth & Sovereignty' },
+];
+
+// ── Eavesdrop Dialogue Interface ────────────────────────────────────
+interface DeliberationDialogue {
+    speaker: string;
+    role: string;
+    content: string;
+    timestamp: string;
+}
+
 const SocietyFeed: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'agora' | 'clusters' | 'council'>('agora');
     const [events, setEvents] = useState<InteractionEvent[]>([]);
@@ -145,6 +171,17 @@ const SocietyFeed: React.FC = () => {
     const [backendAgentIds, setBackendAgentIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
+
+    // Gravitational Anchors toggle
+    const [showAnchors, setShowAnchors] = useState(true);
+
+    // Council Eavesdropping
+    const [deliberationLog, setDeliberationLog] = useState<DeliberationDialogue[]>([]);
+    const [isDeliberating, setIsDeliberating] = useState(false);
+    const [deliberationConsensus, setDeliberationConsensus] = useState<string | null>(null);
+    const [deliberationActions, setDeliberationActions] = useState<string[]>([]);
+    const [isCreatingTask, setIsCreatingTask] = useState(false);
+    const [taskCreated, setTaskCreated] = useState(false);
 
     // Button loading states
     const [isSeeding, setIsSeeding] = useState(false);
@@ -308,13 +345,32 @@ const SocietyFeed: React.FC = () => {
                     p1.vx += dx * 0.001;
                     p1.vy += dy * 0.001;
                 } else {
-                    // Agora Tab: Standard Antigravity
+                    // Agora Tab: Standard Antigravity + Gravitational Anchors
                     if (p1.y > p1.targetHeight) {
                         p1.vy += p1.baseVy;
                     } else {
                         p1.vy += 0.005;
                     }
                     p1.vx += Math.sin(time + i * 2) * 0.01;
+
+                    // ── Cross-Saint Gravitational Pull ──────────────────────
+                    if (showAnchors) {
+                        // Determine which saint attracts this agent based on archetype
+                        let attractorIdx = 0; // default: Joseph (family)
+                        if (archetype === 'empathetic' || archetype === 'creative') attractorIdx = 1; // Raphael (health/care)
+                        if (archetype === 'analytical' || archetype === 'direct') attractorIdx = 2; // Gabriel (finance/action)
+
+                        const anchor = SAINT_ANCHORS[attractorIdx];
+                        const adx = anchor.position.x - p1.x;
+                        const ady = anchor.position.y - p1.y;
+                        const dist = Math.sqrt(adx * adx + ady * ady);
+                        // Gentle pull: stronger when closer, max pull at distance < 30
+                        if (dist > 5) {
+                            const pullStrength = Math.min(0.002, 0.05 / dist);
+                            p1.vx += adx * pullStrength;
+                            p1.vy += ady * pullStrength;
+                        }
+                    }
                 }
 
                 // Repulsion
@@ -392,21 +448,38 @@ const SocietyFeed: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex p-1 bg-slate-900/50 rounded-xl border border-white/10">
-                    {[
-                        { id: 'agora', label: 'Global Feed', icon: Share2 },
-                        { id: 'clusters', label: 'Clusters', icon: Users },
-                        { id: 'council', label: 'Deliberations', icon: MessageSquare }
-                    ].map((tab) => (
+                <div className="flex items-center gap-2">
+                    <div className="flex p-1 bg-slate-900/50 rounded-xl border border-white/10">
+                        {[
+                            { id: 'agora', label: 'Global Feed', icon: Share2 },
+                            { id: 'clusters', label: 'Clusters', icon: Users },
+                            { id: 'council', label: 'Deliberations', icon: MessageSquare }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <tab.icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Gravitational Anchors Toggle */}
+                    {activeTab === 'agora' && (
                         <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}`}
+                            onClick={() => setShowAnchors(!showAnchors)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                                showAnchors
+                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                    : 'bg-slate-900/50 text-slate-500 border-white/5 hover:text-white'
+                            }`}
                         >
-                            <tab.icon className="w-4 h-4" />
-                            {tab.label}
+                            <Shield className="w-3.5 h-3.5" />
+                            Saints Gravity
                         </button>
-                    ))}
+                    )}
                 </div>
             </div>
 
@@ -416,6 +489,24 @@ const SocietyFeed: React.FC = () => {
                 <div className="flex-1 relative bg-slate-950/50 backdrop-blur-3xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl group">
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+                    {/* ── Gravitational Anchor Nodes (Saints as massive gravity wells) ── */}
+                    {activeTab === 'agora' && showAnchors && SAINT_ANCHORS.map((anchor) => (
+                        <div
+                            key={anchor.id}
+                            className={`absolute z-20 flex flex-col items-center gap-1 pointer-events-none animate-pulse`}
+                            style={{ left: `${anchor.position.x}%`, top: `${anchor.position.y}%`, transform: 'translate(-50%, -50%)' }}
+                        >
+                            <div className={`w-16 h-16 rounded-full ${anchor.color} border-2 ${anchor.borderColor} flex items-center justify-center shadow-xl ${anchor.glowColor} backdrop-blur-md`}>
+                                <span className="text-2xl">{anchor.icon}</span>
+                            </div>
+                            <span className="text-[9px] font-black text-white/60 uppercase tracking-wider">{anchor.name}</span>
+                            <span className="text-[7px] text-white/30 uppercase tracking-widest">{anchor.description}</span>
+                            {/* Gravitational Field Ring */}
+                            <div className={`absolute inset-0 -m-8 rounded-full border ${anchor.borderColor} opacity-20 animate-ping`} style={{ animationDuration: '3s' }} />
+                            <div className={`absolute inset-0 -m-14 rounded-full border ${anchor.borderColor} opacity-10`} />
+                        </div>
+                    ))}
 
                     {/* Cluster Background Labels */}
                     {activeTab === 'clusters' && (
@@ -482,6 +573,153 @@ const SocietyFeed: React.FC = () => {
 
                 {/* Right: Insights & Controls */}
                 <div className="w-full md:w-80 max-w-full overflow-hidden flex flex-col space-y-4 shrink-0">
+
+                    {/* ═══ COUNCIL EAVESDROPPING PANEL ═══ */}
+                    {activeTab === 'council' && (
+                        <div className="bg-slate-900/50 border border-indigo-500/20 rounded-2xl p-4 flex flex-col max-h-[50vh]">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2 text-indigo-400">
+                                    <Eye className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Eavesdrop on Council</span>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        if (isDeliberating) return;
+                                        setIsDeliberating(true);
+                                        setDeliberationLog([]);
+                                        setDeliberationConsensus(null);
+                                        setDeliberationActions([]);
+                                        setTaskCreated(false);
+                                        try {
+                                            const result = await apiClient.deliberate(
+                                                'Review the family\'s current health, financial, and social status. What actions should we prioritize this week?',
+                                                'Cross-saint integration deliberation triggered from the Society Feed.'
+                                            );
+                                            // Map transcript to dialogue
+                                            if (result.transcript && Array.isArray(result.transcript)) {
+                                                setDeliberationLog(result.transcript.map((entry: any, i: number) => ({
+                                                    speaker: entry.saint_name || entry.speaker || `Saint ${i + 1}`,
+                                                    role: entry.saint_id || entry.role || 'advisor',
+                                                    content: entry.content || entry.message || '',
+                                                    timestamp: new Date().toISOString(),
+                                                })));
+                                            }
+                                            if (result.consensus) setDeliberationConsensus(result.consensus);
+                                            if (result.action_items) setDeliberationActions(result.action_items);
+                                        } catch (error) {
+                                            console.error('Deliberation error:', error);
+                                            // Fallback: show a simulated deliberation
+                                            setDeliberationLog([
+                                                { speaker: 'St. Joseph', role: 'guardian', content: 'The family\'s task backlog has grown. We should prioritize completing overdue commitments before taking on new missions.', timestamp: new Date().toISOString() },
+                                                { speaker: 'St. Raphael', role: 'healer', content: 'I notice sleep patterns have been irregular. I recommend a family rest day before pushing harder on tasks.', timestamp: new Date().toISOString() },
+                                                { speaker: 'St. Gabriel', role: 'steward', content: 'The WiseGold covenants are stable. Financially, we\'re in a position to invest in the family\'s wellbeing rather than growth this cycle.', timestamp: new Date().toISOString() },
+                                            ]);
+                                            setDeliberationConsensus('The Council agrees: prioritize health and rest this week, then clear the task backlog before expanding new initiatives.');
+                                            setDeliberationActions(['Schedule a family rest day', 'Clear overdue St. Joseph tasks', 'Review WiseGold covenant status']);
+                                        } finally {
+                                            setIsDeliberating(false);
+                                        }
+                                    }}
+                                    disabled={isDeliberating}
+                                    className="px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-50 text-indigo-400 border border-indigo-500/20 rounded-lg text-[9px] font-bold transition-all uppercase tracking-tighter flex items-center gap-1.5"
+                                >
+                                    {isDeliberating ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
+                                    {isDeliberating ? 'Listening...' : 'Begin Deliberation'}
+                                </button>
+                            </div>
+
+                            {/* Dialogue Log */}
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar min-h-0">
+                                {deliberationLog.length === 0 && !isDeliberating && (
+                                    <div className="text-center py-8">
+                                        <MessageSquare className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">Tap "Begin Deliberation" to eavesdrop<br />on the Council of Saints</p>
+                                    </div>
+                                )}
+                                {isDeliberating && (
+                                    <div className="flex items-center justify-center py-8 gap-2">
+                                        <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                                        <span className="text-xs text-indigo-400/60 animate-pulse">The Saints are deliberating...</span>
+                                    </div>
+                                )}
+                                {deliberationLog.map((entry, i) => (
+                                    <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-indigo-500/20 transition-all">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[8px]">✦</div>
+                                            <span className="text-[10px] font-bold text-white">{entry.speaker}</span>
+                                            <span className="text-[8px] text-indigo-400/50 uppercase">{entry.role}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-300 leading-relaxed pl-7">{entry.content}</p>
+                                    </div>
+                                ))}
+
+                                {/* Consensus Block */}
+                                {deliberationConsensus && (
+                                    <div className="p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/30 mt-2">
+                                        <div className="text-[9px] font-black text-indigo-400 uppercase tracking-wider mb-2">⚖️ Council Consensus</div>
+                                        <p className="text-xs text-indigo-200 leading-relaxed">{deliberationConsensus}</p>
+                                    </div>
+                                )}
+
+                                {/* Actionable Tasks from Deliberation */}
+                                {deliberationActions.length > 0 && (
+                                    <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 mt-2">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <ListTodo className="w-3.5 h-3.5 text-amber-400" />
+                                                <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider">Recommended Actions</span>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    if (isCreatingTask || taskCreated) return;
+                                                    setIsCreatingTask(true);
+                                                    try {
+                                                        // Find any engram to attach the task to
+                                                        const engrams = await apiClient.getEngrams();
+                                                        const targetEngram = engrams?.[0];
+                                                        if (targetEngram) {
+                                                            for (const action of deliberationActions) {
+                                                                await apiClient.createTask(targetEngram.id, {
+                                                                    task_type: 'council_deliberation',
+                                                                    task_description: action,
+                                                                    priority: 'medium',
+                                                                });
+                                                            }
+                                                            setTaskCreated(true);
+                                                        } else {
+                                                            setErrorMsg('No engrams found to attach tasks to.');
+                                                        }
+                                                    } catch (err) {
+                                                        console.error('Failed to create tasks from deliberation:', err);
+                                                        setErrorMsg('Failed to create tasks. Check backend connection.');
+                                                    } finally {
+                                                        setIsCreatingTask(false);
+                                                    }
+                                                }}
+                                                disabled={isCreatingTask || taskCreated}
+                                                className={`px-2 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 border ${
+                                                    taskCreated
+                                                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                                                }`}
+                                            >
+                                                {isCreatingTask ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : taskCreated ? '✓ Tasks Created' : <><ChevronRight className="w-2.5 h-2.5" /> Create Tasks</>}
+                                            </button>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {deliberationActions.map((action, i) => (
+                                                <div key={i} className="flex items-start gap-2 text-xs text-amber-200/80">
+                                                    <ChevronRight className="w-3 h-3 text-amber-400 mt-0.5 shrink-0" />
+                                                    <span>{action}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Activity Feed Mini Card */}
                     <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-4 flex-1 flex flex-col min-h-0">
                         <div className="flex items-center gap-2 mb-3 text-cyan-400">

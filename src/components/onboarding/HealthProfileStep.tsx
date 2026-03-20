@@ -114,19 +114,38 @@ async function ensureProfileRecord(userId: string) {
   }
 
   const email = user?.email ?? `${userId}@everafter.local`;
-  const displayName = email.split('@')[0] || 'User';
+  const name = (user?.user_metadata?.full_name || user?.user_metadata?.name || email.split('@')[0] || 'User').trim();
 
-  const { error: insertError } = await supabase.from('profiles').upsert(
+  const candidatePayloads = [
     {
       id: userId,
       email,
-      display_name: displayName,
+      full_name: name,
     },
-    { onConflict: 'id' }
-  );
+    {
+      id: userId,
+      email,
+      display_name: name,
+    },
+  ];
 
-  if (insertError) {
-    throw insertError;
+  let lastError: any = null;
+
+  for (const payload of candidatePayloads) {
+    const { error: insertError } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+    if (!insertError) {
+      return;
+    }
+
+    lastError = insertError;
+
+    if (!/column .* does not exist/i.test(insertError.message || '')) {
+      break;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
   }
 }
 

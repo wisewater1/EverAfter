@@ -13,7 +13,7 @@ from app.schemas.engram import (
     ResponseCreate, ResponseResponse, PersonalityAnalysisResponse,
     EngramAssetBase, EngramAssetResponse
 )
-from app.models.engram import Engram, EngramDailyResponse, EngramAsset
+from app.models.engram import Engram, EngramDailyResponse, EngramAsset, VoiceProfile
 from app.engrams.personality import get_personality_analyzer
 from app.services.health.service import health_service
 from app.services.embeddings import get_embeddings_service
@@ -49,6 +49,16 @@ async def list_engrams(
     result = await session.execute(query)
     engrams = result.scalars().all()
 
+    engram_voice_map: Dict[str, VoiceProfile] = {}
+    if engrams:
+        engram_ids = [str(engram.id) for engram in engrams]
+        voice_result = await session.execute(
+            select(VoiceProfile).where(VoiceProfile.engram_id.in_(engram_ids))
+        )
+        for profile in voice_result.scalars().all():
+            if profile.engram_id and profile.engram_id not in engram_voice_map:
+                engram_voice_map[profile.engram_id] = profile
+
     # The EngramResponse schema requires 'relationship' and 'engram_type',
     # but the SQLAlchemy model (ArchetypalAI) doesn't have them. 
     # Must populate them manually to avoid Pydantic Field required errors.
@@ -68,11 +78,21 @@ async def list_engrams(
             "ai_readiness_score": getattr(engram, 'ai_readiness_score', 0),
             "is_ai_active": True if engram.training_status == 'ready' else False,
             "training_status": engram.training_status or 'untrained',
+            "voice_profile_id": None,
+            "voice_enabled": False,
+            "voice_status": "unavailable",
+            "voice_style_notes": None,
             "created_at": engram.created_at,
             "updated_at": engram.updated_at,
             "relationship": getattr(engram, 'relationship', "custom"),
             "engram_type": getattr(engram, 'engram_type', "custom")
         }
+        voice_profile = engram_voice_map.get(str(engram.id))
+        if voice_profile:
+            engram_dict["voice_profile_id"] = str(voice_profile.id)
+            engram_dict["voice_enabled"] = bool(voice_profile.model_ref)
+            engram_dict["voice_status"] = voice_profile.training_status or voice_profile.status or "collecting"
+            engram_dict["voice_style_notes"] = voice_profile.voice_style_notes
         response_list.append(engram_dict)
 
     return response_list

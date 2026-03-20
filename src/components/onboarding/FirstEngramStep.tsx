@@ -28,6 +28,7 @@ import {
   toOceanScores,
 } from '../../lib/joseph/personalityProfiles';
 import { apiClient } from '../../lib/api-client';
+import { saveStarterEngramDraft } from '../../lib/onboardingDraft';
 
 interface FirstEngramData {
   firstEngram?: {
@@ -540,6 +541,22 @@ export default function FirstEngramStep({
       }
 
       relatives.forEach((relative) => ensureRelativeMember(relative, primaryMember.id));
+
+      saveStarterEngramDraft(userId, {
+        firstEngram: {
+          name: engramName.trim(),
+          archetype: selectedArchetype || archetype.id,
+        },
+        personalityQuiz: {
+          answers: quizAnswers,
+          scores,
+        },
+        familySetup: {
+          selfName: selfName.trim(),
+          relatives,
+        },
+        primaryMemberId: primaryMember.id,
+      });
 
       onNext();
     } catch (creationError) {

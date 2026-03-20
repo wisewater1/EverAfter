@@ -4,7 +4,7 @@ import {
     CheckSquare, Clock, MapPin, Info, MessageSquare,
     Activity, RefreshCw, ArrowLeft, Bell, Link as LinkIcon,
     GitBranch, UserCheck, History, MessageCircle, Search,
-    Scale, Archive, Sparkles, Brain
+    Sparkles, Brain
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,8 @@ import DelphiView from './dht/DelphiView';
 import OceanBehavioralLayer from './dht/OceanBehavioralLayer';
 import TellMyStoryPartnerCard from './joseph/TellMyStoryPartnerCard';
 import { buildTellMyStoryReferralCode, buildTellMyStoryUrl } from '../lib/tellMyStory';
+import { AdvancedTasksTab } from './joseph/AdvancedTasksTab';
+import { AdvancedShoppingTab } from './joseph/AdvancedShoppingTab';
 
 type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams' | 'create-ai';
 
@@ -53,33 +55,6 @@ const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: stri
     { key: 'chat', label: 'Chat', icon: MessageCircle },
 ];
 
-const HEADER_ACTIONS = [
-    {
-        key: 'council',
-        label: 'Council',
-        title: 'Council of Saints',
-        icon: Scale,
-        className: 'text-indigo-300 border-indigo-500/20 bg-indigo-500/10 hover:bg-indigo-500/20 hover:text-indigo-200',
-        action: '/council',
-    },
-    {
-        key: 'vault',
-        label: 'Vault',
-        title: 'Time Capsule Vault',
-        icon: Archive,
-        className: 'text-amber-300 border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-200',
-        action: '/time-capsules',
-    },
-    {
-        key: 'rituals',
-        label: 'Rituals',
-        title: 'Ritual Altar',
-        icon: Sparkles,
-        className: 'text-rose-300 border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 hover:text-rose-200',
-        action: '/rituals',
-    },
-] as const;
-
 function sanitizeDashboardCopy(value: string) {
     return value
         .replace('âš• ', '')
@@ -100,7 +75,7 @@ function deriveFamilyStatus() {
 }
 
 export default function StJosephFamilyDashboard() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [summary, setSummary] = useState<HouseholdSummary | null>(null);
@@ -125,7 +100,10 @@ export default function StJosephFamilyDashboard() {
     };
 
     const loadData = async () => {
-        if (!user) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const [t, shop, e, bull] = await Promise.all([
@@ -185,9 +163,10 @@ export default function StJosephFamilyDashboard() {
     };
 
     useEffect(() => {
+        if (authLoading) return;
         loadData();
         syncEngrams();
-    }, [user]);
+    }, [authLoading, user]);
 
     useEffect(() => {
         const requestedTab = searchParams.get('tab');
@@ -210,7 +189,7 @@ export default function StJosephFamilyDashboard() {
         setSearchParams(nextSearchParams, { replace: true });
     }, [searchParams, setSearchParams]);
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
@@ -245,26 +224,13 @@ export default function StJosephFamilyDashboard() {
                     </div>
 
                     <div className="flex items-center justify-center md:justify-end shrink-0 md:ml-auto gap-3">
-                        <div className="flex items-center gap-1 rounded-2xl border border-white/8 bg-slate-900/70 p-1.5 shadow-[0_10px_30px_rgba(2,6,23,0.28)] backdrop-blur-sm">
-                            {HEADER_ACTIONS.map(({ key, label, title, icon: ActionIcon, className, action }) => (
-                                <button
-                                    key={key}
-                                    onClick={() => navigate(action)}
-                                    title={title}
-                                    className={`group flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-xl border px-3 transition-all duration-200 shrink-0 ${className}`}
-                                >
-                                    <ActionIcon className="h-4.5 w-4.5 transition-transform group-hover:scale-110" />
-                                    <span className="hidden xl:inline text-[11px] font-medium tracking-wide">{label}</span>
-                                </button>
-                            ))}
-                        </div>
                         <SecurityIntegrityBadge />
                     </div>
                 </div>
 
                 <SaintsQuickNav />
 
-                <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full max-w-[calc(100vw-2rem)] md:max-w-none custom-scrollbar pb-2">
+                <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full max-w-[calc(100vw-2rem)] md:max-w-none hide-scrollbar">
                     {TABS.map(({ key, label, icon: TabIcon }) => (
                         <button
                             key={key}
@@ -481,78 +447,11 @@ export default function StJosephFamilyDashboard() {
                         )}
 
                         {activeTab === 'tasks' && (
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8">
-                                <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
-                                    <CheckSquare className="w-5 h-5 text-amber-400" />
-                                    Task Master
-                                </h3>
-                                <div className="space-y-3">
-                                    {tasks.map((task) => (
-                                        <div key={task.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-amber-500/30 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <button
-                                                    onClick={() => task.status === 'pending' && handleCompleteTask(task.id)}
-                                                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${task.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 cursor-default' : 'bg-slate-800 text-slate-400 hover:bg-amber-500/20 hover:text-amber-400'}`}
-                                                >
-                                                    <CheckSquare className="w-5 h-5" />
-                                                </button>
-                                                <div>
-                                                    <div className={`text-sm font-medium ${task.status === 'completed' ? 'text-slate-500 line-through' : 'text-white'}`}>
-                                                        {task.action}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-500">{task.description}</div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="px-2 py-1 bg-white/5 rounded text-[9px] text-slate-500 font-bold uppercase">
-                                                    {task.category}
-                                                </div>
-                                                {task.status === 'pending' && (
-                                                    <button
-                                                        onClick={() => handleCompleteTask(task.id)}
-                                                        className="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded text-[9px] font-bold uppercase hover:bg-emerald-500/20 transition-all"
-                                                    >
-                                                        Done
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {tasks.length === 0 && (
-                                        <p className="text-center text-sm text-slate-600 py-6">All tasks done! Great work!</p>
-                                    )}
-                                </div>
-                            </div>
+                            <AdvancedTasksTab />
                         )}
 
                         {activeTab === 'shopping' && (
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8">
-                                <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
-                                    <ShoppingCart className="w-5 h-5 text-amber-400" />
-                                    Provisioning List
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {shopping.map((item) => (
-                                        <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-2 h-2 rounded-full ${item.status === 'needed' ? 'bg-amber-400' : 'bg-slate-600'}`} />
-                                                <div>
-                                                    <div className={`text-sm font-medium ${item.status === 'bought' ? 'text-slate-500 line-through' : 'text-white'}`}>{item.name}</div>
-                                                    <div className="text-[10px] text-slate-500">{item.quantity} · Added by {item.addedBy}</div>
-                                                </div>
-                                            </div>
-                                            {item.status === 'needed' && (
-                                                <button
-                                                    onClick={() => handleMarkBought(item.id)}
-                                                    className="text-[10px] text-amber-500 font-bold uppercase hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-amber-500/10"
-                                                >
-                                                    Bought
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <AdvancedShoppingTab />
                         )}
 
                         {activeTab === 'calendar' && (

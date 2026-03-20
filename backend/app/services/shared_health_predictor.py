@@ -1,112 +1,646 @@
 """
-SharedHealthPredictor — Unified health prediction engine for all Saints.
-
-Wraps
-  • Delphi model  (trajectory generation)
-  • UncertaintyEngine  (confidence / evidence labelling)
-  • EvidenceLedger (provenance)
-  • DriftMonitor   (model freshness)
-  • AncestryEngine (family-lineage risk)
-
-Both St. Raphael and St. Joseph call this layer so predictions,
-confidence scores, and evidence labels stay consistent system-wide.
+Shared health prediction service for St. Raphael and St. Joseph.
 """
-
 from __future__ import annotations
 
-import uuid
-import random
-import math
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from statistics import mean
+from typing import Any, Dict, Iterable, List, Optional
 
-# ── Shared health constants (single source of truth) ─────────────
-from app.services.health.health_constants import (
-    detect_trend, is_trend_worsening, risk_level,
-    Trend, Metric, METRIC_THRESHOLDS,
-)
 
-# ── Lazy imports for optional heavy deps ─────────────────────────
+def clamp_score(value: float, minimum: float = 0.0, maximum: float = 100.0) -> float:
+    return max(minimum, min(maximum, float(value)))
 
-def _uncertainty():
-    from app.services.causal_twin.uncertainty_engine import uncertainty_engine
-    return uncertainty_engine
 
-def _evidence():
-    from app.services.causal_twin.evidence_ledger import evidence_ledger
-    return evidence_ledger
-
-def _drift():
-    from app.services.causal_twin.drift_monitor import drift_monitor
-    return drift_monitor
-
-def _ancestry():
+def safe_float(value: Any, default: float = 0.0) -> float:
     try:
-        from app.services.causal_twin.ancestry_engine import ancestry_engine
-        return ancestry_engine
-    except Exception:
-        return None
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
-def _personality():
-    """Lazy import of personality quiz engine."""
+
+def safe_int(value: Any, default: int = 0) -> int:
     try:
-        from app.services.personality_quiz import quiz_engine
-        return quiz_engine
-    except Exception:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def parse_datetime(value: Any) -> Optional[datetime]:
+    if not value:
         return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            normalized = value.replace("Z", "+00:00")
+            parsed = datetime.fromisoformat(normalized)
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    return None
 
 
-# ── Helper: build uncertainty metadata dict ──────────────────────
-
-def _build_uncertainty(
-    data_days: int = 0,
-    data_completeness: float = 0.0,
-    has_experiment: bool = False,
-    contradictions: int = 0,
-    evidence_type: str = "population_prior",
-) -> Dict[str, Any]:
-    ue = _uncertainty()
-    conf = ue.assess_confidence(data_days, data_completeness, has_experiment, contradictions)
-    return {
-        "confidence_score": conf["score"],
-        "confidence_level": conf["level"],
-        "evidence_type": evidence_type,
-        "data_days": data_days,
-        "data_completeness": data_completeness,
-        "explanation": conf["explanation"],
-    }
+def iso_now() -> str:
+    return utcnow().isoformat()
 
 
-# ── Trend helpers ────────────────────────────────────────────────
-# NOTE: _detect_trend and _risk_level are now imported from health_constants.
-# Do NOT redefine them here — use detect_trend() and risk_level() directly.
-
-def _detect_trend(values: List[float]) -> str:
-    """Delegate to shared health_constants.detect_trend (literal direction)."""
-    return detect_trend(values)
-
-
-def _risk_level(score: float) -> str:
-    """Delegate to shared health_constants.risk_level."""
-    return risk_level(score)
+def risk_level(score: float) -> str:
+    if score >= 80:
+        return "critical"
+    if score >= 60:
+        return "high"
+    if score >= 35:
+        return "moderate"
+    return "low"
 
 
-# ═════════════════════════════════════════════════════════════════
-#  SharedHealthPredictor
-# ═════════════════════════════════════════════════════════════════
+def trend_label(delta: float) -> str:
+    if delta >= 5:
+        return "declining"
+    if delta <= -5:
+        return "improving"
+    return "stable"
+
+
+@dataclass
+class LaneComputation:
+    name: str
+    score: float
+    confidence: float
+    measured_inputs: List[str]
+    inferred_inputs: List[str]
+    top_drivers: List[Dict[str, Any]]
+    trend: str
+
 
 class SharedHealthPredictor:
-    """
-    Single prediction facade used by **all** Saints.
+    CARDIAC_KEYWORDS = {"heart_disease", "hypertension", "arrhythmia", "heart"}
+    METABOLIC_KEYWORDS = {"diabetes_type1", "diabetes_type2", "diabetes", "glucose", "thyroid", "weight"}
+    SLEEP_KEYWORDS = {"sleep_apnea", "sleep", "insomnia"}
+    STRESS_KEYWORDS = {"anxiety", "depression", "stress"}
 
-    Usage:
-        from app.services.shared_health_predictor import shared_predictor
-        bundle = await shared_predictor.predict_user(user_id, history)
-    """
+    def _get_metric_values(self, metrics_history: List[Dict[str, Any]], metric_names: Iterable[str]) -> List[float]:
+        names = {name.lower() for name in metric_names}
+        values: List[float] = []
+        for metric in metrics_history:
+            metric_name = str(metric.get("metric_type") or metric.get("type") or "").lower()
+            if metric_name in names:
+                value = safe_float(metric.get("value"))
+                if value:
+                    values.append(value)
+        return values
 
-    MODEL_VERSION = "shared-v1.0.0"
+    def _get_recent_metric_points(self, metrics_history: List[Dict[str, Any]], metric_names: Iterable[str]) -> List[Dict[str, Any]]:
+        names = {name.lower() for name in metric_names}
+        points = [
+            metric
+            for metric in metrics_history
+            if str(metric.get("metric_type") or metric.get("type") or "").lower() in names
+        ]
+        points.sort(
+            key=lambda metric: parse_datetime(metric.get("timestamp") or metric.get("date") or metric.get("recorded_at"))
+            or datetime.min.replace(tzinfo=timezone.utc)
+        )
+        return points
 
-    # ── Individual prediction (St. Raphael primary) ──────────────
+    def _average_metric(self, metrics_history: List[Dict[str, Any]], metric_names: Iterable[str]) -> Optional[float]:
+        values = self._get_metric_values(metrics_history, metric_names)
+        return mean(values) if values else None
+
+    def _recent_delta(self, metrics_history: List[Dict[str, Any]], metric_names: Iterable[str]) -> float:
+        points = self._get_recent_metric_points(metrics_history, metric_names)
+        if len(points) < 2:
+            return 0.0
+        first = safe_float(points[max(0, len(points) - 5)].get("value"))
+        last = safe_float(points[-1].get("value"))
+        return last - first
+
+    def _extract_conditions(self, profile: Optional[Dict[str, Any]], member: Optional[Dict[str, Any]] = None) -> List[str]:
+        conditions: List[str] = []
+        for source in (profile or {}, member or {}):
+            raw = source.get("health_conditions") or source.get("conditions") or source.get("traits") or []
+            if isinstance(raw, str):
+                raw = [raw]
+            for item in raw or []:
+                normalized = str(item).strip().lower().replace(" ", "_")
+                if normalized:
+                    conditions.append(normalized)
+        deduped: List[str] = []
+        for condition in conditions:
+            if condition not in deduped:
+                deduped.append(condition)
+        return deduped
+
+    def _extract_ocean_scores(self, member: Optional[Dict[str, Any]], profile: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        sources = [
+            (member or {}).get("ocean_scores"),
+            (member or {}).get("scores"),
+            (profile or {}).get("ocean_scores"),
+            (profile or {}).get("scores"),
+        ]
+        for source in sources:
+            if isinstance(source, dict) and source:
+                return {
+                    "openness": safe_float(source.get("openness") or source.get("O")),
+                    "conscientiousness": safe_float(source.get("conscientiousness") or source.get("C")),
+                    "extraversion": safe_float(source.get("extraversion") or source.get("E")),
+                    "agreeableness": safe_float(source.get("agreeableness") or source.get("A")),
+                    "neuroticism": safe_float(source.get("neuroticism") or source.get("N")),
+                }
+        return {
+            "openness": 0.0,
+            "conscientiousness": 0.0,
+            "extraversion": 0.0,
+            "agreeableness": 0.0,
+            "neuroticism": 0.0,
+        }
+
+    def _compute_adherence_modifier(
+        self,
+        ocean_scores: Dict[str, float],
+        medications: Optional[List[Dict[str, Any]]] = None,
+        existing_actions: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        medication_count = len(medications or [])
+        incomplete_actions = len(
+            [
+                action
+                for action in (existing_actions or [])
+                if str(action.get("status", "pending")).lower() not in {"done", "completed", "reviewed"}
+            ]
+        )
+        conscientiousness = ocean_scores.get("conscientiousness", 50.0) or 50.0
+        neuroticism = ocean_scores.get("neuroticism", 50.0) or 50.0
+        agreeableness = ocean_scores.get("agreeableness", 50.0) or 50.0
+        score = clamp_score(
+            35
+            + medication_count * 6
+            + incomplete_actions * 5
+            + (100 - conscientiousness) * 0.25
+            + neuroticism * 0.20
+            - agreeableness * 0.10
+        )
+        return {
+            "score": score,
+            "drivers": [
+                {"factor": "Medication complexity", "weight": medication_count * 6, "source": "measured"},
+                {"factor": "Outstanding actions", "weight": incomplete_actions * 5, "source": "measured"},
+                {
+                    "factor": "OCEAN adherence modifier",
+                    "weight": round(((100 - conscientiousness) * 0.25) + neuroticism * 0.20, 1),
+                    "source": "family-history-derived" if ocean_scores.get("conscientiousness") else "educated inference",
+                },
+            ],
+        }
+
+    def _lane_from_metrics(
+        self,
+        name: str,
+        base_score: float,
+        metric_score: float,
+        measured_inputs: List[str],
+        inferred_inputs: List[str],
+        drivers: List[Dict[str, Any]],
+        delta: float,
+    ) -> LaneComputation:
+        confidence = clamp_score(35 + len(measured_inputs) * 15 + len(inferred_inputs) * 5)
+        score = clamp_score(base_score + metric_score)
+        return LaneComputation(
+            name=name,
+            score=score,
+            confidence=confidence,
+            measured_inputs=measured_inputs,
+            inferred_inputs=inferred_inputs,
+            top_drivers=drivers[:3],
+            trend=trend_label(delta),
+        )
+
+    def _build_condition_forecasts(
+        self,
+        metrics_history: List[Dict[str, Any]],
+        profile: Optional[Dict[str, Any]],
+        member_conditions: List[str],
+        ocean_scores: Dict[str, float],
+        medications: Optional[List[Dict[str, Any]]] = None,
+        existing_actions: Optional[List[Dict[str, Any]]] = None,
+        experiment_summary: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        conditions = set(member_conditions)
+
+        resting_hr = self._average_metric(metrics_history, ["heart_rate", "resting_hr"])
+        blood_pressure = self._average_metric(metrics_history, ["blood_pressure", "blood_pressure_systolic"])
+        glucose = self._average_metric(metrics_history, ["glucose", "glucose_variability", "a1c"])
+        sleep = self._average_metric(metrics_history, ["sleep_duration", "sleep_quality"])
+        stress = self._average_metric(metrics_history, ["stress_level", "mood"])
+
+        adherence = self._compute_adherence_modifier(ocean_scores, medications, existing_actions)
+        experiment_count = len(experiment_summary or [])
+
+        cardiac = self._lane_from_metrics(
+            "cardiac",
+            15
+            + (12 if conditions.intersection(self.CARDIAC_KEYWORDS) else 0)
+            + (10 if blood_pressure and blood_pressure >= 135 else 0)
+            + (8 if resting_hr and resting_hr >= 85 else 0),
+            6 if experiment_count else 0,
+            [label for label, present in {
+                "blood pressure": blood_pressure is not None,
+                "heart rate": resting_hr is not None,
+            }.items() if present],
+            ["family cardiac history"] if conditions.intersection(self.CARDIAC_KEYWORDS) else [],
+            [
+                {"factor": "Cardiac condition history", "weight": 12, "source": "family-history-derived"}
+                if conditions.intersection(self.CARDIAC_KEYWORDS)
+                else {"factor": "Measured cardiac inputs", "weight": 8, "source": "measured"},
+                {"factor": "Elevated blood pressure", "weight": 10, "source": "measured"},
+                {"factor": "Medication / experiment strain", "weight": experiment_count * 3, "source": "educated inference"},
+            ],
+            self._recent_delta(metrics_history, ["heart_rate", "blood_pressure", "blood_pressure_systolic"]),
+        )
+
+        metabolic = self._lane_from_metrics(
+            "metabolic",
+            15
+            + (15 if conditions.intersection(self.METABOLIC_KEYWORDS) else 0)
+            + (12 if glucose and glucose >= 125 else 0),
+            0,
+            [label for label, present in {"glucose": glucose is not None}.items() if present],
+            ["family metabolic history"] if conditions.intersection(self.METABOLIC_KEYWORDS) else [],
+            [
+                {"factor": "Metabolic condition history", "weight": 15, "source": "family-history-derived"},
+                {"factor": "Glucose trend", "weight": 12, "source": "measured"},
+                {"factor": "Activity / nutrition consistency", "weight": 5, "source": "educated inference"},
+            ],
+            self._recent_delta(metrics_history, ["glucose", "glucose_variability", "a1c"]),
+        )
+
+        sleep_lane = self._lane_from_metrics(
+            "sleep_recovery",
+            12
+            + (12 if conditions.intersection(self.SLEEP_KEYWORDS) else 0)
+            + (10 if sleep and sleep < 6.5 else 0),
+            0,
+            [label for label, present in {"sleep duration": sleep is not None}.items() if present],
+            ["sleep apnea history"] if conditions.intersection(self.SLEEP_KEYWORDS) else [],
+            [
+                {"factor": "Sleep deficit", "weight": 10, "source": "measured"},
+                {"factor": "Sleep condition history", "weight": 12, "source": "family-history-derived"},
+                {"factor": "Recovery workload", "weight": 4, "source": "educated inference"},
+            ],
+            self._recent_delta(metrics_history, ["sleep_duration", "sleep_quality"]),
+        )
+
+        stress_lane = self._lane_from_metrics(
+            "stress_mental_load",
+            12
+            + (10 if conditions.intersection(self.STRESS_KEYWORDS) else 0)
+            + (12 if stress and stress >= 7 else 0),
+            0,
+            [label for label, present in {"stress level": stress is not None}.items() if present],
+            ["stress-history signals"] if conditions.intersection(self.STRESS_KEYWORDS) else [],
+            [
+                {"factor": "Stress signal", "weight": 12, "source": "measured"},
+                {"factor": "Behavioral risk history", "weight": 10, "source": "family-history-derived"},
+                {"factor": "Household load", "weight": 6, "source": "educated inference"},
+            ],
+            self._recent_delta(metrics_history, ["stress_level", "mood"]),
+        )
+
+        adherence_lane = self._lane_from_metrics(
+            "adherence_risk",
+            adherence["score"],
+            0,
+            ["medication plan"] if medications else [],
+            ["OCEAN adherence fit"],
+            adherence["drivers"],
+            0,
+        )
+
+        forecasts = [cardiac, metabolic, sleep_lane, stress_lane, adherence_lane]
+        return [
+            {
+                "lane": lane.name,
+                "current_risk_level": risk_level(lane.score),
+                "score": round(lane.score, 1),
+                "trend_direction": lane.trend,
+                "confidence": round(lane.confidence, 1),
+                "top_drivers": lane.top_drivers,
+                "measured_inputs_used": lane.measured_inputs,
+                "inferred_inputs_used": lane.inferred_inputs,
+            }
+            for lane in forecasts
+        ]
+
+    def _build_horizon_forecasts(self, condition_forecasts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        if not condition_forecasts:
+            return {}
+        base_score = mean(item["score"] for item in condition_forecasts)
+        horizons = {}
+        for label, modifier in {"30d": 0, "90d": 5, "1y": 10}.items():
+            projected = clamp_score(base_score + modifier)
+            horizons[label] = {
+                "score": round(projected, 1),
+                "risk_level": risk_level(projected),
+                "trend": trend_label(modifier),
+            }
+        return horizons
+
+    def _build_forecast_deltas(
+        self,
+        metrics_history: List[Dict[str, Any]],
+        medications: Optional[List[Dict[str, Any]]] = None,
+        experiment_summary: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        deltas: List[Dict[str, Any]] = []
+        for label, metric_names in {
+            "Heart rate trend": ["heart_rate", "resting_hr"],
+            "Glucose trend": ["glucose", "glucose_variability", "a1c"],
+            "Sleep trend": ["sleep_duration", "sleep_quality"],
+            "Stress trend": ["stress_level", "mood"],
+        }.items():
+            delta = self._recent_delta(metrics_history, metric_names)
+            if delta:
+                deltas.append(
+                    {
+                        "label": label,
+                        "delta": round(delta, 2),
+                        "direction": trend_label(delta),
+                        "source": "measured",
+                    }
+                )
+        if medications:
+            deltas.append(
+                {
+                    "label": "Medication burden",
+                    "delta": len(medications),
+                    "direction": "stable",
+                    "source": "measured",
+                }
+            )
+        if experiment_summary:
+            deltas.append(
+                {
+                    "label": "Active experiments",
+                    "delta": len(experiment_summary),
+                    "direction": "stable",
+                    "source": "measured",
+                }
+            )
+        return deltas
+
+    def _build_source_breakdown(
+        self,
+        family_members: List[Dict[str, Any]],
+        metrics_history: List[Dict[str, Any]],
+        profile: Optional[Dict[str, Any]],
+        medications: Optional[List[Dict[str, Any]]],
+        experiment_summary: Optional[List[Dict[str, Any]]],
+        trinity_context: Optional[Dict[str, Any]],
+        emergency_contacts: Optional[List[Dict[str, Any]]],
+    ) -> Dict[str, Any]:
+        profiled_members = sum(1 for member in family_members if any(self._extract_ocean_scores(member).values()))
+        conditions = self._extract_conditions(profile)
+        return {
+            "measured": {
+                "recent_health_metrics": len(metrics_history),
+                "metric_types": sorted({str(metric.get("metric_type") or metric.get("type") or "").lower() for metric in metrics_history if metric.get("metric_type") or metric.get("type")}),
+                "medications": len(medications or []),
+                "experiments": len(experiment_summary or []),
+                "emergency_contacts": len(emergency_contacts or []),
+            },
+            "family_history": {
+                "family_members": len(family_members),
+                "ocean_profiles": profiled_members,
+                "declared_conditions": conditions,
+            },
+            "educated_inference": {
+                "trinity_inputs": sorted((trinity_context or {}).keys()),
+                "missing_sections": [
+                    label
+                    for label, available in {
+                        "metrics": bool(metrics_history),
+                        "ocean": profiled_members > 0,
+                        "health_profile": bool(profile),
+                        "trinity": bool(trinity_context),
+                    }.items()
+                    if not available
+                ],
+            },
+        }
+
+    def _member_role_from_relationships(self, member_id: str, relationships: Optional[List[Dict[str, Any]]]) -> str:
+        if not relationships:
+            return "supporter"
+        relation_types = {
+            str(rel.get("type", "")).lower()
+            for rel in relationships
+            if rel.get("fromId") == member_id or rel.get("toId") == member_id or rel.get("from_id") == member_id or rel.get("to_id") == member_id
+        }
+        if "parent" in relation_types:
+            return "care coordinator"
+        if "spouse" in relation_types:
+            return "primary support"
+        if "child" in relation_types:
+            return "dependent support"
+        return "supporter"
+
+    def _build_coordination_summary(
+        self,
+        family_members: List[Dict[str, Any]],
+        relationships: Optional[List[Dict[str, Any]]],
+        condition_forecasts: List[Dict[str, Any]],
+        emergency_contacts: Optional[List[Dict[str, Any]]],
+        trinity_context: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        at_risk_members = [member for member in family_members if safe_float(member.get("risk_score"), 0) >= 60]
+        senior_count = 0
+        current_year = utcnow().year
+        for member in family_members:
+            birth_year = safe_int(member.get("birthYear") or member.get("birth_year"), 0)
+            if birth_year and current_year - birth_year >= 65:
+                senior_count += 1
+        caregiver_load = clamp_score(len(at_risk_members) * 18 + senior_count * 12 + len(condition_forecasts) * 2)
+        emergency_readiness = clamp_score((len(emergency_contacts or []) * 25) - senior_count * 3)
+        contact_coverage = clamp_score((len(emergency_contacts or []) / max(len(family_members), 1)) * 100)
+        coordination_priority = "high" if caregiver_load >= 60 or bool((trinity_context or {}).get("alerts")) else "moderate" if caregiver_load >= 35 else "low"
+        likely_care_coordinators = [
+            {
+                "member_id": member.get("id"),
+                "member_name": f"{member.get('firstName', '')} {member.get('lastName', '')}".strip() or str(member.get("name", "Family Member")),
+                "recommended_role": self._member_role_from_relationships(str(member.get("id")), relationships),
+            }
+            for member in family_members[:4]
+        ]
+        support_gaps = []
+        if not emergency_contacts:
+            support_gaps.append("No emergency contacts are configured.")
+        if senior_count and caregiver_load >= 60:
+            support_gaps.append("Caregiver load is elevated for older family members.")
+        if not likely_care_coordinators:
+            support_gaps.append("No likely care coordinators could be identified from genealogy data.")
+        return {
+            "caregiver_load_score": round(caregiver_load, 1),
+            "emergency_readiness_score": round(emergency_readiness, 1),
+            "contact_coverage_score": round(contact_coverage, 1),
+            "coordination_priority": coordination_priority,
+            "likely_care_coordinators": likely_care_coordinators,
+            "support_gaps": support_gaps,
+            "at_risk_family_members": len(at_risk_members),
+            "senior_family_members": senior_count,
+        }
+
+    def _support_tone_guidance(self, ocean_scores: Dict[str, float]) -> str:
+        if ocean_scores.get("agreeableness", 0) >= 65:
+            return "gentle, collaborative prompts"
+        if ocean_scores.get("conscientiousness", 0) >= 65:
+            return "clear routines and structured check-ins"
+        if ocean_scores.get("neuroticism", 0) >= 60:
+            return "calm, low-pressure reassurance"
+        return "direct, practical support"
+
+    def _build_support_cards(
+        self,
+        family_members: List[Dict[str, Any]],
+        relationships: Optional[List[Dict[str, Any]]],
+        coordination_summary: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        cards: List[Dict[str, Any]] = []
+        for member in family_members:
+            ocean_scores = self._extract_ocean_scores(member)
+            friction_points: List[str] = []
+            if ocean_scores.get("neuroticism", 0) >= 60:
+                friction_points.append("higher stress sensitivity")
+            if ocean_scores.get("conscientiousness", 0) <= 45:
+                friction_points.append("follow-through may need reminders")
+            if not friction_points:
+                friction_points.append("no major behavioral friction detected")
+
+            urgency = "high" if safe_float(member.get("risk_score"), 0) >= 70 else "moderate" if safe_float(member.get("risk_score"), 0) >= 40 else "low"
+            cards.append(
+                {
+                    "member_id": member.get("id"),
+                    "member_name": f"{member.get('firstName', '')} {member.get('lastName', '')}".strip() or str(member.get("name", "Family Member")),
+                    "support_tone_guidance": self._support_tone_guidance(ocean_scores),
+                    "likely_friction_points": friction_points,
+                    "recommended_family_role": self._member_role_from_relationships(str(member.get("id")), relationships),
+                    "coordination_urgency": urgency,
+                }
+            )
+        return cards
+
+    def _build_recommended_actions(
+        self,
+        condition_forecasts: List[Dict[str, Any]],
+        coordination_summary: Dict[str, Any],
+        support_cards: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        actions: List[Dict[str, Any]] = []
+        high_lanes = [lane for lane in condition_forecasts if lane["current_risk_level"] in {"high", "critical"}]
+        now = utcnow()
+
+        for lane in high_lanes[:3]:
+            actions.append(
+                {
+                    "id": f"action-{lane['lane']}",
+                    "title": f"Review {lane['lane'].replace('_', ' ')} risk",
+                    "description": f"Measured and family-history signals show {lane['current_risk_level']} {lane['lane']} pressure.",
+                    "priority": "high",
+                    "owner_member_id": support_cards[0]["member_id"] if support_cards else None,
+                    "linked_forecast_lane": lane["lane"],
+                    "destination": "task",
+                    "due_at": (now + timedelta(days=3)).isoformat(),
+                    "status": "draft",
+                }
+            )
+
+        if coordination_summary.get("support_gaps"):
+            actions.append(
+                {
+                    "id": "action-emergency-contacts",
+                    "title": "Update emergency readiness",
+                    "description": coordination_summary["support_gaps"][0],
+                    "priority": "high",
+                    "owner_member_id": support_cards[0]["member_id"] if support_cards else None,
+                    "linked_forecast_lane": "family_coordination",
+                    "destination": "calendar",
+                    "due_at": (now + timedelta(days=5)).isoformat(),
+                    "status": "draft",
+                }
+            )
+        return actions
+
+    def _build_member_prediction(
+        self,
+        member: Dict[str, Any],
+        metrics_history: List[Dict[str, Any]],
+        profile: Optional[Dict[str, Any]],
+        medications: Optional[List[Dict[str, Any]]],
+        experiment_summary: Optional[List[Dict[str, Any]]],
+        existing_actions: Optional[List[Dict[str, Any]]],
+    ) -> Dict[str, Any]:
+        ocean_scores = self._extract_ocean_scores(member, profile)
+        conditions = self._extract_conditions(profile, member)
+        condition_forecasts = self._build_condition_forecasts(
+            metrics_history,
+            profile,
+            conditions,
+            ocean_scores,
+            medications,
+            existing_actions,
+            experiment_summary,
+        )
+        aggregate_score = clamp_score(mean(item["score"] for item in condition_forecasts)) if condition_forecasts else 0.0
+        factors: List[Dict[str, Any]] = []
+        for lane in condition_forecasts:
+            for driver in lane["top_drivers"]:
+                factor_name = str(driver.get("factor", "")).strip()
+                if not factor_name:
+                    continue
+                factors.append(
+                    {
+                        "factor": factor_name,
+                        "weight": safe_float(driver.get("weight"), 0),
+                        "source": str(driver.get("source", "educated inference")),
+                    }
+                )
+        factors.sort(key=lambda factor: factor["weight"], reverse=True)
+        unique_factors: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for factor in factors:
+            if factor["factor"] in seen:
+                continue
+            seen.add(factor["factor"])
+            unique_factors.append(factor)
+
+        prediction = {
+            "predicted_value": round(aggregate_score, 1),
+            "risk_level": risk_level(aggregate_score),
+            "trend": trend_label(sum(self._recent_delta(metrics_history, names) for names in [["heart_rate"], ["glucose"], ["sleep_duration"], ["stress_level"]])),
+            "risk_factors": unique_factors[:5],
+            "uncertainty": {
+                "confidence_score": round(mean(item["confidence"] for item in condition_forecasts), 1) if condition_forecasts else 0,
+                "confidence_level": "high" if condition_forecasts and mean(item["confidence"] for item in condition_forecasts) >= 75 else "medium" if condition_forecasts else "low",
+            },
+            "source_breakdown": {
+                "measured_inputs": sum(len(item["measured_inputs_used"]) for item in condition_forecasts),
+                "family_history_inputs": sum(len(item["inferred_inputs_used"]) for item in condition_forecasts),
+            },
+        }
+        return {
+            "member_id": member.get("id"),
+            "member_name": f"{member.get('firstName', '')} {member.get('lastName', '')}".strip() or str(member.get("name", "Family Member")),
+            "consent_granted": True,
+            "prediction": prediction,
+            "condition_forecasts": condition_forecasts,
+            "risk_score": aggregate_score,
+            "ocean_scores": ocean_scores,
+        }
 
     async def predict_user(
         self,
@@ -114,534 +648,174 @@ class SharedHealthPredictor:
         metrics_history: List[Dict[str, Any]],
         profile: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """
-        Produce a health-trend prediction for a single user.
-
-        Returns a PredictionBundle-shaped dict.
-        """
-        # Determine data quality
-        data_days = len(set(
-            m.get("date", m.get("timestamp", ""))[:10]
-            for m in metrics_history if m.get("date") or m.get("timestamp")
-        ))
-        completeness = min(data_days / 30.0, 1.0)
-
-        # Extract primary metric values
-        values = [m.get("value", 0) for m in metrics_history if m.get("value") is not None]
-        trend = _detect_trend(values)
-
-        # Phase 1: MVP - Classical Risk Baselines (T2D & Hypertension)
-        t2d_risk = self._calculate_ada_t2d_risk(metrics_history, profile)
-        htn_risk = self._calculate_aha_hypertension_risk(metrics_history, profile)
-        
-        # Select the dominant risk for the primary returned risk score (or blend)
-        base_risk = max(t2d_risk, htn_risk)
-        
-        if values:
-            mean_val = sum(values) / len(values)
-            std_val = math.sqrt(sum((v - mean_val) ** 2 for v in values) / max(len(values), 1))
-            volatility_penalty = min(std_val / max(mean_val, 1) * 20, 15)  # reduced penalty for classical models
-            # Trend penalty: use is_trend_worsening() with the primary metric to determine direction correctly.
-            primary_metric = metrics_history[0].get("metric_type", "") if metrics_history else ""
-            if is_trend_worsening(primary_metric, trend):
-                trend_adj = 10
-            elif trend == Trend.STABLE:
-                trend_adj = 0
-            elif trend == Trend.UNKNOWN:
-                trend_adj = 0
-            else:
-                trend_adj = -5  # trend is improving for this metric
-            base_risk += volatility_penalty + trend_adj
-            
-        risk_score = max(0, min(100, base_risk))
-
-        # Medical Twin: attempt Delphi trajectory
-        trajectory = await self._delphi_trajectory(user_id, metrics_history)
-
-        # Detect drift
-        drift = _drift()
-        drift_info = drift.check_drift(user_id)
-        contradictions = 1 if drift_info.get("drift_detected") else 0
-
-        # Determine evidence type
-        evidence_type = "strong_correlation" if data_days >= 14 else "population_prior"
-
-        # Build risk factors
-        risk_factors = self._extract_risk_factors(metrics_history, profile)
-
-        # Recommendations via health heuristics
-        recommendations = self._generate_recommendations(risk_score, trend, risk_factors)
-
-        # Record in evidence ledger
-        _evidence().record_recommendation(
-            user_id=user_id,
-            recommendation_text="; ".join(recommendations[:2]) if recommendations else "Continue monitoring",
-            data_sources=["metrics_history", "delphi_trajectory"],
-            confidence=100 - risk_score,
-            evidence_type=evidence_type,
-            model_version=self.MODEL_VERSION,
-        )
-
+        ocean_scores = self._extract_ocean_scores({}, profile)
+        forecasts = self._build_condition_forecasts(metrics_history, profile, self._extract_conditions(profile), ocean_scores)
+        aggregate_score = clamp_score(mean(item["score"] for item in forecasts)) if forecasts else 0.0
+        forecast_deltas = self._build_forecast_deltas(metrics_history)
+        primary = forecasts[0] if forecasts else {
+            "lane": "baseline",
+            "current_risk_level": "low",
+            "score": 0,
+            "trend_direction": "stable",
+            "confidence": 0,
+            "top_drivers": [],
+            "measured_inputs_used": [],
+            "inferred_inputs_used": [],
+        }
         return {
             "user_id": user_id,
-            "metric": metrics_history[0].get("metric_type", "composite") if metrics_history else "composite",
-            "predicted_value": risk_score,
-            "risk_level": _risk_level(risk_score),
-            "trend": trend,
-            "risk_factors": risk_factors,
-            "trajectory": trajectory,
-            "uncertainty": _build_uncertainty(
-                data_days=data_days,
-                data_completeness=completeness,
-                contradictions=contradictions,
-                evidence_type=evidence_type,
-            ),
-            "recommendations": recommendations,
-            "generated_at": datetime.utcnow().isoformat(),
+            "predicted_value": round(aggregate_score, 1),
+            "risk_level": risk_level(aggregate_score),
+            "trend": primary["trend_direction"],
+            "risk_factors": [
+                {
+                    "factor": driver["factor"],
+                    "weight": safe_float(driver.get("weight"), 0),
+                    "source": str(driver.get("source", "educated inference")),
+                }
+                for driver in primary["top_drivers"]
+            ],
+            "condition_forecasts": forecasts,
+            "forecast_deltas": forecast_deltas,
+            "horizons": self._build_horizon_forecasts(forecasts),
+            "uncertainty": {
+                "confidence_score": round(mean(item["confidence"] for item in forecasts), 1) if forecasts else 0,
+                "confidence_level": "high" if forecasts and mean(item["confidence"] for item in forecasts) >= 75 else "medium" if forecasts else "low",
+            },
+            "generated_at": iso_now(),
         }
-
-    # ── Family-wide prediction (St. Joseph primary) ──────────────
 
     async def predict_family(
         self,
         user_id: str,
         family_members: List[Dict[str, Any]],
         consent_map: Optional[Dict[str, bool]] = None,
+        relationships: Optional[List[Dict[str, Any]]] = None,
+        metrics_history: Optional[List[Dict[str, Any]]] = None,
+        profile: Optional[Dict[str, Any]] = None,
+        medications: Optional[List[Dict[str, Any]]] = None,
+        experiment_summary: Optional[List[Dict[str, Any]]] = None,
+        trinity_context: Optional[Dict[str, Any]] = None,
+        emergency_contacts: Optional[List[Dict[str, Any]]] = None,
+        existing_actions: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
-        """
-        Predict health risks for every consented family member and
-        aggregate into a family-level risk bundle.
-        """
+        metrics_history = metrics_history or []
+        family_members = family_members or []
         consent_map = consent_map or {}
+
         member_predictions: List[Dict[str, Any]] = []
-        scores: List[float] = []
-        all_factors: List[Dict[str, Any]] = []
-
         for member in family_members:
-            mid = member.get("id", str(uuid.uuid4()))
-            name = f"{member.get('firstName', '')} {member.get('lastName', '')}".strip() or mid
-            consented = consent_map.get(mid, True)  # default consent = True
-
-            if not consented:
-                member_predictions.append({
-                    "member_id": mid,
-                    "member_name": name,
-                    "consent_granted": False,
-                    "prediction": None,
-                    "early_warnings": [],
-                })
+            if consent_map and not consent_map.get(str(member.get("id")), False):
+                member_predictions.append(
+                    {
+                        "member_id": member.get("id"),
+                        "member_name": f"{member.get('firstName', '')} {member.get('lastName', '')}".strip() or str(member.get("name", "Family Member")),
+                        "consent_granted": False,
+                        "prediction": None,
+                        "early_warnings": [],
+                    }
+                )
                 continue
+            member_prediction = self._build_member_prediction(
+                member,
+                metrics_history,
+                profile,
+                medications,
+                experiment_summary,
+                existing_actions,
+            )
+            member_prediction["early_warnings"] = await self.detect_early_warnings(user_id, metrics_history)
+            member_predictions.append(member_prediction)
 
-            # Build synthetic metrics from member data
-            metrics = self._member_to_metrics(member)
-            pred = await self.predict_user(mid, metrics, member)
-            warnings = await self.detect_early_warnings(mid, metrics)
+        active_predictions = [entry for entry in member_predictions if entry.get("prediction")]
+        condition_forecasts = []
+        if active_predictions:
+            aggregated_by_lane: Dict[str, List[Dict[str, Any]]] = {}
+            for entry in active_predictions:
+                for lane in entry.get("condition_forecasts", []):
+                    aggregated_by_lane.setdefault(lane["lane"], []).append(lane)
+            for lane_name, lane_entries in aggregated_by_lane.items():
+                condition_forecasts.append(
+                    {
+                        "lane": lane_name,
+                        "current_risk_level": risk_level(mean(entry["score"] for entry in lane_entries)),
+                        "score": round(mean(entry["score"] for entry in lane_entries), 1),
+                        "trend_direction": max((entry["trend_direction"] for entry in lane_entries), default="stable"),
+                        "confidence": round(mean(entry["confidence"] for entry in lane_entries), 1),
+                        "top_drivers": lane_entries[0]["top_drivers"][:3],
+                        "measured_inputs_used": sorted({item for entry in lane_entries for item in entry["measured_inputs_used"]}),
+                        "inferred_inputs_used": sorted({item for entry in lane_entries for item in entry["inferred_inputs_used"]}),
+                    }
+                )
 
-            member_predictions.append({
-                "member_id": mid,
-                "member_name": name,
-                "consent_granted": True,
-                "prediction": pred,
-                "early_warnings": warnings,
-            })
-            scores.append(pred["predicted_value"])
-            all_factors.extend(pred.get("risk_factors", []))
+        aggregate_score = clamp_score(mean(entry.get("risk_score", 0) for entry in active_predictions)) if active_predictions else 0.0
+        source_breakdown = self._build_source_breakdown(
+            family_members,
+            metrics_history,
+            profile,
+            medications,
+            experiment_summary,
+            trinity_context,
+            emergency_contacts,
+        )
+        for entry in active_predictions:
+            entry["risk_score"] = round(entry.get("risk_score", 0), 1)
+        coordination_summary = self._build_coordination_summary(
+            active_predictions if active_predictions else family_members,
+            relationships,
+            condition_forecasts,
+            emergency_contacts,
+            trinity_context,
+        )
+        support_cards = self._build_support_cards(
+            active_predictions if active_predictions else family_members,
+            relationships,
+            coordination_summary,
+        )
+        recommended_actions = self._build_recommended_actions(condition_forecasts, coordination_summary, support_cards)
 
-        # Aggregate
-        avg_score = sum(scores) / max(len(scores), 1)
-        shared_factors = self._deduplicate_factors(all_factors)
+        shared_factors: List[Dict[str, Any]] = []
+        seen_factors: set[str] = set()
+        for entry in active_predictions:
+            for factor in entry["prediction"]["risk_factors"]:
+                if factor["factor"] in seen_factors:
+                    continue
+                seen_factors.add(factor["factor"])
+                shared_factors.append(factor)
 
+        primary_prediction = active_predictions[0]["prediction"] if active_predictions else {
+            "predicted_value": 0,
+            "risk_level": "low",
+            "trend": "stable",
+            "risk_factors": [],
+            "uncertainty": {"confidence_score": 0, "confidence_level": "low"},
+        }
         return {
             "family_id": user_id,
-            "aggregate_risk": _risk_level(avg_score),
-            "aggregate_score": round(avg_score, 1),
-            "member_predictions": member_predictions,
-            "shared_risk_factors": shared_factors[:5],
-            "uncertainty": _build_uncertainty(
-                data_days=len(family_members) * 7,  # rough proxy
-                data_completeness=len(scores) / max(len(family_members), 1),
-                evidence_type="weak_correlation",
-            ),
-            "generated_at": datetime.utcnow().isoformat(),
+            "aggregate_risk": risk_level(aggregate_score),
+            "aggregate_score": round(aggregate_score, 1),
+            "member_predictions": [
+                {
+                    "member_id": entry.get("member_id"),
+                    "member_name": entry.get("member_name"),
+                    "consent_granted": entry.get("consent_granted", True),
+                    "prediction": entry.get("prediction"),
+                    "early_warnings": entry.get("early_warnings", []),
+                }
+                for entry in member_predictions
+            ],
+            "shared_risk_factors": shared_factors[:6],
+            "horizons": self._build_horizon_forecasts(condition_forecasts),
+            "condition_forecasts": condition_forecasts,
+            "forecast_deltas": self._build_forecast_deltas(metrics_history, medications, experiment_summary),
+            "source_breakdown": source_breakdown,
+            "coordination_summary": coordination_summary,
+            "support_cards": support_cards,
+            "recommended_actions": recommended_actions,
+            "primary_prediction": primary_prediction,
+            "uncertainty": {
+                "confidence_score": round(mean(item["confidence"] for item in condition_forecasts), 1) if condition_forecasts else 0,
+                "confidence_level": "high" if condition_forecasts and mean(item["confidence"] for item in condition_forecasts) >= 75 else "medium" if condition_forecasts else "low",
+            },
+            "generated_at": iso_now(),
         }
-
-    # ── Scenario simulation (Medical Twin what-if) ───────────────
-
-    async def simulate_scenario(
-        self,
-        user_id: str,
-        scenarios: List[Dict[str, Any]],
-        baseline_metrics: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
-        """
-        'What-if' simulation: predict outcome if user changes a behaviour.
-        """
-        baseline = baseline_metrics or []
-        outcome: Dict[str, float] = {}
-        risk_change: Dict[str, str] = {}
-        intervals: Dict[str, List[float]] = {}
-
-        for sc in scenarios:
-            metric = sc.get("metric", "composite")
-            change = sc.get("change_value", 0)
-            direction = sc.get("change_type", "increase")
-            duration = sc.get("duration_days", 30)
-
-            # Current baseline for this metric
-            relevant = [m.get("value", 50) for m in baseline if m.get("metric_type") == metric]
-            current = sum(relevant) / max(len(relevant), 1) if relevant else 50.0
-
-            # Apply scenario delta
-            delta = change if direction == "increase" else -change
-            projected = current + delta * (duration / 30.0)
-
-            # Confine to sane range
-            projected = max(0, min(200, projected))
-
-            # Determine risk trajectory
-            if delta < 0:
-                risk_change[metric] = "improved"
-            elif delta > 0:
-                risk_change[metric] = "worsened"
-            else:
-                risk_change[metric] = "unchanged"
-
-            outcome[metric] = round(projected, 1)
-            spread = abs(delta) * 0.3 + 5  # uncertainty band
-            intervals[metric] = [round(projected - spread, 1), round(projected, 1), round(projected + spread, 1)]
-
-        narrative = self._scenario_narrative(scenarios, outcome, risk_change)
-
-        return {
-            "scenario_id": str(uuid.uuid4()),
-            "user_id": user_id,
-            "params": scenarios,
-            "predicted_outcome": outcome,
-            "risk_change": risk_change,
-            "confidence_interval": intervals,
-            "uncertainty": _build_uncertainty(
-                data_days=len(baseline),
-                data_completeness=0.5,
-                evidence_type="medical_twin",
-            ),
-            "narrative": narrative,
-            "generated_at": datetime.utcnow().isoformat(),
-        }
-
-    # ── Early-warning detection ──────────────────────────────────
-
-    async def detect_early_warnings(
-        self,
-        user_id: str,
-        recent_data: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """
-        Scan recent data for metrics with a concerning trend.
-        Returns list of EarlyWarning-shaped dicts.
-        """
-        warnings: List[Dict[str, Any]] = []
-
-        # Group data by metric_type
-        by_metric: Dict[str, List[float]] = {}
-        for d in recent_data:
-            mt = d.get("metric_type", "unknown")
-            v = d.get("value")
-            if v is not None:
-                by_metric.setdefault(mt, []).append(v)
-
-        for metric, values in by_metric.items():
-            if len(values) < 3:
-                continue
-            trend = detect_trend(values)
-            if is_trend_worsening(metric, trend):
-                severity = "high" if values[-1] > values[0] * 1.3 else "moderate"
-                warnings.append({
-                    "warning_id": str(uuid.uuid4()),
-                    "user_id": user_id,
-                    "metric": metric,
-                    "severity": severity,
-                    "trend": trend,
-                    "message": f"{metric.replace('_', ' ').title()} has been trending upward over the last {len(values)} readings.",
-                    "recommended_action": f"Consider monitoring {metric.replace('_', ' ')} more closely and consult your healthcare provider if the trend continues.",
-                    "confidence": min(len(values) * 10, 80),
-                    "detected_at": datetime.utcnow().isoformat(),
-                })
-
-        return warnings
-
-    # ── Private helpers ───────────────────────────────────────────
-
-    async def _delphi_trajectory(
-        self,
-        user_id: str,
-        history: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """Try Delphi model for trajectory; fall back to linear extrapolation."""
-        try:
-            from app.services.health.service import health_service
-            predictions = await health_service.get_predictions(user_id, history)
-            if predictions and predictions[0].trajectory:
-                return [
-                    {"timestamp": p.timestamp.isoformat(), "value": p.value, "confidence": p.confidence}
-                    for p in predictions[0].trajectory
-                ]
-        except Exception:
-            pass
-
-        # Fallback: simple linear projection
-        values = [m.get("value", 50) for m in history[-7:]]
-        if len(values) < 2:
-            return []
-        step = (values[-1] - values[0]) / max(len(values) - 1, 1)
-        now = datetime.utcnow()
-        return [
-            {
-                "timestamp": (now + timedelta(days=i)).isoformat(),
-                "value": round(values[-1] + step * i, 1),
-                "confidence": round(max(0.3, 0.9 - i * 0.1), 2),
-            }
-            for i in range(1, 8)
-        ]
-
-    def _extract_risk_factors(
-        self,
-        history: List[Dict[str, Any]],
-        profile: Optional[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        factors: List[Dict[str, Any]] = []
-
-        # Age-based
-        birth_year = None
-        if profile:
-            birth_year = profile.get("birthYear") or profile.get("birth_year")
-        if birth_year:
-            age = datetime.utcnow().year - int(birth_year)
-            if age > 60:
-                factors.append({"factor": "Age > 60", "weight": 0.6, "source": "population_prior"})
-            elif age > 40:
-                factors.append({"factor": "Age > 40", "weight": 0.3, "source": "population_prior"})
-
-        # Occupation stress
-        occ = (profile or {}).get("occupation", "")
-        if occ and any(kw in occ.lower() for kw in ["doctor", "nurse", "military", "police", "firefight"]):
-            factors.append({"factor": "High-stress occupation", "weight": 0.4, "source": "population_prior"})
-
-        # Volatility from data
-        values = [m.get("value", 0) for m in history if m.get("value") is not None]
-        if len(values) >= 5:
-            mean_v = sum(values) / len(values)
-            std_v = math.sqrt(sum((v - mean_v) ** 2 for v in values) / len(values))
-            cv = std_v / max(mean_v, 1)
-            if cv > 0.3:
-                factors.append({"factor": "High metric volatility", "weight": round(min(cv, 0.8), 2), "source": "strong_correlation"})
-
-        # Traits from profile
-        traits = (profile or {}).get("traits", [])
-        if isinstance(traits, list):
-            stress_traits = [t for t in traits if any(kw in str(t).lower() for kw in ["anxious", "stress", "neuro"])]
-            if stress_traits:
-                factors.append({"factor": "Elevated stress traits", "weight": 0.35, "source": "weak_correlation"})
-
-        # ── Personality Quiz OCEAN scores as psychological priors ────
-        member_id = (profile or {}).get("id", "")
-        pq = _personality()
-        if pq and member_id:
-            quiz_profile = pq.get_profile(member_id)
-            if quiz_profile:
-                scores = quiz_profile.get("scores", {})
-                archetype = quiz_profile.get("archetype", {}).get("name", "")
-
-                # High Neuroticism → stress vulnerability
-                neuro = scores.get("neuroticism", 50)
-                if neuro >= 65:
-                    factors.append({
-                        "factor": f"High emotional sensitivity (Neuroticism {neuro:.0f}%)",
-                        "weight": round(0.2 + (neuro - 65) / 100, 2),
-                        "source": "personality_quiz",
-                    })
-
-                # Low Conscientiousness → health risk factor
-                consc = scores.get("conscientiousness", 50)
-                if consc < 35:
-                    factors.append({
-                        "factor": f"Low self-discipline (Conscientiousness {consc:.0f}%)",
-                        "weight": round(0.15 + (35 - consc) / 100, 2),
-                        "source": "personality_quiz",
-                    })
-
-                # High Conscientiousness → protective factor (negative weight)
-                if consc >= 70:
-                    factors.append({
-                        "factor": f"Strong self-discipline — protective ({archetype})",
-                        "weight": round(-0.15, 2),
-                        "source": "personality_quiz",
-                    })
-
-                # High Agreeableness + Extraversion → social support protective
-                agree = scores.get("agreeableness", 50)
-                extra = scores.get("extraversion", 50)
-                if agree >= 60 and extra >= 55:
-                    factors.append({
-                        "factor": "Strong social support network (high Agreeableness + Extraversion)",
-                        "weight": round(-0.1, 2),
-                        "source": "personality_quiz",
-                    })
-
-        return factors
-
-    # ── Phase 1 Clinical Baselines ───────────────────────────────
-
-    def _calculate_ada_t2d_risk(
-        self,
-        history: List[Dict[str, Any]],
-        profile: Optional[Dict[str, Any]],
-    ) -> float:
-        """
-        Calculates a baseline Type 2 Diabetes risk score proxy based on ADA guidelines.
-        Uses age, BMI (if implicitly derivable or statically 25 for demo), and family history.
-        """
-        score = 0.0
-        # Age
-        birth_year = (profile or {}).get("birthYear") or (profile or {}).get("birth_year")
-        age = datetime.utcnow().year - int(birth_year) if birth_year else 40
-        if age >= 60: score += 30
-        elif age >= 50: score += 20
-        elif age >= 40: score += 10
-        
-        # Family History proxy (from traits/profile)
-        if profile and profile.get("family_history_t2d"):
-            score += 25
-            
-        # Very simple glucose trajectory bump
-        glucose_metrics = [m.get("value", 100) for m in history if m.get("metric_type") == "glucose"]
-        if glucose_metrics and max(glucose_metrics) > 115:
-            score += 35  # Prediabetes threshold bump
-            
-        return min(100.0, score)
-
-    def _calculate_aha_hypertension_risk(
-        self,
-        history: List[Dict[str, Any]],
-        profile: Optional[Dict[str, Any]],
-    ) -> float:
-        """
-        Calculates a baseline Hypertension risk score proxy based on ACC/AHA indicators.
-        Uses resting HR, HRV trends, and age.
-        """
-        score = 0.0
-        birth_year = (profile or {}).get("birthYear") or (profile or {}).get("birth_year")
-        age = datetime.utcnow().year - int(birth_year) if birth_year else 40
-        if age >= 55: score += 15
-        
-        hr_metrics = [m.get("value", 70) for m in history if m.get("metric_type") in ("resting_heart_rate", "heart_rate")]
-        if hr_metrics:
-            recent_hr = sum(hr_metrics[-3:]) / min(len(hr_metrics[-3:]), 3)
-            if recent_hr > 80: score += 20
-            if recent_hr > 90: score += 25
-            
-        hrv_metrics = [m.get("value", 50) for m in history if m.get("metric_type") == "heart_rate_variability"]
-        if hrv_metrics and sum(hrv_metrics) / len(hrv_metrics) < 30:
-            score += 25  # Low HRV is a strong sympathetic tone indicator
-            
-        return min(100.0, score)
-
-    def _generate_recommendations(
-        self,
-        risk_score: float,
-        trend: str,
-        factors: List[Dict[str, Any]],
-    ) -> List[str]:
-        recs: List[str] = []
-        if risk_score >= 55:
-            recs.append("Schedule a check-up with your healthcare provider to discuss recent trends.")
-        if is_trend_worsening("wellness_composite", trend):
-            recs.append("Your metrics have been trending in a concerning direction. Aim for consistency in sleep and activity.")
-        if any(f["factor"] == "High metric volatility" for f in factors):
-            recs.append("Large swings detected in your data. Try logging at the same time each day for better accuracy.")
-        if any("stress" in f["factor"].lower() for f in factors):
-            recs.append("Consider incorporating stress-management techniques such as mindfulness or breathing exercises.")
-        if not recs:
-            recs.append("Looking good — keep maintaining your current healthy habits.")
-        return recs
-
-    def _member_to_metrics(self, member: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Convert a family-member dict (from genealogy) into a list of
-        pseudo-metric readings so predict_user() can process them.
-        """
-        metrics: List[Dict[str, Any]] = []
-        traits = member.get("traits", member.get("aiPersonality", {}).get("traits", []))
-
-        # Synthesize wellness score from traits
-        base_score = 50
-        if isinstance(traits, list):
-            for t in traits:
-                t_lower = str(t).lower()
-                if any(kw in t_lower for kw in ["active", "healthy", "athletic", "resilient"]):
-                    base_score -= 5
-                elif any(kw in t_lower for kw in ["anxious", "stressed", "sedentary"]):
-                    base_score += 8
-
-        # ── Adjust baseline using personality quiz OCEAN scores ──
-        member_id = member.get("id", "")
-        pq = _personality()
-        if pq and member_id:
-            quiz_profile = pq.get_profile(member_id)
-            if quiz_profile:
-                scores = quiz_profile.get("scores", {})
-                # High neuroticism raises wellness risk
-                neuro = scores.get("neuroticism", 50)
-                if neuro >= 60:
-                    base_score += int((neuro - 50) * 0.15)
-                # High conscientiousness lowers risk
-                consc = scores.get("conscientiousness", 50)
-                if consc >= 60:
-                    base_score -= int((consc - 50) * 0.1)
-
-        # Generate 7 pseudo-daily readings with slight jitter
-        now = datetime.utcnow()
-        for i in range(7):
-            jitter = random.uniform(-3, 3)
-            metrics.append({
-                "metric_type": "wellness_composite",
-                "value": round(base_score + jitter, 1),
-                "date": (now - timedelta(days=6 - i)).strftime("%Y-%m-%d"),
-            })
-        return metrics
-
-    def _deduplicate_factors(self, factors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        seen: Dict[str, Dict[str, Any]] = {}
-        for f in factors:
-            key = f.get("factor", "")
-            if key not in seen:
-                seen[key] = f
-            else:
-                # Keep the higher weight
-                if f.get("weight", 0) > seen[key].get("weight", 0):
-                    seen[key] = f
-        return sorted(seen.values(), key=lambda x: x.get("weight", 0), reverse=True)
-
-    def _scenario_narrative(
-        self,
-        scenarios: List[Dict[str, Any]],
-        outcomes: Dict[str, float],
-        changes: Dict[str, str],
-    ) -> str:
-        parts: List[str] = []
-        for sc in scenarios:
-            metric = sc.get("metric", "metric")
-            direction = sc.get("change_type", "maintain")
-            duration = sc.get("duration_days", 30)
-            outcome_val = outcomes.get(metric, 0)
-            change_label = changes.get(metric, "unchanged")
-
-            parts.append(
-                f"If you {direction} {metric.replace('_', ' ')} for {duration} days, "
-                f"your projected value is {outcome_val:.0f} ({change_label})."
-            )
-        return " ".join(parts) if parts else "No significant projected changes."
-
-
-# ── Singleton ────────────────────────────────────────────────────
-
-shared_predictor = SharedHealthPredictor()

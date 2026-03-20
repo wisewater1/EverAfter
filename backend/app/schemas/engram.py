@@ -26,6 +26,10 @@ class EngramResponse(EngramBase):
     ai_readiness_score: int = 0
     is_ai_active: bool = False
     training_status: str = "untrained"
+    voice_profile_id: Optional[str] = None
+    voice_enabled: bool = False
+    voice_status: str = "unavailable"
+    voice_style_notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

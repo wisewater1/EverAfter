@@ -201,6 +201,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
 
   const activeAIcount = ais.filter((ai) => ai.is_ai_active).length;
   const trainingCount = ais.filter((ai) => !ai.is_ai_active).length;
+  const voiceReadyCount = ais.filter((ai) => ai.voice_enabled).length;
   const averageReadiness = ais.length
     ? Math.round(ais.reduce((sum, ai) => sum + (ai.ai_readiness_score || 0), 0) / ais.length)
     : 0;
@@ -290,6 +291,9 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
               </span>
               <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-medium text-violet-200">
                 {totalAnswers} answers logged
+              </span>
+              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-200">
+                {voiceReadyCount} voice-ready
               </span>
             </div>
           </div>
@@ -392,6 +396,13 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                             {ai.engram_type}
                           </span>
                         )}
+                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                          ai.voice_enabled
+                            ? 'border-cyan-400/20 bg-cyan-400/10 text-cyan-200'
+                            : 'border-slate-700/70 bg-slate-900/70 text-slate-400'
+                        }`}>
+                          Voice {ai.voice_status?.replace(/_/g, ' ') || 'not linked'}
+                        </span>
                       </div>
                       <p className="text-sm leading-6 text-slate-400">
                         {ai.description || 'No description yet. Open the training flow to add identity, memories, and context.'}
@@ -433,6 +444,16 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                       <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Created</div>
                       <div className="mt-2 text-sm font-medium text-white">{new Date(ai.created_at).toLocaleDateString()}</div>
                     </div>
+                  </div>
+
+                  <div className="mt-3 rounded-2xl border border-cyan-500/10 bg-cyan-500/[0.04] p-3 text-sm text-slate-300">
+                    <span className="text-cyan-200 font-medium">Personal voice:</span>{' '}
+                    {ai.voice_enabled
+                      ? 'Ready for this created AI.'
+                      : ai.voice_status
+                        ? `${ai.voice_status.replace(/_/g, ' ')}. Collect consented clips in St. Joseph to continue.`
+                        : 'No linked voice profile yet.'}
+                    {ai.voice_style_notes ? ` ${ai.voice_style_notes}` : ''}
                   </div>
 
                   <div className="mt-5 flex flex-wrap gap-3">

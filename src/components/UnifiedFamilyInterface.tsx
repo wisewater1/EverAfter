@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, User, Activity, Brain, Heart, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { requestBackendJson } from '../lib/backend-request';
 import PersonalityProfileViewer from './PersonalityProfileViewer';
 import DailyQuestionCard from './DailyQuestionCard';
 import StRaphaelHealthHub from './StRaphaelHealthHub';
@@ -27,6 +28,15 @@ interface QuestionResponse {
   response: string;
   timestamp: string;
   member_name: string;
+}
+
+interface InvitationCreateResponse {
+  invitation_id: string;
+  engram_id: string;
+  url: string;
+  status: string;
+  delivery_status: string;
+  delivery_error?: string | null;
 }
 
 interface UnifiedFamilyInterfaceProps {
@@ -178,7 +188,35 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
         throw new Error('That family member has already been invited.');
       }
 
-      const inviteLink = buildInviteLink(email, relationship);
+      if (!supabase) {
+        throw new Error('Supabase is not configured.');
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        throw new Error('Sign in again to send invitations.');
+      }
+
+      const invitation = await requestBackendJson<InvitationCreateResponse>(
+        '/api/v1/invitations',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            invitee_email: email,
+            invitee_name: name,
+            relationship,
+            questions_to_answer: 365,
+          }),
+        },
+        'Failed to create invitation',
+      );
+
+      const inviteLink = invitation.url || buildInviteLink(email, relationship);
 
       const primaryInsert = await supabase
         .from('family_members')
@@ -216,7 +254,15 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
 
       setInviteForm({ name: '', email: '', relationship: '' });
       setGeneratedInviteLink(inviteLink);
-      setInviteSuccess('Invitation created. Share the link below or open it in your email client.');
+      if (invitation.delivery_status === 'sent') {
+        setInviteSuccess('Invitation sent successfully. The invite link is available below for reference.');
+      } else if (invitation.delivery_status === 'pending_config') {
+        setInviteSuccess('Invitation created. Email delivery is not configured, so share the link below manually.');
+      } else if (invitation.delivery_status === 'failed') {
+        setInviteSuccess(`Invitation created, but email delivery failed. Share the link below manually.${invitation.delivery_error ? ` (${invitation.delivery_error})` : ''}`);
+      } else {
+        setInviteSuccess('Invitation created. Share the link below or open it in your email client.');
+      }
       await loadFamilyMembers();
     } catch (error) {
       console.error('Error inviting member:', error);

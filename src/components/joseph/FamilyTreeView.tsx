@@ -11,6 +11,7 @@ import PersonalityRadar from './PersonalityRadar';
 import TraitBadges from './TraitBadges';
 import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
+import JosephVoiceProfileCard from './JosephVoiceProfileCard';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -293,6 +294,14 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             personId={selectedMember.id}
                             memberName={`${selectedMember.firstName} ${selectedMember.lastName}`}
                         />
+
+                        <JosephVoiceProfileCard
+                            familyMemberId={selectedMember.id}
+                            familyMemberName={`${selectedMember.firstName} ${selectedMember.lastName}`}
+                            engramId={selectedMember.engramId || null}
+                            compact
+                        />
+
                         {/* Personality Analysis Button */}
                         <div className="pt-2">
                             <button

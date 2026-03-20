@@ -11,8 +11,9 @@ import WhatIfSimulator from '../causal-twin/WhatIfSimulator';
 import ExperimentLab from '../causal-twin/ExperimentLab';
 import EvidenceLedgerView from '../causal-twin/EvidenceLedgerView';
 import ModelHealthPanel from '../causal-twin/ModelHealthPanel';
-import { API_BASE_URL } from '../../lib/env';
+import JosephVoiceAnswerPanel from './JosephVoiceAnswerPanel';
 import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 import { storePersonalityProfile, toOceanScores } from '../../lib/joseph/personalityProfiles';
 import {
     buildQuizProgressSnapshot,
@@ -24,8 +25,6 @@ import {
     type StoredQuizQuestion,
     type StoredQuizSession,
 } from '../../lib/joseph/quizSessions';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 /* ── Types ───────────────────────────────────────────────── */
 
@@ -183,19 +182,18 @@ export default function PersonalityQuiz({
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/personality-quiz/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    member_id: member.id,
-                    member_name: fullName,
-                }),
-            });
-            if (!res.ok) {
-                throw new Error('Failed to start personality quiz session');
-            }
-
-            const data = await res.json();
+            const data = await requestBackendJson<any>(
+                '/api/v1/personality-quiz/start',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        member_id: member.id,
+                        member_name: fullName,
+                    }),
+                },
+                'Failed to start personality quiz session.',
+            );
             const session: StoredQuizSession = {
                 memberId: member.id,
                 memberName: fullName,
@@ -308,13 +306,15 @@ export default function PersonalityQuiz({
     const submitQuiz = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/personality-quiz/submit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: sessionId, answers }),
-            });
-            if (res.ok) {
-                const data = await res.json();
+            const data = await requestBackendJson<PersonalityProfile>(
+                '/api/v1/personality-quiz/submit',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, answers }),
+                },
+                'Failed to submit personality quiz.',
+            );
                 setProfile(data);
                 setPhase('results');
 
@@ -361,7 +361,6 @@ export default function PersonalityQuiz({
                         console.error('Failed to post Guardian word bulletin:', err);
                     }
                 }
-            }
         } catch (err) {
             console.error('Submit failed:', err);
         }
@@ -553,6 +552,21 @@ export default function PersonalityQuiz({
                             "{currentQuestion.text}"
                         </p>
                     </div>
+
+                    {selectedMember && currentQuestion && (
+                        <div className="px-5 pb-5">
+                            <JosephVoiceAnswerPanel
+                                key={currentQuestion.id}
+                                familyMemberId={selectedMember.id}
+                                questionId={currentQuestion.id}
+                                questionText={currentQuestion.text}
+                                onApprovedAnswer={(value) => {
+                                    setStatusMessage(`Voice answer approved for ${selectedMember.firstName}.`);
+                                    selectAnswer(value);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Likert scale */}
                     <div className="px-5 pb-5 space-y-2">

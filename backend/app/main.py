@@ -24,11 +24,15 @@ async def lifespan(app: FastAPI):
     print("Startup: Initializing resources...")
     from app.services.saint_runtime import saint_runtime
     from app.services.compliance_service import compliance_autopilot
+    from app.services.engram_runtime_tables import ensure_engram_runtime_tables
     from app.services.finance_runtime_tables import ensure_finance_runtime_tables
+    from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables, wisegold_scheduler
 
     background_tasks = []
+    await ensure_engram_runtime_tables()
     await ensure_finance_runtime_tables()
+    await ensure_health_prediction_runtime_tables()
     await ensure_wisegold_tables()
     if settings.ENABLE_SAINT_EVENT_LISTENER:
         background_tasks.append(asyncio.create_task(saint_runtime.listen_for_events(), name="saint-event-listener"))
@@ -94,6 +98,8 @@ from app.api import media_uploads
 app.include_router(media_uploads.router)
 from app.api import personality_quiz
 app.include_router(personality_quiz.router)
+from app.api import joseph_voice
+app.include_router(joseph_voice.router)
 from app.api import family_home
 app.include_router(family_home.router)
 from app.api import genealogy
@@ -102,6 +108,8 @@ from app.api import trinity_api
 app.include_router(trinity_api.router)
 from app.api import dht_api
 app.include_router(dht_api.router)
+from app.api import invitations
+app.include_router(invitations.router)
 
 from app.api.endpoints import audit
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])

@@ -73,23 +73,23 @@ export default function StRaphaelHealthHub() {
     async function loadHubData() {
         try {
             setLoading(true);
-            const response = await fetch('/api/me/raphael/summary');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.metrics && data.metrics.length > 0) {
-                    setHasData(true);
-                    setVitals(data.vitals);
-                    setInsights(data.insights || []);
-                    setLastRun(data.lastRun ? new Date(data.lastRun) : null);
+            const data = await requestBackendJson<any>(
+                '/api/me/raphael/summary',
+                {},
+                'Failed to load Raphael hub summary.',
+            );
+            if (data.metrics && data.metrics.length > 0) {
+                setHasData(true);
+                setVitals(data.vitals);
+                setInsights(data.insights || []);
+                setLastRun(data.lastRun ? new Date(data.lastRun) : null);
 
-                    // Logic for Status Aura
-                    const warningCount = (data.insights || []).filter((i: Insight) => i.severity === 'warning').length;
-                    const attentionCount = (data.insights || []).filter((i: Insight) => i.severity === 'attention').length;
+                const warningCount = (data.insights || []).filter((i: Insight) => i.severity === 'warning').length;
+                const attentionCount = (data.insights || []).filter((i: Insight) => i.severity === 'attention').length;
 
-                    if (attentionCount > 0) setStatusAura('critical');
-                    else if (warningCount > 0) setStatusAura('drift');
-                    else setStatusAura('stable');
-                }
+                if (attentionCount > 0) setStatusAura('critical');
+                else if (warningCount > 0) setStatusAura('drift');
+                else setStatusAura('stable');
             }
         } catch (error) {
             console.error('Failed to load Hub data:', error);

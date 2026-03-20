@@ -23,6 +23,7 @@ from app.auth.dependencies import get_current_user
 from app.services.saint_agent_service import saint_agent_service, get_all_saint_ids
 from app.services.saint_runtime import saint_runtime
 from app.services.saint_runtime.actions.engine import action_engine
+from app.models.engram import ArchetypalAI
 from app.models.saint import GuardianIntercession
 from sqlalchemy import select
 
@@ -328,34 +329,86 @@ async def get_saint_knowledge(
 @router.get("/{saint_id}/cognition/status", response_model=CognitionStatusResponse)
 async def get_saint_cognition_status(
     saint_id: str,
+    session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Get the deep research cognition status from SaintRuntime.
     (Memory Stream count, Reflection state, etc.)
     """
-    # In a real impl, we'd fetch this from the actual runtime state
-    # For now, we return mock data that reflects the architecture being active
     memory, reflector, planner = saint_runtime._get_components(saint_id)
-    
+    user_id = str(_current_user_uuid(current_user))
+    bootstrap = await saint_agent_service.bootstrap_saint_engram(session, user_id, saint_id)
+    engram_uuid = uuid.UUID(bootstrap["engram_id"])
+
+    engram_query = select(ArchetypalAI).where(ArchetypalAI.id == engram_uuid)
+    engram_result = await session.execute(engram_query)
+    engram = engram_result.scalar_one_or_none()
+
+    memory_items = await memory.get_context(query="", limit=100)
+    personality_traits = (engram.personality_traits if engram else {}) or {}
+    dimension_scores = (engram.dimension_scores if engram else {}) or {}
+    ocean_scores = personality_traits.get("ocean") or personality_traits.get("ocean_scores") or {}
+
+    def _score_from(source_key: str, fallback_key: str) -> int:
+        raw = ocean_scores.get(source_key)
+        if raw is None:
+            raw = dimension_scores.get(fallback_key)
+        if raw is None:
+            return 0
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return 0
+        if value <= 1:
+            value *= 100
+        return max(0, min(100, int(round(value))))
+
+    personality_scores = {
+        "Openness": _score_from("openness", "openness"),
+        "Conscientiousness": _score_from("conscientiousness", "conscientiousness"),
+        "Extraversion": _score_from("extraversion", "extraversion"),
+        "Agreeableness": _score_from("agreeableness", "agreeableness"),
+        "Neuroticism": _score_from("neuroticism", "neuroticism"),
+    }
+    if not any(personality_scores.values()):
+        personality_scores = {key: 0 for key in personality_scores}
+
+    current_plan = None
+    if getattr(planner, "current_plan", None):
+        current_plan = getattr(planner.current_plan, "high_level_goal", None)
+
+    training_status = engram.training_status if engram else "unknown"
+    social_inputs = [personality_scores["Agreeableness"], personality_scores["Extraversion"]]
+    populated_social_inputs = [score for score in social_inputs if score > 0]
+    social_affinity = round(sum(populated_social_inputs) / (100 * len(populated_social_inputs)), 2) if populated_social_inputs else 0.5
+
     return CognitionStatusResponse(
         saint_id=saint_id,
-        memory_count=len(await memory.get_context(query="", limit=100)),
+        memory_count=len(memory_items),
         last_reflection=reflector.last_reflection_time.isoformat() if getattr(reflector, 'last_reflection_time', None) else None,
-        current_plan=planner.current_plan.high_level_goal if getattr(planner, 'current_plan', None) else "Maintaining family tree harmony and coordinating household schedules.",
+        current_plan=current_plan,
         layers={
-            "generative_agents": "Associative Memory Active (Recency, Importance, Relevance)",
-            "genagents": "Self-Reflection & Planning Loop Running",
-            "agentic_collab": "Consensus Engine Ready for Missions"
+            "memory_stream": {
+                "active": True,
+                "entries": len(memory_items),
+            },
+            "reflection_loop": {
+                "active": getattr(reflector, 'last_reflection_time', None) is not None,
+                "last_reflection": reflector.last_reflection_time.isoformat() if getattr(reflector, 'last_reflection_time', None) else None,
+            },
+            "planning_loop": {
+                "active": current_plan is not None,
+                "goal": current_plan,
+            },
+            "engram": {
+                "training_status": training_status,
+                "total_memories": int(getattr(engram, "total_memories", 0) or 0),
+                "is_dynamic_agent": bool(personality_traits.get("is_dynamic_agent")),
+            },
         },
-        personality_scores={
-            "Openness": 88,
-            "Conscientiousness": 92,
-            "Extraversion": 75,
-            "Agreeableness": 85,
-            "Neuroticism": 12
-        },
-        social_affinity=0.8
+        personality_scores=personality_scores,
+        social_affinity=social_affinity
     )
 
 

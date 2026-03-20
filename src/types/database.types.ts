@@ -97,6 +97,10 @@ export interface EngramResponse {
   ai_readiness_score: number;
   is_ai_active: boolean;
   training_status: string;
+  voice_profile_id?: string | null;
+  voice_enabled?: boolean;
+  voice_status?: string;
+  voice_style_notes?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -12,7 +12,7 @@ import FirstEngramStep from '../components/onboarding/FirstEngramStep';
 import OnboardingComplete from '../components/onboarding/OnboardingComplete';
 import { Loader2 } from 'lucide-react';
 import { withTimeout } from '../lib/withTimeout';
-import { loadHealthProfileDraft } from '../lib/onboardingDraft';
+import { loadHealthProfileDraft, loadStarterEngramDraft, saveStarterEngramDraft } from '../lib/onboardingDraft';
 
 export type OnboardingStep =
   | 'welcome'
@@ -191,8 +191,9 @@ export default function Onboarding() {
         : null;
 
       const healthProfileDraft = loadHealthProfileDraft(user.id);
+      const starterEngramDraft = loadStarterEngramDraft(user.id);
 
-      if (healthProfileFromDatabase || healthProfileDraft) {
+      if (healthProfileFromDatabase || healthProfileDraft || starterEngramDraft) {
         setOnboardingData((prev) => ({
           ...prev,
           healthProfile: {
@@ -200,11 +201,18 @@ export default function Onboarding() {
             ...(healthProfileFromDatabase || {}),
             ...(healthProfileDraft || {}),
           },
+          firstEngram: starterEngramDraft?.firstEngram || prev.firstEngram,
+          personalityQuiz: starterEngramDraft?.personalityQuiz || prev.personalityQuiz,
+          familySetup: starterEngramDraft?.familySetup || prev.familySetup,
         }));
 
         if (healthProfileDraft && !healthProfileFromDatabase) {
           setLoadWarning(
             'Recovered an unsynced health profile draft from this device. Continue onboarding to retry cloud save.'
+          );
+        } else if (starterEngramDraft) {
+          setLoadWarning(
+            'Recovered your AI and family setup from this device. Continue onboarding to carry that data into Joseph and Trinity.'
           );
         }
       }
@@ -227,6 +235,28 @@ export default function Onboarding() {
       return () => clearTimeout(watchdog);
     }
   }, [authLoading, loading]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const hasStarterState =
+      Boolean(onboardingData.firstEngram?.name?.trim()) ||
+      Object.keys(onboardingData.personalityQuiz.answers || {}).length > 0 ||
+      Boolean(onboardingData.familySetup.selfName?.trim()) ||
+      onboardingData.familySetup.relatives.length > 0;
+
+    if (!hasStarterState) {
+      return;
+    }
+
+    saveStarterEngramDraft(user.id, {
+      firstEngram: onboardingData.firstEngram,
+      personalityQuiz: onboardingData.personalityQuiz,
+      familySetup: onboardingData.familySetup,
+    });
+  }, [onboardingData.familySetup, onboardingData.firstEngram, onboardingData.personalityQuiz, user?.id]);
 
   const handleStepComplete = async (step: OnboardingStep) => {
     setSaving(true);
@@ -313,6 +343,9 @@ export default function Onboarding() {
         .update({
           has_completed_onboarding: true,
           onboarding_skipped: false,
+          ...(onboardingData.familySetup.selfName?.trim()
+            ? { full_name: onboardingData.familySetup.selfName.trim() }
+            : {}),
         })
         .eq('id', user?.id);
 

@@ -6,7 +6,10 @@ model health, and next-best-measurement recommendations.
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.causal_twin.counterfactual_engine import counterfactual_engine
 from app.services.causal_twin.experiment_engine import experiment_engine
@@ -15,11 +18,61 @@ from app.services.causal_twin.drift_monitor import drift_monitor
 from app.services.causal_twin.measurement_recommender import measurement_recommender
 from app.services.causal_twin.safety_guardrails import safety_guardrails
 from app.services.causal_twin.ancestry_engine import ancestry_engine
+from app.models.health import Metric
 from app.schemas.causal_twin import (
     SimulationRequest, ExperimentCreate, AdherenceLog, ExperimentUpdate
 )
 
 router = APIRouter(prefix="/api/v1/causal-twin", tags=["causal-twin"])
+
+
+async def _derive_measurement_context(session: AsyncSession, user_id: str) -> Dict[str, List[str]]:
+    available_data: set[str] = set()
+    weak_predictions: set[str] = set()
+    metric_types: set[str] = set()
+
+    try:
+        metric_result = await session.execute(
+            select(Metric.type).where(Metric.sourceId == user_id).distinct()
+        )
+        metric_types = {str(value).upper() for value in metric_result.scalars().all() if value}
+    except Exception:
+        metric_types = set()
+
+    if "GLUCOSE" in metric_types:
+        available_data.add("cgm_trial")
+    else:
+        weak_predictions.add("glucose_variability")
+
+    if "HRV" in metric_types:
+        available_data.add("hrv_wearable")
+    else:
+        weak_predictions.update({"hrv", "recovery_score"})
+
+    if "SLEEP_DURATION" in metric_types or "SLEEP_STAGE" in metric_types:
+        available_data.add("sleep_journal")
+    else:
+        weak_predictions.add("sleep_quality")
+
+    if "HEART_RATE" not in metric_types:
+        weak_predictions.add("resting_hr")
+
+    try:
+        family_map = await ancestry_engine.get_family_health_map_for_user(user_id)
+        if family_map:
+            family_risk_levels = {str(item.get("risk_level", "")).lower() for item in family_map}
+            if family_risk_levels.intersection({"high", "critical"}):
+                weak_predictions.update({"energy", "recovery_score"})
+    except Exception:
+        pass
+
+    if not weak_predictions:
+        weak_predictions.update({"energy", "mood"})
+
+    return {
+        "available_data": sorted(available_data),
+        "weak_predictions": sorted(weak_predictions),
+    }
 
 
 # ============================================================
@@ -268,20 +321,23 @@ async def get_model_health(
 @router.get("/next-measurements")
 async def get_next_measurements(
     member_id: Optional[str] = Query(None),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get prioritized measurement recommendations."""
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
+    measurement_context = await _derive_measurement_context(session, user_id)
     recommendations = measurement_recommender.rank_measurements(
         user_id=user_id,
-        available_data=[],  # TODO: compute from user's connected sources
-        weak_predictions=["glucose_variability", "energy"],  # TODO: from actual model
+        available_data=measurement_context["available_data"],
+        weak_predictions=measurement_context["weak_predictions"],
         limit=5
     )
 
     disclaimer = safety_guardrails.get_wellness_disclaimer()
     return {
         "recommendations": recommendations,
+        "measurement_context": measurement_context,
         "disclaimer": disclaimer
     }
 

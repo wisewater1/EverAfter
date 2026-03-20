@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Upload, FileText, Image, Video, Shield, Check, X, Edit3,
-    Trash2, Plus, Lock, Unlock, ChevronDown, Sparkles, Eye
+    Trash2, Plus, Lock, Unlock, ChevronDown, Sparkles, Eye, Waves
 } from 'lucide-react';
 import { getFamilyMembers, updateFamilyMember, addFamilyEvent } from '../../lib/joseph/genealogy';
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { requestBackendJson } from '../../lib/backend-request';
+import { getJosephVoiceProfile, type JosephVoiceProfileBundle } from '../../lib/joseph/voice';
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -79,16 +78,18 @@ export default function MediaIntelligencePanel() {
 
     // Tab
     const [tab, setTab] = useState<'upload' | 'stack'>('upload');
+    const [voiceBundle, setVoiceBundle] = useState<JosephVoiceProfileBundle | null>(null);
 
     /* ── Load member info stack ────────────────────────────────── */
 
     const loadInfoStack = useCallback(async (memberId: string) => {
         try {
-            const res = await fetch(`${API_BASE}/api/v1/media-intelligence/info-stack/${memberId}`);
-            if (res.ok) {
-                const data = await res.json();
-                setInfoStack(data.entries || []);
-            }
+            const data = await requestBackendJson<{ entries?: InfoStackEntry[] }>(
+                `/api/v1/media-intelligence/info-stack/${memberId}`,
+                {},
+                'Failed to load media intelligence stack.',
+            );
+            setInfoStack(data.entries || []);
         } catch {
             // Use local data as fallback
             const member = members.find(m => m.id === memberId);
@@ -96,12 +97,22 @@ export default function MediaIntelligencePanel() {
         }
     }, [members]);
 
+    const loadVoiceBundle = useCallback(async (memberId: string) => {
+        try {
+            const bundle = await getJosephVoiceProfile(memberId);
+            setVoiceBundle(bundle);
+        } catch {
+            setVoiceBundle(null);
+        }
+    }, []);
+
     useEffect(() => {
         if (selectedMember) {
             loadInfoStack(selectedMember.id);
+            void loadVoiceBundle(selectedMember.id);
             setPermsGranted(selectedMember.mediaPermissions?.allowAIProcessing ?? true);
         }
-    }, [selectedMember, loadInfoStack]);
+    }, [selectedMember, loadInfoStack, loadVoiceBundle]);
 
     /* ── File upload + extraction ──────────────────────────────── */
 
@@ -134,17 +145,21 @@ export default function MediaIntelligencePanel() {
 
         // Upload
         try {
-            await fetch(`${API_BASE}/api/v1/media-intelligence/upload`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    member_id: selectedMember.id,
-                    media_type: mediaType,
-                    filename: file.name,
-                    content,
-                    permissions_granted: permsGranted,
-                }),
-            });
+            await requestBackendJson(
+                '/api/v1/media-intelligence/upload',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        member_id: selectedMember.id,
+                        media_type: mediaType,
+                        filename: file.name,
+                        content,
+                        permissions_granted: permsGranted,
+                    }),
+                },
+                'Failed to upload media for extraction.',
+            );
         } catch (err) {
             console.error('Upload failed:', err);
         }
@@ -154,22 +169,23 @@ export default function MediaIntelligencePanel() {
         if (permsGranted) {
             setExtracting(true);
             try {
-                const res = await fetch(`${API_BASE}/api/v1/media-intelligence/extract`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        member_id: selectedMember.id,
-                        member_name: `${selectedMember.firstName} ${selectedMember.lastName}`,
-                        media_type: mediaType,
-                        content,
-                        filename: file.name,
-                    }),
-                });
-                if (res.ok) {
-                    const result = await res.json();
-                    setExtraction(result);
-                    setApprovedIds(new Set());
-                }
+                const result = await requestBackendJson<ExtractionResult>(
+                    '/api/v1/media-intelligence/extract',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            member_id: selectedMember.id,
+                            member_name: `${selectedMember.firstName} ${selectedMember.lastName}`,
+                            media_type: mediaType,
+                            content,
+                            filename: file.name,
+                        }),
+                    },
+                    'Failed to extract media intelligence.',
+                );
+                setExtraction(result);
+                setApprovedIds(new Set());
             } catch (err) {
                 console.error('Extraction failed:', err);
             }
@@ -222,17 +238,19 @@ export default function MediaIntelligencePanel() {
         });
 
         try {
-            const res = await fetch(`${API_BASE}/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ insights: approved }),
-            });
-            if (res.ok) {
-                await loadInfoStack(selectedMember.id);
-                setExtraction(null);
-                setApprovedIds(new Set());
-                setTab('stack');
-            }
+            await requestBackendJson(
+                `/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ insights: approved }),
+                },
+                'Failed to commit approved media insights.',
+            );
+            await loadInfoStack(selectedMember.id);
+            setExtraction(null);
+            setApprovedIds(new Set());
+            setTab('stack');
         } catch (err) {
             console.error('Commit failed:', err);
         }
@@ -251,14 +269,18 @@ export default function MediaIntelligencePanel() {
         if (!entry) return;
 
         try {
-            await fetch(`${API_BASE}/api/v1/media-intelligence/info-stack/${selectedMember.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    entries: [{ ...entry, value: editValue }],
-                    deleted_ids: [],
-                }),
-            });
+            await requestBackendJson(
+                `/api/v1/media-intelligence/info-stack/${selectedMember.id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entries: [{ ...entry, value: editValue }],
+                        deleted_ids: [],
+                    }),
+                },
+                'Failed to update media intelligence entry.',
+            );
             await loadInfoStack(selectedMember.id);
         } catch {
             // Update locally
@@ -270,11 +292,15 @@ export default function MediaIntelligencePanel() {
     const deleteEntry = async (entryId: string) => {
         if (!selectedMember) return;
         try {
-            await fetch(`${API_BASE}/api/v1/media-intelligence/info-stack/${selectedMember.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entries: [], deleted_ids: [entryId] }),
-            });
+            await requestBackendJson(
+                `/api/v1/media-intelligence/info-stack/${selectedMember.id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entries: [], deleted_ids: [entryId] }),
+                },
+                'Failed to delete media intelligence entry.',
+            );
             await loadInfoStack(selectedMember.id);
         } catch {
             setInfoStack(prev => prev.filter(e => e.id !== entryId));
@@ -294,11 +320,15 @@ export default function MediaIntelligencePanel() {
         };
 
         try {
-            await fetch(`${API_BASE}/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ insights: [newEntry] }),
-            });
+            await requestBackendJson(
+                `/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ insights: [newEntry] }),
+                },
+                'Failed to add media intelligence entry.',
+            );
             await loadInfoStack(selectedMember.id);
         } catch {
             setInfoStack(prev => [...prev, newEntry as any]);
@@ -329,16 +359,20 @@ export default function MediaIntelligencePanel() {
 
         // Update backend
         try {
-            await fetch(`${API_BASE}/api/v1/media-intelligence/permissions/${selectedMember.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    allow_ai_processing: newVal,
-                    allow_image_analysis: newVal,
-                    allow_video_analysis: newVal,
-                    allow_text_analysis: newVal,
-                }),
-            });
+            await requestBackendJson(
+                `/api/v1/media-intelligence/permissions/${selectedMember.id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        allow_ai_processing: newVal,
+                        allow_image_analysis: newVal,
+                        allow_video_analysis: newVal,
+                        allow_text_analysis: newVal,
+                    }),
+                },
+                'Failed to update media intelligence permissions.',
+            );
         } catch { /* best effort */ }
     };
 
@@ -540,6 +574,64 @@ export default function MediaIntelligencePanel() {
                         >
                             <Plus className="w-3 h-3" /> Add Entry
                         </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-cyan-500/10 bg-cyan-500/[0.04] p-4">
+                        <div className="flex items-center gap-2">
+                            <Waves className="w-4 h-4 text-cyan-300" />
+                            <span className="text-sm font-semibold text-white">Voice Artifacts</span>
+                        </div>
+                        {voiceBundle?.profile ? (
+                            <div className="mt-3 space-y-3">
+                                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                                    <div className="rounded-xl border border-white/5 bg-slate-950/35 p-3">
+                                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Status</div>
+                                        <div className="mt-2 text-sm font-medium text-white">{voiceBundle.profile.training_status.replace(/_/g, ' ')}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-white/5 bg-slate-950/35 p-3">
+                                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Samples</div>
+                                        <div className="mt-2 text-sm font-medium text-white">{voiceBundle.profile.sample_count}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-white/5 bg-slate-950/35 p-3">
+                                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Approved Seconds</div>
+                                        <div className="mt-2 text-sm font-medium text-white">{Math.round(voiceBundle.profile.approved_seconds)}s</div>
+                                    </div>
+                                    <div className="rounded-xl border border-white/5 bg-slate-950/35 p-3">
+                                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Created AI Voice</div>
+                                        <div className="mt-2 text-sm font-medium text-white">{voiceBundle.profile.model_ref ? 'Ready' : 'Not ready'}</div>
+                                    </div>
+                                </div>
+
+                                {voiceBundle.samples.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {voiceBundle.samples.slice(0, 3).map((sample) => (
+                                            <div key={sample.id} className="rounded-xl border border-white/5 bg-slate-950/35 px-3 py-2">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div>
+                                                        <div className="text-sm font-medium text-white">{sample.clip_type.replace(/_/g, ' ')}</div>
+                                                        <div className="text-[11px] text-slate-500">
+                                                            {Math.round(sample.duration_seconds)}s • {sample.review_status.replace(/_/g, ' ')}
+                                                        </div>
+                                                    </div>
+                                                    <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${sample.approved ? 'bg-emerald-500/10 text-emerald-200' : 'bg-amber-500/10 text-amber-200'}`}>
+                                                        {sample.approved ? 'Approved' : 'Pending'}
+                                                    </span>
+                                                </div>
+                                                {sample.transcript && (
+                                                    <p className="mt-2 text-xs text-slate-300">“{sample.transcript}”</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-slate-500">Voice profile exists, but no approved clips are stored yet.</div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="mt-3 text-xs text-slate-500">
+                                No voice profile exists for this family member yet. Voice clips will appear here after consented collection in Joseph.
+                            </div>
+                        )}
                     </div>
 
                     {/* Add manual entry inline */}

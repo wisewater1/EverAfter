@@ -7,6 +7,7 @@ import base64
 import smtplib
 from email.message import EmailMessage
 import os
+import uuid
 
 
 class InvitationService:
@@ -18,12 +19,59 @@ class InvitationService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    def _is_family_member_engram(self, engram) -> bool:
+        traits = (engram.personality_traits or {}) if engram else {}
+        return bool(
+            traits.get("memberId")
+            or traits.get("familyRole")
+            or traits.get("engram_type") == "family_member"
+            or traits.get("is_dynamic_agent")
+        )
+
+    async def _get_or_create_family_member_engram(
+        self,
+        inviter_user_id: str,
+        invitee_name: str,
+        relationship: Optional[str],
+    ):
+        from app.models.engram import Engram
+
+        inviter_uuid = uuid.UUID(str(inviter_user_id))
+        normalized_name = invitee_name.strip()
+
+        query = select(Engram).where(
+            Engram.user_id == inviter_uuid,
+            Engram.name == normalized_name,
+        )
+        result = await self.session.execute(query)
+        for engram in result.scalars().all():
+            if self._is_family_member_engram(engram):
+                return engram
+
+        family_role = (relationship or "family").strip().lower()
+        new_engram = Engram(
+            user_id=inviter_uuid,
+            name=normalized_name,
+            description=f"Family member engram for {normalized_name}",
+            personality_traits={
+                "memberId": f"invite-{uuid.uuid4()}",
+                "familyRole": family_role,
+                "engram_type": "family_member",
+                "is_dynamic_agent": True,
+            },
+            training_status="untrained",
+        )
+        self.session.add(new_engram)
+        await self.session.flush()
+        return new_engram
+
     async def create_invitation(
         self,
-        engram_id: str,
+        engram_id: Optional[str],
         inviter_user_id: str,
         invitee_email: str,
         invitee_name: str,
+        relationship: Optional[str] = None,
         invitation_message: Optional[str] = None,
         questions_to_answer: int = 365
     ) -> Dict:
@@ -32,29 +80,36 @@ class InvitationService:
         """
         from app.models.engram import Engram, FamilyMemberInvitation
 
-        # Verify engram exists and is a family_member type
-        engram_query = select(Engram).where(Engram.id == engram_id)
-        result = await self.session.execute(engram_query)
-        engram = result.scalar_one_or_none()
+        if engram_id:
+            engram_query = select(Engram).where(Engram.id == engram_id)
+            result = await self.session.execute(engram_query)
+            engram = result.scalar_one_or_none()
 
-        if not engram:
-            raise ValueError("Engram not found")
+            if not engram:
+                raise ValueError("Engram not found")
 
-        if engram.engram_type != "family_member":
-            raise ValueError("Invitations can only be sent for family_member engrams")
+            if not self._is_family_member_engram(engram):
+                raise ValueError("Invitations can only be sent for family_member engrams")
+        else:
+            engram = await self._get_or_create_family_member_engram(
+                inviter_user_id=inviter_user_id,
+                invitee_name=invitee_name,
+                relationship=relationship,
+            )
 
         # Generate secure invitation token
         token = self._generate_secure_token()
 
         # Create invitation
         invitation = FamilyMemberInvitation(
-            engram_id=engram_id,
-            inviter_user_id=inviter_user_id,
+            engram_id=engram.id if isinstance(engram.id, uuid.UUID) else uuid.UUID(str(engram.id)),
+            inviter_user_id=uuid.UUID(str(inviter_user_id)),
             invitee_email=invitee_email,
             invitee_name=invitee_name,
             invitation_token=token,
             invitation_message=invitation_message or self._get_default_message(engram.name, invitee_name),
             status='pending',
+            delivery_status='pending',
             questions_to_answer=questions_to_answer,
             sent_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(days=30)
@@ -67,15 +122,25 @@ class InvitationService:
         # Generate invitation URL
         invitation_url = self._generate_invitation_url(token)
 
-        # Send email via email service
-        await self._send_invitation_email(invitee_email, invitation_url, invitation_message)
+        delivery = await self._send_invitation_email(
+            invitee_email,
+            invitation_url,
+            invitation.invitation_message,
+        )
+        invitation.delivery_status = delivery["status"]
+        invitation.delivery_error = delivery.get("error")
+        await self.session.commit()
+        await self.session.refresh(invitation)
 
         return {
             "invitation_id": str(invitation.id),
+            "engram_id": str(engram.id),
             "token": token,
             "url": invitation_url,
             "expires_at": invitation.expires_at.isoformat(),
-            "status": "sent"
+            "status": invitation.status,
+            "delivery_status": invitation.delivery_status,
+            "delivery_error": invitation.delivery_error,
         }
 
     def _generate_secure_token(self) -> str:
@@ -102,10 +167,10 @@ Thank you for participating in this special project!
     def _generate_invitation_url(self, token: str) -> str:
         """Generate invitation URL"""
         # In production, use actual domain
-        base_url = os.getenv("FRONTEND_URL", "https://everafter.app")
+        base_url = os.getenv("FRONTEND_URL", "https://everafterai.net")
         return f"{base_url}/respond/{token}"
 
-    async def _send_invitation_email(self, invitee_email: str, invitation_url: str, message: str):
+    async def _send_invitation_email(self, invitee_email: str, invitation_url: str, message: str) -> Dict[str, Optional[str]]:
         """Send the invitation email using SMTP"""
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
@@ -113,8 +178,10 @@ Thank you for participating in this special project!
         smtp_password = os.getenv("SMTP_PASSWORD")
 
         if not all([smtp_server, smtp_username, smtp_password]):
-            print(f"SMTP not configured. Would have sent following to {invitee_email}:\n{message}\nLink: {invitation_url}")
-            return
+            return {
+                "status": "pending_config",
+                "error": "SMTP is not configured for invitation delivery.",
+            }
 
         msg = EmailMessage()
         msg.set_content(f"{message}\n\nPlease click the link to start your journey:\n{invitation_url}")
@@ -127,10 +194,9 @@ Thank you for participating in this special project!
                 server.starttls()
                 server.login(smtp_username, smtp_password)
                 server.send_message(msg)
-            print(f"Successfully sent invitation email to {invitee_email}")
+            return {"status": "sent", "error": None}
         except Exception as e:
-            print(f"Failed to send email to {invitee_email}: {e}")
-            # Don't throw, we want the token creation to succeed even if email fails
+            return {"status": "failed", "error": str(e)}
 
 
     async def accept_invitation(self, token: str) -> Dict:
@@ -168,7 +234,8 @@ Thank you for participating in this special project!
             "invitee_name": invitation.invitee_name,
             "questions_to_answer": invitation.questions_to_answer,
             "questions_answered": invitation.questions_answered,
-            "status": "accepted"
+            "status": invitation.status,
+            "delivery_status": invitation.delivery_status,
         }
 
     async def get_question_for_invitee(self, token: str) -> Dict:
@@ -247,8 +314,8 @@ Thank you for participating in this special project!
 
         # Create external response
         external_response = ExternalResponse(
-            invitation_id=str(invitation.id),
-            engram_id=str(invitation.engram_id),
+            invitation_id=invitation.id,
+            engram_id=invitation.engram_id,
             question_text=question_text,
             response_text=response_text,
             question_category=category_id,
@@ -271,8 +338,6 @@ Thank you for participating in this special project!
             day_number=day_number,
             dimension_id=dimension_id,
             category_id=category_id,
-            is_external=True,
-            external_response_id=str(external_response.id)
         )
 
         self.session.add(daily_response)
@@ -327,13 +392,16 @@ Thank you for participating in this special project!
 
         return invitation
 
-    async def get_invitation_stats(self, invitation_id: str) -> Dict:
+    async def get_invitation_stats(self, invitation_id: str, inviter_user_id: Optional[str] = None) -> Dict:
         """Get statistics for an invitation"""
         from app.models.engram import FamilyMemberInvitation, ExternalResponse
 
+        invitation_uuid = uuid.UUID(str(invitation_id))
         query = select(FamilyMemberInvitation).where(
-            FamilyMemberInvitation.id == invitation_id
+            FamilyMemberInvitation.id == invitation_uuid
         )
+        if inviter_user_id:
+            query = query.where(FamilyMemberInvitation.inviter_user_id == uuid.UUID(str(inviter_user_id)))
         result = await self.session.execute(query)
         invitation = result.scalar_one_or_none()
 
@@ -342,7 +410,7 @@ Thank you for participating in this special project!
 
         # Get response statistics
         responses_query = select(ExternalResponse).where(
-            ExternalResponse.invitation_id == invitation_id
+            ExternalResponse.invitation_id == invitation_uuid
         )
         responses_result = await self.session.execute(responses_query)
         responses = responses_result.scalars().all()
@@ -356,6 +424,8 @@ Thank you for participating in this special project!
             "questions_total": invitation.questions_to_answer,
             "completion_percentage": int((invitation.questions_answered / invitation.questions_to_answer) * 100),
             "avg_response_length": int(avg_length),
+            "delivery_status": invitation.delivery_status,
+            "delivery_error": invitation.delivery_error,
             "last_response_at": invitation.last_response_at.isoformat() if invitation.last_response_at else None,
             "accepted_at": invitation.accepted_at.isoformat() if invitation.accepted_at else None,
             "expires_at": invitation.expires_at.isoformat()
@@ -365,8 +435,9 @@ Thank you for participating in this special project!
         """List all invitations created by a user"""
         from app.models.engram import FamilyMemberInvitation
 
+        user_uuid = uuid.UUID(str(user_id))
         query = select(FamilyMemberInvitation).where(
-            FamilyMemberInvitation.inviter_user_id == user_id
+            FamilyMemberInvitation.inviter_user_id == user_uuid
         ).order_by(FamilyMemberInvitation.created_at.desc())
 
         result = await self.session.execute(query)
@@ -379,6 +450,7 @@ Thank you for participating in this special project!
                 "invitee_email": inv.invitee_email,
                 "invitee_name": inv.invitee_name,
                 "status": inv.status,
+                "delivery_status": inv.delivery_status,
                 "questions_answered": inv.questions_answered,
                 "questions_total": inv.questions_to_answer,
                 "completion_percentage": int((inv.questions_answered / inv.questions_to_answer) * 100),

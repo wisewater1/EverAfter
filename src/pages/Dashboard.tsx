@@ -14,6 +14,8 @@ import SaintsNavigation from '../components/SaintsNavigation';
 import SocietyFeed from '../components/SocietyFeed';
 import TrajectoryDashboard from '../components/TrajectoryDashboard';
 import HolisticTimeline from '../components/HolisticTimeline';
+import { loadStarterEngramDraft } from '../lib/onboardingDraft';
+import { readStoredPersonalityProfile } from '../lib/joseph/personalityProfiles';
 
 const ONBOARDING_STEPS = [
   'Welcome',
@@ -33,6 +35,14 @@ interface OnboardingResumeState {
   lastUpdated: string | null;
 }
 
+interface PersonalityResumeState {
+  visible: boolean;
+  memberId: string | null;
+  memberName: string;
+  answered: number;
+  total: number;
+}
+
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +58,13 @@ export default function Dashboard() {
     lastUpdated: null,
   });
   const [loadingOnboardingResume, setLoadingOnboardingResume] = useState(true);
+  const [personalityResume, setPersonalityResume] = useState<PersonalityResumeState>({
+    visible: false,
+    memberId: null,
+    memberName: 'your primary family member',
+    answered: 0,
+    total: 50,
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -110,6 +127,27 @@ export default function Dashboard() {
       loadOnboardingResume();
     }
   }, [user?.id, loading]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const starterDraft = loadStarterEngramDraft(user.id);
+    const primaryMemberId = starterDraft?.primaryMemberId || null;
+    const storedProfile = primaryMemberId ? readStoredPersonalityProfile<any>(primaryMemberId) : null;
+    const answered = Number.isFinite(storedProfile?.answered) ? storedProfile.answered : Object.keys(starterDraft?.personalityQuiz?.answers || {}).length;
+    const total = Number.isFinite(storedProfile?.total_questions) ? storedProfile.total_questions : 50;
+    const hasDetailedProfile = answered >= total && total >= 50;
+
+    setPersonalityResume({
+      visible: Boolean(primaryMemberId) && !hasDetailedProfile,
+      memberId: primaryMemberId,
+      memberName: starterDraft?.familySetup?.selfName?.trim() || storedProfile?.member_name || 'your primary family member',
+      answered,
+      total,
+    });
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -381,6 +419,44 @@ export default function Dashboard() {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {!loadingOnboardingResume && !onboardingResume.visible && personalityResume.visible && personalityResume.memberId && (
+            <section className="relative overflow-hidden rounded-3xl border border-violet-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(168,85,247,0.14),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(34,211,238,0.1),_transparent_28%)]" />
+              <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-400/10 text-violet-300">
+                      <Brain className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-300/80">
+                        Joseph Personality
+                      </p>
+                      <h2 className="text-xl font-semibold text-white">Continue the full OCEAN assessment</h2>
+                    </div>
+                  </div>
+                  <p className="max-w-2xl text-sm text-slate-300">
+                    Onboarding created a starter personality seed for {personalityResume.memberName}. The detailed 50-question Joseph assessment is where Delphi, Trinity, and family predictions get their full behavioral profile.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                    <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-violet-300">
+                      {Math.min(Math.round((personalityResume.answered / Math.max(personalityResume.total, 1)) * 100), 100)}% complete
+                    </span>
+                    <span>{personalityResume.answered} of {personalityResume.total} questions answered</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate(`/family-dashboard?tab=quiz&memberId=${encodeURIComponent(personalityResume.memberId!)}`)}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-violet-400/20 bg-violet-400/10 px-5 py-3 text-sm font-medium text-violet-100 transition hover:border-violet-300/35 hover:bg-violet-400/15"
+                >
+                  Open Joseph quiz
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             </section>
           )}

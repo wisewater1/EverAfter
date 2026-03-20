@@ -15,9 +15,7 @@ import {
     TrendingUp, TrendingDown, Minus, RefreshCw, ChevronDown, ChevronUp,
     Brain, Users, Shield
 } from 'lucide-react';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { requestBackendJson } from '../../lib/backend-request';
 
 interface AncestryInsight {
     member_id: string;
@@ -122,12 +120,16 @@ export default function TrinitySynapsePanel({
                 personality_note: null,
             };
 
-            const post = (action: string, body: object) =>
-                fetch(`${API_BASE}/api/v1/trinity/synapse`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action, ...body }),
-                });
+            const post = <T,>(action: string, body: object) =>
+                requestBackendJson<T>(
+                    '/api/v1/trinity/synapse',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action, ...body }),
+                    },
+                    `Failed to load Trinity Synapse ${action} insight.`,
+                );
 
             const tasks: Promise<void>[] = [];
 
@@ -140,7 +142,6 @@ export default function TrinitySynapsePanel({
                         metrics_history: metricsHistory,
                         family_members: familyMembers,
                     })
-                        .then(r => r.ok ? r.json() : null)
                         .then(d => { if (d) results.ancestry = d; })
                         .catch(() => { })
                 );
@@ -156,7 +157,6 @@ export default function TrinitySynapsePanel({
                         net_worth: 0,
                         health_risk_score: healthRiskScore,
                     })
-                        .then(r => r.ok ? r.json() : null)
                         .then(d => { if (d) results.financial = d; })
                         .catch(() => { })
                 );
@@ -170,7 +170,6 @@ export default function TrinitySynapsePanel({
                         relationships: [],
                         metrics_by_member: {},
                     })
-                        .then(r => r.ok ? r.json() : null)
                         .then(d => {
                             if (d?.household_alerts) results.contagion_alerts = d.household_alerts;
                         })
@@ -186,7 +185,6 @@ export default function TrinitySynapsePanel({
                         biometrics: {},
                         base_recommendations: [],
                     })
-                        .then(r => r.ok ? r.json() : null)
                         .then(d => {
                             if (d?.personality_note) results.personality_note = d.personality_note;
                         })

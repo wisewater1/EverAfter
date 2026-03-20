@@ -9,13 +9,11 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { API_BASE_URL } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
 import { getFamilyMembers, type FamilyMember } from '../../lib/joseph/genealogy';
 import { readStoredPersonalityProfile, toLongTraitScores } from '../../lib/joseph/personalityProfiles';
 import { fetchHealthMetrics, type HealthDataPoint } from '../../lib/raphael/healthDataService';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { requestBackendJson } from '../../lib/backend-request';
 
 interface RiskFactor {
   factor: string;
@@ -232,38 +230,47 @@ export default function FamilyPredictionIntelligencePanel({ userId }: Props) {
         }));
 
         const [userPredictionRes, warningsRes, familyPredictionRes] = await Promise.allSettled([
-          fetch(`${API_BASE}/api/v1/health-predictions/predict`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ metrics_history: metricPayload, profile: {} }),
-          }),
-          fetch(`${API_BASE}/api/v1/health-predictions/early-warnings`, {
-            headers: authHeaders,
-          }),
-          fetch(`${API_BASE}/api/v1/health-predictions/predict-family`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ members: familyPayload, consent_map: consentMap }),
-          }),
+          requestBackendJson<PredictionBundle>(
+            '/api/v1/health-predictions/predict',
+            {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ metrics_history: metricPayload, profile: {} }),
+            },
+            'Unable to load Raphael prediction input',
+          ),
+          requestBackendJson<{ warnings?: EarlyWarning[] }>(
+            '/api/v1/health-predictions/early-warnings',
+            { headers: authHeaders },
+            'Unable to load Raphael warning inputs',
+          ),
+          requestBackendJson<FamilyPredictionResult>(
+            '/api/v1/health-predictions/predict-family',
+            {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ members: familyPayload, consent_map: consentMap }),
+            },
+            'Unable to load Joseph family forecast',
+          ),
         ]);
 
         if (cancelled) return;
 
-        if (userPredictionRes.status === 'fulfilled' && userPredictionRes.value.ok) {
-          setUserPrediction(await userPredictionRes.value.json());
+        if (userPredictionRes.status === 'fulfilled') {
+          setUserPrediction(userPredictionRes.value);
         } else {
           setUserPrediction(null);
         }
 
-        if (warningsRes.status === 'fulfilled' && warningsRes.value.ok) {
-          const warningJson = await warningsRes.value.json();
-          setWarnings(warningJson.warnings || []);
+        if (warningsRes.status === 'fulfilled') {
+          setWarnings(warningsRes.value.warnings || []);
         } else {
           setWarnings([]);
         }
 
-        if (familyPredictionRes.status === 'fulfilled' && familyPredictionRes.value.ok) {
-          setFamilyPrediction(await familyPredictionRes.value.json());
+        if (familyPredictionRes.status === 'fulfilled') {
+          setFamilyPrediction(familyPredictionRes.value);
         } else {
           setFamilyPrediction(null);
         }

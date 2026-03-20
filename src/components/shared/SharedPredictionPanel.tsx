@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { API_BASE_URL } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 import {
     Activity, TrendingUp, TrendingDown, Minus, AlertTriangle,
     Shield, Brain, Beaker, ChevronRight, RefreshCw
 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -127,29 +125,36 @@ export default function SharedPredictionPanel({
             const authHeaders = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
             });
-            const [predRes, warnRes] = await Promise.all([
-                fetch(`${API_BASE}/api/v1/health-predictions/predict`, {
-                    method: 'POST',
-                    headers: jsonHeaders,
-                    body: JSON.stringify({
-                        metrics_history: metricsHistory,
-                        profile: profile || {},
-                    }),
-                }),
-                fetch(`${API_BASE}/api/v1/health-predictions/early-warnings`, {
-                    headers: authHeaders,
-                }),
+            const [predResult, warnResult] = await Promise.allSettled([
+                requestBackendJson<PredictionBundle>(
+                    '/api/v1/health-predictions/predict',
+                    {
+                        method: 'POST',
+                        headers: jsonHeaders,
+                        body: JSON.stringify({
+                            metrics_history: metricsHistory,
+                            profile: profile || {},
+                        }),
+                    },
+                    'Unable to load health predictions',
+                ),
+                requestBackendJson<{ warnings?: EarlyWarning[] }>(
+                    '/api/v1/health-predictions/early-warnings',
+                    { headers: authHeaders },
+                    'Unable to load early warnings',
+                ),
             ]);
-            if (predRes.ok) {
-                const data = await predRes.json();
-                setPrediction(data);
+            if (predResult.status === 'fulfilled') {
+                setPrediction(predResult.value);
                 setError(null);
             } else {
-                setError(`Failed to load predictions (${predRes.status}).`);
+                setPrediction(null);
+                setError(predResult.reason instanceof Error ? predResult.reason.message : 'Failed to load predictions.');
             }
-            if (warnRes.ok) {
-                const data = await warnRes.json();
-                setWarnings(data.warnings || []);
+            if (warnResult.status === 'fulfilled') {
+                setWarnings(warnResult.value.warnings || []);
+            } else {
+                setWarnings([]);
             }
         } catch (err) {
             console.error('SharedPredictionPanel: fetch failed', err);
@@ -170,15 +175,19 @@ export default function SharedPredictionPanel({
                 'Content-Type': 'application/json',
                 'Bypass-Tunnel-Reminder': 'true',
             });
-            const res = await fetch(`${API_BASE}/api/v1/health-predictions/simulate`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    scenarios: [{ metric: simMetric, change_type: 'increase', change_value: simChange, duration_days: 30 }],
-                    baseline_metrics: metricsHistory,
-                }),
-            });
-            if (res.ok) setSimulation(await res.json());
+            const result = await requestBackendJson<SimulationResult>(
+                '/api/v1/health-predictions/simulate',
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        scenarios: [{ metric: simMetric, change_type: 'increase', change_value: simChange, duration_days: 30 }],
+                        baseline_metrics: metricsHistory,
+                    }),
+                },
+                'Unable to run health simulation',
+            );
+            setSimulation(result);
         } catch (err) {
             console.error('Simulation failed:', err);
         }

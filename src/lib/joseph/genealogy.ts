@@ -2,7 +2,7 @@
 // With localStorage persistence, AI Agent personality generation,
 // and GeneWeb-inspired genealogy tools (GEDCOM, relationship paths, source citations)
 
-import { API_BASE_URL } from '../env';
+import { API_BASE_URL, isDevelopment } from '../env';
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
 export type EventType = 'birth' | 'marriage' | 'death' | 'milestone' | 'adoption';
@@ -201,6 +201,23 @@ function loadFromStorage<T>(key: string, defaults: T[]): T[] {
     return [...defaults];
 }
 
+function loadOptionalFromStorage<T>(key: string): T[] | null {
+    try {
+        const stored = localStorage.getItem(key);
+        if (!stored) return null;
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function loadStoredOrDevDefaults<T>(key: string, defaults: T[]): T[] {
+    const stored = loadOptionalFromStorage<T>(key);
+    if (stored) return stored;
+    return isDevelopment ? [...defaults] : [];
+}
+
 function saveToStorage<T>(key: string, data: T[]): void {
     localStorage.setItem(key, JSON.stringify(data));
 }
@@ -250,21 +267,20 @@ async function loadGenealogyFromBackend() {
                     toId: r.toNodeId,
                     type: r.relationType,
                 }));
-                // Mock events so the UI doesn't crash
-                _events = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
-                _sources = loadFromStorage<SourceCitation>(STORAGE_KEYS.sources, []);
+                _events = loadStoredOrDevDefaults(STORAGE_KEYS.events, DEFAULT_EVENTS);
+                _sources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
                 return;
             }
         }
     } catch (error) {
-        console.warn('Failed to load genealogy from backend, falling back to mock UI data', error);
+        console.warn('Failed to load genealogy from backend', error);
     }
 
-    // Fallback cleanly to storage if db is empty or unreachable
-    _members = loadFromStorage(STORAGE_KEYS.members, DEFAULT_MEMBERS);
-    _relationships = loadFromStorage(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
-    _events = loadFromStorage(STORAGE_KEYS.events, DEFAULT_EVENTS);
-    _sources = loadFromStorage<SourceCitation>(STORAGE_KEYS.sources, []);
+    // In production, fall back only to user-created local state. Dev keeps seeded defaults.
+    _members = loadStoredOrDevDefaults(STORAGE_KEYS.members, DEFAULT_MEMBERS);
+    _relationships = loadStoredOrDevDefaults(STORAGE_KEYS.relationships, DEFAULT_RELATIONSHIPS);
+    _events = loadStoredOrDevDefaults(STORAGE_KEYS.events, DEFAULT_EVENTS);
+    _sources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
 }
 
 // Block module execution until hydrated from Postgres!

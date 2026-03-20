@@ -50,6 +50,15 @@ interface Receipt {
 
 type ItemStatusFilter = 'ALL' | VaultItem['status'];
 
+interface LegacyConceptPreset {
+  type: VaultItem['type'];
+  title: string;
+  payload: Record<string, any>;
+  unlock_rule: NonNullable<VaultItem['unlock_rule']>;
+  heartbeat_timeout_days?: number;
+  is_encrypted?: boolean;
+}
+
 export default function LegacyVaultEnhanced() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -65,6 +74,7 @@ export default function LegacyVaultEnhanced() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<VaultItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
+  const [createPreset, setCreatePreset] = useState<LegacyConceptPreset | null>(null);
 
 
 
@@ -338,6 +348,11 @@ export default function LegacyVaultEnhanced() {
             continuityStats={continuityStats}
             onItemSelect={setSelectedItem}
             onCreate={() => setIsCreateModalOpen(true)}
+            onCreateWithPreset={(preset) => {
+              setSelectedItemForEdit(null);
+              setCreatePreset(preset);
+              setIsCreateModalOpen(true);
+            }}
           />
         ) : activeSection === 'assurance' ? (
           <LegacyAssuranceSection
@@ -362,14 +377,17 @@ export default function LegacyVaultEnhanced() {
             onClose={() => {
               setIsCreateModalOpen(false);
               setSelectedItemForEdit(null);
+              setCreatePreset(null);
             }}
             onSave={() => {
               setIsCreateModalOpen(false);
               setSelectedItemForEdit(null);
+              setCreatePreset(null);
               loadVaultItems();
             }}
             item={selectedItemForEdit}
             defaultType={activeTab}
+            preset={createPreset}
           />
         )}
 
@@ -477,7 +495,8 @@ function ContinuityPlansSection({
   onToggleFilterMenu,
   continuityStats,
   onItemSelect,
-  onCreate
+  onCreate,
+  onCreateWithPreset
 }: {
   activeTab: string;
   onTabChange: (tab: any) => void;
@@ -498,6 +517,7 @@ function ContinuityPlansSection({
   };
   onItemSelect: (item: VaultItem) => void;
   onCreate: () => void;
+  onCreateWithPreset: (preset: LegacyConceptPreset) => void;
 }) {
   const tabs = [
     { id: 'CAPSULE', label: 'Time Capsules', icon: Clock, color: 'from-blue-500/20 to-cyan-500/20' },
@@ -514,6 +534,96 @@ function ContinuityPlansSection({
   const tabLocked = tabItems.filter(item => item.status === 'LOCKED').length;
   const tabPublished = tabItems.filter(item => item.status === 'PUBLISHED' || item.status === 'SENT').length;
   const statusOptions: ItemStatusFilter[] = ['ALL', 'DRAFT', 'SCHEDULED', 'LOCKED', 'PUBLISHED', 'PAUSED', 'SENT', 'ARCHIVED'];
+  const aiContinuityConcepts = [
+    {
+      id: 'ai-memory-capsule',
+      title: 'AI Memory Capsule',
+      subtitle: 'Preserve the last stable state of an Engram before dormancy.',
+      icon: Clock,
+      accent: 'from-cyan-500/15 to-sky-500/10',
+      border: 'border-cyan-500/20',
+      details: ['Stores memory summary, tone profile, and family context.', 'Best for graceful archival when an AI companion is retired or "passes away".'],
+      preset: {
+        type: 'CAPSULE' as const,
+        title: 'AI Memory Capsule',
+        unlock_rule: 'HEARTBEAT_TIMEOUT' as const,
+        heartbeat_timeout_days: 30,
+        is_encrypted: true,
+        payload: {
+          message: 'Archive the final trusted state of this AI companion, including key memories, tone, and relationship context.',
+          protocolName: 'Dormancy Archive',
+          aiContinuity: true,
+          protocolIntent: 'Preserve the last coherent Engram state for future recovery, memorialization, or family review.',
+        },
+      },
+    },
+    {
+      id: 'engram-succession-brief',
+      title: 'Engram Succession Brief',
+      subtitle: 'Define who becomes steward of the AI and what survives.',
+      icon: FileText,
+      accent: 'from-amber-500/15 to-orange-500/10',
+      border: 'border-amber-500/20',
+      details: ['Assign custodian, executor, and release conditions.', 'Maps well to AI inheritance, shutdown, and successor-access rules.'],
+      preset: {
+        type: 'WILL' as const,
+        title: 'Engram Succession Brief',
+        unlock_rule: 'CUSTODIAN_APPROVAL' as const,
+        is_encrypted: true,
+        payload: {
+          wishes: 'Document who controls this AI after the original owner can no longer maintain it, what memories remain active, and whether the model should be archived, memorialized, or transferred.',
+          protocolName: 'Custodian Transfer',
+          aiContinuity: true,
+          protocolIntent: 'Prevent orphaned AI state by making stewardship, access, and shutdown rules explicit.',
+        },
+      },
+    },
+    {
+      id: 'memorial-presence',
+      title: 'Memorial Presence Page',
+      subtitle: 'A controlled memorial mode for an AI that is no longer active.',
+      icon: Heart,
+      accent: 'from-rose-500/15 to-pink-500/10',
+      border: 'border-rose-500/20',
+      details: ['Shifts the AI from active companion to remembrance artifact.', 'Useful when family should be able to revisit stories without reopening autonomous behavior.'],
+      preset: {
+        type: 'MEMORIAL' as const,
+        title: 'Memorial Presence Page',
+        unlock_rule: 'CUSTODIAN_APPROVAL' as const,
+        is_encrypted: true,
+        payload: {
+          biography: 'This memorial page preserves the identity, purpose, and signature qualities of an AI companion after it leaves active service.',
+          protocolName: 'Memorial Presence',
+          aiContinuity: true,
+          protocolIntent: 'Provide a bounded, respectful remembrance surface for a retired or deceased AI.',
+        },
+      },
+    },
+    {
+      id: 'heartbeat-sunset',
+      title: 'Heartbeat Sunset Message',
+      subtitle: 'Send post-dormancy messages if an AI has been inactive too long.',
+      icon: Send,
+      accent: 'from-violet-500/15 to-indigo-500/10',
+      border: 'border-violet-500/20',
+      details: ['Releases notices to family or custodians after sustained inactivity.', 'Bridges the gap between AI heartbeat monitoring and human continuity planning.'],
+      preset: {
+        type: 'MESSAGE' as const,
+        title: 'Heartbeat Sunset Notice',
+        unlock_rule: 'HEARTBEAT_TIMEOUT' as const,
+        heartbeat_timeout_days: 21,
+        is_encrypted: true,
+        payload: {
+          subject: 'If this AI has gone quiet',
+          recipients: [],
+          message: 'This message is released when the AI heartbeat has been inactive beyond the defined threshold. It should guide the next human review or continuity action.',
+          protocolName: 'Sunset Notice',
+          aiContinuity: true,
+          protocolIntent: 'Notify custodians that an AI may need archival, review, or memorial transition.',
+        },
+      },
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -546,6 +656,57 @@ function ContinuityPlansSection({
           <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-slate-300">
             Encrypted records are counted globally: {continuityStats.secured} secured items across the vault.
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-white font-semibold">AI Continuity Concepts</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Use the vault to define what happens when an AI companion becomes dormant, is intentionally retired, or needs a memorial state instead of active runtime.
+            </p>
+          </div>
+          <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
+            Built on vault primitives
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {aiContinuityConcepts.map((concept) => {
+            const Icon = concept.icon;
+            return (
+              <div
+                key={concept.id}
+                className={`rounded-2xl border ${concept.border} bg-gradient-to-br ${concept.accent} p-5`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-slate-950/40">
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-white">{concept.title}</h4>
+                      <p className="mt-1 text-sm text-slate-300">{concept.subtitle}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onCreateWithPreset(concept.preset)}
+                    className="rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2 text-sm font-medium text-white transition hover:border-teal-400/30 hover:bg-slate-950/65"
+                  >
+                    Use Concept
+                  </button>
+                </div>
+                <div className="mt-4 space-y-2 text-sm text-slate-300">
+                  {concept.details.map((detail) => (
+                    <div key={detail} className="rounded-xl border border-white/10 bg-slate-950/35 px-3 py-2">
+                      {detail}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -1118,12 +1279,12 @@ function StatusCard({
   );
 }
 
-function CreateItemModal({ onClose, onSave, item, defaultType }: { onClose: () => void; onSave: () => void; item?: VaultItem | null; defaultType: VaultItem['type'] }) {
+function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClose: () => void; onSave: () => void; item?: VaultItem | null; defaultType: VaultItem['type']; preset?: LegacyConceptPreset | null }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(item ? 2 : 1);
+  const [step, setStep] = useState(item || preset ? 2 : 1);
   const [loading, setLoading] = useState(false);
-  const [selectedType, setSelectedType] = useState<VaultItem['type']>(item?.type || defaultType);
+  const [selectedType, setSelectedType] = useState<VaultItem['type']>(item?.type || preset?.type || defaultType);
   const [availableBeneficiaries, setAvailableBeneficiaries] = useState<Beneficiary[]>([]);
   const [selectedBeneficiaries, setSelectedBeneficiaries] = useState<Array<{ id: string; role: 'VIEWER' | 'CUSTODIAN' | 'EXECUTOR' }>>(
     []
@@ -1131,7 +1292,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType }: { onClose: () =
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    title: item?.title || '',
+    title: item?.title || preset?.title || '',
     payload: {
       message: '',
       biography: '',
@@ -1139,12 +1300,13 @@ function CreateItemModal({ onClose, onSave, item, defaultType }: { onClose: () =
       subject: '',
       recipients: [],
       attachments: [],
+      ...(preset?.payload || {}),
       ...item?.payload
     } as any,
     unlock_at: item?.unlock_at ? new Date(item.unlock_at).toISOString().slice(0, 16) : '',
-    unlock_rule: item?.unlock_rule || 'DATE' as const,
-    heartbeat_timeout_days: item?.heartbeat_timeout_days || 30,
-    is_encrypted: item?.is_encrypted ?? true,
+    unlock_rule: item?.unlock_rule || preset?.unlock_rule || 'DATE' as const,
+    heartbeat_timeout_days: item?.heartbeat_timeout_days || preset?.heartbeat_timeout_days || 30,
+    is_encrypted: item?.is_encrypted ?? preset?.is_encrypted ?? true,
   });
 
   useEffect(() => {
@@ -1153,6 +1315,32 @@ function CreateItemModal({ onClose, onSave, item, defaultType }: { onClose: () =
       loadItemBeneficiaries();
     }
   }, []);
+
+  useEffect(() => {
+    if (item) {
+      return;
+    }
+
+    if (!preset) {
+      setSelectedType(defaultType);
+      setStep(1);
+      return;
+    }
+
+    setSelectedType(preset.type);
+    setStep(2);
+    setFormData((current) => ({
+      ...current,
+      title: preset.title,
+      payload: {
+        ...current.payload,
+        ...preset.payload,
+      },
+      unlock_rule: preset.unlock_rule,
+      heartbeat_timeout_days: preset.heartbeat_timeout_days || current.heartbeat_timeout_days,
+      is_encrypted: preset.is_encrypted ?? current.is_encrypted,
+    }));
+  }, [defaultType, item, preset]);
 
   const loadItemBeneficiaries = async () => {
     if (!item) return;

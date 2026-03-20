@@ -50,6 +50,12 @@ const SAINT_AXIS = [
     { saint: 'joseph', icon: GitBranch, color: '#f59e0b' },
 ] as const;
 
+function formatGoalDate(value?: string | null, fallback = 'pending') {
+    if (!value) return fallback;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? fallback : parsed.toLocaleDateString();
+}
+
 export default function CrossSaintGoalEngine() {
     const familyMembers = useMemo(() => getFamilyMembers().filter(member => !member.deathDate), []);
     const [goals, setGoals] = useState<TrinityGoal[]>(() => getStoredTrinityGoals());
@@ -365,7 +371,7 @@ export default function CrossSaintGoalEngine() {
                             <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] text-slate-500">
                                 <span className="inline-flex items-center gap-1">
                                     <CalendarDays className="w-3 h-3" />
-                                    Review {goal.next_review_at ? new Date(goal.next_review_at).toLocaleDateString() : 'pending'}
+                                    Review {formatGoalDate(goal.next_review_at)}
                                 </span>
                                 <span className="inline-flex items-center gap-1">
                                     <Users className="w-3 h-3" />
@@ -374,7 +380,7 @@ export default function CrossSaintGoalEngine() {
                                 {goal.last_reviewed_at && (
                                     <span className="inline-flex items-center gap-1">
                                         <CheckCircle2 className="w-3 h-3" />
-                                        Reviewed {new Date(goal.last_reviewed_at).toLocaleDateString()}
+                                        Reviewed {formatGoalDate(goal.last_reviewed_at)}
                                     </span>
                                 )}
                             </div>

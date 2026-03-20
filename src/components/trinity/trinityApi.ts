@@ -70,6 +70,25 @@ function clamp(value: number, min: number, max: number) {
     return Math.min(max, Math.max(min, value));
 }
 
+function parseValidDate(value: unknown): Date | null {
+    if (!value) return null;
+    const parsed = new Date(String(value));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toIsoOrFallback(value: unknown, fallback: () => string): string {
+    const parsed = parseValidDate(value);
+    return parsed ? parsed.toISOString() : fallback();
+}
+
+function addDaysIso(base: unknown, days: number, fallback: () => string): string {
+    const parsed = parseValidDate(base);
+    if (!parsed) return fallback();
+
+    const shifted = new Date(parsed.getTime() + days * 86400000);
+    return Number.isNaN(shifted.getTime()) ? fallback() : shifted.toISOString();
+}
+
 function formatMemberName(member: AnyRecord) {
     const firstName = member.firstName || member.first_name || '';
     const lastName = member.lastName || member.last_name || '';
@@ -274,7 +293,8 @@ function buildSeedGoals(): TrinityGoal[] {
 }
 
 function hydrateTrinityGoal(goal: TrinityGoal): TrinityGoal {
-    const fallbackHash = Array.from(goal.goal_name || 'goal').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const goalName = String(goal.goal_name || 'Untitled goal');
+    const fallbackHash = Array.from(goalName || 'goal').reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const fallbackRaphael = clamp(44 + fallbackHash % 31, 18, 94);
     const fallbackGabriel = clamp(40 + (fallbackHash * 3) % 34, 18, 93);
     const fallbackJoseph = clamp(46 + (fallbackHash * 5) % 29, 18, 95);
@@ -314,25 +334,40 @@ function hydrateTrinityGoal(goal: TrinityGoal): TrinityGoal {
             ...(josephProgress < 70 ? ['Assign named family members to the goal so participation is explicit.'] : []),
         ];
 
+    const createdAt = toIsoOrFallback(goal.created_at, () => new Date().toISOString());
+    const nextReviewAt = toIsoOrFallback(
+        goal.next_review_at,
+        () => addDaysIso(createdAt, 7, () => new Date(Date.now() + 7 * 86400000).toISOString()),
+    );
+    const lastReviewedAt = goal.last_reviewed_at
+        ? toIsoOrFallback(goal.last_reviewed_at, () => createdAt)
+        : null;
+
     return {
         ...goal,
-        id: goal.id || `goal-${goal.goal_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        goal_name: goalName,
+        id: goal.id || `goal-${goalName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
         axes,
+        created_at: createdAt,
         composite_progress: goal.composite_progress > 0
             ? goal.composite_progress
             : Math.round((raphaelProgress + gabrielProgress + josephProgress) / 3),
-        summary: goal.summary || `${goal.goal_name} is currently led by ${weakestSaint.saint}; that axis is the limiting factor on cross-Saint progress.`,
+        summary: goal.summary || `${goalName} is currently led by ${weakestSaint.saint}; that axis is the limiting factor on cross-Saint progress.`,
         blockers,
         recommendations,
-        next_review_at: goal.next_review_at || new Date(new Date(goal.created_at).getTime() + 7 * 86400000).toISOString(),
-        last_reviewed_at: goal.last_reviewed_at ?? null,
+        next_review_at: nextReviewAt,
+        last_reviewed_at: lastReviewedAt,
         family_tracking: goal.family_tracking || [],
     };
 }
 
 export function getStoredTrinityGoals(): TrinityGoal[] {
     const stored = readLocalJson<TrinityGoal[]>(TRINITY_GOALS_KEY, []);
-    if (stored.length > 0) return stored.map(hydrateTrinityGoal);
+    if (stored.length > 0) {
+        const hydrated = stored.map(hydrateTrinityGoal);
+        writeLocalJson(TRINITY_GOALS_KEY, hydrated);
+        return hydrated;
+    }
     const seeded = buildSeedGoals();
     writeLocalJson(TRINITY_GOALS_KEY, seeded.map(hydrateTrinityGoal));
     return seeded;

@@ -14,9 +14,7 @@ import {
     GitBranch, Heart, Wallet, Activity, TrendingUp,
     TrendingDown, Minus, Loader2, AlertCircle
 } from 'lucide-react';
-import { API_BASE_URL } from '../../lib/env';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || `${API_BASE_URL}`;
+import { requestBackendJson } from '../../lib/backend-request';
 
 interface GenMember {
     member_id: string;
@@ -95,18 +93,21 @@ export default function GenerationalTimeline({ familyMembers = [], liveHeatmap, 
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/api/v1/trinity/synapse`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'timeline',
-                    family_members: familyMembers,
-                    live_heatmap: liveHeatmap,
-                    net_worth_history: netWorthHistory,
-                }),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            setData(await res.json());
+            const result = await requestBackendJson<TimelineData>(
+                '/api/v1/trinity/synapse',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'timeline',
+                        family_members: familyMembers,
+                        live_heatmap: liveHeatmap,
+                        net_worth_history: netWorthHistory,
+                    }),
+                },
+                'Failed to load generational timeline.',
+            );
+            setData(result);
         } catch (err: any) {
             setError('Generational timeline unavailable');
         }

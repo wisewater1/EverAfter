@@ -21,6 +21,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   baseDelay: 1000,
   maxDelay: 10000,
 };
+const DEFAULT_BACKEND_TIMEOUT_MS = 8000;
 
 class APIClient {
   private pendingRequests: Map<string, Promise<unknown>> = new Map();
@@ -140,7 +141,19 @@ class APIClient {
 
     for (const candidateUrl of this.getBackendCandidateUrls(endpoint)) {
       try {
-        const response = await this.withRetry(() => fetch(candidateUrl, init));
+        const response = await this.withRetry(async () => {
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), DEFAULT_BACKEND_TIMEOUT_MS);
+
+          try {
+            return await fetch(candidateUrl, {
+              ...init,
+              signal: init.signal ?? controller.signal,
+            });
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+        });
 
         if (!response.ok) {
           const backendError = await this.parseBackendError(response, fallbackLabel);
@@ -154,7 +167,11 @@ class APIClient {
 
         return await this.parseJsonBody<T>(response, endpoint);
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(fallbackLabel);
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          lastError = new Error(`${fallbackLabel}: request timed out`);
+        } else {
+          lastError = error instanceof Error ? error : new Error(fallbackLabel);
+        }
         if (!import.meta.env.DEV) {
           break;
         }

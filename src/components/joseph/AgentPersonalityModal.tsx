@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { X, Sparkles, Zap, Brain, MessageCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { X, Sparkles, Zap, Brain, MessageCircle, Waves, Loader2, Volume2 } from 'lucide-react';
 import { FamilyMember, AIPersonality, generateAIPersonality, activateAgent, getSpouse, getChildren, getParents } from '../../lib/joseph/genealogy';
 import { emitSaintEvent } from '../../lib/saintBridge';
 import { apiClient } from '../../lib/api-client';
+import { getJosephVoiceProfile, synthesizeJosephVoice, type JosephVoiceProfileBundle } from '../../lib/joseph/voice';
 
 interface Props {
     member: FamilyMember;
@@ -15,11 +16,76 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
         member.aiPersonality || generateAIPersonality(member)
     );
     const [activating, setActivating] = useState(false);
+    const [voiceBundle, setVoiceBundle] = useState<JosephVoiceProfileBundle | null>(null);
+    const [loadingVoice, setLoadingVoice] = useState(true);
+    const [voicePreviewText, setVoicePreviewText] = useState(`This is ${member.firstName}. My EverAfter AI is speaking in my family voice profile.`);
+    const [synthesizing, setSynthesizing] = useState(false);
+    const [voicePreviewError, setVoicePreviewError] = useState<string | null>(null);
+    const [voicePreviewOutput, setVoicePreviewOutput] = useState<string | null>(null);
     const isAlreadyActive = member.aiPersonality?.isActive === true;
 
     const spouse = getSpouse(member.id);
     const children = getChildren(member.id);
     const parents = getParents(member.id);
+    const voiceReadyForAI = useMemo(() => {
+        const profile = voiceBundle?.profile;
+        if (!profile?.model_ref || !member.engramId) {
+            return false;
+        }
+        return !profile.engram_id || profile.engram_id === member.engramId;
+    }, [member.engramId, voiceBundle]);
+    const canPreviewVoice = Boolean(voiceReadyForAI && member.engramId);
+    const canRenderAudio = Boolean(voicePreviewOutput && /^(https?:\/\/|\/|data:audio|blob:)/.test(voicePreviewOutput));
+
+    useEffect(() => {
+        let mounted = true;
+        setLoadingVoice(true);
+        void getJosephVoiceProfile(member.id)
+            .then((bundle) => {
+                if (mounted) {
+                    setVoiceBundle(bundle);
+                }
+            })
+            .catch(() => {
+                if (mounted) {
+                    setVoiceBundle(null);
+                }
+            })
+            .finally(() => {
+                if (mounted) {
+                    setLoadingVoice(false);
+                }
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [member.id]);
+
+    const handlePreviewVoice = async () => {
+        if (!member.engramId || !voiceReadyForAI || !voicePreviewText.trim()) {
+            return;
+        }
+
+        setSynthesizing(true);
+        setVoicePreviewError(null);
+        setVoicePreviewOutput(null);
+        try {
+            const result = await synthesizeJosephVoice({
+                familyMemberId: member.id,
+                engramId: member.engramId,
+                textContent: voicePreviewText.trim(),
+            });
+            setVoicePreviewOutput(result.output_ref || null);
+            if (!result.output_ref) {
+                setVoicePreviewError('Voice synthesis completed, but the sidecar did not return an audio reference.');
+            }
+        } catch (error) {
+            setVoicePreviewError(error instanceof Error ? error.message : 'Failed to synthesize the personal voice preview.');
+        } finally {
+            setSynthesizing(false);
+        }
+    };
 
     const handleActivate = async () => {
         setActivating(true);
@@ -165,6 +231,83 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                         <p className="text-xs text-slate-400 leading-relaxed">
                             <span className="text-violet-400 font-medium">Agent Voice:</span> {personality.voiceDescription}
                         </p>
+                    </div>
+
+                    <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Waves className="w-4 h-4 text-cyan-300" />
+                            <span className="text-sm font-medium text-cyan-100">Personal Voice Status</span>
+                        </div>
+                        {loadingVoice ? (
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Checking consented voice profile…
+                            </div>
+                        ) : voiceBundle?.profile ? (
+                            <div className="space-y-2 text-xs text-slate-300">
+                                <p>
+                                    <span className="text-slate-500">Training:</span> {voiceBundle.profile.training_status.replace(/_/g, ' ')}
+                                </p>
+                                <p>
+                                    <span className="text-slate-500">Approved clips:</span> {voiceBundle.profile.sample_count} clips / {Math.round(voiceBundle.profile.approved_seconds)} seconds
+                                </p>
+                                <p>
+                                    <span className="text-slate-500">Created AI use:</span>{' '}
+                                    {voiceBundle.profile.model_ref && (!voiceBundle.profile.engram_id || voiceBundle.profile.engram_id === member.engramId)
+                                        ? 'Ready for this AI'
+                                        : voiceBundle.profile.model_ref
+                                            ? 'Ready, but linked to another AI'
+                                            : 'Collect more samples or train the voice model'}
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-400">
+                                No private voice profile exists yet. Collect consented clips in St. Joseph to let this AI speak in their voice.
+                            </p>
+                        )}
+
+                        <div className="mt-4 space-y-3 border-t border-cyan-500/10 pt-4">
+                            <div className="flex items-center gap-2">
+                                <Volume2 className="w-4 h-4 text-cyan-300" />
+                                <span className="text-sm font-medium text-cyan-100">Created AI voice preview</span>
+                            </div>
+                            <textarea
+                                value={voicePreviewText}
+                                onChange={(event) => setVoicePreviewText(event.target.value)}
+                                rows={3}
+                                className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+                                placeholder="Enter a short script for the created AI to speak in the personal voice."
+                            />
+                            <button
+                                onClick={() => void handlePreviewVoice()}
+                                disabled={!canPreviewVoice || synthesizing || !voicePreviewText.trim()}
+                                className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {synthesizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Volume2 className="w-4 h-4" />}
+                                Preview personal voice
+                            </button>
+
+                            {!canPreviewVoice && (
+                                <p className="text-xs text-slate-400">
+                                    Personal voice playback unlocks only after explicit consent, enough approved samples, a completed training run, and an Engram linked to this family member.
+                                </p>
+                            )}
+
+                            {voicePreviewError && (
+                                <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                                    {voicePreviewError}
+                                </div>
+                            )}
+
+                            {voicePreviewOutput && (
+                                <div className="space-y-2 rounded-xl border border-white/5 bg-slate-950/40 p-3">
+                                    <div className="text-xs text-slate-400 break-all">{voicePreviewOutput}</div>
+                                    {canRenderAudio && (
+                                        <audio controls src={voicePreviewOutput} className="w-full" />
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Activate Button */}

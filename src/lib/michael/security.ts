@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import axios from 'axios';
-import { API_BASE_URL } from '../env';
+import { API_BASE_URL, isDevelopment } from '../env';
 
 export interface IntegrityReport {
     overallScore: number;
@@ -522,24 +522,63 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
                 alerts: [...alerts, ...findings]
             };
         } catch (e) {
-            console.warn("Backend status unavailable, falling back to mock integrity");
-        }
+            console.warn("Backend status unavailable");
+            if (isDevelopment) {
+                return {
+                    overallScore: Math.round((dataIntegrity + privacyStatus) / 2),
+                    dataIntegrity,
+                    privacyStatus,
+                    lastScan,
+                    alerts
+                };
+            }
 
-        return {
-            overallScore: Math.round((dataIntegrity + privacyStatus) / 2),
-            dataIntegrity,
-            privacyStatus,
-            lastScan,
-            alerts
-        };
+            return {
+                overallScore: Math.round((dataIntegrity + privacyStatus) / 2),
+                dataIntegrity,
+                privacyStatus,
+                lastScan,
+                alerts: [
+                    ...alerts,
+                    {
+                        id: 'st-michael-monitoring-unavailable',
+                        type: 'system',
+                        severity: 'high',
+                        message: 'St. Michael live monitoring is unavailable. Integrity status is degraded until the guardian feed recovers.',
+                        timestamp: lastScan,
+                        resolved: false,
+                        details: e instanceof Error ? e.message : 'Guardian monitoring request failed.',
+                    }
+                ]
+            };
+        }
     } catch (error) {
         console.error('Error fetching security integrity:', error);
+        if (isDevelopment) {
+            return {
+                overallScore: 100,
+                dataIntegrity: 100,
+                privacyStatus: 100,
+                lastScan,
+                alerts: []
+            };
+        }
         return {
-            overallScore: 100,
-            dataIntegrity: 100,
-            privacyStatus: 100,
+            overallScore: 0,
+            dataIntegrity: 0,
+            privacyStatus: 0,
             lastScan,
-            alerts: []
+            alerts: [
+                {
+                    id: 'st-michael-integrity-error',
+                    type: 'system',
+                    severity: 'critical',
+                    message: 'St. Michael integrity checks are unavailable.',
+                    timestamp: lastScan,
+                    resolved: false,
+                    details: error instanceof Error ? error.message : 'Unable to compute integrity state.',
+                }
+            ]
         };
     }
 }
@@ -632,7 +671,13 @@ export async function runCAIAudit(userId: string): Promise<{
     }
 
     if (!userId) {
+        if (!isDevelopment) {
+            return { integrityScore: 0, adversarialFlags: 0, phiLeeksDetected: 0, status: 'warning' };
+        }
         return { integrityScore: 100, adversarialFlags: 0, phiLeeksDetected: 0, status: 'clean' };
+    }
+    if (!isDevelopment) {
+        return { integrityScore: 0, adversarialFlags: 0, phiLeeksDetected: 0, status: 'warning' };
     }
     return { integrityScore: 99, adversarialFlags: 0, phiLeeksDetected: 0, status: 'clean' };
 }

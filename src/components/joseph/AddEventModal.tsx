@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Calendar, User, Image as ImageIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { EventType, FamilyMember } from '../../lib/joseph/genealogy';
-import { API_BASE_URL as CENTRAL_API_BASE } from '../../lib/env';
+import { requestBackendJson } from '../../lib/backend-request';
 
 interface AddEventModalProps {
     isOpen: boolean;
@@ -32,30 +32,28 @@ export default function AddEventModal({ isOpen, onClose, onSuccess, members }: A
                 token = session?.currentSession?.access_token || '';
             } catch (e) { }
 
-            const API_BASE = CENTRAL_API_BASE;
-
             const selectedMember = members.find(m => m.id === memberId);
             const memberName = selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Unknown';
 
             // Attempt to submit to backend API
-            const reqUrl = `${API_BASE}/api/v1/genealogy/events`;
             let returnedEvent = null;
 
             try {
-                const res = await fetch(reqUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                const data = await requestBackendJson<{ event?: any }>(
+                    '/api/v1/genealogy/events',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title, type, date, description, memberId, memberName, mediaUrl,
+                        }),
                     },
-                    body: JSON.stringify({
-                        title, type, date, description, memberId, memberName, mediaUrl
-                    })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    returnedEvent = data.event;
-                }
+                    'Failed to save genealogy event.',
+                );
+                returnedEvent = data.event;
             } catch (e) {
                 // Ignore API failures for MVP (local state handles it)
                 console.error("Backend event save failed:", e);
