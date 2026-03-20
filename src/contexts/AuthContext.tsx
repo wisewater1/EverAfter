@@ -22,11 +22,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_BOOT_TIMEOUT_MS = 3000;
+const AUTH_SNAPSHOT_KEY = 'everafter_auth_snapshot';
+
+function deriveSupabaseStorageKey(): string | null {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+
+  try {
+    const host = new URL(supabaseUrl).hostname;
+    const projectRef = host.split('.')[0];
+    return projectRef ? `sb-${projectRef}-auth-token` : null;
+  } catch {
+    return null;
+  }
+}
+
+function readWarmAuthState(): { session: Session | null; user: User | null } {
+  if (typeof window === 'undefined') {
+    return { session: null, user: null };
+  }
+
+  const storageKeys = [AUTH_SNAPSHOT_KEY, deriveSupabaseStorageKey()].filter(Boolean) as string[];
+
+  for (const key of storageKeys) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+
+      const parsed = JSON.parse(raw);
+      const candidateSession = parsed?.currentSession ?? parsed?.session ?? parsed;
+      const accessToken = candidateSession?.access_token;
+      const user = candidateSession?.user;
+
+      if (accessToken && user?.id) {
+        return {
+          session: candidateSession as Session,
+          user: user as User,
+        };
+      }
+    } catch {
+      // Ignore invalid persisted auth snapshots.
+    }
+  }
+
+  return { session: null, user: null };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const AUTH_BOOT_TIMEOUT_MS = 8000;
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const warmAuthState = readWarmAuthState();
+  const [user, setUser] = useState<User | null>(warmAuthState.user);
+  const [session, setSession] = useState<Session | null>(warmAuthState.session);
+  const [loading, setLoading] = useState(!warmAuthState.user);
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
@@ -36,6 +83,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
+
+    const persistSnapshot = (nextSession: Session | null) => {
+      if (typeof window === 'undefined') return;
+
+      try {
+        if (nextSession?.access_token && nextSession.user?.id) {
+          window.localStorage.setItem(AUTH_SNAPSHOT_KEY, JSON.stringify({ session: nextSession }));
+        } else {
+          window.localStorage.removeItem(AUTH_SNAPSHOT_KEY);
+        }
+      } catch {
+        // Ignore storage failures.
+      }
+    };
 
     const initAuth = async () => {
       try {
@@ -49,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('AuthContext: Session retrieved', { hasSession: !!session });
         setSession(session);
         setUser(session?.user ?? null);
+        persistSnapshot(session);
       } catch (err) {
         console.error('AuthContext: Session retrieval crash', err);
         const message = err instanceof Error ? err.message : String(err);
@@ -79,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('AuthContext: Auth state changed', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
+      persistSnapshot(session);
       setLoading(false);
     });
 

@@ -44,6 +44,15 @@ export default function StGabrielFinanceDashboard() {
     const [financeCardLoading, setFinanceCardLoading] = useState(false);
     const [financeCardError, setFinanceCardError] = useState<string | null>(null);
     const [monthCashFlow, setMonthCashFlow] = useState<number | null>(cachedMonthCashFlow);
+    const [showGuardian, setShowGuardian] = useState(false);
+
+    useEffect(() => {
+        const idleTimer = window.setTimeout(() => {
+            setShowGuardian(true);
+        }, 350);
+
+        return () => window.clearTimeout(idleTimer);
+    }, []);
 
     useEffect(() => {
         const fetchFinanceCardState = async () => {
@@ -121,7 +130,11 @@ export default function StGabrielFinanceDashboard() {
             }
         };
 
-        void fetchFinanceCardState();
+        const bootstrapTimer = window.setTimeout(() => {
+            void fetchFinanceCardState();
+        }, 200);
+
+        return () => window.clearTimeout(bootstrapTimer);
     }, [session]);
 
     const linkedAccountBalance = useMemo(() => {
@@ -404,7 +417,7 @@ export default function StGabrielFinanceDashboard() {
                     </div>
 
                     {/* Saints Guardian Widget */}
-                    <SaintsGuardian />
+                    {showGuardian ? <SaintsGuardian /> : null}
 
                     {activeView === 'budget' && <BudgetEnvelopes />}
                     {activeView === 'ledger' && <TransactionLedger />}

@@ -328,34 +328,20 @@ class APIClient {
 
     // Redirect to local backend instead of Edge Function
     return this.deduplicate(dedupeKey, async () => {
-      const token = await this.getAuthToken();
-      const headers: HeadersInit = {
+      const headers = await this.buildAuthHeaders({
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
-      };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      // Use VITE_API_BASE_URL from env or default to localhost:8001
-      const API_BASE = `${API_BASE_URL}`;
+      });
 
       try {
-        const response = await fetch(`${API_BASE}/api/v1/chat/${engramId}/message`, {
+        const data = await this.requestBackendJson<any>(`/api/v1/chat/${engramId}/message`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
             content,
             conversation_id: conversationId
           })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Backend error: ${response.status}`);
-        }
-
-        const data = await response.json();
+        }, `Unable to send chat message for engram ${engramId}`);
 
         // Transform backend response to match expected EdgeFunctionResponse structure
         return {
@@ -379,28 +365,14 @@ class APIClient {
    * Get predictive health analytics from local backend
    */
   async getPredictiveAnalytics(lookbackDays: number = 30) {
-    const token = await this.getAuthToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const API_BASE = `${API_BASE_URL}`;
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/health/predictions?lookbackDays=${lookbackDays}`, {
+      return await this.requestBackendJson(`/api/v1/health/predictions?lookbackDays=${lookbackDays}`, {
         headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
-
-      return await response.json();
+      }, 'Predictive Analytics API Error');
     } catch (error) {
       console.error("Predictive Analytics API Error:", error);
       throw error;
@@ -411,28 +383,14 @@ class APIClient {
    * Get engrams from local backend
    */
   async getEngrams(): Promise<EngramResponse[]> {
-    const token = await this.getAuthToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const API_BASE = `${API_BASE_URL}`;
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/`, {
+      return await this.requestBackendJson<EngramResponse[]>(`/api/v1/engrams/`, {
         headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
-
-      return await response.json();
+      }, 'Engrams API Error');
     } catch (error) {
       console.error("Engrams API Error:", error);
       throw error;
@@ -443,28 +401,14 @@ class APIClient {
    * Get time capsules from local backend
    */
   async getTimeCapsules(): Promise<any[]> {
-    const token = await this.getAuthToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const API_BASE = `${API_BASE_URL}`;
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/time-capsules/`, {
+      return await this.requestBackendJson<any[]>(`/api/v1/time-capsules/`, {
         headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`Time Capsule API error: ${response.status}`);
-      }
-
-      return await response.json();
+      }, 'Time Capsules API Error');
     } catch (error) {
       console.error("Time Capsules API Error:", error);
       throw error;
@@ -475,28 +419,14 @@ class APIClient {
    * Get health summary from local backend
    */
   async getHealthSummary() {
-    const token = await this.getAuthToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const API_BASE = `${API_BASE_URL}`;
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/health/summary`, {
+      return await this.requestBackendJson(`/api/v1/health/summary`, {
         headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
-
-      return await response.json();
+      }, 'Health Summary API Error');
     } catch (error) {
       console.error("Health Summary API Error:", error);
       throw error;
@@ -882,22 +812,17 @@ class APIClient {
   }
 
   async batchSyncEngrams(members: any[]): Promise<Record<string, string>> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true'
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/batch-sync`, {
+      return await this.requestBackendJson<Record<string, string>>(`/api/v1/engrams/batch-sync`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true'
-        },
+        headers,
         body: JSON.stringify(members)
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      }, 'Batch Sync Engrams Error');
     } catch (error) {
       console.error("Batch Sync Engrams Error:", error);
       return {};

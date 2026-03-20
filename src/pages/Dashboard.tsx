@@ -74,6 +74,7 @@ export default function Dashboard() {
     lastUpdated: null,
   });
   const [loadingOnboardingResume, setLoadingOnboardingResume] = useState(true);
+  const [secondaryPanelsReady, setSecondaryPanelsReady] = useState(false);
   const [personalityResume, setPersonalityResume] = useState<PersonalityResumeState>({
     visible: false,
     memberId: null,
@@ -95,6 +96,15 @@ export default function Dashboard() {
   useEffect(() => {
     // Initial configuration or analytics tracking could go here
   }, []);
+
+  useEffect(() => {
+    setSecondaryPanelsReady(false);
+    const timer = window.setTimeout(() => {
+      setSecondaryPanelsReady(true);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedView, user?.id]);
 
   useEffect(() => {
     async function loadOnboardingResume() {
@@ -494,12 +504,21 @@ export default function Dashboard() {
               <Suspense fallback={<DashboardSectionFallback label="Holistic Timeline" />}>
                 <HolisticTimeline />
               </Suspense>
-              <Suspense fallback={<DashboardSectionFallback label="Society Feed" />}>
-                <SocietyFeed />
-              </Suspense>
-              <Suspense fallback={<DashboardSectionFallback label="Unified Activity Center" />}>
-                <UnifiedActivityCenter />
-              </Suspense>
+              {secondaryPanelsReady ? (
+                <>
+                  <Suspense fallback={<DashboardSectionFallback label="Society Feed" />}>
+                    <SocietyFeed />
+                  </Suspense>
+                  <Suspense fallback={<DashboardSectionFallback label="Unified Activity Center" />}>
+                    <UnifiedActivityCenter />
+                  </Suspense>
+                </>
+              ) : (
+                <>
+                  <DashboardSectionFallback label="Society Feed" />
+                  <DashboardSectionFallback label="Unified Activity Center" />
+                </>
+              )}
             </div>
           )}
           {selectedView === 'engrams' && (
@@ -507,15 +526,25 @@ export default function Dashboard() {
               <Suspense fallback={<DashboardSectionFallback label="Trajectory Dashboard" />}>
                 <TrajectoryDashboard userId={user.id} />
               </Suspense>
-              <Suspense fallback={<DashboardSectionFallback label="Family Engrams" />}>
-                <FamilyEngrams />
-              </Suspense>
-              <Suspense fallback={<DashboardSectionFallback label="Family Hub" />}>
-                <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
-              </Suspense>
-              <Suspense fallback={<DashboardSectionFallback label="Engram Training Center" />}>
-                <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
-              </Suspense>
+              {secondaryPanelsReady ? (
+                <>
+                  <Suspense fallback={<DashboardSectionFallback label="Family Engrams" />}>
+                    <FamilyEngrams />
+                  </Suspense>
+                  <Suspense fallback={<DashboardSectionFallback label="Family Hub" />}>
+                    <UnifiedFamilyInterface userId={user.id} onNavigateToLegacy={handleNavigateToLegacy} preselectedAIId={selectedAIId || undefined} />
+                  </Suspense>
+                  <Suspense fallback={<DashboardSectionFallback label="Engram Training Center" />}>
+                    <CustomEngramsDashboard userId={user.id} onSelectAI={handleSelectAI} />
+                  </Suspense>
+                </>
+              ) : (
+                <>
+                  <DashboardSectionFallback label="Family Engrams" />
+                  <DashboardSectionFallback label="Family Hub" />
+                  <DashboardSectionFallback label="Engram Training Center" />
+                </>
+              )}
             </>
           )}
 

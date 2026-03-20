@@ -209,7 +209,11 @@ export default function StJosephFamilyDashboard() {
     useEffect(() => {
         if (authLoading) return;
         loadData();
-        syncEngrams();
+        const syncTimer = window.setTimeout(() => {
+            void syncEngrams();
+        }, 1500);
+
+        return () => window.clearTimeout(syncTimer);
     }, [authLoading, user]);
 
     useEffect(() => {

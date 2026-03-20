@@ -11,10 +11,10 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
-  const ONBOARDING_CHECK_TIMEOUT_MS = 6000;
+  const ONBOARDING_CHECK_TIMEOUT_MS = 2500;
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   // Routes that should skip onboarding check
@@ -22,11 +22,31 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   const isExemptRoute = onboardingExemptRoutes.some(route => location.pathname.startsWith(route));
 
   useEffect(() => {
+    if (!user || typeof window === 'undefined') {
+      setNeedsOnboarding(false);
+      return;
+    }
+
+    try {
+      const cached = window.sessionStorage.getItem(`everafter_onboarding_required_${user.id}`);
+      if (cached === '1') {
+        setNeedsOnboarding(true);
+      } else if (cached === '0') {
+        setNeedsOnboarding(false);
+      }
+    } catch {
+      // Ignore storage failures and fall back to the live check.
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     async function checkOnboardingStatus() {
       if (!user || skipOnboardingCheck || isExemptRoute) {
         setCheckingOnboarding(false);
         return;
       }
+
+      setCheckingOnboarding(true);
 
       try {
         if (!supabase) {
@@ -55,6 +75,11 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
         // User needs onboarding if they haven't completed it AND haven't skipped it
         const requiresOnboarding = !profile?.has_completed_onboarding && !profile?.onboarding_skipped;
         setNeedsOnboarding(requiresOnboarding);
+        try {
+          window.sessionStorage.setItem(`everafter_onboarding_required_${user.id}`, requiresOnboarding ? '1' : '0');
+        } catch {
+          // Ignore storage failures.
+        }
       } catch (err) {
         console.error('Error in onboarding check:', err);
       } finally {
@@ -80,7 +105,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     }
   }, [authLoading, checkingOnboarding]);
 
-  if (authLoading || checkingOnboarding) {
+  if (authLoading && !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
         <div className="text-center">
@@ -89,6 +114,10 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
         </div>
       </div>
     );
+  }
+
+  if (checkingOnboarding && !needsOnboarding) {
+    return <>{children}</>;
   }
 
   if (!user) {
