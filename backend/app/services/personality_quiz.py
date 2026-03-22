@@ -206,6 +206,170 @@ TRAIT_DESCRIPTORS: Dict[str, Dict[str, str]] = {
     },
 }
 
+ARCHETYPE_PROFILES: List[Dict[str, Any]] = [
+    {
+        "name": "The Explorer",
+        "emoji": "ðŸ§­",
+        "description": "Adventurous and magnetic â€” you seek the unknown and take everyone along for the ride.",
+        "targets": {"openness": 84, "extraversion": 76, "agreeableness": 58, "conscientiousness": 48},
+    },
+    {
+        "name": "The Guardian",
+        "emoji": "ðŸ›¡ï¸",
+        "description": "Dependable and caring â€” you protect others while keeping everything in order.",
+        "targets": {"conscientiousness": 84, "agreeableness": 78, "extraversion": 48, "neuroticism": 38},
+    },
+    {
+        "name": "The Visionary",
+        "emoji": "ðŸ”®",
+        "description": "Creative and emotionally steady â€” you envision bold futures with unshakable confidence.",
+        "targets": {"openness": 84, "neuroticism": 20, "conscientiousness": 54, "extraversion": 54},
+    },
+    {
+        "name": "The Healer",
+        "emoji": "ðŸ’š",
+        "description": "Deeply empathetic and emotionally attuned â€” you sense and soothe pain others can't see.",
+        "targets": {"agreeableness": 84, "neuroticism": 76, "openness": 56, "extraversion": 46},
+    },
+    {
+        "name": "The Commander",
+        "emoji": "ðŸ‘‘",
+        "description": "Assertive and organized â€” you inspire action and lead with both charisma and competence.",
+        "targets": {"extraversion": 80, "conscientiousness": 78, "agreeableness": 42, "neuroticism": 34},
+    },
+    {
+        "name": "The Sage",
+        "emoji": "ðŸ“š",
+        "description": "Introspective and intellectually rich â€” you seek deep truth in solitude.",
+        "targets": {"openness": 80, "extraversion": 22, "conscientiousness": 54, "neuroticism": 42},
+    },
+    {
+        "name": "The Scholar",
+        "emoji": "ðŸŽ“",
+        "description": "Methodical and reserved â€” you master your craft through persistent, quiet dedication.",
+        "targets": {"conscientiousness": 84, "extraversion": 24, "openness": 52, "agreeableness": 48},
+    },
+    {
+        "name": "The Connector",
+        "emoji": "ðŸ¤",
+        "description": "Warm and outgoing â€” you build bridges between people and create community.",
+        "targets": {"extraversion": 78, "agreeableness": 78, "conscientiousness": 52, "neuroticism": 42},
+    },
+    {
+        "name": "The Artist",
+        "emoji": "ðŸŽ¨",
+        "description": "Free-spirited and imaginative â€” you follow inspiration wherever it leads.",
+        "targets": {"openness": 82, "conscientiousness": 22, "extraversion": 48, "neuroticism": 56},
+    },
+    {
+        "name": "The Architect",
+        "emoji": "ðŸ“",
+        "description": "Precise and imperturbable â€” you build reliable systems with calm mastery.",
+        "targets": {"conscientiousness": 84, "neuroticism": 18, "openness": 58, "extraversion": 36},
+    },
+    {
+        "name": "The Maverick",
+        "emoji": "ðŸš€",
+        "description": "Bold and independent â€” you challenge conventions and forge your own path.",
+        "targets": {"agreeableness": 18, "extraversion": 78, "openness": 58, "conscientiousness": 46},
+    },
+    {
+        "name": "The Poet",
+        "emoji": "ðŸŒ™",
+        "description": "Emotionally deep and creatively expressive â€” you transform pain into beauty.",
+        "targets": {"neuroticism": 82, "openness": 74, "extraversion": 34, "agreeableness": 56},
+    },
+    {
+        "name": "The Steward",
+        "emoji": "ðŸ¡",
+        "description": "Quietly devoted and dependable â€” you serve others through steady, humble action.",
+        "targets": {"agreeableness": 72, "conscientiousness": 70, "extraversion": 34, "neuroticism": 42},
+    },
+    {
+        "name": "The Catalyst",
+        "emoji": "âš¡",
+        "description": "Socially confident and emotionally stable â€” you energize and uplift everyone around you.",
+        "targets": {"extraversion": 78, "neuroticism": 22, "agreeableness": 58, "openness": 58},
+    },
+    {
+        "name": "The Sentinel",
+        "emoji": "âš“",
+        "description": "Traditional and disciplined â€” you anchor the family with stability and proven values.",
+        "targets": {"openness": 20, "conscientiousness": 78, "agreeableness": 56, "neuroticism": 38},
+    },
+    {
+        "name": "The Diplomat",
+        "emoji": "ðŸ•Šï¸",
+        "description": "Composed, agreeable, and socially adept â€” you navigate tension with grace.",
+        "targets": {"agreeableness": 76, "neuroticism": 24, "extraversion": 64, "conscientiousness": 54},
+    },
+]
+
+
+def _resolve_archetype(scores: Dict[str, float], answers: Optional[Dict[str, int]] = None) -> Dict[str, str]:
+    o = scores.get("openness", 50)
+    c = scores.get("conscientiousness", 50)
+    e = scores.get("extraversion", 50)
+    a = scores.get("agreeableness", 50)
+    n = scores.get("neuroticism", 50)
+
+    if o > 70 and e > 65:
+        return {"name": "The Explorer", "emoji": "ðŸ§­", "description": "Adventurous and magnetic â€” you seek the unknown and take everyone along for the ride."}
+    if c > 70 and a > 65:
+        return {"name": "The Guardian", "emoji": "ðŸ›¡ï¸", "description": "Dependable and caring â€” you protect others while keeping everything in order."}
+    if o > 65 and n < 35:
+        return {"name": "The Visionary", "emoji": "ðŸ”®", "description": "Creative and emotionally steady â€” you envision bold futures with unshakable confidence."}
+    if a > 70 and n > 60:
+        return {"name": "The Healer", "emoji": "ðŸ’š", "description": "Deeply empathetic and emotionally attuned â€” you sense and soothe pain others can't see."}
+    if e > 70 and c > 60:
+        return {"name": "The Commander", "emoji": "ðŸ‘‘", "description": "Assertive and organized â€” you inspire action and lead with both charisma and competence."}
+    if o > 60 and e < 35:
+        return {"name": "The Sage", "emoji": "ðŸ“š", "description": "Introspective and intellectually rich â€” you seek deep truth in solitude."}
+    if c > 70 and e < 40:
+        return {"name": "The Scholar", "emoji": "ðŸŽ“", "description": "Methodical and reserved â€” you master your craft through persistent, quiet dedication."}
+    if e > 65 and a > 60:
+        return {"name": "The Connector", "emoji": "ðŸ¤", "description": "Warm and outgoing â€” you build bridges between people and create community."}
+    if o > 60 and c < 35:
+        return {"name": "The Artist", "emoji": "ðŸŽ¨", "description": "Free-spirited and imaginative â€” you follow inspiration wherever it leads."}
+    if c > 65 and n < 35:
+        return {"name": "The Architect", "emoji": "ðŸ“", "description": "Precise and imperturbable â€” you build reliable systems with calm mastery."}
+    if a < 35 and e > 60:
+        return {"name": "The Maverick", "emoji": "ðŸš€", "description": "Bold and independent â€” you challenge conventions and forge your own path."}
+    if n > 65 and o > 55:
+        return {"name": "The Poet", "emoji": "ðŸŒ™", "description": "Emotionally deep and creatively expressive â€” you transform pain into beauty."}
+    if a > 60 and c > 55 and e < 45:
+        return {"name": "The Steward", "emoji": "ðŸ¡", "description": "Quietly devoted and dependable â€” you serve others through steady, humble action."}
+    if e > 60 and n < 40:
+        return {"name": "The Catalyst", "emoji": "âš¡", "description": "Socially confident and emotionally stable â€” you energize and uplift everyone around you."}
+    if o < 40 and c > 60:
+        return {"name": "The Sentinel", "emoji": "âš“", "description": "Traditional and disciplined â€” you anchor the family with stability and proven values."}
+    if a > 55 and n < 40 and e > 50:
+        return {"name": "The Diplomat", "emoji": "ðŸ•Šï¸", "description": "Composed, agreeable, and socially adept â€” you navigate tension with grace."}
+
+    spread = max(scores.values()) - min(scores.values())
+    distance_from_center = sum(abs(value - 50) for value in scores.values()) / len(scores)
+    repeated_single_answer = bool(answers) and len(set(answers.values())) == 1
+    if spread <= 18 and distance_from_center <= 10 and not repeated_single_answer:
+        return {"name": "The Balanced One", "emoji": "âš–ï¸", "description": "Well-rounded and adaptable â€” you navigate life with versatility and inner harmony."}
+
+    def profile_score(profile: Dict[str, Any]) -> float:
+        total = 0.0
+        total_weight = 0.0
+        for trait, target in profile["targets"].items():
+            actual = scores.get(trait, 50)
+            closeness = max(0.0, 100.0 - abs(actual - target) * 1.6)
+            weight = 1.3 if abs(target - 50) >= 20 else 1.0
+            total += closeness * weight
+            total_weight += weight
+        return total / total_weight if total_weight else 0.0
+
+    best_profile = max(ARCHETYPE_PROFILES, key=profile_score)
+    return {
+        "name": best_profile["name"],
+        "emoji": best_profile["emoji"],
+        "description": best_profile["description"],
+    }
+
 
 # ── Derive communication style from multi-trait interaction ──────
 
@@ -509,7 +673,7 @@ class PersonalityQuizEngine:
                 "facets": facets,
             }
 
-        archetype = self._determine_archetype(scores)
+        archetype = _resolve_archetype(scores, answers)
         family_role = _derive_family_role(scores)
         strengths_growth = _derive_strengths_and_growth(scores)
 
