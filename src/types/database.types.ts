@@ -259,9 +259,17 @@ export interface FamilyTask {
   id: string;
   action: string;
   description: string;
-  status: 'pending' | 'completed';
+  title?: string;
+  type?: 'standard' | 'bounty' | 'mandate' | 'ghost';
+  status: 'pending' | 'in_progress' | 'completed';
   category: string;
   assignedTo?: string;
+  assignee?: string;
+  rewardWG?: number;
+  aiBrief?: string;
+  dueDate?: string | null;
+  createdAt?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ShoppingItem {
@@ -269,7 +277,14 @@ export interface ShoppingItem {
   name: string;
   quantity: string;
   addedBy: string;
-  status: 'needed' | 'bought';
+  status: 'needed' | 'negotiating' | 'bought' | 'vaulted';
+  type?: 'standard' | 'iot_trigger' | 'legacy_asset';
+  priceEst?: number | null;
+  triggerSource?: 'Raphael' | 'Gabriel' | 'Causal Twin';
+  legacyBeneficiary?: string;
+  unlockYear?: number;
+  createdAt?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CalendarAlarm {

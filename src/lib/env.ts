@@ -78,8 +78,10 @@ export function normalizeApiBaseUrl(value: string): string {
 // In local Vite dev, prefer the relative proxy paths exposed on :5000.
 // In production, ignore localhost values so deployed bundles never call a visitor's machine.
 const configuredApiBaseUrl = isDevelopment ? '' : (import.meta.env.VITE_API_BASE_URL || '');
+const configuredHealthApiBaseUrl = import.meta.env.VITE_HEALTH_API_BASE_URL || '';
 
 export const API_BASE_URL = normalizeApiBaseUrl(configuredApiBaseUrl);
+export const HEALTH_API_BASE_URL = normalizeApiBaseUrl(configuredHealthApiBaseUrl);
 
 export function buildApiUrl(path: string): string {
   if (!path) {
@@ -92,4 +94,17 @@ export function buildApiUrl(path: string): string {
 
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
+}
+
+export function buildHealthApiUrl(path: string): string {
+  if (!path) {
+    return HEALTH_API_BASE_URL;
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${HEALTH_API_BASE_URL}${normalizedPath}`;
 }

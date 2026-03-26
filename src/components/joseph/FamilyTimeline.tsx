@@ -163,20 +163,21 @@ export default function FamilyTimeline() {
     const [showGhostBranches, setShowGhostBranches] = useState(false);
     const [activeGhostEventId, setActiveGhostEventId] = useState<string | null>(null);
 
+    const getBackendHeaders = async (extraHeaders: HeadersInit = {}) => (
+        apiClient.getAuthHeaders({
+            'Bypass-Tunnel-Reminder': 'true',
+            ...extraHeaders,
+        })
+    );
+
     useEffect(() => {
         async function loadCapsules() {
             try {
-                const tokenStr = localStorage.getItem('supabase.auth.token');
-                let token = '';
-                try {
-                    const session = tokenStr ? JSON.parse(tokenStr) : null;
-                    token = session?.currentSession?.access_token || '';
-                } catch (e) { }
-
+                const headers = await getBackendHeaders();
                 const capsules = await requestBackendJson<any[]>(
                     '/api/v1/time-capsules',
                     {
-                        headers: { 'Authorization': `Bearer ${token}` },
+                        headers,
                     },
                     'Failed to load time capsules.',
                 );
@@ -259,14 +260,12 @@ export default function FamilyTimeline() {
 
             // 2. St. Gabriel — Finance milestones
             try {
-                const tokenStr = localStorage.getItem('supabase.auth.token');
-                let token = '';
-                try { const s = tokenStr ? JSON.parse(tokenStr) : null; token = s?.currentSession?.access_token || ''; } catch {}
+                const headers = await getBackendHeaders();
 
                 const walletData = await requestBackendJson<any>(
                     '/api/v1/finance/wisegold/wallet',
                     {
-                        headers: { 'Authorization': `Bearer ${token}` },
+                        headers,
                     },
                     'Failed to load WiseGold wallet.',
                 );
@@ -287,7 +286,7 @@ export default function FamilyTimeline() {
                 const covenants = await requestBackendJson<any[]>(
                     '/api/v1/finance/wisegold/covenants',
                     {
-                        headers: { 'Authorization': `Bearer ${token}` },
+                        headers,
                     },
                     'Failed to load WiseGold covenants.',
                 );
@@ -362,13 +361,7 @@ export default function FamilyTimeline() {
         async function loadProjections() {
             setProjectionsLoading(true);
             try {
-                const tokenStr = localStorage.getItem('supabase.auth.token');
-                let token = '';
-                try {
-                    const session = tokenStr ? JSON.parse(tokenStr) : null;
-                    token = session?.currentSession?.access_token || '';
-                } catch (e) { }
-
+                const headers = await getBackendHeaders();
                 const futureEvents: FamilyEventType[] = [];
                 const currentYear = new Date().getFullYear();
 
@@ -378,7 +371,7 @@ export default function FamilyTimeline() {
                     const data = await requestBackendJson<any>(
                         '/api/v1/finance/wisegold/wallet',
                         {
-                            headers: { 'Authorization': `Bearer ${token}` },
+                            headers,
                         },
                         'Failed to load projected WiseGold wallet.',
                     );
@@ -409,7 +402,7 @@ export default function FamilyTimeline() {
                             '/api/v1/causal-twin/ancestry/predict',
                             {
                                 method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                headers: await getBackendHeaders({ 'Content-Type': 'application/json' }),
                                 body: JSON.stringify({
                                     member_id: primary.id,
                                     first_name: primary.firstName,

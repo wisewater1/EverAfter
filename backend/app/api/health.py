@@ -1,5 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Any
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_session
 from app.services.health.service import health_service
 from app.services.health.core import PredictionResult
 from app.auth.dependencies import get_current_user
@@ -8,6 +12,73 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/health", tags=["health"])
+
+
+@router.get("/summary", response_model=Dict[str, Any])
+async def get_health_summary(
+    session: AsyncSession = Depends(get_session),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    user_id = str(current_user.get("sub") or current_user.get("id") or "")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unable to resolve current user")
+
+    try:
+        result = await session.execute(
+            text(
+                """
+                select metric_type, avg(value) as avg_value, count(*) as sample_count, max(recorded_at) as last_recorded_at
+                from health_metrics
+                where user_id = :user_id
+                group by metric_type
+                """
+            ),
+            {"user_id": user_id},
+        )
+        rows = result.mappings().all()
+    except Exception:
+        rows = []
+
+    metric_map = {str(row["metric_type"]).lower(): row for row in rows}
+    total_samples = sum(int(row["sample_count"] or 0) for row in rows)
+
+    sleep_score = metric_map.get("sleep_score", {}).get("avg_value")
+    activity_score = metric_map.get("activity_score", {}).get("avg_value")
+    if sleep_score is None:
+        sleep_duration = metric_map.get("sleep_duration", {}).get("avg_value")
+        if sleep_duration is not None:
+            sleep_score = min(100.0, max(0.0, float(sleep_duration) / 8.0 * 100.0))
+    if activity_score is None:
+        steps = metric_map.get("steps", {}).get("avg_value")
+        if steps is not None:
+            activity_score = min(100.0, max(0.0, float(steps) / 10000.0 * 100.0))
+
+    hrv_avg = (
+        metric_map.get("hrv", {}).get("avg_value")
+        or metric_map.get("heart_rate_variability", {}).get("avg_value")
+    )
+    resting_hr = (
+        metric_map.get("resting_heart_rate", {}).get("avg_value")
+        or metric_map.get("resting_hr", {}).get("avg_value")
+    )
+    readiness_score = metric_map.get("readiness_score", {}).get("avg_value")
+
+    last_sync_at = None
+    for row in rows:
+        candidate = row.get("last_recorded_at")
+        if candidate and (last_sync_at is None or candidate > last_sync_at):
+            last_sync_at = candidate
+
+    return {
+        "metrics": total_samples,
+        "sleep_score": round(float(sleep_score), 1) if sleep_score is not None else None,
+        "activity_score": round(float(activity_score), 1) if activity_score is not None else None,
+        "hrv_avg": round(float(hrv_avg), 1) if hrv_avg is not None else None,
+        "resting_heart_rate": round(float(resting_hr), 1) if resting_hr is not None else None,
+        "readiness_score": round(float(readiness_score), 1) if readiness_score is not None else None,
+        "sources": sorted({str(row["metric_type"]).lower() for row in rows}),
+        "last_sync_at": last_sync_at.isoformat() if last_sync_at else None,
+    }
 
 @router.post("/fhir-import/{user_id}")
 async def import_fhir_bulk(

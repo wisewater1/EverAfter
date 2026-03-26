@@ -25,12 +25,14 @@ async def lifespan(app: FastAPI):
     from app.services.saint_runtime import saint_runtime
     from app.services.compliance_service import compliance_autopilot
     from app.services.engram_runtime_tables import ensure_engram_runtime_tables
+    from app.services.family_home_runtime_tables import ensure_family_home_tables
     from app.services.finance_runtime_tables import ensure_finance_runtime_tables
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables, wisegold_scheduler
 
     background_tasks = []
     await ensure_engram_runtime_tables()
+    await ensure_family_home_tables()
     await ensure_finance_runtime_tables()
     await ensure_health_prediction_runtime_tables()
     await ensure_wisegold_tables()

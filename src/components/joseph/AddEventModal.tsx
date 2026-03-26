@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Calendar, User, Image as ImageIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { EventType, FamilyMember } from '../../lib/joseph/genealogy';
+import { apiClient } from '../../lib/api-client';
 import { requestBackendJson } from '../../lib/backend-request';
 
 interface AddEventModalProps {
@@ -25,13 +26,6 @@ export default function AddEventModal({ isOpen, onClose, onSuccess, members }: A
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const tokenStr = localStorage.getItem('supabase.auth.token');
-            let token = '';
-            try {
-                const session = tokenStr ? JSON.parse(tokenStr) : null;
-                token = session?.currentSession?.access_token || '';
-            } catch (e) { }
-
             const selectedMember = members.find(m => m.id === memberId);
             const memberName = selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Unknown';
 
@@ -39,14 +33,15 @@ export default function AddEventModal({ isOpen, onClose, onSuccess, members }: A
             let returnedEvent = null;
 
             try {
+                const headers = await apiClient.getAuthHeaders({
+                    'Content-Type': 'application/json',
+                    'Bypass-Tunnel-Reminder': 'true',
+                });
                 const data = await requestBackendJson<{ event?: any }>(
                     '/api/v1/genealogy/events',
                     {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
+                        headers,
                         body: JSON.stringify({
                             title, type, date, description, memberId, memberName, mediaUrl,
                         }),

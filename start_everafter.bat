@@ -18,19 +18,19 @@ echo.
 
 set "ROOT=%~dp0"
 
-REM ─── 1. FastAPI Main Backend (port 8002) ────────────────────────────────────
-echo  [1/7] FastAPI Backend        → http://localhost:8002
-echo         Docs                  → http://localhost:8002/docs
+REM ─── 1. FastAPI Main Backend (port 8010) ────────────────────────────────────
+echo  [1/7] FastAPI Backend        → http://localhost:8010
+echo         Docs                  → http://localhost:8010/docs
 echo.
-start "EverAfter — FastAPI Backend (8002)" cmd /k "^
+start "EverAfter — FastAPI Backend (8010)" cmd /k "^
   color 0B && ^
-  title FastAPI Backend :8002 && ^
+  title FastAPI Backend :8010 && ^
   cd /d "%ROOT%backend" && ^
   echo. && ^
-  echo  ▶ FastAPI Backend starting on port 8002... && ^
-  echo  ▶ API docs: http://localhost:8002/docs && ^
+  echo  ▶ FastAPI Backend starting on port 8010... && ^
+  echo  ▶ API docs: http://localhost:8010/docs && ^
   echo. && ^
-  venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload"
+  venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload"
 
 timeout /t 2 /nobreak >nul
 
@@ -105,15 +105,15 @@ start "EverAfter — Python Task Worker" cmd /k "^
 
 timeout /t 2 /nobreak >nul
 
-REM ─── 7. Vite Frontend (port 5173) ────────────────────────────────────────────
-echo  [7/7] Vite Frontend          → http://localhost:5173
+REM ─── 7. Vite Frontend (port 5000) ────────────────────────────────────────────
+echo  [7/7] Vite Frontend          → http://localhost:5000
 echo.
-start "EverAfter — Vite Frontend (5173)" cmd /k "^
+start "EverAfter — Vite Frontend (5000)" cmd /k "^
   color 0A && ^
-  title Vite Frontend :5173 && ^
+  title Vite Frontend :5000 && ^
   cd /d "%ROOT%" && ^
   echo. && ^
-  echo  ▶ Vite Frontend starting on port 5173... && ^
+  echo  ▶ Vite Frontend starting on port 5000... && ^
   echo. && ^
   npm run dev"
 
@@ -124,10 +124,10 @@ echo  ============================================================
 echo.
 echo   Service            Port     URL
 echo   ─────────────────────────────────────────────────
-echo   FastAPI Backend    8002     http://localhost:8002
+echo   FastAPI Backend    8010     http://localhost:8010
 echo   Health-Connect     4000     http://localhost:4000
 echo   Root Node Server   3001     http://localhost:3001
-echo   Vite Frontend      5173     http://localhost:5173
+echo   Vite Frontend      5000     http://localhost:5000
 echo.
 echo   Background Workers:
 echo   ✓ Celery Worker

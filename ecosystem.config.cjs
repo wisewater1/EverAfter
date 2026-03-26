@@ -3,7 +3,7 @@ module.exports = {
         {
             name: "fastapi-backend",
             script: "venv/Scripts/python.exe",
-            args: "-m uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers 1",
+            args: "-m uvicorn app.main:app --host 0.0.0.0 --port 8010 --workers 1",
             cwd: "./backend",
             interpreter: "none",
             env: {

@@ -60,6 +60,9 @@ class APIClient {
   }
 
   private async getAuthToken(): Promise<string | null> {
+    if (!supabase) {
+      return null;
+    }
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token || null;
   }
@@ -929,6 +932,57 @@ class APIClient {
     }
   }
 
+  async createFamilyTask(taskData: Record<string, unknown>): Promise<FamilyTask> {
+    const headers = await this.getAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ task: FamilyTask }>(
+      '/api/v1/family-home/tasks',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(taskData),
+      },
+      'Create Family Task Error',
+    );
+    return data.task;
+  }
+
+  async updateFamilyTask(taskId: string, taskData: Record<string, unknown>): Promise<FamilyTask> {
+    const headers = await this.getAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ task: FamilyTask }>(
+      `/api/v1/family-home/tasks/${taskId}`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(taskData),
+      },
+      'Update Family Task Error',
+    );
+    return data.task;
+  }
+
+  async dispatchFamilyTask(taskId: string, taskData: Record<string, unknown> = {}): Promise<FamilyTask> {
+    const headers = await this.getAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ task: FamilyTask }>(
+      `/api/v1/family-home/tasks/${taskId}/dispatch`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(taskData),
+      },
+      'Dispatch Family Task Error',
+    );
+    return data.task;
+  }
+
   async getPersonalityQuizProfile(memberId: string): Promise<any | null> {
     try {
       const data = await this.requestBackendJson(`/api/v1/personality-quiz/profile/${memberId}`, {
@@ -991,6 +1045,40 @@ class APIClient {
     }
   }
 
+  async createShoppingItem(itemData: Record<string, unknown>): Promise<ShoppingItem> {
+    const headers = await this.getAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ item: ShoppingItem }>(
+      '/api/v1/family-home/shopping',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(itemData),
+      },
+      'Create Shopping Item Error',
+    );
+    return data.item;
+  }
+
+  async updateShoppingItem(itemId: string, itemData: Record<string, unknown>): Promise<ShoppingItem> {
+    const headers = await this.getAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ item: ShoppingItem }>(
+      `/api/v1/family-home/shopping/${itemId}`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(itemData),
+      },
+      'Update Shopping Item Error',
+    );
+    return data.item;
+  }
+
   /** Mark a shopping item as bought. */
   async markItemBought(itemId: string): Promise<void> {
     try {
@@ -1005,6 +1093,36 @@ class APIClient {
       console.error("Mark Item Bought Error:", error);
       throw error;
     }
+  }
+
+  async negotiateShoppingItem(itemId: string): Promise<ShoppingItem> {
+    const headers = await this.getAuthHeaders({
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ item: ShoppingItem }>(
+      `/api/v1/family-home/shopping/${itemId}/negotiate`,
+      {
+        method: 'POST',
+        headers,
+      },
+      'Negotiate Shopping Item Error',
+    );
+    return data.item;
+  }
+
+  async acquireShoppingItem(itemId: string): Promise<ShoppingItem> {
+    const headers = await this.getAuthHeaders({
+      'Bypass-Tunnel-Reminder': 'true',
+    });
+    const data = await this.requestBackendJson<{ item: ShoppingItem }>(
+      `/api/v1/family-home/shopping/${itemId}/acquire`,
+      {
+        method: 'POST',
+        headers,
+      },
+      'Acquire Shopping Item Error',
+    );
+    return data.item;
   }
 
   /** Get family calendar events. */
