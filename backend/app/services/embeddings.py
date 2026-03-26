@@ -11,7 +11,13 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingsService:
     def __init__(self):
-        self.nlp_engine = get_nlp_engine()
+        self._nlp_engine = None
+
+    @property
+    def nlp_engine(self):
+        if self._nlp_engine is None:
+            self._nlp_engine = get_nlp_engine()
+        return self._nlp_engine
 
     async def generate_response_embedding(self, session: AsyncSession, response_id: str):
         """Generates and saves embedding for a single response in the sidecar table."""
@@ -74,7 +80,11 @@ class EmbeddingsService:
         logger.info(f"Successfully backfilled {len(responses)} embeddings into sidecar.")
         return len(responses)
 
-embeddings_service = EmbeddingsService()
-
 def get_embeddings_service() -> EmbeddingsService:
-    return embeddings_service
+    global _embeddings_service
+    if _embeddings_service is None:
+        _embeddings_service = EmbeddingsService()
+    return _embeddings_service
+
+
+_embeddings_service = None

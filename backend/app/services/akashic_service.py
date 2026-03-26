@@ -3,14 +3,10 @@ import json
 import os
 import uuid
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-
-try:
-    from sentence_transformers import SentenceTransformer
-except Exception:
-    SentenceTransformer = None
 
 from app.engrams.nlp import EMBEDDING_DIMENSION, build_fallback_embedding
 
@@ -21,6 +17,15 @@ VECTOR_FILE = os.path.join(DATA_DIR, "akashic_vectors.npy")
 
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("TQDM_DISABLE", "1")
+
+
+@lru_cache()
+def _get_sentence_transformer_cls():
+    try:
+        from sentence_transformers import SentenceTransformer
+    except Exception:
+        return None
+    return SentenceTransformer
 
 
 class AkashicRecord:
@@ -56,15 +61,16 @@ class AkashicRecord:
 
     @property
     def model(self):
-        if SentenceTransformer is None:
+        sentence_transformer_cls = _get_sentence_transformer_cls()
+        if sentence_transformer_cls is None:
             raise RuntimeError("sentence-transformers is unavailable")
         if self._model is None:
             print("Loading Akashic ML model: sentence-transformers/all-MiniLM-L6-v2...")
-            self._model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+            self._model = sentence_transformer_cls("sentence-transformers/all-MiniLM-L6-v2")
         return self._model
 
     def _encode(self, texts: List[str]) -> np.ndarray:
-        if SentenceTransformer is None:
+        if _get_sentence_transformer_cls() is None:
             return np.array([build_fallback_embedding(text) for text in texts], dtype=float)
         return self.model.encode(
             texts,

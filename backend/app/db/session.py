@@ -20,6 +20,14 @@ def create_supabase_client() -> Client:
 def get_engine():
     global engine, AsyncSessionLocal
     if engine is None:
+        connect_args = {}
+        if settings.DATABASE_URL.startswith("postgresql+asyncpg://"):
+            connect_args = {
+                "timeout": settings.DB_CONNECT_TIMEOUT_SECONDS,
+                "command_timeout": settings.DB_COMMAND_TIMEOUT_SECONDS,
+                "server_settings": {"application_name": "everafter-api"},
+            }
+
         engine = create_async_engine(
             settings.DATABASE_URL,
             echo=settings.ENVIRONMENT == "development",
@@ -27,6 +35,8 @@ def get_engine():
             pool_pre_ping=True,
             pool_size=20,
             max_overflow=10,
+            pool_timeout=settings.DB_POOL_TIMEOUT_SECONDS,
+            connect_args=connect_args,
         )
         
         if "sqlite" in settings.DATABASE_URL:

@@ -6,17 +6,6 @@ import math
 from functools import lru_cache
 from typing import Any, Dict, List
 
-try:
-    from sentence_transformers import SentenceTransformer
-except Exception:
-    SentenceTransformer = None
-
-try:
-    import torch
-except Exception:
-    torch = None
-
-
 EMBEDDING_DIMENSION = 384
 
 
@@ -41,12 +30,31 @@ def build_fallback_embedding(text: str, dimension: int = EMBEDDING_DIMENSION) ->
     return [value / magnitude for value in values]
 
 
+@lru_cache()
+def _get_sentence_transformer_cls():
+    try:
+        from sentence_transformers import SentenceTransformer
+    except Exception:
+        return None
+    return SentenceTransformer
+
+
+@lru_cache()
+def _get_torch_module():
+    try:
+        import torch
+    except Exception:
+        return None
+    return torch
+
+
 class NLPEngine:
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.model_name = model_name
         self._model = None
+        torch = _get_torch_module()
         self._device = "cuda" if torch and torch.cuda.is_available() else "cpu"
-        self._ml_available = SentenceTransformer is not None
+        self._ml_available = _get_sentence_transformer_cls() is not None
         if self._ml_available:
             print(f"NLPEngine initialized. Device: {self._device}")
         else:
@@ -54,11 +62,12 @@ class NLPEngine:
 
     @property
     def model(self) -> Any:
-        if not self._ml_available:
+        sentence_transformer_cls = _get_sentence_transformer_cls()
+        if sentence_transformer_cls is None:
             raise RuntimeError("sentence-transformers is unavailable")
         if self._model is None:
             print(f"Loading ML model: {self.model_name}...")
-            self._model = SentenceTransformer(self.model_name, device=self._device)
+            self._model = sentence_transformer_cls(self.model_name, device=self._device)
             print("Model loaded successfully.")
         return self._model
 

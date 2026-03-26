@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     LOCAL_MODELS_DIR: str = "models"
 
     REDIS_URL: str = "redis://localhost:6379/0"
+    DB_CONNECT_TIMEOUT_SECONDS: float = 10.0
+    DB_COMMAND_TIMEOUT_SECONDS: float = 30.0
+    DB_POOL_TIMEOUT_SECONDS: float = 15.0
+    STARTUP_BOOTSTRAP_TIMEOUT_SECONDS: float = 45.0
 
     HOST: str = "0.0.0.0"
     PORT: int = 8010
