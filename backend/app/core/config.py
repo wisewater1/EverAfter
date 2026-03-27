@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     WISEGOLD_AUTOMATION_REGISTRY: str = ""
     VOICE_AI_BASE_URL: str = ""
     VOICE_AI_TIMEOUT_SECONDS: int = 20
+    VOICE_AI_HEALTH_TIMEOUT_SECONDS: int = 3
     JOSEPH_VOICE_STORAGE_DIR: str = "storage/joseph_voice"
     JOSEPH_VOICE_MIN_APPROVED_SAMPLES: int = 6
     JOSEPH_VOICE_MIN_APPROVED_SECONDS: int = 90

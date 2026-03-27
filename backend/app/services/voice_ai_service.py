@@ -15,6 +15,7 @@ class VoiceAIService:
     def __init__(self) -> None:
         self.base_url = (settings.VOICE_AI_BASE_URL or "").rstrip("/")
         self.timeout = settings.VOICE_AI_TIMEOUT_SECONDS
+        self.health_timeout = settings.VOICE_AI_HEALTH_TIMEOUT_SECONDS
 
     @property
     def configured(self) -> bool:
@@ -30,7 +31,7 @@ class VoiceAIService:
             }
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.health_timeout) as client:
                 response = await client.get(f"{self.base_url}/health")
                 response.raise_for_status()
                 payload = response.json() if response.content else {}

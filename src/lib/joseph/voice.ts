@@ -73,11 +73,19 @@ function appendBoolean(fd: FormData, key: string, value: boolean) {
   fd.append(key, value ? 'true' : 'false');
 }
 
-async function buildVoiceRequestInit(init: RequestInit = {}): Promise<RequestInit> {
+function createTimeoutSignal(timeoutMs: number): AbortSignal | undefined {
+  if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') {
+    return undefined;
+  }
+  return AbortSignal.timeout(timeoutMs);
+}
+
+async function buildVoiceRequestInit(init: RequestInit = {}, timeoutMs: number = 20000): Promise<RequestInit> {
   const authHeaders = await apiClient.getAuthHeaders(init.headers || {});
   return {
     ...init,
     headers: authHeaders,
+    signal: init.signal ?? createTimeoutSignal(timeoutMs),
   };
 }
 
