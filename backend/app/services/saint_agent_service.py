@@ -69,6 +69,13 @@ def _fallback_saint_bootstrap(user_uuid: uuid.UUID, saint_id: str, saint_name: s
         "degraded": True,
     }
 
+
+async def _safe_session_rollback(session: AsyncSession) -> None:
+    try:
+        await session.rollback()
+    except Exception as exc:
+        logger.debug("Saint session rollback skipped: %s", exc)
+
 # â”€â”€â”€ Saint Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
@@ -348,7 +355,7 @@ class SaintAgentService:
                     "is_new": True,
                 }
             except Exception as exc:
-                await session.rollback()
+                await _safe_session_rollback(session)
                 if _is_transient_db_unavailable(exc):
                     logger.warning("Saint bootstrap degraded for %s: %s", saint_id, exc)
                     return _fallback_saint_bootstrap(user_uuid, saint_id, saint_name)
@@ -461,7 +468,7 @@ class SaintAgentService:
             result = await session.execute(conv_query)
             conversation = result.scalar_one_or_none()
         except Exception as exc:
-            await session.rollback()
+            await _safe_session_rollback(session)
             if _is_transient_db_unavailable(exc):
                 logger.warning("Saint history degraded for %s: %s", saint_id, exc)
                 return []
@@ -479,7 +486,7 @@ class SaintAgentService:
             msg_result = await session.execute(msg_query)
             messages = msg_result.scalars().all()
         except Exception as exc:
-            await session.rollback()
+            await _safe_session_rollback(session)
             if _is_transient_db_unavailable(exc):
                 logger.warning("Saint history message load degraded for %s: %s", saint_id, exc)
                 return []
@@ -806,7 +813,7 @@ class SaintAgentService:
 
             await session.commit()
         except ProgrammingError as exc:
-            await session.rollback()
+            await _safe_session_rollback(session)
             if _missing_saint_knowledge_table(exc):
                 logger.warning("Saint knowledge table missing; skipping knowledge write for %s", saint_id)
                 return
@@ -834,13 +841,13 @@ class SaintAgentService:
             result = await session.execute(query)
             items = result.scalars().all()
         except ProgrammingError as exc:
-            await session.rollback()
+            await _safe_session_rollback(session)
             if _missing_saint_knowledge_table(exc):
                 logger.warning("Saint knowledge table missing; returning empty knowledge for %s", saint_id)
                 return []
             raise
         except Exception as exc:
-            await session.rollback()
+            await _safe_session_rollback(session)
             if _is_transient_db_unavailable(exc):
                 logger.warning("Saint knowledge degraded for %s: %s", saint_id, exc)
                 return []
@@ -890,7 +897,7 @@ class SaintAgentService:
                 knowledge_result = await session.execute(knowledge_query)
                 knowledge_items = knowledge_result.scalars().all()
             except ProgrammingError as exc:
-                await session.rollback()
+                await _safe_session_rollback(session)
                 if _missing_saint_knowledge_table(exc):
                     knowledge_items = []
                 else:
