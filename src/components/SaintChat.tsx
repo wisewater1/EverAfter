@@ -64,6 +64,17 @@ function formatSaintError(step: SaintStep, error: unknown): string {
     return 'Failed to initialize Saint AI. Please try again.';
 }
 
+function shouldSuppressInitError(errorMessage: string): boolean {
+    const normalized = errorMessage.toLowerCase();
+    return (
+        normalized.includes('failed to initialize saint ai') ||
+        normalized.includes('saint services are temporarily unavailable') ||
+        normalized.includes('network is unreachable') ||
+        normalized.includes('unable to bootstrap saint') ||
+        normalized.includes('failed to bootstrap saint')
+    );
+}
+
 export default function SaintChat({
     saintId,
     saintName,
@@ -150,7 +161,8 @@ export default function SaintChat({
             } catch (err) {
                 console.error('Failed to initialize saint:', err);
                 setDegradedMode(true);
-                setError(formatSaintError('bootstrap', err));
+                const nextError = formatSaintError('bootstrap', err);
+                setError(shouldSuppressInitError(nextError) ? null : nextError);
                 setKnowledge([]);
                 setMessages([buildInitialAssistantMessage(true)]);
             } finally {

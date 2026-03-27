@@ -20,7 +20,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
 
 from app.models.engram import ArchetypalAI, AIConversation, AIMessage
 from app.models.saint import SaintKnowledge
@@ -39,6 +39,35 @@ logger = logging.getLogger(__name__)
 def _missing_saint_knowledge_table(exc: Exception) -> bool:
     detail = str(exc).lower()
     return "saint_knowledge" in detail and "does not exist" in detail
+
+
+def _is_transient_db_unavailable(exc: Exception) -> bool:
+    detail = str(exc).lower()
+    markers = (
+        "network is unreachable",
+        "connection refused",
+        "could not connect",
+        "connection timed out",
+        "name or service not known",
+        "temporary failure in name resolution",
+        "server closed the connection unexpectedly",
+        "connection reset by peer",
+        "no route to host",
+        "could not translate host name",
+        "tenant or user not found",
+    )
+    return isinstance(exc, (OSError, SQLAlchemyError)) or any(marker in detail for marker in markers)
+
+
+def _fallback_saint_bootstrap(user_uuid: uuid.UUID, saint_id: str, saint_name: str) -> Dict[str, Any]:
+    synthetic_id = uuid.uuid5(uuid.NAMESPACE_URL, f"saint:{saint_id}:user:{user_uuid}")
+    return {
+        "engram_id": str(synthetic_id),
+        "saint_id": saint_id,
+        "name": saint_name,
+        "is_new": False,
+        "degraded": True,
+    }
 
 # â”€â”€â”€ Saint Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -276,47 +305,54 @@ class SaintAgentService:
         if saint_def:
             # STATIC SAINT LOGIC
             saint_name = saint_def["name"]
-            query = select(ArchetypalAI).where(
-                and_(
-                    ArchetypalAI.user_id == user_uuid,
-                    ArchetypalAI.name == saint_name
-                )
-            ).order_by(desc(ArchetypalAI.updated_at), desc(ArchetypalAI.created_at))
-            result = await session.execute(query)
-            engram = result.scalars().first()
+            try:
+                query = select(ArchetypalAI).where(
+                    and_(
+                        ArchetypalAI.user_id == user_uuid,
+                        ArchetypalAI.name == saint_name
+                    )
+                ).order_by(desc(ArchetypalAI.updated_at), desc(ArchetypalAI.created_at))
+                result = await session.execute(query)
+                engram = result.scalars().first()
 
-            if engram:
-                if not engram.is_ai_active:
-                    engram.is_ai_active = True
-                    await session.commit()
+                if engram:
+                    if not engram.is_ai_active:
+                        engram.is_ai_active = True
+                        await session.commit()
+
+                    return {
+                        "engram_id": str(engram.id),
+                        "saint_id": saint_id,
+                        "name": saint_name,
+                        "is_new": False,
+                    }
+
+                # Create new engram for this saint
+                new_engram = ArchetypalAI(
+                    user_id=user_uuid,
+                    name=saint_name,
+                    description=saint_def["description"],
+                    personality_traits={"domain": saint_def["domain"], "saint_id": saint_id},
+                    total_memories=0,
+                    training_status="ready",
+                    is_ai_active=True,
+                )
+                session.add(new_engram)
+                await session.commit()
+                await session.refresh(new_engram)
 
                 return {
-                    "engram_id": str(engram.id),
+                    "engram_id": str(new_engram.id),
                     "saint_id": saint_id,
                     "name": saint_name,
-                    "is_new": False,
+                    "is_new": True,
                 }
-
-            # Create new engram for this saint
-            new_engram = ArchetypalAI(
-                user_id=user_uuid,
-                name=saint_name,
-                description=saint_def["description"],
-                personality_traits={"domain": saint_def["domain"], "saint_id": saint_id},
-                total_memories=0,
-                training_status="ready",
-                is_ai_active=True,
-            )
-            session.add(new_engram)
-            await session.commit()
-            await session.refresh(new_engram)
-
-            return {
-                "engram_id": str(new_engram.id),
-                "saint_id": saint_id,
-                "name": saint_name,
-                "is_new": True,
-            }
+            except Exception as exc:
+                await session.rollback()
+                if _is_transient_db_unavailable(exc):
+                    logger.warning("Saint bootstrap degraded for %s: %s", saint_id, exc)
+                    return _fallback_saint_bootstrap(user_uuid, saint_id, saint_name)
+                raise
         
         else:
             # DYNAMIC AGENT LOGIC (using saint_id as engram_id or looking up by ID)
@@ -421,9 +457,16 @@ class SaintAgentService:
             )
         ).order_by(AIConversation.updated_at.desc())
         
-        result = await session.execute(conv_query)
-        conversation = result.scalar_one_or_none()
-        
+        try:
+            result = await session.execute(conv_query)
+            conversation = result.scalar_one_or_none()
+        except Exception as exc:
+            await session.rollback()
+            if _is_transient_db_unavailable(exc):
+                logger.warning("Saint history degraded for %s: %s", saint_id, exc)
+                return []
+            raise
+
         if not conversation:
             return []
             
@@ -432,8 +475,15 @@ class SaintAgentService:
             AIMessage.conversation_id == conversation.id
         ).order_by(AIMessage.created_at.asc()).limit(50)
         
-        msg_result = await session.execute(msg_query)
-        messages = msg_result.scalars().all()
+        try:
+            msg_result = await session.execute(msg_query)
+            messages = msg_result.scalars().all()
+        except Exception as exc:
+            await session.rollback()
+            if _is_transient_db_unavailable(exc):
+                logger.warning("Saint history message load degraded for %s: %s", saint_id, exc)
+                return []
+            raise
         
         return [
             {
@@ -787,6 +837,12 @@ class SaintAgentService:
             await session.rollback()
             if _missing_saint_knowledge_table(exc):
                 logger.warning("Saint knowledge table missing; returning empty knowledge for %s", saint_id)
+                return []
+            raise
+        except Exception as exc:
+            await session.rollback()
+            if _is_transient_db_unavailable(exc):
+                logger.warning("Saint knowledge degraded for %s: %s", saint_id, exc)
                 return []
             raise
 
