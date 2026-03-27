@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { buildApiUrl } from '../../lib/env';
+import { buildAccessTokenHeaders } from '../../lib/auth-session';
 
 
 interface SacredState {
@@ -12,7 +13,7 @@ interface SacredState {
 }
 
 export default function SacredOverlay() {
-    const { user } = useAuth();
+    const { user, session, loading: authLoading, isDemoMode } = useAuth();
     const [state, setState] = useState<SacredState>({
         isSanctumActive: false,
         atmosphere: 'tranquil',
@@ -21,16 +22,18 @@ export default function SacredOverlay() {
     });
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || authLoading || isDemoMode || !session?.access_token) return;
 
         // Fetch active shroud from backend
         const fetchShroud = async () => {
-            const res = await fetch(buildApiUrl('/api/v1/sacred/shroud'), {
-                headers: {
-                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            try {
+                const res = await fetch(buildApiUrl('/api/v1/sacred/shroud'), {
+                    headers: await buildAccessTokenHeaders(),
+                });
+                if (!res.ok) {
+                    return;
                 }
-            });
-            if (res.ok) {
+
                 const data = await res.json();
                 if (data.active_shroud && data.active_shroud !== 'none') {
                     setState(prev => ({
@@ -41,6 +44,8 @@ export default function SacredOverlay() {
                     }));
                     applyShroudCSS(data.active_shroud);
                 }
+            } catch {
+                // Fail closed when the sacred sidecar is unavailable.
             }
         };
         fetchShroud();
@@ -69,7 +74,7 @@ export default function SacredOverlay() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user]);
+    }, [authLoading, isDemoMode, session?.access_token, user]);
 
     const applyShroudCSS = (style: string) => {
         const root = document.documentElement;

@@ -16,7 +16,7 @@ import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
-    const { user, session } = useAuth();
+    const { user, session, loading: authLoading, isDemoMode } = useAuth();
     const cachedBankStatus = financeApi.getCachedBankStatus();
     const cachedTransactions = financeApi.getCachedTransactions(200);
     const cachedMonthCashFlow = (() => {
@@ -59,12 +59,21 @@ export default function StGabrielFinanceDashboard() {
             setFinanceCardLoading(true);
             setFinanceCardError(null);
 
+            if (authLoading || isDemoMode) {
+                setWgoldBalance(0);
+                setWgoldPriceUsd(0);
+                setBankStatus(cachedBankStatus);
+                setMonthCashFlow(cachedMonthCashFlow);
+                setFinanceCardLoading(false);
+                return;
+            }
+
             const token = session?.access_token || '';
             if (!token) {
                 setWgoldBalance(0);
                 setWgoldPriceUsd(0);
-                setBankStatus(null);
-                setMonthCashFlow(null);
+                setBankStatus(cachedBankStatus);
+                setMonthCashFlow(cachedMonthCashFlow);
                 setFinanceCardLoading(false);
                 return;
             }
@@ -135,7 +144,7 @@ export default function StGabrielFinanceDashboard() {
         }, 200);
 
         return () => window.clearTimeout(bootstrapTimer);
-    }, [session]);
+    }, [authLoading, cachedBankStatus, cachedMonthCashFlow, isDemoMode, session]);
 
     const linkedAccountBalance = useMemo(() => {
         if (!bankStatus?.connected) {
@@ -167,6 +176,14 @@ export default function StGabrielFinanceDashboard() {
     const totalNetWorth = linkedAccountBalance + wgoldValueUsd;
 
     async function refreshFinanceCardState() {
+        if (authLoading || isDemoMode || !session?.access_token) {
+            setBankStatus(cachedBankStatus);
+            setMonthCashFlow(cachedMonthCashFlow);
+            setFinanceCardError(null);
+            setFinanceCardLoading(false);
+            return;
+        }
+
         setFinanceCardLoading(true);
         setFinanceCardError(null);
         try {
@@ -195,6 +212,11 @@ export default function StGabrielFinanceDashboard() {
     }
 
     async function handleBankAction() {
+        if (authLoading || isDemoMode || !session?.access_token) {
+            setActiveView('ledger');
+            return;
+        }
+
         if (!bankStatus?.configured) {
             setActiveView('ledger');
             return;

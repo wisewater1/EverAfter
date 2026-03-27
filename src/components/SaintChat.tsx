@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Book, Brain, X, Sparkles } from 'lucide-react';
 import { apiClient, type SaintBootstrapResult, type SaintChatResult } from '../lib/api-client';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SaintChatProps {
     saintId: string;
@@ -125,6 +126,15 @@ function buildDegradedNote(availability: SaintAvailabilityState): string {
     return `Running in degraded mode. ${limits.join(', ')} until backend storage recovers.`;
 }
 
+function buildLocalDegradedReply(saintName: string, saintTitle: string, message: string): string {
+    const trimmed = message.trim();
+    if (!trimmed) {
+        return `${saintName} is available in local degraded mode, but live backend context is unavailable right now.`;
+    }
+
+    return `${saintName}, ${saintTitle}, is responding in local degraded mode. I can acknowledge your request, but live backend context, saved memory, and domain-specific records are unavailable right now. Your message was: "${trimmed.slice(0, 180)}"`;
+}
+
 export default function SaintChat({
     saintId,
     saintName,
@@ -135,6 +145,7 @@ export default function SaintChat({
     userContext,
     onClose
 }: SaintChatProps) {
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -174,11 +185,29 @@ export default function SaintChat({
         const init = async () => {
             let fallbackTimer: number | null = null;
             try {
+                if (authLoading) {
+                    return;
+                }
+
                 setBootstrapping(true);
                 setError(null);
                 setDegradedMode(false);
                 setAvailability(DEFAULT_SAINT_AVAILABILITY);
                 setMessages([buildInitialAssistantMessage(false)]);
+
+                if (isDemoMode || !session?.access_token) {
+                    setDegradedMode(true);
+                    setAvailability({
+                        mode: 'degraded',
+                        persistenceAvailable: false,
+                        historyAvailable: false,
+                        knowledgeAvailable: false,
+                    });
+                    setKnowledge([]);
+                    setMessages([buildInitialAssistantMessage(true)]);
+                    setBootstrapping(false);
+                    return;
+                }
 
                 fallbackTimer = window.setTimeout(() => {
                     setDegradedMode(true);
@@ -252,7 +281,7 @@ export default function SaintChat({
         };
 
         init();
-    }, [initialMessage, saintId, saintName, saintTitle]);
+    }, [authLoading, initialMessage, isDemoMode, saintId, saintName, saintTitle, session?.access_token]);
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
@@ -270,6 +299,26 @@ export default function SaintChat({
         setError(null);
 
         try {
+            if (isDemoMode || !session?.access_token) {
+                const nextAvailability = {
+                    mode: 'degraded' as const,
+                    persistenceAvailable: false,
+                    historyAvailable: false,
+                    knowledgeAvailable: false,
+                };
+                setAvailability(nextAvailability);
+                setDegradedMode(true);
+                setKnowledge([]);
+                const aiMsg: Message = {
+                    id: `${Date.now()}-local`,
+                    role: 'assistant',
+                    content: buildLocalDegradedReply(saintName, saintTitle, userMsg.content),
+                    timestamp: new Date().toISOString(),
+                };
+                setMessages(prev => [...prev, aiMsg]);
+                return;
+            }
+
             const response = await apiClient.chatWithSaint(saintId, userMsg.content, false, userContext);
             const nextAvailability = deriveAvailabilityFromChat(response);
             setAvailability(nextAvailability);
