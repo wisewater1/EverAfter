@@ -126,6 +126,49 @@ async def test_builtin_saint_chat_persists_to_local_fallback_store(monkeypatch, 
 
 
 @pytest.mark.asyncio
+async def test_builtin_saint_fallback_heuristically_remembers_explicit_requests(monkeypatch, tmp_path):
+    service = SaintAgentService()
+    session = AsyncMock()
+    session.execute.side_effect = OSError("[Errno 101] Network is unreachable")
+    service.llm = MagicMock()
+    service.llm.generate_response = AsyncMock(
+        side_effect=[
+            "I will remember that.",
+            "not json",
+        ]
+    )
+
+    fallback_store = SaintFallbackStore(str(tmp_path))
+    monkeypatch.setattr("app.services.saint_agent_service.saint_fallback_store", fallback_store)
+    monkeypatch.setattr(service, "_build_saint_prompt", AsyncMock(return_value="Saint prompt"))
+    monkeypatch.setattr(
+        service,
+        "bootstrap_saint_engram",
+        AsyncMock(
+            return_value={
+                "engram_id": str(uuid.uuid4()),
+                "saint_id": "gabriel",
+                "name": "St. Gabriel",
+                "is_new": False,
+                "degraded": True,
+                "mode": "degraded",
+                "persistence_available": True,
+            }
+        ),
+    )
+
+    await service.chat(session, TEST_USER_ID, "gabriel", "Please remember that groceries come first and I want weekly Friday budget reviews.")
+
+    knowledge = await service.get_knowledge(session, TEST_USER_ID, "gabriel")
+    keys = {item["key"] for item in knowledge}
+
+    assert "explicit_memory" in keys
+    assert "stated_goal" in keys
+    assert "review_cadence" in keys
+    assert "stated_priority" in keys
+
+
+@pytest.mark.asyncio
 async def test_saint_statuses_degrade_when_storage_is_unreachable():
     service = SaintAgentService()
     session = AsyncMock()

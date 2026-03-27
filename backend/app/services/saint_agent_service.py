@@ -324,6 +324,70 @@ class SaintAgentService:
         self.prompt_builder = get_prompt_builder()
 
     @staticmethod
+    def _classify_knowledge_category(saint_id: str, text: str) -> str:
+        saint_def = SAINT_DEFINITIONS[saint_id]
+        lowered = text.lower()
+
+        category_keyword_map = {
+            "gabriel": {
+                "debts": ("debt", "loan", "credit card", "mortgage"),
+                "assets": ("asset", "savings", "cash reserve", "emergency fund"),
+                "investment_strategy": ("invest", "portfolio", "stock", "etf", "allocation"),
+                "risk_tolerance": ("risk", "conservative", "aggressive"),
+                "recurring_expenses": ("subscription", "rent", "bill", "expense"),
+                "financial_milestones": ("milestone", "pay off", "save for", "target"),
+                "budget_goals": ("budget", "groceries", "spending", "review", "friday"),
+            },
+        }
+
+        for category, markers in category_keyword_map.get(saint_id, {}).items():
+            if any(marker in lowered for marker in markers):
+                return category
+
+        return saint_def["knowledge_categories"][0] if saint_def["knowledge_categories"] else "general"
+
+    def _extract_heuristic_knowledge_facts(self, saint_id: str, user_message: str) -> List[Dict[str, Any]]:
+        text = " ".join((user_message or "").split())
+        if not text:
+            return []
+
+        facts: Dict[str, Dict[str, Any]] = {}
+
+        def record(key: str, value: str) -> None:
+            cleaned_value = value.strip(" .")
+            if not cleaned_value:
+                return
+            facts[key] = {
+                "key": key,
+                "value": cleaned_value,
+                "category": self._classify_knowledge_category(saint_id, cleaned_value),
+                "confidence": 0.9,
+            }
+
+        remember_match = re.search(r"(?i)\bremember(?:\s+that)?\s+(.+)", text)
+        if remember_match:
+            record("explicit_memory", remember_match.group(1))
+
+        for pattern, key in (
+            (r"(?i)\bi want\s+(.+)", "stated_goal"),
+            (r"(?i)\bi prefer\s+(.+)", "stated_preference"),
+            (r"(?i)\bmy goal is to\s+(.+)", "stated_goal"),
+        ):
+            match = re.search(pattern, text)
+            if match:
+                record(key, match.group(1))
+
+        schedule_match = re.search(r"(?i)\b(daily|weekly|monthly)\b.*?\b(reviews?|check[- ]?ins?|budget reviews?)\b", text)
+        if schedule_match:
+            record("review_cadence", schedule_match.group(0))
+
+        priority_match = re.search(r"(?i)\b([a-zA-Z][a-zA-Z ]+?)\s+come(?:s)?\s+first\b", text)
+        if priority_match:
+            record("stated_priority", f"{priority_match.group(1).strip()} come first")
+
+        return list(facts.values())
+
+    @staticmethod
     def _storage_error_for_dynamic(saint_id: str) -> SaintStorageUnavailableError:
         return SaintStorageUnavailableError(
             f"Persistent saint storage is unavailable for dynamic saint '{saint_id}'. Please try again when backend storage recovers."
@@ -940,6 +1004,10 @@ class SaintAgentService:
     ) -> List[Dict[str, Any]]:
         saint_def = SAINT_DEFINITIONS[saint_id]
         categories = saint_def["knowledge_categories"]
+        facts_by_key = {
+            fact["key"]: fact
+            for fact in self._extract_heuristic_knowledge_facts(saint_id, user_message)
+        }
 
         extraction_prompt = (
             f"You are an information extraction agent for {saint_def['name']} ({saint_def['domain']} domain).\n"
@@ -967,9 +1035,8 @@ class SaintAgentService:
 
             facts = json.loads(cleaned)
             if not isinstance(facts, list):
-                return []
+                return list(facts_by_key.values())
 
-            normalized_facts = []
             for fact in facts:
                 if not isinstance(fact, dict):
                     continue
@@ -980,18 +1047,16 @@ class SaintAgentService:
                     continue
                 if category not in categories:
                     category = "general"
-                normalized_facts.append(
-                    {
-                        "key": key,
-                        "value": value,
-                        "category": category,
-                        "confidence": float(fact.get("confidence") or 1.0),
-                    }
-                )
-            return normalized_facts
+                facts_by_key[key] = {
+                    "key": key,
+                    "value": value,
+                    "category": category,
+                    "confidence": float(fact.get("confidence") or 1.0),
+                }
+            return list(facts_by_key.values())
         except (json.JSONDecodeError, Exception) as e:
             logger.debug(f"Knowledge extraction skipped: {e}")
-            return []
+            return list(facts_by_key.values())
 
     async def _extract_and_store_knowledge(
         self,
