@@ -40,18 +40,62 @@ print("====================================================")
 logger = logging.getLogger(__name__)
 
 
+async def _start_optional_runtime(app: FastAPI) -> None:
+    background_tasks = getattr(app.state, "background_tasks", [])
+
+    if settings.ENABLE_SAINT_EVENT_LISTENER:
+        try:
+            from app.services.saint_runtime import saint_runtime
+
+            background_tasks.append(
+                asyncio.create_task(saint_runtime.listen_for_events(), name="saint-event-listener")
+            )
+        except Exception:
+            logger.exception("Failed to start saint event listener")
+
+    if settings.ENABLE_SAINT_BACKGROUND_VIGILS:
+        try:
+            from app.services.saint_runtime import saint_runtime
+
+            background_tasks.append(asyncio.create_task(saint_runtime.run_vigils(), name="saint-vigils"))
+        except Exception:
+            logger.exception("Failed to start saint vigils")
+
+    if settings.ENABLE_COMPLIANCE_AUTOPILOT:
+        try:
+            from app.services.compliance_service import compliance_autopilot
+
+            background_tasks.append(
+                asyncio.create_task(
+                    compliance_autopilot.run_continuous_audits(),
+                    name="compliance-autopilot",
+                )
+            )
+        except Exception:
+            logger.exception("Failed to start compliance autopilot")
+
+    if settings.ENABLE_WISEGOLD_TICKER:
+        try:
+            from app.services.wisegold_scheduler import wisegold_scheduler
+
+            background_tasks.append(
+                asyncio.create_task(wisegold_scheduler.run_forever(), name="wisegold-scheduler")
+            )
+        except Exception:
+            logger.exception("Failed to start WiseGold scheduler")
+
+    app.state.background_tasks = background_tasks
+
+
 async def _bootstrap_runtime(app: FastAPI) -> None:
-    from app.services.compliance_service import compliance_autopilot
     from app.services.engram_runtime_tables import ensure_engram_runtime_tables
     from app.services.family_home_runtime_tables import ensure_family_home_tables
     from app.services.finance_runtime_tables import ensure_finance_runtime_tables
     from app.services.genealogy_runtime_tables import ensure_genealogy_tables
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
-    from app.services.saint_runtime import saint_runtime
-    from app.services.wisegold_scheduler import ensure_wisegold_tables, wisegold_scheduler
+    from app.services.wisegold_scheduler import ensure_wisegold_tables
 
     state = app.state.runtime_status
-    background_tasks = getattr(app.state, "background_tasks", [])
 
     try:
         await asyncio.wait_for(ensure_engram_runtime_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
@@ -63,26 +107,6 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
             timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS,
         )
         await asyncio.wait_for(ensure_wisegold_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
-
-        if settings.ENABLE_SAINT_EVENT_LISTENER:
-            background_tasks.append(
-                asyncio.create_task(saint_runtime.listen_for_events(), name="saint-event-listener")
-            )
-        if settings.ENABLE_SAINT_BACKGROUND_VIGILS:
-            background_tasks.append(asyncio.create_task(saint_runtime.run_vigils(), name="saint-vigils"))
-        if settings.ENABLE_COMPLIANCE_AUTOPILOT:
-            background_tasks.append(
-                asyncio.create_task(
-                    compliance_autopilot.run_continuous_audits(),
-                    name="compliance-autopilot",
-                )
-            )
-        if settings.ENABLE_WISEGOLD_TICKER:
-            background_tasks.append(
-                asyncio.create_task(wisegold_scheduler.run_forever(), name="wisegold-scheduler")
-            )
-
-        app.state.background_tasks = background_tasks
         state.update(
             {
                 "status": "healthy",
@@ -90,6 +114,10 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
                 "bootstrap_complete": True,
                 "last_error": None,
             }
+        )
+        app.state.optional_runtime_task = asyncio.create_task(
+            _start_optional_runtime(app),
+            name="optional-runtime-bootstrap",
         )
     except asyncio.CancelledError:
         raise
@@ -123,6 +151,11 @@ async def lifespan(app: FastAPI):
     if bootstrap_task and not bootstrap_task.done():
         bootstrap_task.cancel()
         await asyncio.gather(bootstrap_task, return_exceptions=True)
+
+    optional_runtime_task = getattr(app.state, "optional_runtime_task", None)
+    if optional_runtime_task and not optional_runtime_task.done():
+        optional_runtime_task.cancel()
+        await asyncio.gather(optional_runtime_task, return_exceptions=True)
 
     for task in getattr(app.state, "background_tasks", []):
         task.cancel()
