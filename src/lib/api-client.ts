@@ -1140,10 +1140,12 @@ class APIClient {
       if (events.length > 0) {
         return events.map((event: CalendarEvent, index: number) => this.normalizeCalendarEvent(event, index));
       }
-      return getLocalFamilyCalendar(_userId).map((event, index) => this.normalizeCalendarEvent(event, index));
+      const fallbackEvents = await getLocalFamilyCalendar(_userId);
+      return fallbackEvents.map((event, index) => this.normalizeCalendarEvent(event, index));
     } catch (error) {
       console.error("Get Family Calendar Error:", error);
-      return getLocalFamilyCalendar(_userId).map((event, index) => this.normalizeCalendarEvent(event, index));
+      const fallbackEvents = await getLocalFamilyCalendar(_userId);
+      return fallbackEvents.map((event, index) => this.normalizeCalendarEvent(event, index));
     }
   }
 
