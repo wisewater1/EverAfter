@@ -45,6 +45,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
     from app.services.engram_runtime_tables import ensure_engram_runtime_tables
     from app.services.family_home_runtime_tables import ensure_family_home_tables
     from app.services.finance_runtime_tables import ensure_finance_runtime_tables
+    from app.services.genealogy_runtime_tables import ensure_genealogy_tables
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
     from app.services.saint_runtime import saint_runtime
     from app.services.wisegold_scheduler import ensure_wisegold_tables, wisegold_scheduler
@@ -54,6 +55,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
 
     try:
         await asyncio.wait_for(ensure_engram_runtime_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
+        await asyncio.wait_for(ensure_genealogy_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
         await asyncio.wait_for(ensure_family_home_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
         await asyncio.wait_for(ensure_finance_runtime_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
         await asyncio.wait_for(

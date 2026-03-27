@@ -1,7 +1,52 @@
 from typing import List
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _extract_supabase_project_ref(supabase_url: str) -> str:
+    try:
+        host = urlsplit(supabase_url).hostname or ""
+    except Exception:
+        return ""
+    return host.split(".")[0] if host else ""
+
+
+def _normalize_database_url(raw_url: str, supabase_url: str) -> str:
+    database_url = str(raw_url or "").strip()
+    if not database_url:
+        return database_url
+
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    parsed = urlsplit(database_url)
+    hostname = parsed.hostname or ""
+    if not hostname.endswith(".pooler.supabase.com"):
+        return database_url
+
+    username = unquote(parsed.username or "")
+    password = unquote(parsed.password or "")
+    project_ref = ""
+
+    if username.startswith("postgres."):
+        project_ref = username.split(".", 1)[1]
+    if not project_ref:
+        project_ref = _extract_supabase_project_ref(supabase_url)
+    if not project_ref or not password:
+        return database_url
+
+    direct_netloc = f"{quote('postgres', safe='')}:{quote(password, safe='')}@db.{project_ref}.supabase.co:5432"
+    return urlunsplit((
+        parsed.scheme or "postgresql+asyncpg",
+        direct_netloc,
+        parsed.path or "/postgres",
+        parsed.query,
+        parsed.fragment,
+    ))
 
 
 class Settings(BaseSettings):
@@ -82,6 +127,10 @@ class Settings(BaseSettings):
     @property
     def BACKEND_CORS_ORIGINS(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
+    @property
+    def database_url_normalized(self) -> str:
+        return _normalize_database_url(self.DATABASE_URL, self.SUPABASE_URL)
 
     @property
     def cors_origins_list(self) -> List[str]:

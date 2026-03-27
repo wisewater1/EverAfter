@@ -98,6 +98,27 @@ function buildFallbackSummary(tasks: FamilyTask[], shopping: ShoppingItem[], eve
     };
 }
 
+function normalizeFailureMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error || '');
+    return message.trim().replace(/\s+/g, ' ');
+}
+
+function buildRecoveryWarning(rejections: PromiseRejectedResult[]): string {
+    const normalizedMessages = rejections
+        .map((result) => normalizeFailureMessage(result.reason))
+        .filter(Boolean);
+    const timeoutMessages = normalizedMessages.filter((message) => /timed out/i.test(message));
+
+    if (timeoutMessages.length === rejections.length) {
+        return 'St. Joseph entered recovery mode because family services timed out. Cached and local family data are shown while the backend catches up.';
+    }
+
+    const detail = normalizedMessages[0];
+    return detail
+        ? `St. Joseph entered recovery mode because live family services failed: ${detail}`
+        : 'St. Joseph entered recovery mode because live family services failed. Cached and local family data are shown until the backend recovers.';
+}
+
 export default function StJosephFamilyDashboard() {
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -148,7 +169,7 @@ export default function StJosephFamilyDashboard() {
             const nextShopping = results[1].status === 'fulfilled' ? results[1].value as ShoppingItem[] : [];
             const nextEvents = results[2].status === 'fulfilled' ? results[2].value as FamilyEvent[] : [];
             const nextBulletin = results[3].status === 'fulfilled' ? results[3].value : [];
-            const hasFailures = results.some((result) => result.status === 'rejected');
+            const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
 
             setTasks(nextTasks);
             setShopping(nextShopping);
@@ -156,9 +177,9 @@ export default function StJosephFamilyDashboard() {
             setBulletin(nextBulletin);
             setSummary(buildFallbackSummary(nextTasks, nextShopping, nextEvents));
 
-            if (hasFailures) {
+            if (failures.length > 0) {
                 setDegradedMode(true);
-                setLoadWarning('St. Joseph entered recovery mode. Slow backend calls were skipped so the dashboard could render immediately.');
+                setLoadWarning(buildRecoveryWarning(failures));
             }
         } catch (error) {
             console.error('Error loading family data:', error);
@@ -168,7 +189,12 @@ export default function StJosephFamilyDashboard() {
             setBulletin([]);
             setSummary(buildFallbackSummary([], [], []));
             setDegradedMode(true);
-            setLoadWarning(error instanceof Error ? error.message : 'St. Joseph switched to recovery mode.');
+            const normalizedMessage = normalizeFailureMessage(error);
+            setLoadWarning(
+                /timed out/i.test(normalizedMessage)
+                    ? 'St. Joseph entered recovery mode because family services timed out. Cached and local family data are shown while the backend catches up.'
+                    : normalizedMessage || 'St. Joseph entered recovery mode because live family services failed.',
+            );
         } finally {
             setLoading(false);
         }

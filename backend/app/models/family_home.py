@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, JSON, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, Boolean, JSON, Integer
 from sqlalchemy.sql import func
 from app.db.session import Base
 
@@ -50,7 +50,7 @@ class CalendarEvent(Base):
     time = Column(String, nullable=True)  # e.g., HH:MM
     attendees = Column(JSON, nullable=True) # list of names or IDs
     created_at = Column(DateTime, default=func.now(), nullable=False)
-    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(String, nullable=True)
 
 class BulletinMessage(Base):
     __tablename__ = "bulletin_messages"
@@ -59,4 +59,4 @@ class BulletinMessage(Base):
     text = Column(String, nullable=False)
     author = Column(String, nullable=False)
     created_at = Column(DateTime, default=func.now(), nullable=False)
-    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(String, nullable=True)
