@@ -5,6 +5,8 @@ Router prefix: /api/v1/family-home
 """
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -12,10 +14,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_session
+from app.db.session import create_supabase_client, get_session
 from app.models.family_home import BulletinMessage, CalendarEvent, FamilyTask, ShoppingItem
 
 router = APIRouter(prefix="/api/v1/family-home", tags=["Family Home"])
+logger = logging.getLogger(__name__)
 
 
 def _get_user_id(current_user: dict) -> str:
@@ -67,6 +70,87 @@ def _serialize_item(item: ShoppingItem) -> Dict[str, Any]:
     }
 
 
+def _serialize_task_record(task: Dict[str, Any]) -> Dict[str, Any]:
+    status = task.get("status") or ("completed" if task.get("completed") else "pending")
+    task_type = task.get("task_type") or "standard"
+    return {
+        "id": task.get("id"),
+        "action": task.get("text"),
+        "title": task.get("text"),
+        "description": task.get("description") or "",
+        "status": status,
+        "category": "chore" if task_type == "standard" else task_type,
+        "type": task_type,
+        "assignedTo": task.get("assigned_to"),
+        "assignee": task.get("assigned_to"),
+        "rewardWG": task.get("reward_wg"),
+        "aiBrief": task.get("ai_brief"),
+        "dueDate": task.get("due_date"),
+        "createdAt": task.get("created_at"),
+        "metadata": task.get("metadata_json") or {},
+    }
+
+
+def _serialize_item_record(item: Dict[str, Any]) -> Dict[str, Any]:
+    status = item.get("status") or ("bought" if item.get("bought") else "needed")
+    item_type = item.get("item_type") or "standard"
+    return {
+        "id": item.get("id"),
+        "name": item.get("text"),
+        "quantity": item.get("quantity") or "1",
+        "addedBy": "Family",
+        "status": status,
+        "type": item_type,
+        "priceEst": item.get("price_est"),
+        "triggerSource": item.get("trigger_source"),
+        "legacyBeneficiary": item.get("legacy_beneficiary"),
+        "unlockYear": item.get("unlock_year"),
+        "metadata": item.get("metadata_json") or {},
+        "createdAt": item.get("created_at"),
+    }
+
+
+async def _fetch_supabase_rows(
+    table_name: str,
+    user_id: str,
+    *,
+    order_by: str | None = None,
+    descending: bool = False,
+) -> list[Dict[str, Any]]:
+    def _run():
+        client = create_supabase_client()
+        query = client.table(table_name).select("*").eq("user_id", user_id)
+        if order_by:
+            query = query.order(order_by, desc=descending)
+        return query.execute()
+
+    response = await asyncio.to_thread(_run)
+    return response.data or []
+
+
+def _format_calendar_event_record(event: Dict[str, Any]) -> Dict[str, Any]:
+    date_value = event.get("date") or datetime.utcnow().strftime("%Y-%m-%d")
+    time_value = event.get("time") or "12:00"
+    start_dt = f"{date_value}T{time_value}:00Z"
+    return {
+        "id": event.get("id"),
+        "title": event.get("title"),
+        "startTime": start_dt,
+        "endTime": start_dt,
+        "location": "TBD",
+        "attendees": event.get("attendees") or [],
+    }
+
+
+def _format_bulletin_record(message: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": message.get("id"),
+        "text": message.get("text"),
+        "author": message.get("author"),
+        "createdAt": message.get("created_at") or datetime.utcnow().isoformat() + "Z",
+    }
+
+
 def _coerce_task_status(task: FamilyTask, next_status: str) -> None:
     normalized = next_status if next_status in {"pending", "in_progress", "completed"} else "pending"
     task.status = normalized
@@ -86,11 +170,17 @@ async def get_tasks(
 ):
     user_id = _get_user_id(current_user)
     query = select(FamilyTask).where(FamilyTask.user_id == user_id).order_by(FamilyTask.created_at.desc())
-    result = await session.execute(query)
-    tasks = result.scalars().all()
+    try:
+        result = await session.execute(query)
+        tasks = result.scalars().all()
 
-    formatted_tasks = [_serialize_task(task) for task in tasks]
-    return {"tasks": formatted_tasks, "total": len(formatted_tasks)}
+        formatted_tasks = [_serialize_task(task) for task in tasks]
+        return {"tasks": formatted_tasks, "total": len(formatted_tasks)}
+    except Exception as exc:
+        logger.warning("SQL task lookup failed; using Supabase fallback: %s", exc)
+        rows = await _fetch_supabase_rows("family_tasks", user_id, order_by="created_at", descending=True)
+        formatted_tasks = [_serialize_task_record(row) for row in rows]
+        return {"tasks": formatted_tasks, "total": len(formatted_tasks)}
 
 
 @router.post("/tasks")
@@ -231,11 +321,17 @@ async def get_shopping_list(
 ):
     user_id = _get_user_id(current_user)
     query = select(ShoppingItem).where(ShoppingItem.user_id == user_id).order_by(ShoppingItem.created_at.desc())
-    result = await session.execute(query)
-    items = result.scalars().all()
+    try:
+        result = await session.execute(query)
+        items = result.scalars().all()
 
-    formatted_items = [_serialize_item(item) for item in items]
-    return {"items": formatted_items, "total": len(formatted_items)}
+        formatted_items = [_serialize_item(item) for item in items]
+        return {"items": formatted_items, "total": len(formatted_items)}
+    except Exception as exc:
+        logger.warning("SQL shopping lookup failed; using Supabase fallback: %s", exc)
+        rows = await _fetch_supabase_rows("shopping_items", user_id, order_by="created_at", descending=True)
+        formatted_items = [_serialize_item_record(row) for row in rows]
+        return {"items": formatted_items, "total": len(formatted_items)}
 
 
 @router.post("/shopping")
@@ -399,22 +495,28 @@ async def get_calendar(
 ):
     user_id = _get_user_id(current_user)
     query = select(CalendarEvent).where(CalendarEvent.user_id == user_id)
-    result = await session.execute(query)
-    events = result.scalars().all()
+    try:
+        result = await session.execute(query)
+        events = result.scalars().all()
 
-    formatted_events = []
-    for event in events:
-        start_dt = f"{event.date}T{event.time or '12:00'}:00Z"
-        formatted_events.append({
-            "id": event.id,
-            "title": event.title,
-            "startTime": start_dt,
-            "endTime": start_dt,
-            "location": "TBD",
-            "attendees": event.attendees or [],
-        })
+        formatted_events = []
+        for event in events:
+            start_dt = f"{event.date}T{event.time or '12:00'}:00Z"
+            formatted_events.append({
+                "id": event.id,
+                "title": event.title,
+                "startTime": start_dt,
+                "endTime": start_dt,
+                "location": "TBD",
+                "attendees": event.attendees or [],
+            })
 
-    return {"events": formatted_events, "total": len(formatted_events)}
+        return {"events": formatted_events, "total": len(formatted_events)}
+    except Exception as exc:
+        logger.warning("SQL calendar lookup failed; using Supabase fallback: %s", exc)
+        rows = await _fetch_supabase_rows("calendar_events", user_id, order_by="created_at")
+        formatted_events = [_format_calendar_event_record(row) for row in rows]
+        return {"events": formatted_events, "total": len(formatted_events)}
 
 
 @router.post("/calendar")
@@ -479,19 +581,25 @@ async def get_bulletin(
 ):
     user_id = _get_user_id(current_user)
     query = select(BulletinMessage).where(BulletinMessage.user_id == user_id).order_by(BulletinMessage.created_at.desc())
-    result = await session.execute(query)
-    messages = result.scalars().all()
+    try:
+        result = await session.execute(query)
+        messages = result.scalars().all()
 
-    formatted_messages = []
-    for message in messages:
-        formatted_messages.append({
-            "id": message.id,
-            "text": message.text,
-            "author": message.author,
-            "createdAt": message.created_at.isoformat() + "Z" if message.created_at else datetime.utcnow().isoformat() + "Z",
-        })
+        formatted_messages = []
+        for message in messages:
+            formatted_messages.append({
+                "id": message.id,
+                "text": message.text,
+                "author": message.author,
+                "createdAt": message.created_at.isoformat() + "Z" if message.created_at else datetime.utcnow().isoformat() + "Z",
+            })
 
-    return {"messages": formatted_messages, "total": len(formatted_messages)}
+        return {"messages": formatted_messages, "total": len(formatted_messages)}
+    except Exception as exc:
+        logger.warning("SQL bulletin lookup failed; using Supabase fallback: %s", exc)
+        rows = await _fetch_supabase_rows("bulletin_messages", user_id, order_by="created_at", descending=True)
+        formatted_messages = [_format_bulletin_record(row) for row in rows]
+        return {"messages": formatted_messages, "total": len(formatted_messages)}
 
 
 @router.post("/bulletin")

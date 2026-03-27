@@ -4,17 +4,19 @@ Router prefix: /api/v1/genealogy
 """
 from __future__ import annotations
 
-import uuid
+import asyncio
+import logging
 from datetime import datetime
 from fastapi import APIRouter, Body, Depends, HTTPException
 from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
-from app.db.session import get_session
+from app.db.session import create_supabase_client, get_session
 from app.models.genealogy import FamilyNode, FamilyRelationship, FamilyEvent
 
 router = APIRouter(prefix="/api/v1/genealogy", tags=["Genealogy"])
+logger = logging.getLogger(__name__)
 
 # Auth helpers
 def _get_user_id(current_user: dict) -> str:
@@ -24,6 +26,23 @@ def _get_current_user():
     from app.auth.dependencies import get_current_user
     return get_current_user
 
+
+async def _fetch_supabase_tree(user_id: str) -> Dict[str, Any]:
+    def _run():
+        client = create_supabase_client()
+        nodes_response = client.table("family_nodes").select("*").eq("user_id", user_id).execute()
+        nodes = nodes_response.data or []
+        node_ids = {node.get("id") for node in nodes if node.get("id")}
+        relationships_response = client.table("family_relationships").select("*").execute()
+        relationships = [
+            relationship
+            for relationship in (relationships_response.data or [])
+            if relationship.get("from_node_id") in node_ids or relationship.get("to_node_id") in node_ids
+        ]
+        return {"nodes": nodes, "relationships": relationships}
+
+    return await asyncio.to_thread(_run)
+
 @router.get("/tree")
 async def get_family_tree(
     session: AsyncSession = Depends(get_session),
@@ -31,50 +50,76 @@ async def get_family_tree(
 ):
     """Retrieve all family nodes and their relationships for the current user."""
     user_id = _get_user_id(current_user)
-    
-    # 1. Fetch nodes
-    nodes_query = select(FamilyNode).where(FamilyNode.user_id == user_id)
-    nodes_result = await session.execute(nodes_query)
-    nodes = nodes_result.scalars().all()
-    
-    if not nodes:
-        return {"nodes": [], "relationships": []}
-    
-    # 2. Extract node IDs to fetch relationships
-    node_ids = [node.id for node in nodes]
-    
-    # 3. Fetch relationships
-    rels_query = select(FamilyRelationship).where(
-        FamilyRelationship.from_node_id.in_(node_ids)
-    )
-    rels_result = await session.execute(rels_query)
-    relationships = rels_result.scalars().all()
-    
-    # FORMAT
-    formatted_nodes = []
-    for n in nodes:
-        formatted_nodes.append({
-            "id": n.id,
-            "name": n.name,
-            "gender": n.gender,
-            "birthDate": n.birth_date,
-            "deathDate": n.death_date,
-            "healthMetrics": n.health_metrics or {}
-        })
-        
-    formatted_relationships = []
-    for r in relationships:
-        formatted_relationships.append({
-            "id": r.id,
-            "fromNodeId": r.from_node_id,
-            "toNodeId": r.to_node_id,
-            "relationType": r.relation_type
-        })
-        
-    return {
-        "nodes": formatted_nodes,
-        "relationships": formatted_relationships
-    }
+
+    try:
+        # 1. Fetch nodes
+        nodes_query = select(FamilyNode).where(FamilyNode.user_id == user_id)
+        nodes_result = await session.execute(nodes_query)
+        nodes = nodes_result.scalars().all()
+
+        if not nodes:
+            return {"nodes": [], "relationships": []}
+
+        # 2. Extract node IDs to fetch relationships
+        node_ids = [node.id for node in nodes]
+
+        # 3. Fetch relationships
+        rels_query = select(FamilyRelationship).where(
+            FamilyRelationship.from_node_id.in_(node_ids)
+        )
+        rels_result = await session.execute(rels_query)
+        relationships = rels_result.scalars().all()
+
+        # FORMAT
+        formatted_nodes = []
+        for n in nodes:
+            formatted_nodes.append({
+                "id": n.id,
+                "name": n.name,
+                "gender": n.gender,
+                "birthDate": n.birth_date,
+                "deathDate": n.death_date,
+                "healthMetrics": n.health_metrics or {}
+            })
+
+        formatted_relationships = []
+        for r in relationships:
+            formatted_relationships.append({
+                "id": r.id,
+                "fromNodeId": r.from_node_id,
+                "toNodeId": r.to_node_id,
+                "relationType": r.relation_type
+            })
+
+        return {
+            "nodes": formatted_nodes,
+            "relationships": formatted_relationships
+        }
+    except Exception as exc:
+        logger.warning("SQL genealogy lookup failed; using Supabase fallback: %s", exc)
+        tree = await _fetch_supabase_tree(user_id)
+        return {
+            "nodes": [
+                {
+                    "id": node.get("id"),
+                    "name": node.get("name"),
+                    "gender": node.get("gender"),
+                    "birthDate": node.get("birth_date"),
+                    "deathDate": node.get("death_date"),
+                    "healthMetrics": node.get("health_metrics") or {},
+                }
+                for node in tree["nodes"]
+            ],
+            "relationships": [
+                {
+                    "id": relationship.get("id"),
+                    "fromNodeId": relationship.get("from_node_id"),
+                    "toNodeId": relationship.get("to_node_id"),
+                    "relationType": relationship.get("relation_type"),
+                }
+                for relationship in tree["relationships"]
+            ],
+        }
 
 @router.post("/node")
 async def create_node(
