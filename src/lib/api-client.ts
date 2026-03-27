@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { env } from './env';
 import { logger } from './logger';
 import { NetworkError, IntegrationError, handleError } from './errors';
+import { buildAccessTokenHeaders, getAccessToken } from './auth-session';
 import type { EdgeFunctionResponse, ChatResponse, DailyQuestionResponseData, FamilyTask, ShoppingItem, CalendarEvent, BulletinMessage, EngramResponse, EngramCreatePayload } from '../types/database.types';
 import { API_BASE_URL } from '../lib/env';
 import { getFamilyCalendar as getLocalFamilyCalendar } from './joseph/family';
@@ -90,18 +91,11 @@ class APIClient {
   }
 
   private async buildAuthHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {
-    const token = await this.getAuthToken();
-    return token
-      ? { ...extraHeaders, Authorization: `Bearer ${token}` }
-      : extraHeaders;
+    return buildAccessTokenHeaders(extraHeaders);
   }
 
   private async getAuthToken(): Promise<string | null> {
-    if (!supabase) {
-      return null;
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+    return getAccessToken();
   }
 
   async getAuthHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {

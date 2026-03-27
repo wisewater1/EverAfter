@@ -1,5 +1,5 @@
 import { requestBackendJson, requestBackendResponse } from '../backend-request';
-import { supabase } from '../supabase';
+import { buildAccessTokenHeaders } from '../auth-session';
 
 export interface TransactionCategory {
   name: string;
@@ -96,25 +96,18 @@ function writeFinanceCache<T>(key: string, value: T) {
 }
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
-  const token = sessionResult.data.session?.access_token;
-
-  const headers: HeadersInit = {
+  const headers = await buildAccessTokenHeaders({
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string> | undefined),
-  };
+  });
   return requestBackendResponse(endpoint, { ...options, headers }, `Finance API request failed for ${endpoint}.`);
 }
 
 async function fetchJsonWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
-  const token = sessionResult.data.session?.access_token;
-  const headers: HeadersInit = {
+  const headers = await buildAccessTokenHeaders({
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string> | undefined),
-  };
+  });
 
   return requestBackendJson<T>(
     endpoint,

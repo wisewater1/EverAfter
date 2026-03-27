@@ -8,8 +8,9 @@ import {
     AlertTriangle,
     XCircle
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { requestBackendJson } from '../../lib/backend-request';
-import { supabase } from '../../lib/supabase';
+import { buildAccessTokenHeaders, isAuthFailureMessage } from '../../lib/auth-session';
 
 interface MonitoringStatus {
     role: string;
@@ -27,22 +28,27 @@ interface SystemStatus {
 }
 
 export default function SaintsGuardian() {
+    const { loading: authLoading, session } = useAuth();
     const [status, setStatus] = useState<SystemStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [error, setError] = useState<string | null>(null);
 
     const fetchStatus = async () => {
+        if (authLoading || !session?.access_token) {
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
+            const headers = await buildAccessTokenHeaders();
             const data = await requestBackendJson<SystemStatus>(
                 '/api/v1/monitoring/status',
                 {
                     method: 'GET',
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    headers,
                 },
                 'Unable to load Saints API guardian status.'
             );
@@ -50,17 +56,26 @@ export default function SaintsGuardian() {
             setLastUpdated(new Date());
         } catch (err) {
             console.error("Monitoring failed", err);
-            setError(err instanceof Error ? err.message : 'Unable to load Saints API guardian status.');
+            const message = err instanceof Error ? err.message : 'Unable to load Saints API guardian status.';
+            setError(
+                isAuthFailureMessage(message)
+                    ? 'Your session is not ready yet. Live saint monitoring will resume automatically.'
+                    : message
+            );
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
+        if (authLoading || !session?.access_token) {
+            return;
+        }
+
         fetchStatus();
         const interval = setInterval(fetchStatus, 30000); // Poll every 30s
         return () => clearInterval(interval);
-    }, []);
+    }, [authLoading, session?.access_token]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {

@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 
 import AddTransactionModal from './AddTransactionModal';
+import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
 import { BankStatusResponse, Transaction, financeApi } from '../../lib/gabriel/finance';
 import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 
@@ -17,6 +19,7 @@ type FilterMode = 'all' | 'bank' | 'manual';
 type SortMode = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
 
 export default function TransactionLedger() {
+  const { loading: authLoading, session } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>(() => financeApi.getCachedTransactions(100));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +32,12 @@ export default function TransactionLedger() {
   const [sortMode, setSortMode] = useState<SortMode>('date_desc');
 
   useEffect(() => {
+    if (authLoading || !session?.access_token) {
+      setLoading(false);
+      return;
+    }
     void bootstrap();
-  }, []);
+  }, [authLoading, session?.access_token]);
 
   async function bootstrap() {
     let lastKnownStatus: BankStatusResponse | null = null;
@@ -57,7 +64,12 @@ export default function TransactionLedger() {
       setOfflineMode(false);
     } catch (err: any) {
       console.error('Failed to load transactions:', err);
-      setError(null);
+      const message = err?.message || 'Failed to load transactions';
+      setError(
+        isAuthFailureMessage(message)
+          ? 'Your session is still restoring. Gabriel will retry the live ledger automatically.'
+          : null
+      );
       setOfflineMode(true);
       setBankStatus((current) => current || lastKnownStatus);
       setTransactions((current) => current);
@@ -83,7 +95,8 @@ export default function TransactionLedger() {
       });
     } catch (err: any) {
       console.error('Failed to connect bank:', err);
-      setError(err?.message || 'Failed to connect bank');
+      const message = err?.message || 'Failed to connect bank';
+      setError(isAuthFailureMessage(message) ? 'Sign in again to connect a bank account.' : message);
     } finally {
       setBankLoading(false);
     }
@@ -96,7 +109,8 @@ export default function TransactionLedger() {
       await bootstrap();
     } catch (err: any) {
       console.error('Failed to sync bank:', err);
-      setError(err?.message || 'Failed to sync transactions');
+      const message = err?.message || 'Failed to sync transactions';
+      setError(isAuthFailureMessage(message) ? 'Sign in again to sync bank transactions.' : message);
     } finally {
       setBankLoading(false);
     }

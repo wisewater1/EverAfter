@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Save } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { financeApi } from '../../lib/gabriel/finance';
 
 interface AddTransactionModalProps {
@@ -9,6 +10,7 @@ interface AddTransactionModalProps {
 }
 
 export default function AddTransactionModal({ isOpen, onClose, onTransactionAdded }: AddTransactionModalProps) {
+    const { loading: authLoading, session } = useAuth();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
 
@@ -20,10 +22,12 @@ export default function AddTransactionModal({ isOpen, onClose, onTransactionAdde
     const [description, setDescription] = useState('');
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !authLoading && session?.access_token) {
             loadCategories();
+        } else if (!authLoading && !session?.access_token) {
+            setCategories([]);
         }
-    }, [isOpen]);
+    }, [isOpen, authLoading, session?.access_token]);
 
     async function loadCategories() {
         try {
@@ -39,6 +43,10 @@ export default function AddTransactionModal({ isOpen, onClose, onTransactionAdde
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        if (!session?.access_token) {
+            alert('Your session is still restoring. Please try again in a moment.');
+            return;
+        }
         setLoading(true);
 
         try {

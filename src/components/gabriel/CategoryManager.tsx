@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Eye, EyeOff, Save, FolderPlus, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
 import { financeApi } from '../../lib/gabriel/finance';
 
 interface CategoryManagerProps {
@@ -9,6 +11,7 @@ interface CategoryManagerProps {
 }
 
 export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryManagerProps) {
+    const { loading: authLoading, session } = useAuth();
     const [categories, setCategories] = useState<{ id: string, name: string, group: string }[]>([]); // Simplified type
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -20,10 +23,12 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !authLoading && session?.access_token) {
             loadCategories();
+        } else if (!authLoading && !session?.access_token) {
+            setLoading(false);
         }
-    }, [isOpen]);
+    }, [isOpen, authLoading, session?.access_token]);
 
     async function loadCategories() {
         try {
@@ -46,7 +51,12 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
             console.error('Failed to load categories', error);
             setCategories([]);
             setDegradedMode(true);
-            setError(error instanceof Error ? error.message : 'Failed to load categories');
+            const message = error instanceof Error ? error.message : 'Failed to load categories';
+            setError(
+                isAuthFailureMessage(message)
+                    ? 'Your session is still restoring. Category management will resume automatically.'
+                    : message
+            );
         } finally {
             setLoading(false);
         }

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Loader2, MoreHorizontal } from 'lucide-react';
 
+import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
 import CategoryManager from './CategoryManager';
 import { BudgetEnvelope, financeApi } from '../../lib/gabriel/finance';
 
 export default function BudgetEnvelopes() {
+    const { loading: authLoading, session } = useAuth();
     const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(() => financeApi.getCachedBudget());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -12,8 +15,12 @@ export default function BudgetEnvelopes() {
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
 
     useEffect(() => {
+        if (authLoading || !session?.access_token) {
+            setLoading(false);
+            return;
+        }
         void loadBudget();
-    }, []);
+    }, [authLoading, session?.access_token]);
 
     async function loadBudget() {
         setLoading(true);
@@ -49,7 +56,12 @@ export default function BudgetEnvelopes() {
                     console.error('Budget recovery fetch failed:', err);
                     setEnvelopes(financeApi.getCachedBudget());
                     setDegradedMode(true);
-                    setError(err?.message || 'Failed to load budget envelopes');
+                    const message = err?.message || 'Failed to load budget envelopes';
+                    setError(
+                        isAuthFailureMessage(message)
+                            ? 'Your session is still restoring. Gabriel will retry live budget sync automatically.'
+                            : message
+                    );
                 }
                 return;
             }
@@ -60,7 +72,12 @@ export default function BudgetEnvelopes() {
             console.error('Failed to load budget:', err);
             setEnvelopes(financeApi.getCachedBudget());
             setDegradedMode(true);
-            setError(err?.message || 'Failed to load budget envelopes');
+            const message = err?.message || 'Failed to load budget envelopes';
+            setError(
+                isAuthFailureMessage(message)
+                    ? 'Your session is still restoring. Gabriel will retry live budget sync automatically.'
+                    : message
+            );
         } finally {
             setLoading(false);
         }
