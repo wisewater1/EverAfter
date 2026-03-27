@@ -49,8 +49,27 @@ def _normalize_database_url(raw_url: str, supabase_url: str) -> str:
     ))
 
 
+def _looks_like_placeholder_database_url(raw_url: str) -> bool:
+    candidate = str(raw_url or "").strip()
+    if not candidate:
+        return True
+
+    upper_candidate = candidate.upper()
+    placeholder_markers = (
+        "YOUR-PASSWORD",
+        "YOUR_PASSWORD",
+        "YOUR_PROJECT_REF",
+        "<DB_PASSWORD>",
+        "<YOUR-PASSWORD>",
+        "PASSWORD_HERE",
+    )
+    return any(marker in upper_candidate for marker in placeholder_markers)
+
+
 class Settings(BaseSettings):
     DATABASE_URL: str
+    PRISMA_DATABASE_URL: str = ""
+    OPRISMA_DATABASE_URL: str = ""
     SUPABASE_URL: str = Field(default="", validation_alias=AliasChoices("SUPABASE_URL", "VITE_SUPABASE_URL"))
     SUPABASE_ANON_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"))
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY"))
@@ -130,6 +149,17 @@ class Settings(BaseSettings):
 
     @property
     def database_url_normalized(self) -> str:
+        candidates = [
+            self.DATABASE_URL,
+            self.PRISMA_DATABASE_URL,
+            self.OPRISMA_DATABASE_URL,
+        ]
+
+        for raw_url in candidates:
+            if _looks_like_placeholder_database_url(raw_url):
+                continue
+            return _normalize_database_url(raw_url, self.SUPABASE_URL)
+
         return _normalize_database_url(self.DATABASE_URL, self.SUPABASE_URL)
 
     @property
