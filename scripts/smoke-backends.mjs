@@ -3,6 +3,8 @@ const DEFAULT_APP_API_URL = process.env.SMOKE_API_URL || process.env.VITE_API_BA
 const DEFAULT_HEALTH_API_URL = process.env.SMOKE_HEALTH_API_URL || process.env.VITE_HEALTH_API_BASE_URL || 'http://localhost:4000';
 const AUTH_ROUTE = process.env.SMOKE_AUTH_ROUTE || '/api/v1/health/summary';
 const AUTH_TOKEN = process.env.SMOKE_BEARER_TOKEN || '';
+const SAINT_ID = process.env.SMOKE_SAINT_ID || 'gabriel';
+const SAINT_CHAT_MESSAGE = process.env.SMOKE_SAINT_CHAT_MESSAGE || 'One line only: status check.';
 
 function joinUrl(baseUrl, path) {
   return `${String(baseUrl || '').replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
@@ -39,6 +41,35 @@ async function assertUp(label, url, options = {}) {
   console.log(`${label}: OK ${result.status} ${url}`);
 }
 
+async function assertSaintAvailable(baseUrl, token) {
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+
+  await assertUp(
+    `saint bootstrap (${SAINT_ID})`,
+    joinUrl(baseUrl, `/api/v1/saints/${SAINT_ID}/bootstrap`),
+    {
+      method: 'POST',
+      headers,
+    },
+  );
+
+  await assertUp(
+    `saint chat (${SAINT_ID})`,
+    joinUrl(baseUrl, `/api/v1/saints/${SAINT_ID}/chat`),
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        message: SAINT_CHAT_MESSAGE,
+        coordination_mode: false,
+      }),
+    },
+  );
+}
+
 async function main() {
   console.log(`Frontend URL: ${DEFAULT_FRONTEND_URL}`);
   console.log(`App API URL: ${DEFAULT_APP_API_URL}`);
@@ -50,6 +81,7 @@ async function main() {
 
   if (!AUTH_TOKEN) {
     console.log(`authenticated app route: SKIPPED (${AUTH_ROUTE}) because SMOKE_BEARER_TOKEN is not set`);
+    console.log(`built-in saint probe: SKIPPED (${SAINT_ID}) because SMOKE_BEARER_TOKEN is not set`);
     return;
   }
 
@@ -62,6 +94,8 @@ async function main() {
       },
     },
   );
+
+  await assertSaintAvailable(DEFAULT_APP_API_URL, AUTH_TOKEN);
 }
 
 main().catch((error) => {

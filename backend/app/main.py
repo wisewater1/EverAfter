@@ -40,8 +40,70 @@ print("====================================================")
 logger = logging.getLogger(__name__)
 
 
-async def _start_optional_runtime(app: FastAPI) -> None:
+def _default_subsystem_status() -> dict:
+    return {
+        "core_api": {
+            "availability": "available",
+            "ready": True,
+        },
+        "database": {
+            "availability": "starting",
+            "ready": False,
+            "bootstrap_complete": False,
+            "last_error": None,
+        },
+        "saints": {
+            "availability": "starting",
+            "builtins_available": True,
+            "persistence_available": False,
+            "event_listener_enabled": settings.ENABLE_SAINT_EVENT_LISTENER,
+            "event_listener_started": False,
+            "background_vigils_enabled": settings.ENABLE_SAINT_BACKGROUND_VIGILS,
+            "background_vigils_started": False,
+            "last_error": None,
+        },
+    }
+
+
+def _refresh_subsystem_status(app: FastAPI) -> None:
+    runtime_status = getattr(
+        app.state,
+        "runtime_status",
+        {
+            "status": "starting",
+            "db_ready": False,
+            "bootstrap_complete": False,
+            "last_error": None,
+        },
+    )
+    subsystem_status = getattr(app.state, "subsystem_status", _default_subsystem_status())
+
+    database_status = subsystem_status["database"]
+    database_status.update(
+        {
+            "availability": "full" if runtime_status["db_ready"] else ("degraded" if runtime_status["bootstrap_complete"] else "starting"),
+            "ready": runtime_status["db_ready"],
+            "bootstrap_complete": runtime_status["bootstrap_complete"],
+            "last_error": runtime_status["last_error"],
+        }
+    )
+
+    saints_status = subsystem_status["saints"]
+    saints_status["persistence_available"] = runtime_status["db_ready"]
+    saints_status["availability"] = (
+        "full"
+        if runtime_status["db_ready"]
+        else ("degraded_available" if runtime_status["bootstrap_complete"] or saints_status["event_listener_started"] else "starting")
+    )
+    if runtime_status["last_error"] and not runtime_status["db_ready"]:
+        saints_status["last_error"] = runtime_status["last_error"]
+
+    app.state.subsystem_status = subsystem_status
+
+
+async def _start_saint_runtime(app: FastAPI) -> None:
     background_tasks = getattr(app.state, "background_tasks", [])
+    saints_status = app.state.subsystem_status["saints"]
 
     if settings.ENABLE_SAINT_EVENT_LISTENER:
         try:
@@ -50,15 +112,27 @@ async def _start_optional_runtime(app: FastAPI) -> None:
             background_tasks.append(
                 asyncio.create_task(saint_runtime.listen_for_events(), name="saint-event-listener")
             )
-        except Exception:
+            saints_status["event_listener_started"] = True
+        except Exception as exc:
+            saints_status["last_error"] = f"Failed to start saint event listener: {exc}"
             logger.exception("Failed to start saint event listener")
+
+    app.state.background_tasks = background_tasks
+    _refresh_subsystem_status(app)
+
+
+async def _start_optional_runtime(app: FastAPI) -> None:
+    background_tasks = getattr(app.state, "background_tasks", [])
+    saints_status = app.state.subsystem_status["saints"]
 
     if settings.ENABLE_SAINT_BACKGROUND_VIGILS:
         try:
             from app.services.saint_runtime import saint_runtime
 
             background_tasks.append(asyncio.create_task(saint_runtime.run_vigils(), name="saint-vigils"))
-        except Exception:
+            saints_status["background_vigils_started"] = True
+        except Exception as exc:
+            saints_status["last_error"] = f"Failed to start saint vigils: {exc}"
             logger.exception("Failed to start saint vigils")
 
     if settings.ENABLE_COMPLIANCE_AUTOPILOT:
@@ -85,6 +159,7 @@ async def _start_optional_runtime(app: FastAPI) -> None:
             logger.exception("Failed to start WiseGold scheduler")
 
     app.state.background_tasks = background_tasks
+    _refresh_subsystem_status(app)
 
 
 async def _bootstrap_runtime(app: FastAPI) -> None:
@@ -115,6 +190,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
                 "last_error": None,
             }
         )
+        _refresh_subsystem_status(app)
         app.state.optional_runtime_task = asyncio.create_task(
             _start_optional_runtime(app),
             name="optional-runtime-bootstrap",
@@ -131,6 +207,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
                 "last_error": str(exc),
             }
         )
+        _refresh_subsystem_status(app)
 
 
 @asynccontextmanager
@@ -143,6 +220,9 @@ async def lifespan(app: FastAPI):
         "bootstrap_complete": False,
         "last_error": None,
     }
+    app.state.subsystem_status = _default_subsystem_status()
+    _refresh_subsystem_status(app)
+    await _start_saint_runtime(app)
     app.state.bootstrap_task = asyncio.create_task(_bootstrap_runtime(app), name="runtime-bootstrap")
     yield
 
@@ -256,6 +336,7 @@ async def health_check():
         "service": "EverAfter Autonomous AI API",
         "version": "1.0.0",
         "bootstrap": runtime_status,
+        "subsystems": getattr(app.state, "subsystem_status", _default_subsystem_status()),
     }
 
 

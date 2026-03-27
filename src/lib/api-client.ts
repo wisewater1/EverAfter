@@ -16,6 +16,43 @@ interface RetryConfig {
   maxDelay: number;
 }
 
+export interface SaintBootstrapResult {
+  engram_id: string;
+  saint_id: string;
+  name: string;
+  is_new?: boolean;
+  degraded?: boolean;
+  mode?: 'full' | 'degraded';
+  persistence_available?: boolean;
+}
+
+export interface SaintChatResult extends ChatResponse {
+  saint_id: string;
+  saint_name: string;
+  role: string;
+  content: string;
+  degraded?: boolean;
+  mode?: 'full' | 'degraded';
+  persistence_available?: boolean;
+  history_available?: boolean;
+  knowledge_available?: boolean;
+}
+
+export interface SaintStatusSummary {
+  saint_id: string;
+  name: string;
+  title: string;
+  domain: string;
+  engram_id?: string | null;
+  is_active: boolean;
+  knowledge_count: number;
+  built_in_available?: boolean;
+  availability_mode?: 'full' | 'degraded' | 'unavailable';
+  persistence_available?: boolean;
+  history_available?: boolean;
+  knowledge_available?: boolean;
+}
+
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
   baseDelay: 1000,
@@ -543,7 +580,7 @@ class APIClient {
 
   // Saint Agent API
 
-  async getSaintsStatus(): Promise<Exclude<EdgeFunctionResponse<any>['data'], undefined>> {
+  async getSaintsStatus(): Promise<SaintStatusSummary[]> {
     return this.deduplicate('saints-status', async () => {
       const headers = await this.buildAuthHeaders({
         'Bypass-Tunnel-Reminder': 'true',
@@ -558,7 +595,7 @@ class APIClient {
     });
   }
 
-  async bootstrapSaint(saintId: string): Promise<{ engram_id: string, saint_id: string, name: string }> {
+  async bootstrapSaint(saintId: string): Promise<SaintBootstrapResult> {
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
@@ -574,7 +611,7 @@ class APIClient {
     }
   }
 
-  async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false, context?: string): Promise<ChatResponse & { saint_id: string, saint_name: string }> {
+  async chatWithSaint(saintId: string, message: string, coordinationMode: boolean = false, context?: string): Promise<SaintChatResult> {
     const headers = await this.buildAuthHeaders({
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
@@ -597,8 +634,13 @@ class APIClient {
         saint_id: data.saint_id,
         saint_name: data.saint_name,
         role: data.role,
-        content: data.content
-      } as any;
+        content: data.content,
+        degraded: data.degraded,
+        mode: data.mode,
+        persistence_available: data.persistence_available,
+        history_available: data.history_available,
+        knowledge_available: data.knowledge_available,
+      };
     } catch (error) {
       console.error("Chat with Saint Error:", error);
       throw error;

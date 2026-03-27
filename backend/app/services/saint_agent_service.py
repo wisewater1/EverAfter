@@ -14,7 +14,6 @@ import uuid
 import logging
 import json
 import re
-import httpx
 import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -34,6 +33,10 @@ except ImportError:
     action_engine = None
 
 logger = logging.getLogger(__name__)
+
+
+class SaintStorageUnavailableError(RuntimeError):
+    """Raised when a storage-dependent saint operation cannot run in degraded mode."""
 
 
 def _missing_saint_knowledge_table(exc: Exception) -> bool:
@@ -66,7 +69,7 @@ def _fallback_saint_bootstrap(user_uuid: uuid.UUID, saint_id: str, saint_name: s
         "saint_id": saint_id,
         "name": saint_name,
         "is_new": False,
-        "degraded": True,
+        **_saint_mode_flags(degraded=True, persistence_available=False),
     }
 
 
@@ -75,6 +78,25 @@ async def _safe_session_rollback(session: AsyncSession) -> None:
         await session.rollback()
     except Exception as exc:
         logger.debug("Saint session rollback skipped: %s", exc)
+
+
+def _saint_mode_flags(
+    *,
+    degraded: bool,
+    persistence_available: bool,
+    history_available: Optional[bool] = None,
+    knowledge_available: Optional[bool] = None,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "degraded": degraded,
+        "mode": "degraded" if degraded else "full",
+        "persistence_available": persistence_available,
+    }
+    if history_available is not None:
+        payload["history_available"] = history_available
+    if knowledge_available is not None:
+        payload["knowledge_available"] = knowledge_available
+    return payload
 
 # â”€â”€â”€ Saint Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -294,6 +316,67 @@ class SaintAgentService:
         self.llm = get_llm_client()
         self.prompt_builder = get_prompt_builder()
 
+    @staticmethod
+    def _storage_error_for_dynamic(saint_id: str) -> SaintStorageUnavailableError:
+        return SaintStorageUnavailableError(
+            f"Persistent saint storage is unavailable for dynamic saint '{saint_id}'. Please try again when backend storage recovers."
+        )
+
+    async def _generate_stateless_saint_response(
+        self,
+        saint_id: str,
+        saint_name: str,
+        message: str,
+    ) -> str:
+        saint_def = SAINT_DEFINITIONS[saint_id]
+        degraded_guidance = (
+            "DEGRADED MODE:\n"
+            "- Persistent storage, remembered chat history, and saved saint knowledge are unavailable right now.\n"
+            "- Be explicit when live finance, health, or family context is unavailable.\n"
+            "- Do not claim to remember prior conversations unless the current message includes that context.\n"
+            "- Do not draft or execute autonomous actions while storage is unavailable.\n"
+            "- If exact numbers or live backend data are missing, say they are unavailable instead of inventing them.\n"
+        )
+        system_prompt = "\n\n".join(
+            [
+                f"You are {saint_def['name']}, {saint_def['title']}.",
+                saint_def["system_prompt"],
+                degraded_guidance,
+            ]
+        )
+        return await self.llm.generate_response(
+            messages=[{"role": "user", "content": message}],
+            system_prompt=system_prompt,
+        )
+
+    async def _build_degraded_chat_response(
+        self,
+        user_id: str,
+        saint_id: str,
+        saint_name: str,
+        engram_id: str,
+        message: str,
+    ) -> Dict[str, Any]:
+        user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+        ai_response_text = await self._generate_stateless_saint_response(saint_id, saint_name, message)
+        created_at = datetime.utcnow().isoformat()
+        return {
+            "id": str(uuid.uuid4()),
+            "conversation_id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"saint:{saint_id}:user:{user_uuid}:degraded")),
+            "engram_id": engram_id,
+            "role": "assistant",
+            "content": ai_response_text,
+            "created_at": created_at,
+            "saint_id": saint_id,
+            "saint_name": saint_name,
+            **_saint_mode_flags(
+                degraded=True,
+                persistence_available=False,
+                history_available=False,
+                knowledge_available=False,
+            ),
+        }
+
     async def bootstrap_saint_engram(
         self,
         session: AsyncSession,
@@ -332,6 +415,7 @@ class SaintAgentService:
                         "saint_id": saint_id,
                         "name": saint_name,
                         "is_new": False,
+                        **_saint_mode_flags(degraded=False, persistence_available=True),
                     }
 
                 # Create new engram for this saint
@@ -353,6 +437,7 @@ class SaintAgentService:
                     "saint_id": saint_id,
                     "name": saint_name,
                     "is_new": True,
+                    **_saint_mode_flags(degraded=False, persistence_available=True),
                 }
             except Exception as exc:
                 await _safe_session_rollback(session)
@@ -372,8 +457,14 @@ class SaintAgentService:
                         ArchetypalAI.user_id == user_uuid
                     )
                 )
-                result = await session.execute(query)
-                engram = result.scalar_one_or_none()
+                try:
+                    result = await session.execute(query)
+                    engram = result.scalar_one_or_none()
+                except Exception as exc:
+                    await _safe_session_rollback(session)
+                    if _is_transient_db_unavailable(exc):
+                        raise self._storage_error_for_dynamic(saint_id) from exc
+                    raise
                 
                 if not engram:
                      raise ValueError(f"Dynamic agent not found: {saint_id}")
@@ -382,15 +473,22 @@ class SaintAgentService:
                     "engram_id": str(engram.id),
                     "saint_id": str(engram.id),
                     "name": engram.name,
-                    "is_new": False
+                    "is_new": False,
+                    **_saint_mode_flags(degraded=False, persistence_available=True),
                 }
             except ValueError:
                 # 2. If not UUID, it might be a frontend-generated memberId (e.g. "m_123...")
                 # Search personality_traits for this ID
                 # We fetch all user agents and filter in Python to be DB-agnostic regarding JSON queries
-                query = select(ArchetypalAI).where(ArchetypalAI.user_id == user_uuid)
-                result = await session.execute(query)
-                all_agents = result.scalars().all()
+                try:
+                    query = select(ArchetypalAI).where(ArchetypalAI.user_id == user_uuid)
+                    result = await session.execute(query)
+                    all_agents = result.scalars().all()
+                except Exception as exc:
+                    await _safe_session_rollback(session)
+                    if _is_transient_db_unavailable(exc):
+                        raise self._storage_error_for_dynamic(saint_id) from exc
+                    raise
                 
                 for agent in all_agents:
                     traits = agent.personality_traits or {}
@@ -399,7 +497,8 @@ class SaintAgentService:
                             "engram_id": str(agent.id),
                             "saint_id": saint_id, # Keep the ID the frontend knows
                             "name": agent.name,
-                            "is_new": False
+                            "is_new": False,
+                            **_saint_mode_flags(degraded=False, persistence_available=True),
                         }
                         
                 raise ValueError(f"Unknown saint or invalid agent ID: {saint_id}")
@@ -470,6 +569,8 @@ class SaintAgentService:
         except Exception as exc:
             await _safe_session_rollback(session)
             if _is_transient_db_unavailable(exc):
+                if saint_id not in SAINT_DEFINITIONS:
+                    raise self._storage_error_for_dynamic(saint_id) from exc
                 logger.warning("Saint history degraded for %s: %s", saint_id, exc)
                 return []
             raise
@@ -488,6 +589,8 @@ class SaintAgentService:
         except Exception as exc:
             await _safe_session_rollback(session)
             if _is_transient_db_unavailable(exc):
+                if saint_id not in SAINT_DEFINITIONS:
+                    raise self._storage_error_for_dynamic(saint_id) from exc
                 logger.warning("Saint history message load degraded for %s: %s", saint_id, exc)
                 return []
             raise
@@ -512,140 +615,168 @@ class SaintAgentService:
         """
         Send a message to a saint agent OR dynamic agent.
         """
+        saint_def = SAINT_DEFINITIONS.get(saint_id)
+
         # 1. Ensure engram exists & resolve ID
         bootstrap = await self.bootstrap_saint_engram(session, user_id, saint_id)
         engram_id = bootstrap["engram_id"]
-        engram_uuid = uuid.UUID(engram_id)
         agent_name = bootstrap["name"]
-        
+
+        if saint_def and bootstrap.get("degraded"):
+            return await self._build_degraded_chat_response(
+                user_id=user_id,
+                saint_id=saint_id,
+                saint_name=agent_name,
+                engram_id=engram_id,
+                message=message,
+            )
+
+        engram_uuid = uuid.UUID(engram_id)
         user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
 
-        # 2. Get or create conversation
-        conv_query = select(AIConversation).where(
-            and_(
-                AIConversation.ai_id == engram_uuid,
-                AIConversation.user_id == str(user_uuid),
-            )
-        ).order_by(AIConversation.updated_at.desc())
-        conv_result = await session.execute(conv_query)
-        conversation = conv_result.scalar_one_or_none()
-
-        if not conversation:
-            conversation = AIConversation(
-                ai_id=engram_uuid,
-                user_id=str(user_uuid),
-                title=f"Chat with {agent_name}",
-            )
-            session.add(conversation)
-            await session.commit()
-            await session.refresh(conversation)
-
-        # 3. Save user message
-        user_msg = AIMessage(
-            conversation_id=conversation.id,
-            role="user",
-            content=message,
-        )
-        session.add(user_msg)
-        await session.commit()
-
-        # 4. Load recent message history
-        history_query = select(AIMessage).where(
-            AIMessage.conversation_id == conversation.id
-        ).order_by(AIMessage.created_at.asc()).limit(20)
-        history_result = await session.execute(history_query)
-        past_messages = history_result.scalars().all()
-
-        # 5. Build system prompt
-        # Check if it's static or dynamic
-        saint_def = SAINT_DEFINITIONS.get(saint_id)
-        
-        if saint_def:
-             system_prompt = await self._build_saint_prompt(session, user_id, saint_id, engram_id)
-        else:
-             # Build prompt for dynamic agent
-             # Fetch system prompt from engram's personality_traits
-             engram_query = select(ArchetypalAI).where(ArchetypalAI.id == engram_uuid)
-             e_result = await session.execute(engram_query)
-             engram_obj = e_result.scalar_one()
-             
-             traits = engram_obj.personality_traits or {}
-             base_prompt = traits.get("system_prompt", f"You are {agent_name}, a helpful AI agent.")
-             
-             system_prompt = f"{base_prompt}\n\nCONVERSATION HISTORY:\n"
-
-        # 6. Format conversation for LLM
-        conversation_messages = [
-            {"role": msg.role, "content": msg.content}
-            for msg in past_messages[-10:]
-        ]
-
-        # 7. Generate AI response
-        ai_response_text = await self.llm.generate_response(
-            messages=conversation_messages,
-            system_prompt=system_prompt,
-        )
-
-        # 8. Parse autonomous external actions (Make.com webhooks)
-        webhook_pattern = r'\[MAKE_WEBHOOK:\s*(\{.*?\})\s*\]'
-        match = re.search(webhook_pattern, ai_response_text, re.DOTALL)
-        if match:
-            webhook_data_str = match.group(1)
-            try:
-                webhook_data = json.loads(webhook_data_str)
-                # Native Execution: Redirect from external Make.com to local dispatcher
-                asyncio.create_task(native_action_dispatcher.dispatch(webhook_data))
-                logger.info(f"SaintAgentService: Dispatched NATIVE action: {webhook_data}")
-            except Exception as e:
-                logger.error(f"Failed to parse or fire webhook: {e}")
-            
-            # Remove the tag from the text the user sees
-            ai_response_text = re.sub(webhook_pattern, '', ai_response_text, flags=re.DOTALL).strip()
-
-        # 9. Parse Actions from AI response if available
-        executed_actions = []
-        if action_engine:
-            try:
-                ai_response_text, executed_actions = action_engine.parse_and_execute(
-                    session,
-                    ai_response_text,
-                    str(user_uuid),
-                    saint_id,
+        try:
+            # 2. Get or create conversation
+            conv_query = select(AIConversation).where(
+                and_(
+                    AIConversation.ai_id == engram_uuid,
+                    AIConversation.user_id == str(user_uuid),
                 )
-            except Exception as exc:
-                logger.error(f"Failed to draft saint actions for {saint_id}: {exc}")
-                executed_actions = []
-            
-            if executed_actions:
-                summary_prefix = "Autonomous Actions Executed" if any(
-                    action.get("status") == "auto_approved" for action in executed_actions
-                ) else "Autonomous Actions Drafted"
-                ai_response_text += "\n\n*(" + summary_prefix + ": " + ", ".join([a["tool"] for a in executed_actions]) + ")*"
+            ).order_by(AIConversation.updated_at.desc())
+            conv_result = await session.execute(conv_query)
+            conversation = conv_result.scalar_one_or_none()
 
-        # 9. Save AI response
-        ai_msg = AIMessage(
-            conversation_id=conversation.id,
-            role="assistant",
-            content=ai_response_text,
-        )
-        session.add(ai_msg)
-        await session.commit()
-        await session.refresh(ai_msg)
+            if not conversation:
+                conversation = AIConversation(
+                    ai_id=engram_uuid,
+                    user_id=str(user_uuid),
+                    title=f"Chat with {agent_name}",
+                )
+                session.add(conversation)
+                await session.commit()
+                await session.refresh(conversation)
 
-        # 9. Extract and store knowledge (only for static saints for now, or expand later)
-        if saint_def:
-             await self._extract_and_store_knowledge(session, user_id, saint_id, message, ai_response_text)
+            # 3. Save user message
+            user_msg = AIMessage(
+                conversation_id=conversation.id,
+                role="user",
+                content=message,
+            )
+            session.add(user_msg)
+            await session.commit()
 
-        return {
-            "id": str(ai_msg.id),
-            "conversation_id": str(conversation.id),
-            "engram_id": engram_id,
-            "role": "assistant",
-            "content": ai_response_text,
-            "created_at": ai_msg.created_at.isoformat() if ai_msg.created_at else datetime.utcnow().isoformat(),
-            "saint_id": saint_id,
-            "saint_name": agent_name,
-        }
+            # 4. Load recent message history
+            history_query = select(AIMessage).where(
+                AIMessage.conversation_id == conversation.id
+            ).order_by(AIMessage.created_at.asc()).limit(20)
+            history_result = await session.execute(history_query)
+            past_messages = history_result.scalars().all()
+
+            # 5. Build system prompt
+            if saint_def:
+                system_prompt = await self._build_saint_prompt(session, user_id, saint_id, engram_id)
+            else:
+                # Build prompt for dynamic agent
+                engram_query = select(ArchetypalAI).where(ArchetypalAI.id == engram_uuid)
+                e_result = await session.execute(engram_query)
+                engram_obj = e_result.scalar_one()
+
+                traits = engram_obj.personality_traits or {}
+                base_prompt = traits.get("system_prompt", f"You are {agent_name}, a helpful AI agent.")
+
+                system_prompt = f"{base_prompt}\n\nCONVERSATION HISTORY:\n"
+
+            # 6. Format conversation for LLM
+            conversation_messages = [
+                {"role": msg.role, "content": msg.content}
+                for msg in past_messages[-10:]
+            ]
+
+            # 7. Generate AI response
+            ai_response_text = await self.llm.generate_response(
+                messages=conversation_messages,
+                system_prompt=system_prompt,
+            )
+
+            # 8. Parse autonomous external actions (Make.com webhooks)
+            webhook_pattern = r'\[MAKE_WEBHOOK:\s*(\{.*?\})\s*\]'
+            match = re.search(webhook_pattern, ai_response_text, re.DOTALL)
+            if match:
+                webhook_data_str = match.group(1)
+                try:
+                    webhook_data = json.loads(webhook_data_str)
+                    # Native Execution: Redirect from external Make.com to local dispatcher
+                    asyncio.create_task(native_action_dispatcher.dispatch(webhook_data))
+                    logger.info(f"SaintAgentService: Dispatched NATIVE action: {webhook_data}")
+                except Exception as e:
+                    logger.error(f"Failed to parse or fire webhook: {e}")
+
+                # Remove the tag from the text the user sees
+                ai_response_text = re.sub(webhook_pattern, '', ai_response_text, flags=re.DOTALL).strip()
+
+            # 9. Parse Actions from AI response if available
+            executed_actions = []
+            if action_engine:
+                try:
+                    ai_response_text, executed_actions = action_engine.parse_and_execute(
+                        session,
+                        ai_response_text,
+                        str(user_uuid),
+                        saint_id,
+                    )
+                except Exception as exc:
+                    logger.error(f"Failed to draft saint actions for {saint_id}: {exc}")
+                    executed_actions = []
+
+                if executed_actions:
+                    summary_prefix = "Autonomous Actions Executed" if any(
+                        action.get("status") == "auto_approved" for action in executed_actions
+                    ) else "Autonomous Actions Drafted"
+                    ai_response_text += "\n\n*(" + summary_prefix + ": " + ", ".join([a["tool"] for a in executed_actions]) + ")*"
+
+            # 10. Save AI response
+            ai_msg = AIMessage(
+                conversation_id=conversation.id,
+                role="assistant",
+                content=ai_response_text,
+            )
+            session.add(ai_msg)
+            await session.commit()
+            await session.refresh(ai_msg)
+
+            # 11. Extract and store knowledge (only for static saints for now, or expand later)
+            if saint_def:
+                await self._extract_and_store_knowledge(session, user_id, saint_id, message, ai_response_text)
+
+            return {
+                "id": str(ai_msg.id),
+                "conversation_id": str(conversation.id),
+                "engram_id": engram_id,
+                "role": "assistant",
+                "content": ai_response_text,
+                "created_at": ai_msg.created_at.isoformat() if ai_msg.created_at else datetime.utcnow().isoformat(),
+                "saint_id": saint_id,
+                "saint_name": agent_name,
+                **_saint_mode_flags(
+                    degraded=False,
+                    persistence_available=True,
+                    history_available=True,
+                    knowledge_available=True,
+                ),
+            }
+        except Exception as exc:
+            await _safe_session_rollback(session)
+            if _is_transient_db_unavailable(exc):
+                if saint_def:
+                    logger.warning("Saint chat degraded for %s: %s", saint_id, exc)
+                    return await self._build_degraded_chat_response(
+                        user_id=user_id,
+                        saint_id=saint_id,
+                        saint_name=agent_name,
+                        engram_id=engram_id,
+                        message=message,
+                    )
+                raise self._storage_error_for_dynamic(saint_id) from exc
+            raise
 
     async def _build_saint_prompt(
         self,
@@ -849,6 +980,8 @@ class SaintAgentService:
         except Exception as exc:
             await _safe_session_rollback(session)
             if _is_transient_db_unavailable(exc):
+                if saint_id not in SAINT_DEFINITIONS:
+                    raise self._storage_error_for_dynamic(saint_id) from exc
                 logger.warning("Saint knowledge degraded for %s: %s", saint_id, exc)
                 return []
             raise
@@ -875,6 +1008,14 @@ class SaintAgentService:
         statuses = []
 
         for saint_id, saint_def in SAINT_DEFINITIONS.items():
+            engram = None
+            knowledge_items: List[Any] = []
+            availability_mode = "full"
+            built_in_available = True
+            persistence_available = True
+            history_available = True
+            knowledge_available = True
+
             # Check for existing engram
             query = select(ArchetypalAI).where(
                 and_(
@@ -882,12 +1023,11 @@ class SaintAgentService:
                     ArchetypalAI.name == saint_def["name"],
                 )
             ).order_by(desc(ArchetypalAI.updated_at), desc(ArchetypalAI.created_at))
-            result = await session.execute(query)
-            engram = result.scalars().first()
-            engram_id = str(engram.id) if engram else None
-
-            # Count knowledge items
             try:
+                result = await session.execute(query)
+                engram = result.scalars().first()
+                engram_id = str(engram.id) if engram else None
+
                 knowledge_query = select(SaintKnowledge).where(
                     and_(
                         SaintKnowledge.user_id == user_uuid,
@@ -902,6 +1042,19 @@ class SaintAgentService:
                     knowledge_items = []
                 else:
                     raise
+                engram_id = str(engram.id) if engram else None
+            except Exception as exc:
+                await _safe_session_rollback(session)
+                if _is_transient_db_unavailable(exc):
+                    logger.warning("Saint status degraded for %s: %s", saint_id, exc)
+                    engram_id = None
+                    availability_mode = "degraded"
+                    persistence_available = False
+                    history_available = False
+                    knowledge_available = False
+                    knowledge_items = []
+                else:
+                    raise
 
             statuses.append({
                 "saint_id": saint_id,
@@ -911,6 +1064,11 @@ class SaintAgentService:
                 "engram_id": engram_id,
                 "is_active": engram is not None,
                 "knowledge_count": len(knowledge_items),
+                "built_in_available": built_in_available,
+                "availability_mode": availability_mode,
+                "persistence_available": persistence_available,
+                "history_available": history_available,
+                "knowledge_available": knowledge_available,
             })
 
         return statuses

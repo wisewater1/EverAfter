@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, User, Book, X, Sparkles } from 'lucide-react';
-import { apiClient } from '../lib/api-client';
+import { Send, User, Book, Brain, X, Sparkles } from 'lucide-react';
+import { apiClient, type SaintBootstrapResult, type SaintChatResult } from '../lib/api-client';
 
 interface SaintChatProps {
     saintId: string;
@@ -28,7 +28,21 @@ interface KnowledgeItem {
     confidence: number;
 }
 
+interface SaintAvailabilityState {
+    mode: 'full' | 'degraded';
+    persistenceAvailable: boolean;
+    historyAvailable: boolean;
+    knowledgeAvailable: boolean;
+}
+
 type SaintStep = 'bootstrap' | 'history' | 'knowledge' | 'chat';
+
+const DEFAULT_SAINT_AVAILABILITY: SaintAvailabilityState = {
+    mode: 'full',
+    persistenceAvailable: true,
+    historyAvailable: true,
+    knowledgeAvailable: true,
+};
 
 function formatSaintError(step: SaintStep, error: unknown): string {
     const message = error instanceof Error ? error.message.toLowerCase() : '';
@@ -41,6 +55,10 @@ function formatSaintError(step: SaintStep, error: unknown): string {
         return step === 'bootstrap'
             ? 'This Saint is not available yet.'
             : 'Saint data could not be found right now.';
+    }
+
+    if (message.includes('persistent saint storage is unavailable')) {
+        return 'This Saint depends on backend storage, and storage is temporarily unavailable.';
     }
 
     if (message.includes('500') || message.includes('temporarily unavailable')) {
@@ -75,6 +93,38 @@ function shouldSuppressInitError(errorMessage: string): boolean {
     );
 }
 
+function deriveAvailabilityFromBootstrap(result?: SaintBootstrapResult | null): SaintAvailabilityState {
+    const degraded = Boolean(result?.degraded || result?.mode === 'degraded');
+    const persistenceAvailable = result?.persistence_available ?? !degraded;
+    return {
+        mode: degraded ? 'degraded' : 'full',
+        persistenceAvailable,
+        historyAvailable: persistenceAvailable,
+        knowledgeAvailable: persistenceAvailable,
+    };
+}
+
+function deriveAvailabilityFromChat(result?: SaintChatResult | null): SaintAvailabilityState {
+    const degraded = Boolean(result?.degraded || result?.mode === 'degraded');
+    const persistenceAvailable = result?.persistence_available ?? !degraded;
+    return {
+        mode: degraded ? 'degraded' : 'full',
+        persistenceAvailable,
+        historyAvailable: result?.history_available ?? persistenceAvailable,
+        knowledgeAvailable: result?.knowledge_available ?? persistenceAvailable,
+    };
+}
+
+function buildDegradedNote(availability: SaintAvailabilityState): string {
+    const limits: string[] = [];
+    if (!availability.persistenceAvailable) limits.push('new memories are not being saved');
+    if (!availability.historyAvailable) limits.push('chat history is unavailable');
+    if (!availability.knowledgeAvailable) limits.push('stored knowledge is unavailable');
+    limits.push('live domain context may be limited');
+
+    return `Running in degraded mode. ${limits.join(', ')} until backend storage recovers.`;
+}
+
 export default function SaintChat({
     saintId,
     saintName,
@@ -91,6 +141,7 @@ export default function SaintChat({
     const [bootstrapping, setBootstrapping] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [degradedMode, setDegradedMode] = useState(false);
+    const [availability, setAvailability] = useState<SaintAvailabilityState>(DEFAULT_SAINT_AVAILABILITY);
     const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
     const [showKnowledge, setShowKnowledge] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -114,22 +165,39 @@ export default function SaintChat({
     }, [messages]);
 
     useEffect(() => {
+        if (!availability.knowledgeAvailable && knowledge.length === 0) {
+            setShowKnowledge(false);
+        }
+    }, [availability.knowledgeAvailable, knowledge.length]);
+
+    useEffect(() => {
         const init = async () => {
             let fallbackTimer: number | null = null;
             try {
                 setBootstrapping(true);
                 setError(null);
                 setDegradedMode(false);
+                setAvailability(DEFAULT_SAINT_AVAILABILITY);
                 setMessages([buildInitialAssistantMessage(false)]);
 
                 fallbackTimer = window.setTimeout(() => {
                     setDegradedMode(true);
-                    setError((prev) => prev || 'Live Saint services are taking longer than expected. Gabriel is staying visible in degraded mode until the backend reconnects.');
+                    setAvailability({
+                        mode: 'degraded',
+                        persistenceAvailable: false,
+                        historyAvailable: false,
+                        knowledgeAvailable: false,
+                    });
+                    setError((prev) => prev || `Live Saint services are taking longer than expected. ${saintName} is staying visible in degraded mode until the backend reconnects.`);
                     setMessages((prev) => (prev.length > 0 ? prev : [buildInitialAssistantMessage(true)]));
                     setBootstrapping(false);
                 }, 2500);
 
-                await apiClient.bootstrapSaint(saintId);
+                const bootstrapResult = await apiClient.bootstrapSaint(saintId);
+                const bootstrapAvailability = deriveAvailabilityFromBootstrap(bootstrapResult);
+                setAvailability(bootstrapAvailability);
+                setDegradedMode(bootstrapAvailability.mode === 'degraded');
+                setMessages([buildInitialAssistantMessage(bootstrapAvailability.mode === 'degraded')]);
 
                 const [knowledgeResult, historyResult] = await Promise.allSettled([
                     apiClient.getSaintKnowledge(saintId),
@@ -141,7 +209,9 @@ export default function SaintChat({
                 } else {
                     console.error('Failed to load saint knowledge:', knowledgeResult.reason);
                     setKnowledge([]);
-                    setError(formatSaintError('knowledge', knowledgeResult.reason));
+                    setAvailability((prev) => ({ ...prev, knowledgeAvailable: false, mode: 'degraded' }));
+                    setDegradedMode(true);
+                    setError((prev) => prev || formatSaintError('knowledge', knowledgeResult.reason));
                 }
 
                 if (historyResult.status === 'fulfilled' && historyResult.value.length > 0) {
@@ -155,12 +225,20 @@ export default function SaintChat({
                 } else {
                     if (historyResult.status === 'rejected') {
                         console.error('Failed to load saint history:', historyResult.reason);
+                        setAvailability((prev) => ({ ...prev, historyAvailable: false, mode: 'degraded' }));
+                        setDegradedMode(true);
                         setError(prev => prev || formatSaintError('history', historyResult.reason));
                     }
                 }
             } catch (err) {
                 console.error('Failed to initialize saint:', err);
                 setDegradedMode(true);
+                setAvailability({
+                    mode: 'degraded',
+                    persistenceAvailable: false,
+                    historyAvailable: false,
+                    knowledgeAvailable: false,
+                });
                 const nextError = formatSaintError('bootstrap', err);
                 setError(shouldSuppressInitError(nextError) ? null : nextError);
                 setKnowledge([]);
@@ -193,6 +271,9 @@ export default function SaintChat({
 
         try {
             const response = await apiClient.chatWithSaint(saintId, userMsg.content, false, userContext);
+            const nextAvailability = deriveAvailabilityFromChat(response);
+            setAvailability(nextAvailability);
+            setDegradedMode(nextAvailability.mode === 'degraded');
             // specific cast to handle extra properties
             const responseData = response as any;
 
@@ -206,10 +287,16 @@ export default function SaintChat({
             setMessages(prev => [...prev, aiMsg]);
 
             try {
-                const freshKnowledge = await apiClient.getSaintKnowledge(saintId);
-                setKnowledge(freshKnowledge);
+                if (nextAvailability.knowledgeAvailable) {
+                    const freshKnowledge = await apiClient.getSaintKnowledge(saintId);
+                    setKnowledge(freshKnowledge);
+                } else {
+                    setKnowledge([]);
+                }
             } catch (knowledgeError) {
                 console.error('Failed to refresh saint knowledge:', knowledgeError);
+                setAvailability((prev) => ({ ...prev, knowledgeAvailable: false, mode: 'degraded' }));
+                setDegradedMode(true);
                 setError(prev => prev || formatSaintError('knowledge', knowledgeError));
             }
 
@@ -220,6 +307,9 @@ export default function SaintChat({
             setLoading(false);
         }
     };
+
+    const knowledgeDisabled = !availability.knowledgeAvailable && knowledge.length === 0;
+    const degradedNote = degradedMode ? buildDegradedNote(availability) : null;
 
     return (
         <div className="flex h-full bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
@@ -239,9 +329,11 @@ export default function SaintChat({
                     </div>
                     <div className="flex items-center gap-2">
                         <button
+                            type="button"
                             onClick={() => setShowKnowledge(!showKnowledge)}
-                            className={`p-2 hover:bg-slate-100 rounded-lg transition-colors relative ${showKnowledge ? 'text-blue-600 bg-blue-50' : 'text-slate-600'}`}
-                            title="View Saint's Knowledge"
+                            className={`p-2 rounded-lg transition-colors relative ${knowledgeDisabled ? 'cursor-not-allowed text-slate-300' : showKnowledge ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-600 hover:bg-slate-100'}`}
+                            title={knowledgeDisabled ? 'Stored knowledge is unavailable while backend storage is degraded.' : "View Saint's Knowledge"}
+                            disabled={knowledgeDisabled}
                         >
                             <Book className="w-5 h-5" />
                             {knowledge.length > 0 && (
@@ -266,6 +358,13 @@ export default function SaintChat({
                             <div className="mx-4 flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-700">
                                 <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-${primaryColor}-500`}></div>
                                 <span>Establishing spiritual connection...</span>
+                            </div>
+                        )}
+
+                        {degradedNote && (
+                            <div className="mx-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                                <Sparkles className="h-4 w-4 shrink-0" />
+                                <span>{degradedNote}</span>
                             </div>
                         )}
 

@@ -20,7 +20,11 @@ import logging
 
 from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
-from app.services.saint_agent_service import saint_agent_service, get_all_saint_ids
+from app.services.saint_agent_service import (
+    SaintStorageUnavailableError,
+    get_all_saint_ids,
+    saint_agent_service,
+)
 from app.services.saint_runtime import saint_runtime
 from app.services.saint_runtime.actions.engine import action_engine
 from app.models.engram import ArchetypalAI
@@ -73,6 +77,20 @@ class SaintChatResponse(BaseModel):
     created_at: str
     saint_id: str
     saint_name: str
+    degraded: bool = False
+    mode: str = "full"
+    persistence_available: bool = True
+    history_available: bool = True
+    knowledge_available: bool = True
+
+class SaintBootstrapResponse(BaseModel):
+    engram_id: str
+    saint_id: str
+    name: str
+    is_new: bool
+    degraded: bool = False
+    mode: str = "full"
+    persistence_available: bool = True
 
 class SaintStatusResponse(BaseModel):
     saint_id: str
@@ -82,6 +100,11 @@ class SaintStatusResponse(BaseModel):
     engram_id: Optional[str] = None
     is_active: bool
     knowledge_count: int
+    built_in_available: bool = True
+    availability_mode: str = "full"
+    persistence_available: bool = True
+    history_available: bool = True
+    knowledge_available: bool = True
 
 class KnowledgeItem(BaseModel):
     id: str
@@ -233,7 +256,7 @@ async def register_dynamic_agent(
     )
 
 
-@router.post("/{saint_id}/bootstrap")
+@router.post("/{saint_id}/bootstrap", response_model=SaintBootstrapResponse)
 async def bootstrap_saint(
     saint_id: str,
     session: AsyncSession = Depends(get_async_session),
@@ -246,6 +269,8 @@ async def bootstrap_saint(
     user_id = _current_user_uuid(current_user)
     try:
         return await saint_agent_service.bootstrap_saint_engram(session, user_id, saint_id)
+    except SaintStorageUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     except ValueError as e:
         if _saint_not_found_error(e):
             raise HTTPException(status_code=404, detail=str(e))
@@ -268,6 +293,8 @@ async def get_chat_history(
     user_id = _current_user_uuid(current_user)
     try:
         return await saint_agent_service.get_chat_history(session, user_id, saint_id)
+    except SaintStorageUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     except ValueError as e:
         if _saint_not_found_error(e):
             raise HTTPException(status_code=404, detail=str(e))
@@ -302,10 +329,10 @@ async def chat_with_saint(
             context=request.context
         )
         return response
+    except SaintStorageUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     except Exception as e:
-        import traceback
-        with open("backend_error.log", "a") as f:
-            f.write(f"[{datetime.utcnow()}] Error in chat_with_saint ({saint_id}): {e}\n{traceback.format_exc()}\n")
+        logger.exception("Saint chat failed for %s", saint_id)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -323,7 +350,10 @@ async def get_saint_knowledge(
     # For now, dynamic agents might return empty knowledge.
     
     user_id = _current_user_uuid(current_user)
-    return await saint_agent_service.get_knowledge(session, user_id, saint_id, category)
+    try:
+        return await saint_agent_service.get_knowledge(session, user_id, saint_id, category)
+    except SaintStorageUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
 
 @router.get("/{saint_id}/cognition/status", response_model=CognitionStatusResponse)
