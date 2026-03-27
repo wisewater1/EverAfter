@@ -123,7 +123,12 @@ function buildDegradedNote(availability: SaintAvailabilityState): string {
     if (!availability.knowledgeAvailable) limits.push('stored knowledge is unavailable');
     limits.push('live domain context may be limited');
 
-    return `Running in degraded mode. ${limits.join(', ')} until backend storage recovers.`;
+    const recoveryTarget =
+        availability.persistenceAvailable && availability.historyAvailable && availability.knowledgeAvailable
+            ? 'until live backend context recovers.'
+            : 'until backend storage recovers.';
+
+    return `Running in degraded mode. ${limits.join(', ')} ${recoveryTarget}`;
 }
 
 function buildLocalDegradedReply(saintName: string, saintTitle: string, message: string): string {

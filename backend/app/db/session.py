@@ -1,5 +1,6 @@
 import sys
 import asyncio
+from urllib.parse import urlsplit
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -21,6 +22,7 @@ def get_engine():
     global engine, AsyncSessionLocal
     if engine is None:
         database_url = settings.database_url_normalized
+        hostname = urlsplit(database_url).hostname or ""
         connect_args = {}
         if database_url.startswith("postgresql+asyncpg://"):
             connect_args = {
@@ -28,6 +30,8 @@ def get_engine():
                 "command_timeout": settings.DB_COMMAND_TIMEOUT_SECONDS,
                 "server_settings": {"application_name": "everafter-api"},
             }
+            if hostname.endswith(".pooler.supabase.com"):
+                connect_args["statement_cache_size"] = 0
 
         engine = create_async_engine(
             database_url,

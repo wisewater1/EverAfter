@@ -13,7 +13,7 @@ def _extract_supabase_project_ref(supabase_url: str) -> str:
     return host.split(".")[0] if host else ""
 
 
-def _normalize_database_url(raw_url: str, supabase_url: str) -> str:
+def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_host: bool = False) -> str:
     database_url = str(raw_url or "").strip()
     if not database_url:
         return database_url
@@ -25,7 +25,7 @@ def _normalize_database_url(raw_url: str, supabase_url: str) -> str:
 
     parsed = urlsplit(database_url)
     hostname = parsed.hostname or ""
-    if not hostname.endswith(".pooler.supabase.com"):
+    if not hostname.endswith(".pooler.supabase.com") or not force_direct_host:
         return database_url
 
     username = unquote(parsed.username or "")
@@ -120,6 +120,8 @@ class Settings(BaseSettings):
     DB_COMMAND_TIMEOUT_SECONDS: float = 30.0
     DB_POOL_TIMEOUT_SECONDS: float = 15.0
     STARTUP_BOOTSTRAP_TIMEOUT_SECONDS: float = 45.0
+    SUPABASE_DB_FORCE_DIRECT_HOST: bool = False
+    SAINT_FALLBACK_STORAGE_DIR: str = "storage/saint_memory"
 
     HOST: str = "0.0.0.0"
     PORT: int = 8010
@@ -158,9 +160,17 @@ class Settings(BaseSettings):
         for raw_url in candidates:
             if _looks_like_placeholder_database_url(raw_url):
                 continue
-            return _normalize_database_url(raw_url, self.SUPABASE_URL)
+            return _normalize_database_url(
+                raw_url,
+                self.SUPABASE_URL,
+                force_direct_host=self.SUPABASE_DB_FORCE_DIRECT_HOST,
+            )
 
-        return _normalize_database_url(self.DATABASE_URL, self.SUPABASE_URL)
+        return _normalize_database_url(
+            self.DATABASE_URL,
+            self.SUPABASE_URL,
+            force_direct_host=self.SUPABASE_DB_FORCE_DIRECT_HOST,
+        )
 
     @property
     def cors_origins_list(self) -> List[str]:

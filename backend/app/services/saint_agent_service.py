@@ -26,6 +26,7 @@ from app.models.saint import SaintKnowledge
 from app.ai.llm_client import get_llm_client
 from app.ai.prompt_builder import get_prompt_builder
 from app.services.native_action_dispatcher import native_action_dispatcher
+from app.services.saint_fallback_store import saint_fallback_store
 
 try:
     from app.services.saint_runtime.actions.engine import action_engine
@@ -62,14 +63,20 @@ def _is_transient_db_unavailable(exc: Exception) -> bool:
     return isinstance(exc, (OSError, SQLAlchemyError)) or any(marker in detail for marker in markers)
 
 
-def _fallback_saint_bootstrap(user_uuid: uuid.UUID, saint_id: str, saint_name: str) -> Dict[str, Any]:
+def _fallback_saint_bootstrap(
+    user_uuid: uuid.UUID,
+    saint_id: str,
+    saint_name: str,
+    *,
+    persistence_available: bool = False,
+) -> Dict[str, Any]:
     synthetic_id = uuid.uuid5(uuid.NAMESPACE_URL, f"saint:{saint_id}:user:{user_uuid}")
     return {
         "engram_id": str(synthetic_id),
         "saint_id": saint_id,
         "name": saint_name,
         "is_new": False,
-        **_saint_mode_flags(degraded=True, persistence_available=False),
+        **_saint_mode_flags(degraded=True, persistence_available=persistence_available),
     }
 
 
@@ -377,6 +384,72 @@ class SaintAgentService:
             ),
         }
 
+    async def _build_fallback_persistent_chat_response(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        saint_id: str,
+        saint_name: str,
+        engram_id: str,
+        message: str,
+    ) -> Dict[str, Any]:
+        conversation_messages = await saint_fallback_store.get_recent_conversation_messages(
+            str(user_id),
+            saint_id,
+            saint_name,
+            limit=10,
+            pending_user_message=message,
+        )
+        system_prompt = await self._build_saint_prompt(session, user_id, saint_id, engram_id)
+        ai_response_text = await self.llm.generate_response(
+            messages=conversation_messages,
+            system_prompt=system_prompt,
+        )
+
+        created_at = datetime.utcnow().isoformat()
+        saved = await saint_fallback_store.append_exchange(
+            str(user_id),
+            saint_id,
+            saint_name,
+            message,
+            ai_response_text,
+            created_at=created_at,
+        )
+
+        facts = await self._extract_knowledge_facts(saint_id, message, ai_response_text)
+        for fact in facts:
+            key = str(fact.get("key") or "").strip()
+            value = str(fact.get("value") or "").strip()
+            category = str(fact.get("category") or "general").strip() or "general"
+            if not key or not value:
+                continue
+            await saint_fallback_store.upsert_knowledge(
+                str(user_id),
+                saint_id,
+                saint_name,
+                key=key,
+                value=value,
+                category=category,
+                confidence=float(fact.get("confidence") or 1.0),
+            )
+
+        return {
+            "id": saved["id"],
+            "conversation_id": saved["conversation_id"],
+            "engram_id": saved["engram_id"],
+            "role": "assistant",
+            "content": ai_response_text,
+            "created_at": saved["created_at"],
+            "saint_id": saint_id,
+            "saint_name": saint_name,
+            **_saint_mode_flags(
+                degraded=True,
+                persistence_available=True,
+                history_available=True,
+                knowledge_available=True,
+            ),
+        }
+
     async def bootstrap_saint_engram(
         self,
         session: AsyncSession,
@@ -443,7 +516,14 @@ class SaintAgentService:
                 await _safe_session_rollback(session)
                 if _is_transient_db_unavailable(exc):
                     logger.warning("Saint bootstrap degraded for %s: %s", saint_id, exc)
-                    return _fallback_saint_bootstrap(user_uuid, saint_id, saint_name)
+                    local_bootstrap = await saint_fallback_store.bootstrap(str(user_uuid), saint_id, saint_name)
+                    return {
+                        "engram_id": local_bootstrap["engram_id"],
+                        "saint_id": saint_id,
+                        "name": saint_name,
+                        "is_new": local_bootstrap["is_new"],
+                        **_saint_mode_flags(degraded=True, persistence_available=True),
+                    }
                 raise
         
         else:
@@ -554,6 +634,9 @@ class SaintAgentService:
         bootstrap = await self.bootstrap_saint_engram(session, user_id, saint_id)
         engram_id = bootstrap["engram_id"]
         engram_uuid = uuid.UUID(engram_id)
+
+        if saint_id in SAINT_DEFINITIONS and bootstrap.get("degraded") and bootstrap.get("persistence_available"):
+            return await saint_fallback_store.get_history(str(user_uuid), saint_id, bootstrap["name"], limit=50)
         
         # Get active conversation
         conv_query = select(AIConversation).where(
@@ -623,6 +706,15 @@ class SaintAgentService:
         agent_name = bootstrap["name"]
 
         if saint_def and bootstrap.get("degraded"):
+            if bootstrap.get("persistence_available"):
+                return await self._build_fallback_persistent_chat_response(
+                    session=session,
+                    user_id=user_id,
+                    saint_id=saint_id,
+                    saint_name=agent_name,
+                    engram_id=engram_id,
+                    message=message,
+                )
             return await self._build_degraded_chat_response(
                 user_id=user_id,
                 saint_id=saint_id,
@@ -840,6 +932,67 @@ class SaintAgentService:
 
         return "\n".join(prompt_parts)
 
+    async def _extract_knowledge_facts(
+        self,
+        saint_id: str,
+        user_message: str,
+        ai_response: str,
+    ) -> List[Dict[str, Any]]:
+        saint_def = SAINT_DEFINITIONS[saint_id]
+        categories = saint_def["knowledge_categories"]
+
+        extraction_prompt = (
+            f"You are an information extraction agent for {saint_def['name']} ({saint_def['domain']} domain).\n"
+            f"Valid knowledge categories: {', '.join(categories)}\n\n"
+            f"USER said: \"{user_message}\"\n"
+            f"AI responded: \"{ai_response[:200]}\"\n\n"
+            "Extract any NEW facts about the user from the USER's message. "
+            "Return a JSON array of objects with 'key', 'value', and 'category' fields. "
+            "If no new facts, return an empty array: []\n"
+            "Only extract concrete, useful facts - not opinions or greetings.\n"
+            "Example: [{\"key\": \"primary_doctor\", \"value\": \"Dr. Smith at City Hospital\", \"category\": \"appointments\"}]\n"
+            "Return ONLY the JSON array, nothing else."
+        )
+
+        try:
+            extraction_result = await self.llm.generate_response(
+                messages=[{"role": "user", "content": extraction_prompt}],
+                max_tokens=300,
+                temperature=0.1,
+            )
+
+            cleaned = extraction_result.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+            facts = json.loads(cleaned)
+            if not isinstance(facts, list):
+                return []
+
+            normalized_facts = []
+            for fact in facts:
+                if not isinstance(fact, dict):
+                    continue
+                key = str(fact.get("key") or "").strip()
+                value = str(fact.get("value") or "").strip()
+                category = str(fact.get("category") or "general").strip() or "general"
+                if not key or not value:
+                    continue
+                if category not in categories:
+                    category = "general"
+                normalized_facts.append(
+                    {
+                        "key": key,
+                        "value": value,
+                        "category": category,
+                        "confidence": float(fact.get("confidence") or 1.0),
+                    }
+                )
+            return normalized_facts
+        except (json.JSONDecodeError, Exception) as e:
+            logger.debug(f"Knowledge extraction skipped: {e}")
+            return []
+
     async def _extract_and_store_knowledge(
         self,
         session: AsyncSession,
@@ -852,56 +1005,17 @@ class SaintAgentService:
         Use LLM to extract actionable knowledge from the conversation.
         Store it for future prompt enrichment.
         """
-        saint_def = SAINT_DEFINITIONS[saint_id]
-        categories = saint_def["knowledge_categories"]
-
-        extraction_prompt = (
-            f"You are an information extraction agent for {saint_def['name']} ({saint_def['domain']} domain).\n"
-            f"Valid knowledge categories: {', '.join(categories)}\n\n"
-            f"USER said: \"{user_message}\"\n"
-            f"AI responded: \"{ai_response[:200]}\"\n\n"
-            "Extract any NEW facts about the user from the USER's message. "
-            "Return a JSON array of objects with 'key', 'value', and 'category' fields. "
-            "If no new facts, return an empty array: []\n"
-            "Only extract concrete, useful facts â€” not opinions or greetings.\n"
-            "Example: [{\"key\": \"primary_doctor\", \"value\": \"Dr. Smith at City Hospital\", \"category\": \"appointments\"}]\n"
-            "Return ONLY the JSON array, nothing else."
-        )
-
-        try:
-            extraction_result = await self.llm.generate_response(
-                messages=[{"role": "user", "content": extraction_prompt}],
-                max_tokens=300,
-                temperature=0.1,
+        facts = await self._extract_knowledge_facts(saint_id, user_message, ai_response)
+        for fact in facts:
+            await self.store_knowledge(
+                session,
+                user_id,
+                saint_id,
+                fact["key"],
+                fact["value"],
+                fact["category"],
+                confidence=float(fact.get("confidence") or 1.0),
             )
-
-            # Parse extracted knowledge
-            # Strip any markdown formatting
-            cleaned = extraction_result.strip()
-            if cleaned.startswith("```"):
-                cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-
-            facts = json.loads(cleaned)
-
-            if not isinstance(facts, list):
-                return
-
-            for fact in facts:
-                if not isinstance(fact, dict):
-                    continue
-                key = fact.get("key", "").strip()
-                value = fact.get("value", "").strip()
-                category = fact.get("category", "general").strip()
-
-                if not key or not value:
-                    continue
-                if category not in categories:
-                    category = "general"
-
-                await self.store_knowledge(session, user_id, saint_id, key, value, category)
-
-        except (json.JSONDecodeError, Exception) as e:
-            logger.debug(f"Knowledge extraction skipped: {e}")
 
     async def store_knowledge(
         self,
@@ -949,6 +1063,23 @@ class SaintAgentService:
                 logger.warning("Saint knowledge table missing; skipping knowledge write for %s", saint_id)
                 return
             raise
+        except Exception as exc:
+            await _safe_session_rollback(session)
+            if _is_transient_db_unavailable(exc):
+                if saint_id not in SAINT_DEFINITIONS:
+                    raise self._storage_error_for_dynamic(saint_id) from exc
+                saint_name = SAINT_DEFINITIONS[saint_id]["name"]
+                await saint_fallback_store.upsert_knowledge(
+                    str(user_uuid),
+                    saint_id,
+                    saint_name,
+                    key=key,
+                    value=value,
+                    category=category,
+                    confidence=confidence,
+                )
+                return
+            raise
 
     async def get_knowledge(
         self,
@@ -983,7 +1114,12 @@ class SaintAgentService:
                 if saint_id not in SAINT_DEFINITIONS:
                     raise self._storage_error_for_dynamic(saint_id) from exc
                 logger.warning("Saint knowledge degraded for %s: %s", saint_id, exc)
-                return []
+                return await saint_fallback_store.get_knowledge(
+                    str(user_uuid),
+                    saint_id,
+                    SAINT_DEFINITIONS[saint_id]["name"],
+                    category=category,
+                )
             raise
 
         return [
@@ -1047,12 +1183,14 @@ class SaintAgentService:
                 await _safe_session_rollback(session)
                 if _is_transient_db_unavailable(exc):
                     logger.warning("Saint status degraded for %s: %s", saint_id, exc)
-                    engram_id = None
+                    fallback_status = await saint_fallback_store.get_status(str(user_uuid), saint_id, saint_def["name"])
+                    engram_id = fallback_status["engram_id"]
                     availability_mode = "degraded"
-                    persistence_available = False
-                    history_available = False
-                    knowledge_available = False
-                    knowledge_items = []
+                    persistence_available = True
+                    history_available = True
+                    knowledge_available = True
+                    knowledge_items = [{} for _ in range(fallback_status["knowledge_count"])]
+                    engram = object() if fallback_status["is_active"] else None
                 else:
                     raise
 
