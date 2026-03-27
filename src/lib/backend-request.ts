@@ -11,6 +11,9 @@ const BACKEND_BASE_URL_CANDIDATES = [
   .filter(Boolean);
 const DEFAULT_BACKEND_TIMEOUT_MS = 8000;
 
+class BackendRoutingError extends Error {}
+class BackendTerminalError extends Error {}
+
 function normalizeErrorMessage(message: string, endpoint: string): string {
   const compact = message.trim().slice(0, 180).replace(/\s+/g, ' ');
   if (!compact) {
@@ -50,13 +53,13 @@ async function parseResponseText<T>(response: Response, endpoint: string): Promi
 
   const compact = text.trim().slice(0, 180).replace(/\s+/g, ' ');
   if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-    throw new Error(`Backend returned HTML for ${endpoint}. Check API routing.`);
+    throw new BackendRoutingError(`Backend returned HTML for ${endpoint}. Check API routing.`);
   }
 
   try {
     return JSON.parse(text) as T;
   } catch {
-    throw new Error(`Backend returned invalid JSON for ${endpoint}.`);
+    throw new BackendTerminalError(`Backend returned invalid JSON for ${endpoint}.`);
   }
 }
 
@@ -76,7 +79,7 @@ function createTimedRequestInit(init: RequestInit = {}): { requestInit: RequestI
 async function ensureNonHtmlResponse(response: Response, endpoint: string): Promise<void> {
   const contentType = response.headers.get('content-type')?.toLowerCase() || '';
   if (contentType.includes('text/html')) {
-    throw new Error(`Backend returned HTML for ${endpoint}. Check API routing.`);
+    throw new BackendRoutingError(`Backend returned HTML for ${endpoint}. Check API routing.`);
   }
 }
 
@@ -103,15 +106,24 @@ export async function requestBackendJson<T>(
         const compact = normalizeErrorMessage(text, endpoint);
 
         if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-          lastError = new Error(`Backend returned HTML for ${endpoint}. Check API routing.`);
+          lastError = new BackendRoutingError(`Backend returned HTML for ${endpoint}. Check API routing.`);
           continue;
         }
 
-        throw new Error(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`);
+        throw new BackendTerminalError(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`);
       }
 
       return await parseResponseText<T>(response, endpoint);
     } catch (error) {
+      if (error instanceof BackendTerminalError) {
+        throw error;
+      }
+
+      if (error instanceof BackendRoutingError) {
+        lastError = error;
+        continue;
+      }
+
       if (error instanceof DOMException && error.name === 'AbortError') {
         lastError = new Error(`Backend request timed out for ${endpoint}.`);
       } else {
@@ -120,9 +132,6 @@ export async function requestBackendJson<T>(
           : new Error(fallbackLabel || `Backend request failed for ${endpoint}.`);
       }
 
-      if (!isDevelopment && candidateUrl === endpoint) {
-        continue;
-      }
     }
   }
 
@@ -152,16 +161,25 @@ export async function requestBackendResponse(
         const compact = normalizeErrorMessage(text, endpoint);
 
         if (compact.startsWith('<!doctype') || compact.startsWith('<html')) {
-          lastError = new Error(`Backend returned HTML for ${endpoint}. Check API routing.`);
+          lastError = new BackendRoutingError(`Backend returned HTML for ${endpoint}. Check API routing.`);
           continue;
         }
 
-        throw new Error(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`);
+        throw new BackendTerminalError(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`);
       }
 
       await ensureNonHtmlResponse(response, endpoint);
       return response;
     } catch (error) {
+      if (error instanceof BackendTerminalError) {
+        throw error;
+      }
+
+      if (error instanceof BackendRoutingError) {
+        lastError = error;
+        continue;
+      }
+
       if (error instanceof DOMException && error.name === 'AbortError') {
         lastError = new Error(`Backend request timed out for ${endpoint}.`);
       } else {
@@ -170,9 +188,6 @@ export async function requestBackendResponse(
           : new Error(fallbackLabel || `Backend request failed for ${endpoint}.`);
       }
 
-      if (!isDevelopment && candidateUrl === endpoint) {
-        continue;
-      }
     }
   }
 
