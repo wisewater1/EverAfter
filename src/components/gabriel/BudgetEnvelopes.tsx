@@ -7,7 +7,7 @@ import CategoryManager from './CategoryManager';
 import { BudgetEnvelope, financeApi } from '../../lib/gabriel/finance';
 
 export default function BudgetEnvelopes() {
-    const { loading: authLoading, session } = useAuth();
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(() => financeApi.getCachedBudget());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -15,12 +15,12 @@ export default function BudgetEnvelopes() {
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
 
     useEffect(() => {
-        if (authLoading || !session?.access_token) {
+        if (authLoading || isDemoMode || !session?.access_token) {
             setLoading(false);
             return;
         }
         void loadBudget();
-    }, [authLoading, session?.access_token]);
+    }, [authLoading, isDemoMode, session?.access_token]);
 
     async function loadBudget() {
         setLoading(true);
@@ -57,11 +57,7 @@ export default function BudgetEnvelopes() {
                     setEnvelopes(financeApi.getCachedBudget());
                     setDegradedMode(true);
                     const message = err?.message || 'Failed to load budget envelopes';
-                    setError(
-                        isAuthFailureMessage(message)
-                            ? 'Your session is still restoring. Gabriel will retry live budget sync automatically.'
-                            : message
-                    );
+                    setError(isAuthFailureMessage(message) ? null : message);
                 }
                 return;
             }
@@ -73,11 +69,7 @@ export default function BudgetEnvelopes() {
             setEnvelopes(financeApi.getCachedBudget());
             setDegradedMode(true);
             const message = err?.message || 'Failed to load budget envelopes';
-            setError(
-                isAuthFailureMessage(message)
-                    ? 'Your session is still restoring. Gabriel will retry live budget sync automatically.'
-                    : message
-            );
+            setError(isAuthFailureMessage(message) ? null : message);
         } finally {
             setLoading(false);
         }

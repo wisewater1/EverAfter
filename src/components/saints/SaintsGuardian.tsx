@@ -28,14 +28,14 @@ interface SystemStatus {
 }
 
 export default function SaintsGuardian() {
-    const { loading: authLoading, session } = useAuth();
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const [status, setStatus] = useState<SystemStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [error, setError] = useState<string | null>(null);
 
     const fetchStatus = async () => {
-        if (authLoading || !session?.access_token) {
+        if (authLoading || isDemoMode || !session?.access_token) {
             setLoading(false);
             return;
         }
@@ -57,25 +57,21 @@ export default function SaintsGuardian() {
         } catch (err) {
             console.error("Monitoring failed", err);
             const message = err instanceof Error ? err.message : 'Unable to load Saints API guardian status.';
-            setError(
-                isAuthFailureMessage(message)
-                    ? 'Your session is not ready yet. Live saint monitoring will resume automatically.'
-                    : message
-            );
+            setError(isAuthFailureMessage(message) ? null : message);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (authLoading || !session?.access_token) {
+        if (authLoading || isDemoMode || !session?.access_token) {
             return;
         }
 
         fetchStatus();
         const interval = setInterval(fetchStatus, 30000); // Poll every 30s
         return () => clearInterval(interval);
-    }, [authLoading, session?.access_token]);
+    }, [authLoading, isDemoMode, session?.access_token]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {

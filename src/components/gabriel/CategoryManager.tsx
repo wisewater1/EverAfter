@@ -11,7 +11,7 @@ interface CategoryManagerProps {
 }
 
 export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryManagerProps) {
-    const { loading: authLoading, session } = useAuth();
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const [categories, setCategories] = useState<{ id: string, name: string, group: string }[]>([]); // Simplified type
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -23,12 +23,12 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
-        if (isOpen && !authLoading && session?.access_token) {
+        if (isOpen && !authLoading && !isDemoMode && session?.access_token) {
             loadCategories();
         } else if (!authLoading && !session?.access_token) {
             setLoading(false);
         }
-    }, [isOpen, authLoading, session?.access_token]);
+    }, [isOpen, authLoading, isDemoMode, session?.access_token]);
 
     async function loadCategories() {
         try {
@@ -52,11 +52,7 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
             setCategories([]);
             setDegradedMode(true);
             const message = error instanceof Error ? error.message : 'Failed to load categories';
-            setError(
-                isAuthFailureMessage(message)
-                    ? 'Your session is still restoring. Category management will resume automatically.'
-                    : message
-            );
+            setError(isAuthFailureMessage(message) ? null : message);
         } finally {
             setLoading(false);
         }
