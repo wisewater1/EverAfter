@@ -65,6 +65,20 @@ interface FamilyRiskChip {
     colour: string;
 }
 
+function raphaelSummaryHasData(summary: any): boolean {
+    const rawMetrics = summary?.metrics;
+    if (typeof rawMetrics === 'number') {
+        return rawMetrics > 0;
+    }
+    if (Array.isArray(rawMetrics)) {
+        return rawMetrics.length > 0;
+    }
+    if (rawMetrics && typeof rawMetrics === 'object') {
+        return Object.keys(rawMetrics).length > 0;
+    }
+    return false;
+}
+
 function buildFallbackSynapsePulse(): SynapsePulseResult {
     return {
         narrative: 'Live synapse prediction is temporarily unavailable. Raphael is staying responsive with a degraded local pulse based on your latest available context.',
@@ -135,7 +149,7 @@ export default function StRaphaelHealthHub() {
                 {},
                 'Failed to load Raphael hub summary.',
             );
-            if (data.metrics && data.metrics.length > 0) {
+            if (raphaelSummaryHasData(data)) {
                 setHasData(true);
                 setVitals(data.vitals);
                 setInsights(data.insights || []);
@@ -147,6 +161,13 @@ export default function StRaphaelHealthHub() {
                 if (attentionCount > 0) setStatusAura('critical');
                 else if (warningCount > 0) setStatusAura('drift');
                 else setStatusAura('stable');
+            }
+            else {
+                setHasData(false);
+                setVitals(null);
+                setInsights(data.insights || []);
+                setLastRun(data.lastRun ? new Date(data.lastRun) : null);
+                setStatusAura('stable');
             }
             setHubNotice(null);
         } catch (error) {
@@ -421,7 +442,10 @@ export default function StRaphaelHealthHub() {
 
                         {activeView === 'governance' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <GovernanceView />
+                                <GovernanceView
+                                    biometricsReady={hasData}
+                                    biometricNotice={hasData ? null : (hubNotice || 'Raphael is still waiting for live biometric sync.')}
+                                />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <ModelHealthPanel />
                                     <EvidenceLedgerView />

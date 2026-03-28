@@ -93,6 +93,17 @@ def _require_oracle_key(x_wisegold_oracle_key: Optional[str]) -> None:
     if not x_wisegold_oracle_key or x_wisegold_oracle_key != configured_key:
         raise HTTPException(status_code=401, detail="Invalid oracle credentials")
 
+
+def _get_user_id(current_user: dict) -> str:
+    user_id = current_user.get("id") or current_user.get("sub")
+    if user_id:
+        return str(user_id)
+
+    if settings.dev_auth_fallback_enabled and settings.DEV_AUTH_USER_ID:
+        return settings.DEV_AUTH_USER_ID
+
+    raise HTTPException(status_code=401, detail="User ID not found in token")
+
 # Endpoints
 
 
@@ -101,7 +112,7 @@ async def get_bank_connection_status(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_bank_connection_status(user_id)
 
@@ -111,7 +122,7 @@ async def create_bank_link_token(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     try:
         return await service.create_bank_link_token(user_id)
@@ -125,7 +136,7 @@ async def exchange_bank_public_token(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     try:
         return await service.exchange_bank_public_token(
@@ -143,7 +154,7 @@ async def sync_bank_transactions(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     try:
         return await service.sync_bank_connections(user_id)
@@ -160,7 +171,7 @@ async def get_budget(
     Get the full envelope budget summary for a request month.
     Defaults to current month if not specified.
     """
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     
     summary = await service.get_budget_summary(user_id, month)
@@ -176,7 +187,7 @@ async def create_transaction(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Record a new transaction"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     
     # Convert Pydantic model to dict
@@ -191,7 +202,7 @@ async def list_transactions(
     session: AsyncSession = Depends(get_async_session)
 ):
     """List recent transactions"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_transactions(user_id, limit)
 
@@ -203,7 +214,7 @@ async def get_treasury_summary(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Get St. Gabriel treasury analysis grounded in the user's real finance data."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = TreasuryAnalystService(session)
     return await service.build_snapshot(user_id, months=months)
 
@@ -214,7 +225,7 @@ async def transfer_funds(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Move funds between budget envelopes"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     
     try:
@@ -241,7 +252,7 @@ async def update_envelope(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Update budget envelope assigned amount"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     
     try:
@@ -266,7 +277,7 @@ async def create_category(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Create a new budget category"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.create_category(user_id, category_data.name, category_data.group)
 
@@ -278,7 +289,7 @@ async def update_category(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Update a budget category (rename or hide)"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.update_category(user_id, category_id, category_data.dict(exclude_unset=True))
 
@@ -292,7 +303,7 @@ async def get_wisegold_wallet_info(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get all core WiseGold wallet info (Balance, NFT, Living Will)"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_wisegold_wallet(user_id)
     
@@ -302,7 +313,7 @@ async def get_wisegold_covenants(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get all Sovereign Covenants the user is part of"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_wisegold_covenants(user_id)
 
@@ -314,7 +325,7 @@ async def get_wisegold_ledger(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get recent WiseGold ledger activity for the authenticated wallet."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_recent_wisegold_ledger(user_id, limit)
 
@@ -325,7 +336,7 @@ async def get_wisegold_social_standing(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get the authenticated user's current social standing for WiseGold emissions."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_wisegold_social_standing(user_id)
 
@@ -336,7 +347,7 @@ async def get_wisegold_attestations(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get active and historical covenant attestations for the authenticated member."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_wisegold_attestations(user_id)
 
@@ -347,7 +358,7 @@ async def sync_wisegold_attestations(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Refresh backend-issued covenant attestations from covenant membership state."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     attestations = await service.get_wisegold_attestations(user_id)
     return {"success": True, "count": len(attestations), "attestations": attestations}
@@ -359,7 +370,7 @@ async def get_wisegold_policy_summary(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get Gabriel-facing WiseGold policy state, limits, and allow/deny explanations."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.get_wisegold_policy_summary(user_id)
 
@@ -371,7 +382,7 @@ async def evaluate_wisegold_policy(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Evaluate a prospective WGOLD action against current attestation and treasury policy."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     return await service.evaluate_wisegold_policy(
         user_id,
@@ -435,7 +446,7 @@ async def register_heartbeat(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Register a proof-of-life heartbeat"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     success = await service.record_heartbeat(user_id)
     return {"success": success}
@@ -466,7 +477,7 @@ async def bridge_wisegold_ccip(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Initiate a Cross-Chain transfer of WGOLD using Chainlink CCIP"""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     try:
         await service.record_bridge_transfer(
@@ -499,7 +510,7 @@ async def deposit_into_covenant(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Deposit WGOLD into a covenant vault."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     try:
         return await service.deposit_into_covenant(user_id, covenant_id, request.amount)
@@ -515,11 +526,12 @@ async def withdraw_from_covenant(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Withdraw or request withdrawal from a covenant vault."""
-    user_id = str(current_user.get("sub"))
+    user_id = _get_user_id(current_user)
     service = FinanceService(session)
     try:
         return await service.withdraw_from_covenant(user_id, covenant_id, request.amount)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 

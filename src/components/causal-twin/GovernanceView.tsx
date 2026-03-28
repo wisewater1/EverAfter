@@ -22,7 +22,15 @@ interface Proposal {
     created_at: string;
 }
 
-export default function GovernanceView() {
+interface GovernanceViewProps {
+    biometricsReady?: boolean;
+    biometricNotice?: string | null;
+}
+
+export default function GovernanceView({
+    biometricsReady = true,
+    biometricNotice = null,
+}: GovernanceViewProps) {
     const [proposals, setProposals] = useState<Proposal[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedProposal, setExpandedProposal] = useState<string | null>(null);
@@ -96,6 +104,10 @@ export default function GovernanceView() {
             setError(governanceCapability.reason || 'Raphael governance is temporarily unavailable until runtime dependencies recover.');
             return;
         }
+        if (!biometricsReady) {
+            setError(null);
+            return;
+        }
         try {
             setRefreshing(true);
             setError(null);
@@ -127,13 +139,20 @@ export default function GovernanceView() {
                 </div>
                 <button
                     onClick={triggerCheck}
-                    disabled={refreshing || Boolean(governanceCapability?.blocking)}
+                    disabled={refreshing || Boolean(governanceCapability?.blocking) || !biometricsReady}
+                    title={!biometricsReady ? 'Drift scans unlock after Raphael receives live biometric data.' : undefined}
                     className="px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium hover:bg-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-teal-500/5 group"
                 >
                     <Zap className="w-4 h-4 group-hover:scale-110 transition-transform" />
                     {refreshing ? 'Scanning…' : 'Scan for Drift'}
                 </button>
             </div>
+
+            {!biometricsReady && (
+                <div className="px-4 py-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-sm text-cyan-200">
+                    {biometricNotice || 'Raphael governance drift scans unlock after live biometric sync completes.'}
+                </div>
+            )}
 
             {error && (
                 <div className="px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-300">
@@ -151,6 +170,16 @@ export default function GovernanceView() {
                     <div className="text-center">
                         <p className="text-rose-200 font-medium">Governance blocked</p>
                         <p className="text-slate-400 text-sm mt-1">{governanceCapability.reason || 'Raphael governance is temporarily unavailable.'}</p>
+                    </div>
+                </div>
+            ) : proposals.length === 0 && !biometricsReady ? (
+                <div className="p-12 rounded-3xl bg-white/[0.02] border border-dashed border-cyan-500/20 flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-300">
+                        <Eye className="w-6 h-6" />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-cyan-100 font-medium">Waiting for biometric sync</p>
+                        <p className="text-slate-400 text-sm mt-1">Raphael will enable governance drift scans after live health data arrives.</p>
                     </div>
                 </div>
             ) : proposals.length === 0 ? (

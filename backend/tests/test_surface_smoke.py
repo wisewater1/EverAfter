@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 from app.api.causal_twin import get_next_measurements
-from app.api.finance import get_bank_connection_status
+from app.api.finance import get_bank_connection_status, get_wisegold_wallet_info
 from app.api.genealogy import get_family_tree
 from app.api.invitations import InvitationCreateRequest, create_invitation
 from app.api.monitoring import get_system_status
@@ -138,9 +138,22 @@ async def test_gabriel_bank_status_smoke(monkeypatch):
 
     monkeypatch.setattr("app.services.finance_service.FinanceService.get_bank_connection_status", fake_bank_status)
 
-    result = await get_bank_connection_status(current_user={"sub": "user-1"}, session=object())
+    result = await get_bank_connection_status(current_user={"id": "user-1"}, session=object())
 
     assert result["configured"] is True
+    assert result["user_id"] == "user-1"
+
+
+@pytest.mark.asyncio
+async def test_gabriel_wisegold_wallet_uses_id_claim(monkeypatch):
+    async def fake_wallet(self, user_id):
+        return {"wallet": {"balance": 0.0}, "user_id": user_id}
+
+    monkeypatch.setattr("app.services.finance_service.FinanceService.get_wisegold_wallet", fake_wallet)
+
+    result = await get_wisegold_wallet_info(current_user={"id": "user-1"}, session=object())
+
+    assert result["wallet"]["balance"] == 0.0
     assert result["user_id"] == "user-1"
 
 
