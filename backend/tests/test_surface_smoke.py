@@ -8,7 +8,7 @@ from app.api.causal_twin import get_next_measurements
 from app.api.finance import get_bank_connection_status, get_wisegold_wallet_info
 from app.api.genealogy import get_family_tree
 from app.api.invitations import InvitationCreateRequest, create_invitation
-from app.api.monitoring import get_system_status
+from app.api.monitoring import get_system_status, trigger_michael_scan
 from app.api.saints import bootstrap_saint
 from app.api.trinity_api import TrinitySynapseRequest, trinity_synapse
 
@@ -129,6 +129,47 @@ async def test_michael_system_status_smoke(monkeypatch):
     result = await get_system_status(current_user={"id": "user-1"}, session=object())
 
     assert result["michael"]["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_michael_scan_uses_sub_claim(monkeypatch):
+    captured: dict[str, str | None] = {"user_id": None}
+
+    async def fake_scan(user_id):
+        captured["user_id"] = user_id
+        return {
+            "timestamp": datetime.utcnow().isoformat(),
+            "status": "active",
+            "findings_count": 0,
+            "findings": [],
+            "vulnerabilities": [],
+            "system_integrity": 100,
+            "integrity_score": 100,
+            "scan_scope": "full_application",
+            "user_id": user_id,
+        }
+
+    class _LedgerStub:
+        def __init__(self, _session):
+            self._calls = 0
+
+        async def log_event(self, **kwargs):
+            self._calls += 1
+            provider = kwargs.get("provider") or f"provider-{self._calls}"
+            return SimpleNamespace(id=f"log-{provider}")
+
+    class _SessionStub:
+        async def rollback(self):
+            return None
+
+    monkeypatch.setattr("app.api.monitoring.vulnerability_service.perform_full_security_scan", fake_scan)
+    monkeypatch.setattr("app.api.monitoring.LedgerService", _LedgerStub)
+
+    result = await trigger_michael_scan(current_user={"sub": "user-from-sub"}, session=_SessionStub())
+
+    assert result["status"] == "active"
+    assert captured["user_id"] == "user-from-sub"
+    assert result["audit_handoff"]["recipient"] == "st_anthony"
 
 
 @pytest.mark.asyncio

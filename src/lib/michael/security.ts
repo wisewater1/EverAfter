@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import axios from 'axios';
 import { API_BASE_URL, isDevelopment } from '../env';
+import { buildAccessTokenHeaders } from '../auth-session';
 
 const DEMO_USER_ID = '00000000-0000-4000-8000-000000000001';
 
@@ -29,6 +30,8 @@ export interface AuditRecord {
     timestamp: string;
     status: 'safe' | 'flagged' | 'blocked';
     details: string;
+    provider?: string | null;
+    metadata?: Record<string, any> | null;
 }
 
 export interface AuditLedgerEntry {
@@ -408,8 +411,27 @@ export interface JITAccessRequestPayload {
 }
 
 async function getAuthHeaders() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+    return buildAccessTokenHeaders();
+}
+
+function buildUnavailableIntegrityReport(lastScan: string, details: string): IntegrityReport {
+    return {
+        overallScore: 0,
+        dataIntegrity: 0,
+        privacyStatus: 0,
+        lastScan,
+        alerts: [
+            {
+                id: 'st-michael-monitoring-unavailable',
+                type: 'system',
+                severity: 'critical',
+                message: 'St. Michael monitoring is unavailable.',
+                timestamp: lastScan,
+                resolved: false,
+                details,
+            },
+        ],
+    };
 }
 
 async function axiosWithAuthRetry<T = any>(
@@ -492,14 +514,11 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
                 lastScan: monitoring?.timestamp || lastScan,
                 alerts: findings,
             };
-        } catch {
-            return {
-                overallScore: 100,
-                dataIntegrity: 100,
-                privacyStatus: 100,
+        } catch (error) {
+            return buildUnavailableIntegrityReport(
                 lastScan,
-                alerts: [],
-            };
+                error instanceof Error ? error.message : 'Guardian monitoring request failed.',
+            );
         }
     }
 
@@ -630,16 +649,18 @@ export async function getAuditHistory(userId: string): Promise<AuditRecord[]> {
         );
 
         if (relevantEntries.length > 0) {
-            return relevantEntries.map((entry) => ({
-                id: entry.id,
-                action: entry.action,
-                timestamp: entry.ts || new Date().toISOString(),
-                status: entry.action.includes('anthony') ? 'flagged' : 'safe',
-                details: entry.provider === 'st_anthony'
-                    ? 'Delivered to St. Anthony for audit verification'
-                    : 'Verified by St. Michael and sealed for Anthony ledger review',
-            }));
-        }
+        return relevantEntries.map((entry) => ({
+            id: entry.id,
+            action: entry.action,
+            timestamp: entry.ts || new Date().toISOString(),
+            status: entry.action.includes('anthony') ? 'flagged' : 'safe',
+            details: entry.provider === 'st_anthony'
+                ? 'Delivered to St. Anthony for audit verification'
+                : 'Verified by St. Michael and sealed for Anthony ledger review',
+            provider: entry.provider,
+            metadata: entry.metadata || null,
+        }));
+    }
     } catch (error) {
         console.error('Error fetching backend audit history:', error);
     }
@@ -662,6 +683,8 @@ export async function getAuditHistory(userId: string): Promise<AuditRecord[]> {
             details: log.provider === 'st_anthony'
                 ? 'Delivered to St. Anthony for audit verification'
                 : `Action ${log.action} verified by St. Michael`,
+            provider: log.provider ?? null,
+            metadata: log.metadata ?? null,
         }));
     } catch (error) {
         console.error('Error fetching fallback audit history:', error);

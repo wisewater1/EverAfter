@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
@@ -9,6 +9,13 @@ from app.services.vulnerability_service import vulnerability_service
 from app.services.ledger_service import LedgerService
 
 router = APIRouter(prefix="/api/v1/monitoring", tags=["monitoring"])
+
+
+def _get_user_id(current_user: dict) -> Optional[str]:
+    user_id = current_user.get("id") or current_user.get("sub")
+    if user_id:
+        return str(user_id)
+    return None
 
 @router.get("/status")
 async def get_system_status(
@@ -40,7 +47,7 @@ async def trigger_michael_scan(
     """
     Manually trigger a full security audit by St. Michael.
     """
-    user_id = current_user.get("id")
+    user_id = _get_user_id(current_user)
     vulnerability_service.session = session # Temporary session injection
     scan_results = await vulnerability_service.perform_full_security_scan(user_id)
     await session.rollback()
