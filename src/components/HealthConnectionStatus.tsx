@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
+import { readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 
 interface HealthConnection {
   id: string;
@@ -12,8 +13,10 @@ interface HealthConnection {
   error_message: string | null;
 }
 
+const DEMO_HEALTH_CONNECTIONS_KEY = 'everafter_demo_health_connections';
+
 export default function HealthConnectionStatus() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -22,10 +25,15 @@ export default function HealthConnectionStatus() {
     if (user) {
       fetchConnections();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchConnections = async () => {
     try {
+      if (isDemoMode) {
+        setConnections(readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('health_connections')
         .select('*')
@@ -34,7 +42,8 @@ export default function HealthConnectionStatus() {
       if (error) throw error;
       if (data) setConnections(data);
     } catch (error) {
-      console.error('Error fetching connections:', error);
+      console.warn('Error fetching connections:', error);
+      setConnections([]);
     } finally {
       setLoading(false);
     }
@@ -43,6 +52,19 @@ export default function HealthConnectionStatus() {
   const syncConnection = async (connectionId: string) => {
     setSyncing(connectionId);
     try {
+      if (isDemoMode) {
+        const nextConnections = writeDemoStorage(
+          DEMO_HEALTH_CONNECTIONS_KEY,
+          readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []).map((connection) =>
+            connection.id === connectionId
+              ? { ...connection, last_sync_at: new Date().toISOString(), status: 'connected' as const }
+              : connection,
+          ),
+        );
+        setConnections(nextConnections);
+        return;
+      }
+
       const { error } = await supabase
         .from('health_connections')
         .update({
@@ -54,7 +76,7 @@ export default function HealthConnectionStatus() {
       if (error) throw error;
       await fetchConnections();
     } catch (error) {
-      console.error('Error syncing connection:', error);
+      console.warn('Error syncing connection:', error);
     } finally {
       setSyncing(null);
     }

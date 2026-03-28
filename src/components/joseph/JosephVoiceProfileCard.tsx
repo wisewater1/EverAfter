@@ -12,6 +12,9 @@ import {
   type JosephVoiceSample,
 } from '../../lib/joseph/voice';
 import { useAudioRecorder } from './useAudioRecorder';
+import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
+import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
 interface JosephVoiceProfileCardProps {
   familyMemberId: string;
@@ -27,9 +30,13 @@ const CLIP_TYPE_LABELS: Record<string, string> = {
   free_speech: 'Free speech',
 };
 
-function normalizeVoiceProfileError(error: unknown): string {
+function normalizeVoiceProfileError(error: unknown): string | null {
   const message = error instanceof Error ? error.message : String(error || '');
   const compact = message.trim();
+
+  if (isAuthFailureMessage(compact)) {
+    return null;
+  }
 
   if (!compact || compact === 'Internal Server Error') {
     return 'Voice profile storage is temporarily unavailable. Try again after the backend reconnects.';
@@ -55,7 +62,9 @@ export default function JosephVoiceProfileCard({
   engramId = null,
   compact = false,
 }: JosephVoiceProfileCardProps) {
+  const { loading: authLoading, session, isDemoMode } = useAuth();
   const [voiceHealth, setVoiceHealth] = useState<JosephVoiceHealth | null>(null);
+  const [voiceCapability, setVoiceCapability] = useState<RuntimeCapability | null>(null);
   const [profile, setProfile] = useState<JosephVoiceProfile | null>(null);
   const [samples, setSamples] = useState<JosephVoiceSample[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,8 +88,28 @@ export default function JosephVoiceProfileCard({
   }, [clipType, voiceHealth]);
 
   const activePrompt = prompts[promptIndex] || '';
+  const authToken = session?.access_token ?? null;
+  const liveVoiceAvailable = !authLoading && !isDemoMode && Boolean(authToken);
+  const voiceBlockedReason = voiceCapability?.blocking
+    ? voiceCapability.reason || 'Joseph voice is temporarily unavailable until its required dependencies recover.'
+    : null;
+  const canUseVoiceCapability = liveVoiceAvailable && !voiceCapability?.blocking;
+  const authRequiredMessage = !authLoading && !liveVoiceAvailable
+    ? 'Sign in with a live account to load and manage private voice profiles.'
+    : null;
 
   const loadProfile = useCallback(async (showSpinner = true) => {
+    if (!authToken || isDemoMode) {
+      setVoiceCapability(null);
+      setVoiceHealth(null);
+      setProfile(null);
+      setSamples([]);
+      setError(null);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     if (showSpinner) {
       setLoading(true);
     } else {
@@ -89,9 +118,20 @@ export default function JosephVoiceProfileCard({
     setError(null);
 
     try {
+      const readiness = await getRuntimeReadiness();
+      const capability = getCapability(readiness, 'joseph.voice');
+      setVoiceCapability(capability);
+      if (capability?.blocking) {
+        setVoiceHealth(null);
+        setProfile(null);
+        setSamples([]);
+        setError(null);
+        return;
+      }
+
       const [healthResult, bundleResult] = await Promise.allSettled([
-        getJosephVoiceHealth(),
-        getJosephVoiceProfile(familyMemberId),
+        getJosephVoiceHealth({ authToken }),
+        getJosephVoiceProfile(familyMemberId, { authToken }),
       ]);
 
       if (healthResult.status === 'fulfilled') {
@@ -112,16 +152,32 @@ export default function JosephVoiceProfileCard({
         setError(normalizeVoiceProfileError(bundleResult.reason));
       }
     } catch (loadError) {
+      setVoiceCapability(null);
       setError(normalizeVoiceProfileError(loadError));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [familyMemberId]);
+  }, [authToken, familyMemberId, isDemoMode]);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!liveVoiceAvailable) {
+      setVoiceCapability(null);
+      setVoiceHealth(null);
+      setProfile(null);
+      setSamples([]);
+      setError(null);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     void loadProfile();
-  }, [loadProfile]);
+  }, [authLoading, liveVoiceAvailable, loadProfile]);
 
   useEffect(() => {
     if (!profile || profile.training_status !== 'training') {
@@ -130,7 +186,7 @@ export default function JosephVoiceProfileCard({
 
     const interval = window.setInterval(async () => {
       try {
-        const status = await getJosephVoiceTrainingStatus(familyMemberId);
+        const status = await getJosephVoiceTrainingStatus(familyMemberId, { authToken });
         setProfile(status.profile);
       } catch {
         // Best effort polling; keep existing UI state.
@@ -138,9 +194,18 @@ export default function JosephVoiceProfileCard({
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [familyMemberId, profile]);
+  }, [authToken, familyMemberId, profile]);
 
   const handleCreateProfile = useCallback(async () => {
+    if (!authToken || isDemoMode) {
+      setError(authRequiredMessage);
+      return;
+    }
+    if (voiceBlockedReason) {
+      setError(voiceBlockedReason);
+      return;
+    }
+
     setSavingProfile(true);
     setError(null);
     try {
@@ -150,7 +215,7 @@ export default function JosephVoiceProfileCard({
         consentPhrase,
         engramId,
         voiceStyleNotes: voiceStyleNotes.trim() || null,
-      });
+      }, { authToken });
       setProfile(bundle.profile);
       setSamples(bundle.samples || []);
     } catch (saveError) {
@@ -158,10 +223,19 @@ export default function JosephVoiceProfileCard({
     } finally {
       setSavingProfile(false);
     }
-  }, [consentGranted, consentPhrase, engramId, familyMemberId, voiceStyleNotes]);
+  }, [authRequiredMessage, authToken, consentGranted, consentPhrase, engramId, familyMemberId, isDemoMode, voiceBlockedReason, voiceStyleNotes]);
 
   const handleUploadRecording = useCallback(async () => {
     if (!recorder.audioBlob) {
+      return;
+    }
+
+    if (!authToken || isDemoMode) {
+      setError(authRequiredMessage);
+      return;
+    }
+    if (voiceBlockedReason) {
+      setError(voiceBlockedReason);
       return;
     }
 
@@ -181,7 +255,7 @@ export default function JosephVoiceProfileCard({
         consentPhrase,
         engramId,
         transcribe: Boolean(voiceHealth?.available),
-      });
+      }, { authToken });
       setProfile(result.profile);
       setSamples((current) => [result.sample, ...current]);
       recorder.clearRecording();
@@ -192,16 +266,29 @@ export default function JosephVoiceProfileCard({
     }
   }, [
     activePrompt,
+    authRequiredMessage,
+    authToken,
     clipType,
     consentGranted,
     consentPhrase,
     engramId,
     familyMemberId,
+    isDemoMode,
     recorder,
+    voiceBlockedReason,
     voiceHealth,
   ]);
 
   const handleTrain = useCallback(async () => {
+    if (!authToken || isDemoMode) {
+      setError(authRequiredMessage);
+      return;
+    }
+    if (voiceBlockedReason) {
+      setError(voiceBlockedReason);
+      return;
+    }
+
     setTraining(true);
     setError(null);
     try {
@@ -209,14 +296,14 @@ export default function JosephVoiceProfileCard({
         familyMemberId,
         engramId,
         voiceStyleNotes: voiceStyleNotes.trim() || null,
-      });
+      }, { authToken });
       setProfile(result.profile);
     } catch (trainError) {
       setError(normalizeVoiceProfileError(trainError));
     } finally {
       setTraining(false);
     }
-  }, [engramId, familyMemberId, voiceStyleNotes]);
+  }, [authRequiredMessage, authToken, engramId, familyMemberId, isDemoMode, voiceBlockedReason, voiceStyleNotes]);
 
   const readySamples = profile?.sample_count || 0;
   const readySeconds = profile?.approved_seconds || 0;
@@ -243,7 +330,8 @@ export default function JosephVoiceProfileCard({
           </span>
           <button
             onClick={() => void loadProfile(false)}
-            className="rounded-lg border border-white/10 p-2 text-slate-400 transition hover:border-white/20 hover:text-white"
+            disabled={!liveVoiceAvailable}
+            className="rounded-lg border border-white/10 p-2 text-slate-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Refresh voice profile"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -258,9 +346,15 @@ export default function JosephVoiceProfileCard({
         </div>
       ) : (
         <div className="mt-4 space-y-4">
-          {!voiceHealth?.available && (
+          {voiceBlockedReason && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              Sidecar unavailable. Sample collection still works, but transcription, training, and synthesis are offline.
+              {voiceBlockedReason}
+            </div>
+          )}
+
+          {authRequiredMessage && (
+            <div className="rounded-xl border border-slate-500/20 bg-slate-500/10 px-3 py-2 text-xs text-slate-300">
+              {authRequiredMessage}
             </div>
           )}
 
@@ -291,7 +385,7 @@ export default function JosephVoiceProfileCard({
             </div>
           </div>
 
-          {!profile && (
+          {!profile && canUseVoiceCapability && (
             <div className="space-y-3 rounded-2xl border border-white/5 bg-slate-950/30 p-4">
               <div className="space-y-2">
                 <label className="flex items-start gap-2 text-sm text-slate-300">
@@ -320,7 +414,7 @@ export default function JosephVoiceProfileCard({
               </div>
               <button
                 onClick={() => void handleCreateProfile()}
-                disabled={!consentGranted || savingProfile}
+                disabled={!consentGranted || savingProfile || !canUseVoiceCapability}
                 className="inline-flex items-center gap-2 rounded-xl bg-cyan-500/20 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -329,7 +423,7 @@ export default function JosephVoiceProfileCard({
             </div>
           )}
 
-          {profile && (
+          {profile && canUseVoiceCapability && (
             <>
               <div className="space-y-3 rounded-2xl border border-white/5 bg-slate-950/30 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -385,9 +479,9 @@ export default function JosephVoiceProfileCard({
                 )}
 
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => void recorder.startRecording()}
-                    disabled={recorder.isRecording || recorder.isProcessing || !recorder.isSupported}
+                <button
+                  onClick={() => void recorder.startRecording()}
+                    disabled={!canUseVoiceCapability || recorder.isRecording || recorder.isProcessing || !recorder.isSupported}
                     className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Mic className="h-4 w-4" />
@@ -401,9 +495,9 @@ export default function JosephVoiceProfileCard({
                     <Radio className="h-4 w-4" />
                     Stop
                   </button>
-                  <button
-                    onClick={() => void handleUploadRecording()}
-                    disabled={!recorder.audioBlob || uploadingSample}
+                <button
+                  onClick={() => void handleUploadRecording()}
+                    disabled={!canUseVoiceCapability || !recorder.audioBlob || uploadingSample}
                     className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {uploadingSample ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -436,7 +530,7 @@ export default function JosephVoiceProfileCard({
                 </div>
                 <button
                   onClick={() => void handleTrain()}
-                  disabled={!profile.training_ready || training || !voiceHealth?.available}
+                  disabled={!canUseVoiceCapability || !profile.training_ready || training || !voiceHealth?.available}
                   className="inline-flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-400/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {training ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}

@@ -7,6 +7,7 @@ import { getFamilyMembers, updateFamilyMember, addFamilyEvent } from '../../lib/
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
 import { requestBackendJson } from '../../lib/backend-request';
 import { getJosephVoiceProfile, type JosephVoiceProfileBundle } from '../../lib/joseph/voice';
+import { useAuth } from '../../contexts/AuthContext';
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -48,6 +49,7 @@ const CATEGORY_STYLE: Record<string, { icon: string; color: string; bg: string }
 /* ═══════════════════════════════════════════════════════════════ */
 
 export default function MediaIntelligencePanel() {
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const members = getFamilyMembers();
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(
         () => members.find(m => !m.deathDate) || null
@@ -79,6 +81,8 @@ export default function MediaIntelligencePanel() {
     // Tab
     const [tab, setTab] = useState<'upload' | 'stack'>('upload');
     const [voiceBundle, setVoiceBundle] = useState<JosephVoiceProfileBundle | null>(null);
+    const authToken = session?.access_token ?? null;
+    const liveVoiceAvailable = !authLoading && !isDemoMode && Boolean(authToken);
 
     /* ── Load member info stack ────────────────────────────────── */
 
@@ -98,13 +102,18 @@ export default function MediaIntelligencePanel() {
     }, [members]);
 
     const loadVoiceBundle = useCallback(async (memberId: string) => {
+        if (!authToken || isDemoMode) {
+            setVoiceBundle(null);
+            return;
+        }
+
         try {
-            const bundle = await getJosephVoiceProfile(memberId);
+            const bundle = await getJosephVoiceProfile(memberId, { authToken });
             setVoiceBundle(bundle);
         } catch {
             setVoiceBundle(null);
         }
-    }, []);
+    }, [authToken, isDemoMode]);
 
     useEffect(() => {
         if (selectedMember) {
@@ -581,7 +590,11 @@ export default function MediaIntelligencePanel() {
                             <Waves className="w-4 h-4 text-cyan-300" />
                             <span className="text-sm font-semibold text-white">Voice Artifacts</span>
                         </div>
-                        {voiceBundle?.profile ? (
+                        {!liveVoiceAvailable ? (
+                            <div className="mt-3 text-xs text-slate-500">
+                                Sign in with a live account to inspect private voice artifacts for this family member.
+                            </div>
+                        ) : voiceBundle?.profile ? (
                             <div className="mt-3 space-y-3">
                                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                                     <div className="rounded-xl border border-white/5 bg-slate-950/35 p-3">

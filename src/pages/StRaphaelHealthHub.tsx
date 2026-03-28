@@ -98,7 +98,7 @@ function buildFallbackFamilyRiskMap(): FamilyRiskChip[] {
 
 export default function StRaphaelHealthHub() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isDemoMode } = useAuth();
     const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
 
     const [activeView, setActiveView] = useState<ActiveView>('overview');
@@ -108,14 +108,26 @@ export default function StRaphaelHealthHub() {
     const [hasData, setHasData] = useState(false);
     const [lastRun, setLastRun] = useState<Date | null>(null);
     const [statusAura, setStatusAura] = useState<'stable' | 'drift' | 'critical'>('stable');
+    const [hubNotice, setHubNotice] = useState<string | null>(null);
 
     const activeConnectionsCount = getActiveConnectionsCount();
 
     useEffect(() => {
         loadHubData();
-    }, []);
+    }, [isDemoMode]);
 
     async function loadHubData() {
+        if (isDemoMode) {
+            setHasData(false);
+            setVitals(null);
+            setInsights([]);
+            setLastRun(new Date());
+            setStatusAura('stable');
+            setHubNotice('Demo mode is using local fallback health context instead of live biometric sync.');
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             const data = await requestBackendJson<any>(
@@ -136,8 +148,15 @@ export default function StRaphaelHealthHub() {
                 else if (warningCount > 0) setStatusAura('drift');
                 else setStatusAura('stable');
             }
+            setHubNotice(null);
         } catch (error) {
-            console.error('Failed to load Hub data:', error);
+            setHasData(false);
+            setVitals(null);
+            setInsights([]);
+            setLastRun(new Date());
+            setStatusAura('stable');
+            setHubNotice('Live Raphael hub data is temporarily unavailable. Showing a degraded local state instead.');
+            console.warn('Raphael hub degraded to local fallback:', error);
         } finally {
             setLoading(false);
         }
@@ -225,6 +244,12 @@ export default function StRaphaelHealthHub() {
                     ) : (
                         <div className="p-8 rounded-2xl bg-teal-500/5 border border-teal-500/10 text-center">
                             <p className="text-teal-400/60 italic text-sm">Waiting for biometric sync...</p>
+                        </div>
+                    )}
+
+                    {hubNotice && (
+                        <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                            {hubNotice}
                         </div>
                     )}
                 </div>
@@ -594,6 +619,7 @@ function SynapsePulse() {
 }
 
 function FamilyHealthHeatmap() {
+    const { isDemoMode } = useAuth();
     const [members, setMembers] = useState<FamilyRiskChip[]>([]);
     const [loading, setLoading] = useState(true);
     const [degradedNotice, setDegradedNotice] = useState<string | null>(null);
@@ -602,6 +628,15 @@ function FamilyHealthHeatmap() {
         let cancelled = false;
 
         const loadFamilyMap = async () => {
+            if (isDemoMode) {
+                if (!cancelled) {
+                    setMembers(buildFallbackFamilyRiskMap());
+                    setDegradedNotice('Demo mode is showing a local family risk map instead of live predictions.');
+                    setLoading(false);
+                }
+                return;
+            }
+
             try {
                 const rawMembers = getFamilyMembers()
                     .filter((member) => !member.deathDate)
@@ -672,7 +707,7 @@ function FamilyHealthHeatmap() {
                     setDegradedNotice(null);
                 }
             } catch (e) {
-                console.error(e);
+                console.warn('Family risk map degraded to local fallback:', e);
                 if (!cancelled) {
                     const fallbackMap = buildFallbackFamilyRiskMap();
                     setMembers(fallbackMap);
@@ -694,7 +729,7 @@ function FamilyHealthHeatmap() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [isDemoMode]);
 
     if (loading) return null;
 

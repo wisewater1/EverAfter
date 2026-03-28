@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { buildApiUrl } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
+import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
 interface Proposal {
     id: string;
@@ -27,6 +28,7 @@ export default function GovernanceView() {
     const [expandedProposal, setExpandedProposal] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [governanceCapability, setGovernanceCapability] = useState<RuntimeCapability | null>(null);
 
     useEffect(() => {
         fetchProposals();
@@ -34,6 +36,15 @@ export default function GovernanceView() {
 
     async function fetchProposals() {
         try {
+            const readiness = await getRuntimeReadiness();
+            const capability = getCapability(readiness, 'raphael.governance');
+            setGovernanceCapability(capability);
+            if (capability?.blocking) {
+                setProposals([]);
+                setError(capability.reason || 'Raphael governance is temporarily unavailable until runtime dependencies recover.');
+                return;
+            }
+
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
             });
@@ -56,6 +67,10 @@ export default function GovernanceView() {
     }
 
     async function handleAction(id: string, action: 'ratify' | 'veto') {
+        if (governanceCapability?.blocking) {
+            setError(governanceCapability.reason || 'Raphael governance is temporarily unavailable until runtime dependencies recover.');
+            return;
+        }
         try {
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
@@ -77,6 +92,10 @@ export default function GovernanceView() {
     }
 
     async function triggerCheck() {
+        if (governanceCapability?.blocking) {
+            setError(governanceCapability.reason || 'Raphael governance is temporarily unavailable until runtime dependencies recover.');
+            return;
+        }
         try {
             setRefreshing(true);
             setError(null);
@@ -108,7 +127,7 @@ export default function GovernanceView() {
                 </div>
                 <button
                     onClick={triggerCheck}
-                    disabled={refreshing}
+                    disabled={refreshing || Boolean(governanceCapability?.blocking)}
                     className="px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium hover:bg-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-teal-500/5 group"
                 >
                     <Zap className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -124,6 +143,16 @@ export default function GovernanceView() {
 
             {loading ? (
                 <div className="p-12 text-center text-slate-500 italic">Accessing Akashic Records...</div>
+            ) : governanceCapability?.blocking ? (
+                <div className="p-12 rounded-3xl bg-white/[0.02] border border-dashed border-rose-500/20 flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-300">
+                        <Lock className="w-6 h-6" />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-rose-200 font-medium">Governance blocked</p>
+                        <p className="text-slate-400 text-sm mt-1">{governanceCapability.reason || 'Raphael governance is temporarily unavailable.'}</p>
+                    </div>
+                </div>
             ) : proposals.length === 0 ? (
                 <div className="p-12 rounded-3xl bg-white/[0.02] border border-dashed border-white/10 flex flex-col items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-slate-500/10 flex items-center justify-center text-slate-500">

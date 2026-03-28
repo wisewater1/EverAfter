@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, AlertCircle, CheckCircle2, Database, Droplets, History, Plus, RefreshCw, Save, Shield, Thermometer, TrendingUp, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchHealthMetrics, fetchTrajectoryHistory, generateDelphiPrediction, saveTrajectorySnapshot, storeHealthMetrics, type DelphiPrediction, type ExtractedHealthData, type HealthDataPoint } from '../lib/raphael/healthDataService';
+import { fetchHealthMetrics, fetchTrajectoryHistory, generateDelphiPrediction, generateSimulatedPrediction, saveTrajectorySnapshot, storeHealthMetrics, type DelphiPrediction, type ExtractedHealthData, type HealthDataPoint } from '../lib/raphael/healthDataService';
 
 interface QuickEntryField {
     label: string;
@@ -43,7 +43,7 @@ function formatRelativeRecordedAt(timestamp: string) {
 }
 
 const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
-    const { user } = useAuth();
+    const { user, isDemoMode } = useAuth();
     const [prediction, setPrediction] = useState<DelphiPrediction | null>(null);
     const [recentMetrics, setRecentMetrics] = useState<HealthDataPoint[]>([]);
     const [trajectoryHistory, setTrajectoryHistory] = useState<DelphiPrediction[]>([]);
@@ -57,6 +57,15 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
     const loadPrediction = useCallback(async () => {
         if (!effectiveUserId) return;
         setLoading(true);
+
+        if (isDemoMode) {
+            setPrediction(generateSimulatedPrediction());
+            setRecentMetrics([]);
+            setTrajectoryHistory([]);
+            setLoading(false);
+            return;
+        }
+
         try {
             const [pred, metrics, history] = await Promise.all([
                 generateDelphiPrediction(effectiveUserId),
@@ -68,11 +77,14 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
             setTrajectoryHistory(history);
             saveTrajectorySnapshot(effectiveUserId, pred).catch(() => {});
         } catch (error) {
-            console.error('Error generating Delphi prediction:', error);
+            console.warn('Delphi prediction degraded to simulated mode:', error);
+            setPrediction(generateSimulatedPrediction());
+            setRecentMetrics([]);
+            setTrajectoryHistory([]);
         } finally {
             setLoading(false);
         }
-    }, [effectiveUserId]);
+    }, [effectiveUserId, isDemoMode]);
 
     useEffect(() => {
         void loadPrediction();

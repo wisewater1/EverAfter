@@ -4,11 +4,23 @@ import { Queue } from 'bullmq';
 import { createAuditLog } from '../../lib/audit';
 
 const router = express.Router();
-const ingestQueue = new Queue('ingest-terra', {
-  connection: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-  },
-});
+let ingestQueue: Queue | null = null;
+
+function getIngestQueue(): Queue | null {
+  if (!process.env.REDIS_URL) {
+    return null;
+  }
+
+  if (!ingestQueue) {
+    ingestQueue = new Queue('ingest-terra', {
+      connection: {
+        url: process.env.REDIS_URL,
+      },
+    });
+  }
+
+  return ingestQueue;
+}
 
 function verifyTerraWebhook(payload: string, signature: string): boolean {
   const secret = process.env.TERRA_WEBHOOK_SECRET;
@@ -40,23 +52,30 @@ router.post('/webhooks/terra', async (req, res) => {
 
     console.log(`Terra webhook: ${type} for user ${user?.user_id}`);
 
-    await ingestQueue.add(
-      'terra-webhook',
-      {
-        type,
-        userId: user?.user_id,
-        externalUserId: user?.user_id,
-        data,
-        receivedAt: new Date().toISOString(),
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+    let queued = false;
+    const queue = getIngestQueue();
+    if (queue) {
+      await queue.add(
+        'terra-webhook',
+        {
+          type,
+          userId: user?.user_id,
+          externalUserId: user?.user_id,
+          data,
+          receivedAt: new Date().toISOString(),
         },
-      }
-    );
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+        }
+      );
+      queued = true;
+    } else {
+      console.warn('Skipping Terra webhook enqueue: REDIS_URL is not configured');
+    }
 
     if (user?.user_id) {
       await createAuditLog({
@@ -66,7 +85,7 @@ router.post('/webhooks/terra', async (req, res) => {
       });
     }
 
-    res.json({ success: true, queued: true });
+    res.json({ success: true, queued });
   } catch (error) {
     console.error('Terra webhook error:', error);
     res.status(500).json({

@@ -108,6 +108,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function loadOnboardingResume() {
+      if (isDemoMode) {
+        setOnboardingResume({
+          visible: false,
+          progressPercent: 0,
+          completedCount: 0,
+          currentLabel: ONBOARDING_STEPS[0],
+          skipped: false,
+          lastUpdated: null,
+        });
+        setLoadingOnboardingResume(false);
+        return;
+      }
+
       if (!user?.id || !supabase) {
         setLoadingOnboardingResume(false);
         return;
@@ -164,7 +177,7 @@ export default function Dashboard() {
     if (!loading) {
       loadOnboardingResume();
     }
-  }, [user?.id, loading]);
+  }, [user?.id, loading, isDemoMode]);
 
   useEffect(() => {
     if (!user?.id) {

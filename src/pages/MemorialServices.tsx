@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 import {
   Heart,
   MapPin,
@@ -59,8 +60,10 @@ interface MemorialPlan {
   updated_at: string;
 }
 
+const DEMO_MEMORIAL_PLANS_KEY = 'everafter_demo_memorial_plans';
+
 export default function MemorialServices() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'explore' | 'planning' | 'documents'>('explore');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -153,13 +156,18 @@ export default function MemorialServices() {
     if (user) {
       fetchPlans();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchPlans = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
+      if (isDemoMode) {
+        setPlans(readDemoStorage<MemorialPlan[]>(DEMO_MEMORIAL_PLANS_KEY, []));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('memorial_plans')
         .select('*')
@@ -169,9 +177,69 @@ export default function MemorialServices() {
       if (error) throw error;
       setPlans(data || []);
     } catch (error) {
-      console.error('Error fetching plans:', error);
+      console.warn('Error fetching plans:', error);
+      setPlans([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openExternal = (url: string) => {
+    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const contactProvider = (provider: ServiceProvider) => {
+    window.location.href = `mailto:${provider.email}?subject=${encodeURIComponent(`Memorial Services Inquiry for ${provider.name}`)}`;
+  };
+
+  const createPlan = async (serviceType: string) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const normalizedType = serviceType === 'all' ? 'memorial' : serviceType;
+
+    try {
+      if (isDemoMode) {
+        const nextPlans = writeDemoStorage(DEMO_MEMORIAL_PLANS_KEY, [
+          {
+            id: createDemoId('memorial-plan'),
+            user_id: user.id,
+            service_type: normalizedType,
+            preferences: {
+              category: normalizedType,
+              mode: 'demo',
+            },
+            budget: 5000,
+            status: 'planning',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          ...readDemoStorage<MemorialPlan[]>(DEMO_MEMORIAL_PLANS_KEY, []),
+        ]);
+
+        setPlans(nextPlans);
+        setActiveTab('planning');
+        return;
+      }
+
+      const { error } = await supabase.from('memorial_plans').insert({
+        user_id: user.id,
+        service_type: normalizedType,
+        preferences: { category: normalizedType },
+        budget: 5000,
+        status: 'planning',
+      });
+
+      if (error) throw error;
+
+      await fetchPlans();
+      setActiveTab('planning');
+    } catch (error) {
+      console.warn('Error creating memorial plan:', error);
+      alert('Unable to create a memorial plan right now.');
     }
   };
 
@@ -332,24 +400,41 @@ export default function MemorialServices() {
                       <span className="text-white font-medium">{provider.price_range}</span>
                     </div>
                     <div className="flex items-center gap-3 text-slate-400">
-                      <button className="hover:text-teal-400 transition-colors">
+                      <button
+                        onClick={() => {
+                          window.location.href = `tel:${provider.phone.replace(/[^\d+]/g, '')}`;
+                        }}
+                        className="hover:text-teal-400 transition-colors"
+                      >
                         <Phone className="w-4 h-4" />
                       </button>
-                      <button className="hover:text-teal-400 transition-colors">
+                      <button
+                        onClick={() => contactProvider(provider)}
+                        className="hover:text-teal-400 transition-colors"
+                      >
                         <Mail className="w-4 h-4" />
                       </button>
-                      <button className="hover:text-teal-400 transition-colors">
+                      <button
+                        onClick={() => openExternal(provider.website)}
+                        className="hover:text-teal-400 transition-colors"
+                      >
                         <Globe className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
-                    <button className="flex-1 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => contactProvider(provider)}
+                      className="flex-1 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    >
                       <MessageCircle className="w-4 h-4" />
                       Contact
                     </button>
-                    <button className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center gap-2">
+                    <button
+                      onClick={() => openExternal(provider.website)}
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center gap-2"
+                    >
                       View Details
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -367,7 +452,10 @@ export default function MemorialServices() {
                 <h2 className="text-2xl font-bold text-white mb-1">My Memorial Plans</h2>
                 <p className="text-slate-400">Manage and organize your memorial service preferences</p>
               </div>
-              <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2">
+              <button
+                onClick={() => createPlan(selectedCategory)}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2"
+              >
                 <FileText className="w-5 h-5" />
                 Create New Plan
               </button>
@@ -384,7 +472,10 @@ export default function MemorialServices() {
                 <p className="text-slate-400 mb-6 max-w-md mx-auto">
                   Start planning your memorial services to ensure your wishes are honored.
                 </p>
-                <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all">
+                <button
+                  onClick={() => createPlan(selectedCategory)}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all"
+                >
                   Create Your First Plan
                 </button>
               </div>

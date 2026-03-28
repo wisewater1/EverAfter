@@ -10,13 +10,15 @@ from datetime import datetime
 from fastapi import APIRouter, Body, Depends, HTTPException
 from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import and_, or_, select
 
+from app.core.config import settings
 from app.db.session import create_supabase_client, get_session
 from app.models.genealogy import FamilyNode, FamilyRelationship, FamilyEvent
 
 router = APIRouter(prefix="/api/v1/genealogy", tags=["Genealogy"])
 logger = logging.getLogger(__name__)
+GENEALOGY_READ_SQL_TIMEOUT_SECONDS = settings.JOSEPH_READ_SQL_TIMEOUT_SECONDS
 
 # Auth helpers
 def _get_user_id(current_user: dict) -> str:
@@ -27,18 +29,46 @@ def _get_current_user():
     return get_current_user
 
 
+def _chunked(values: List[str], size: int = 50) -> List[List[str]]:
+    return [values[index:index + size] for index in range(0, len(values), size)]
+
+
+async def _rollback_session(session: AsyncSession) -> None:
+    try:
+        await session.rollback()
+    except Exception:
+        return
+
+
+async def _execute_sql_read(session: AsyncSession, query: Any):
+    try:
+        return await asyncio.wait_for(session.execute(query), timeout=GENEALOGY_READ_SQL_TIMEOUT_SECONDS)
+    except Exception:
+        await _rollback_session(session)
+        raise
+
+
 async def _fetch_supabase_tree(user_id: str) -> Dict[str, Any]:
     def _run():
         client = create_supabase_client()
         nodes_response = client.table("family_nodes").select("*").eq("user_id", user_id).execute()
         nodes = nodes_response.data or []
-        node_ids = {node.get("id") for node in nodes if node.get("id")}
-        relationships_response = client.table("family_relationships").select("*").execute()
-        relationships = [
-            relationship
-            for relationship in (relationships_response.data or [])
-            if relationship.get("from_node_id") in node_ids or relationship.get("to_node_id") in node_ids
-        ]
+        node_ids = [str(node.get("id")) for node in nodes if node.get("id")]
+        relationships: List[Dict[str, Any]] = []
+        seen_ids = set()
+
+        for chunk in _chunked(node_ids):
+            joined_ids = ",".join(chunk)
+            query = client.table("family_relationships").select("*").or_(
+                f"from_node_id.in.({joined_ids}),to_node_id.in.({joined_ids})"
+            )
+            response = query.execute()
+            for relationship in response.data or []:
+                relationship_id = relationship.get("id")
+                if relationship_id in seen_ids:
+                    continue
+                seen_ids.add(relationship_id)
+                relationships.append(relationship)
         return {"nodes": nodes, "relationships": relationships}
 
     return await asyncio.to_thread(_run)
@@ -54,7 +84,7 @@ async def get_family_tree(
     try:
         # 1. Fetch nodes
         nodes_query = select(FamilyNode).where(FamilyNode.user_id == user_id)
-        nodes_result = await session.execute(nodes_query)
+        nodes_result = await _execute_sql_read(session, nodes_query)
         nodes = nodes_result.scalars().all()
 
         if not nodes:
@@ -65,9 +95,12 @@ async def get_family_tree(
 
         # 3. Fetch relationships
         rels_query = select(FamilyRelationship).where(
-            FamilyRelationship.from_node_id.in_(node_ids)
+            or_(
+                FamilyRelationship.from_node_id.in_(node_ids),
+                FamilyRelationship.to_node_id.in_(node_ids),
+            )
         )
-        rels_result = await session.execute(rels_query)
+        rels_result = await _execute_sql_read(session, rels_query)
         relationships = rels_result.scalars().all()
 
         # FORMAT
@@ -97,7 +130,11 @@ async def get_family_tree(
         }
     except Exception as exc:
         logger.warning("SQL genealogy lookup failed; using Supabase fallback: %s", exc)
-        tree = await _fetch_supabase_tree(user_id)
+        try:
+            tree = await _fetch_supabase_tree(user_id)
+        except Exception as fallback_exc:
+            logger.warning("Supabase genealogy fallback failed for user %s: %s", user_id, fallback_exc)
+            tree = {"nodes": [], "relationships": []}
         return {
             "nodes": [
                 {

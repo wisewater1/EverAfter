@@ -4,7 +4,7 @@ import { getProvider } from '../providers/index.js';
 import { encryptToken, decryptToken } from '../utils/crypto.js';
 import { logger } from '../utils/logger.js';
 import { TokenRefreshJobData } from '../types/index.js';
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 
 export async function processTokenRefresh(job: Job<TokenRefreshJobData>): Promise<void> {
   const { accountId, provider } = job.data;

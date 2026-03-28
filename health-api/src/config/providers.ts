@@ -1,4 +1,4 @@
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 import { ProviderConfig } from '../types/index.js';
 
 export const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {

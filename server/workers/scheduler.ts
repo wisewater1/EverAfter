@@ -5,23 +5,32 @@ import manifest from '../../agents/raphael/manifest.json';
 
 const prisma = new PrismaClient();
 
-const redisConnection = {
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-};
-
-const agentScheduleQueue = new Queue('agent-schedule', {
-  connection: redisConnection,
-});
-
-const agentRunQueue = new Queue('agent-run', {
-  connection: redisConnection,
-});
+export function isSchedulerEnabled() {
+  return Boolean(process.env.REDIS_URL);
+}
 
 export function startScheduler() {
+  if (!isSchedulerEnabled()) {
+    console.log('Skipping scheduler startup: REDIS_URL is not configured');
+    return null;
+  }
+
+  const redisConnection = {
+    url: process.env.REDIS_URL!,
+  };
+
+  const agentScheduleQueue = new Queue('agent-schedule', {
+    connection: redisConnection,
+  });
+
+  const agentRunQueue = new Queue('agent-run', {
+    connection: redisConnection,
+  });
+
   const scheduleWorker = new Worker(
     'agent-schedule',
     async (job) => {
-      console.log(`⏰ Processing scheduled job: ${job.name}`);
+      console.log(`â° Processing scheduled job: ${job.name}`);
 
       const users = await prisma.user.findMany({
         select: { id: true, email: true },
@@ -38,7 +47,7 @@ export function startScheduler() {
 
         if (consents.length === 0) {
           console.log(
-            `⏭️  Skipping ${user.email} - no active consent for autonomous runs`
+            `â­ï¸  Skipping ${user.email} - no active consent for autonomous runs`
           );
           continue;
         }
@@ -58,7 +67,7 @@ export function startScheduler() {
           }
         );
 
-        console.log(`✅ Queued Raphael run for ${user.email}`);
+        console.log(`âœ… Queued Raphael run for ${user.email}`);
       }
     },
     { connection: redisConnection }
@@ -67,7 +76,7 @@ export function startScheduler() {
   const runWorker = new Worker(
     'agent-run',
     async (job) => {
-      console.log(`🤖 Running Raphael for user ${job.data.userId}`);
+      console.log(`ðŸ¤– Running Raphael for user ${job.data.userId}`);
 
       try {
         const result = await runRaphael({
@@ -77,12 +86,12 @@ export function startScheduler() {
         });
 
         console.log(
-          `✅ Raphael completed: ${result.insights.length} insights, ${result.engramsCreated} engrams`
+          `âœ… Raphael completed: ${result.insights.length} insights, ${result.engramsCreated} engrams`
         );
 
         return result;
       } catch (error) {
-        console.error('❌ Raphael run failed:', error);
+        console.error('âŒ Raphael run failed:', error);
         throw error;
       }
     },
@@ -103,23 +112,23 @@ export function startScheduler() {
   );
 
   console.log(
-    `📅 Scheduler started with cron: ${manifest.capabilities.scheduleDefault}`
+    `ðŸ“… Scheduler started with cron: ${manifest.capabilities.scheduleDefault}`
   );
 
   scheduleWorker.on('completed', (job) => {
-    console.log(`✅ Schedule job ${job.id} completed`);
+    console.log(`âœ… Schedule job ${job.id} completed`);
   });
 
   scheduleWorker.on('failed', (job, err) => {
-    console.error(`❌ Schedule job ${job?.id} failed:`, err.message);
+    console.error(`âŒ Schedule job ${job?.id} failed:`, err.message);
   });
 
   runWorker.on('completed', (job) => {
-    console.log(`✅ Run job ${job.id} completed`);
+    console.log(`âœ… Run job ${job.id} completed`);
   });
 
   runWorker.on('failed', (job, err) => {
-    console.error(`❌ Run job ${job?.id} failed:`, err.message);
+    console.error(`âŒ Run job ${job?.id} failed:`, err.message);
   });
 
   return { scheduleWorker, runWorker };

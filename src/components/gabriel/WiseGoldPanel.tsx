@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import CrossChainBridgeModal from './CrossChainBridgeModal';
+import { isAuthFailureMessage } from '../../lib/auth-session';
 import { isProduction } from '../../lib/env';
 import { financeApi } from '../../lib/gabriel/finance';
+import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
 interface WiseGoldWallet {
   id: string;
@@ -145,6 +147,21 @@ function formatEntryType(value: string) {
     .join(' ');
 }
 
+function normalizeWiseGoldError(error: unknown, fallbackMessage: string): string {
+  const message = error instanceof Error ? error.message : String(error || '');
+  const compact = message.trim();
+
+  if (isAuthFailureMessage(compact)) {
+    return 'WiseGold requires an authenticated session.';
+  }
+
+  if (!compact || compact === 'Internal Server Error') {
+    return fallbackMessage;
+  }
+
+  return compact;
+}
+
 export default function WiseGoldPanel() {
   const { user, session } = useAuth();
   const token = session?.access_token || '';
@@ -163,6 +180,7 @@ export default function WiseGoldPanel() {
   const [wgoldPriceUsd, setWgoldPriceUsd] = useState<number | null>(null);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wiseGoldCapability, setWiseGoldCapability] = useState<RuntimeCapability | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [covenantAmounts, setCovenantAmounts] = useState<Record<string, string>>({});
   const [activeCovenantAction, setActiveCovenantAction] = useState<string | null>(null);
@@ -272,6 +290,29 @@ export default function WiseGoldPanel() {
     }
 
     try {
+      const readiness = await getRuntimeReadiness();
+      const capability = getCapability(readiness, 'gabriel.wisegold');
+      setWiseGoldCapability(capability);
+      if (capability?.blocking) {
+        const message = capability.reason || 'WiseGold is temporarily unavailable until runtime dependencies recover.';
+        if (isProduction) {
+          setError(message);
+          setWallet(null);
+          setBond(null);
+          setWill(null);
+          setPolicy(null);
+          setSocialStanding(null);
+          setCovenants([]);
+          setLedger([]);
+          setAttestations([]);
+          setPolicySummary(null);
+          setWgoldPriceUsd(null);
+        } else {
+          applyDevFallback(message);
+        }
+        return;
+      }
+
       const [walletData, covenantData, ledgerData, priceData, attestationData, policySummaryData] = await Promise.all([
         financeApi.getWiseGoldWallet(),
         financeApi.getWiseGoldCovenants(),
@@ -293,7 +334,7 @@ export default function WiseGoldPanel() {
       setError(null);
       setWgoldPriceUsd(priceData?.xau_usd_price ?? null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch WiseGold data.';
+      const message = normalizeWiseGoldError(err, 'WiseGold live data is temporarily unavailable.');
       console.error('WiseGold data load failed:', err);
       if (isProduction) {
         setError(message);
@@ -321,6 +362,10 @@ export default function WiseGoldPanel() {
 
   const handleHeartbeat = async () => {
     if (!token) return;
+    if (wiseGoldCapability?.blocking) {
+      setError(wiseGoldCapability.reason || 'WiseGold is temporarily unavailable until runtime dependencies recover.');
+      return;
+    }
     setHeartbeatSending(true);
     setActionMessage(null);
     try {
@@ -328,7 +373,7 @@ export default function WiseGoldPanel() {
       setActionMessage('Proof-of-life heartbeat synchronized.');
       await loadWiseGoldData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to sync heartbeat.';
+      const message = normalizeWiseGoldError(err, 'Failed to sync heartbeat.');
       setError(message);
     } finally {
       setHeartbeatSending(false);
@@ -337,6 +382,10 @@ export default function WiseGoldPanel() {
 
   const handleCovenantAction = async (covenantId: string, action: 'deposit' | 'withdraw') => {
     if (!token) return;
+    if (wiseGoldCapability?.blocking) {
+      setError(wiseGoldCapability.reason || 'WiseGold is temporarily unavailable until runtime dependencies recover.');
+      return;
+    }
     const rawAmount = covenantAmounts[covenantId] ?? '';
     const amount = parseFloat(rawAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -359,7 +408,7 @@ export default function WiseGoldPanel() {
       setCovenantAmounts((current) => ({ ...current, [covenantId]: '' }));
       await loadWiseGoldData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : `Failed to ${action} WGOLD.`;
+      const message = normalizeWiseGoldError(err, `Failed to ${action} WGOLD.`);
       setError(message);
     } finally {
       setActiveCovenantAction(null);

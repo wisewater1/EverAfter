@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 import {
   ArrowLeft,
   Save,
@@ -38,31 +39,36 @@ interface UserProfile {
   allow_connection_requests: boolean;
 }
 
+const DEMO_PROFILE_KEY = 'everafter_demo_user_profile';
+
+const buildDefaultProfile = (user: { id?: string; email?: string; user_metadata?: Record<string, any> } | null): Partial<UserProfile> => ({
+  user_id: user?.id ?? '',
+  full_name: user?.user_metadata?.full_name ?? '',
+  display_name: user?.email?.split('@')[0] ?? '',
+  phone_number: '',
+  location: '',
+  country: '',
+  interests: [],
+  skills: [],
+  bio: '',
+  avatar_url: '',
+  website: '',
+  linkedin_url: '',
+  twitter_url: '',
+  profile_visibility: 'public',
+  allow_messages: true,
+  allow_connection_requests: true,
+});
+
 export default function UserProfileSetup() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newInterest, setNewInterest] = useState('');
   const [newSkill, setNewSkill] = useState('');
 
-  const [profile, setProfile] = useState<Partial<UserProfile>>({
-    full_name: '',
-    display_name: '',
-    phone_number: '',
-    location: '',
-    country: '',
-    interests: [],
-    skills: [],
-    bio: '',
-    avatar_url: '',
-    website: '',
-    linkedin_url: '',
-    twitter_url: '',
-    profile_visibility: 'public',
-    allow_messages: true,
-    allow_connection_requests: true,
-  });
+  const [profile, setProfile] = useState<Partial<UserProfile>>(buildDefaultProfile(null));
 
   useEffect(() => {
     if (!user) {
@@ -70,12 +76,17 @@ export default function UserProfileSetup() {
       return;
     }
     loadProfile();
-  }, [user]);
+  }, [isDemoMode, navigate, user]);
 
   const loadProfile = async () => {
     if (!user) return;
 
     try {
+      if (isDemoMode) {
+        setProfile(readDemoStorage(DEMO_PROFILE_KEY, buildDefaultProfile(user)));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -86,9 +97,12 @@ export default function UserProfileSetup() {
 
       if (data) {
         setProfile(data);
+      } else {
+        setProfile(buildDefaultProfile(user));
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.warn('Error loading profile:', error);
+      setProfile(buildDefaultProfile(user));
     } finally {
       setLoading(false);
     }
@@ -99,6 +113,17 @@ export default function UserProfileSetup() {
 
     setSaving(true);
     try {
+      if (isDemoMode) {
+        writeDemoStorage(DEMO_PROFILE_KEY, {
+          ...buildDefaultProfile(user),
+          ...profile,
+          user_id: user.id,
+        });
+        alert('Profile saved locally in demo mode.');
+        navigate('/portal');
+        return;
+      }
+
       const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('id')

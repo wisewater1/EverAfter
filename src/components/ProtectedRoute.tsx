@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
   const ONBOARDING_CHECK_TIMEOUT_MS = 2500;
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isDemoMode } = useAuth();
   const location = useLocation();
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   const isExemptRoute = onboardingExemptRoutes.some(route => location.pathname.startsWith(route));
 
   useEffect(() => {
-    if (!user || typeof window === 'undefined') {
+    if (!user || isDemoMode || typeof window === 'undefined') {
       setNeedsOnboarding(false);
       return;
     }
@@ -37,11 +37,12 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     } catch {
       // Ignore storage failures and fall back to the live check.
     }
-  }, [user?.id]);
+  }, [user?.id, isDemoMode]);
 
   useEffect(() => {
     async function checkOnboardingStatus() {
-      if (!user || skipOnboardingCheck || isExemptRoute) {
+      if (!user || isDemoMode || skipOnboardingCheck || isExemptRoute) {
+        setNeedsOnboarding(false);
         setCheckingOnboarding(false);
         return;
       }
@@ -92,7 +93,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     } else if (!authLoading) {
       setCheckingOnboarding(false);
     }
-  }, [user, authLoading, skipOnboardingCheck, isExemptRoute]);
+  }, [user, authLoading, isDemoMode, skipOnboardingCheck, isExemptRoute]);
 
   useEffect(() => {
     if (!authLoading && checkingOnboarding) {

@@ -13,9 +13,12 @@ class VoiceAIUnavailableError(RuntimeError):
 
 class VoiceAIService:
     def __init__(self) -> None:
-        self.base_url = (settings.VOICE_AI_BASE_URL or "").rstrip("/")
         self.timeout = settings.VOICE_AI_TIMEOUT_SECONDS
         self.health_timeout = settings.VOICE_AI_HEALTH_TIMEOUT_SECONDS
+
+    @property
+    def base_url(self) -> str:
+        return settings.resolved_voice_ai_base_url
 
     @property
     def configured(self) -> bool:
@@ -27,7 +30,7 @@ class VoiceAIService:
                 "available": False,
                 "configured": False,
                 "status": "unavailable",
-                "message": "VOICE_AI_BASE_URL is not configured.",
+                "message": "Voice AI sidecar is not configured.",
             }
 
         try:
@@ -35,10 +38,13 @@ class VoiceAIService:
                 response = await client.get(f"{self.base_url}/health")
                 response.raise_for_status()
                 payload = response.json() if response.content else {}
+                status = str(payload.get("status", "healthy")).lower()
+                available = status in {"healthy", "ok", "ready"}
                 return {
-                    "available": True,
+                    "available": available,
                     "configured": True,
-                    "status": payload.get("status", "healthy"),
+                    "status": status,
+                    "message": payload.get("message"),
                     "raw": payload,
                 }
         except Exception as exc:  # pragma: no cover - network variability
@@ -51,7 +57,7 @@ class VoiceAIService:
 
     async def _post_json(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not self.configured:
-            raise VoiceAIUnavailableError("VOICE_AI_BASE_URL is not configured.")
+            raise VoiceAIUnavailableError("Voice AI sidecar is not configured.")
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(f"{self.base_url}{path}", json=payload)
@@ -66,7 +72,7 @@ class VoiceAIService:
         data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         if not self.configured:
-            raise VoiceAIUnavailableError("VOICE_AI_BASE_URL is not configured.")
+            raise VoiceAIUnavailableError("Voice AI sidecar is not configured.")
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(f"{self.base_url}{path}", files=files, data=data or {})
@@ -116,7 +122,7 @@ class VoiceAIService:
 
     async def get_training_status(self, job_ref: str) -> Dict[str, Any]:
         if not self.configured:
-            raise VoiceAIUnavailableError("VOICE_AI_BASE_URL is not configured.")
+            raise VoiceAIUnavailableError("Voice AI sidecar is not configured.")
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(f"{self.base_url}/get-training-status", params={"job_ref": job_ref})

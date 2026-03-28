@@ -210,7 +210,7 @@ export async function fetchHealthMetrics(
         .order('recorded_at', { ascending: true });
 
     if (error) {
-        console.error('Failed to fetch health metrics:', error);
+        console.warn('Health metrics unavailable, falling back to local simulation:', error);
         return [];
     }
 
@@ -421,7 +421,7 @@ function generate24hTrajectory(baseScore: number, metrics: HealthDataPoint[]): T
     return points;
 }
 
-function generateSimulatedPrediction(): DelphiPrediction {
+export function generateSimulatedPrediction(): DelphiPrediction {
     const now = new Date();
     const trajectory: TrajectoryPoint[] = [];
     let value = 0.65;

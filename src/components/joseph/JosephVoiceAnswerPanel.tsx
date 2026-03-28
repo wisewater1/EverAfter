@@ -10,6 +10,9 @@ import {
   type JosephVoiceQuizSuggestion,
 } from '../../lib/joseph/voice';
 import { useAudioRecorder } from './useAudioRecorder';
+import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
+import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
 interface JosephVoiceAnswerPanelProps {
   familyMemberId: string;
@@ -32,8 +35,10 @@ export default function JosephVoiceAnswerPanel({
   questionText,
   onApprovedAnswer,
 }: JosephVoiceAnswerPanelProps) {
+  const { loading: authLoading, session, isDemoMode } = useAuth();
   const [open, setOpen] = useState(false);
   const [voiceHealth, setVoiceHealth] = useState<JosephVoiceHealth | null>(null);
+  const [voiceCapability, setVoiceCapability] = useState<RuntimeCapability | null>(null);
   const [voiceBundle, setVoiceBundle] = useState<JosephVoiceProfileBundle | null>(null);
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -43,26 +48,51 @@ export default function JosephVoiceAnswerPanel({
   const [transcript, setTranscript] = useState('');
   const [selectedAnswer, setSelectedAnswer] = useState<number>(3);
   const recorder = useAudioRecorder();
+  const authToken = session?.access_token ?? null;
+  const liveVoiceAvailable = !authLoading && !isDemoMode && Boolean(authToken);
+  const voiceBlockedReason = voiceCapability?.blocking
+    ? voiceCapability.reason || 'Joseph voice is temporarily unavailable until its required dependencies recover.'
+    : null;
 
   useEffect(() => {
-    if (!open || loadingHealth) {
+    if (!open || loadingHealth || authLoading) {
+      return;
+    }
+
+    if (!liveVoiceAvailable) {
+      setVoiceCapability(null);
+      setVoiceHealth(null);
+      setVoiceBundle(null);
+      setLoadingHealth(false);
+      setError(null);
       return;
     }
 
     setLoadingHealth(true);
-    void Promise.all([
-      getJosephVoiceHealth(),
-      getJosephVoiceProfile(familyMemberId),
-    ])
-      .then(([health, bundle]) => {
+    void getRuntimeReadiness()
+      .then(async (readiness) => {
+        const capability = getCapability(readiness, 'joseph.voice');
+        setVoiceCapability(capability);
+        if (capability?.blocking) {
+          setVoiceHealth(null);
+          setVoiceBundle(null);
+          setError(null);
+          return;
+        }
+
+        const [health, bundle] = await Promise.all([
+          getJosephVoiceHealth({ authToken }),
+          getJosephVoiceProfile(familyMemberId, { authToken }),
+        ]);
         setVoiceHealth(health);
         setVoiceBundle(bundle);
       })
       .catch((healthError) => {
-        setError(healthError instanceof Error ? healthError.message : 'Failed to load voice capability.');
+        const message = healthError instanceof Error ? healthError.message : 'Failed to load voice capability.';
+        setError(isAuthFailureMessage(message) ? null : message);
       })
       .finally(() => setLoadingHealth(false));
-  }, [familyMemberId, loadingHealth, open]);
+  }, [authLoading, authToken, familyMemberId, liveVoiceAvailable, loadingHealth, open]);
 
   useEffect(() => {
     setSuggestion(null);
@@ -73,7 +103,7 @@ export default function JosephVoiceAnswerPanel({
 
   const profile = voiceBundle?.profile || null;
   const hasVoiceConsent = profile?.consent_status === 'opted_in';
-  const canUseVoiceFlow = Boolean(voiceHealth?.available && hasVoiceConsent);
+  const canUseVoiceFlow = Boolean(liveVoiceAvailable && !voiceCapability?.blocking && voiceHealth?.available && hasVoiceConsent);
 
   const handleAnalyze = async () => {
     if (!recorder.audioBlob || !canUseVoiceFlow) {
@@ -90,7 +120,7 @@ export default function JosephVoiceAnswerPanel({
         audioFile: recorder.audioBlob,
         filename: `${familyMemberId}-${questionId}-${Date.now()}.webm`,
         durationSeconds: recorder.durationSeconds,
-      });
+      }, { authToken });
       setSuggestion(result);
       setTranscript(result.sample.transcript || '');
       setSelectedAnswer(result.suggested_answer || 3);
@@ -113,7 +143,7 @@ export default function JosephVoiceAnswerPanel({
         sampleId: suggestion.sample.id,
         transcript,
         selectedAnswer,
-      });
+      }, { authToken });
       onApprovedAnswer(result.approved_answer);
       setOpen(false);
       setSuggestion(null);
@@ -155,13 +185,19 @@ export default function JosephVoiceAnswerPanel({
             </div>
           )}
 
-          {!loadingHealth && voiceHealth && !voiceHealth.available && (
+          {voiceBlockedReason && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              Voice sidecar is unavailable. Typed OCEAN answers still work, but transcription is offline.
+              {voiceBlockedReason}
             </div>
           )}
 
-          {!loadingHealth && voiceHealth?.available && !profile && (
+          {!authLoading && !liveVoiceAvailable && (
+            <div className="rounded-xl border border-slate-500/20 bg-slate-500/10 px-3 py-2 text-xs text-slate-300">
+              Sign in with a live account to use private Joseph voice answers.
+            </div>
+          )}
+
+          {!loadingHealth && !voiceBlockedReason && voiceHealth?.available && !profile && (
             <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200">
               No private voice profile exists for this family member yet. Create one in the member detail panel before using voice answers.
             </div>
@@ -273,7 +309,7 @@ export default function JosephVoiceAnswerPanel({
           {!canUseVoiceFlow && !loadingHealth && (
             <div className="flex items-start gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-xs text-slate-400">
               <AlertCircle className="mt-0.5 h-4 w-4 text-slate-500" />
-              This voice flow only activates when the Joseph voice sidecar is reachable and the selected family member has an explicitly consented voice profile. It stays disabled instead of falling back to mock voice analysis.
+              This voice flow only activates when Joseph voice is fully healthy and the selected family member has an explicitly consented voice profile. It stays disabled instead of falling back to mock voice analysis.
             </div>
           )}
         </div>

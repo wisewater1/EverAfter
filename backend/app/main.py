@@ -21,6 +21,7 @@ from app.api import (
     monitoring,
     personality,
     rituals,
+    runtime,
     sacred_state,
     saints,
     social,
@@ -29,6 +30,7 @@ from app.api import (
 )
 from app.auth.middleware import JWTAuthMiddleware
 from app.core.config import settings
+from app.services.runtime_readiness import collect_runtime_readiness
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -167,44 +169,61 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
     from app.services.family_home_runtime_tables import ensure_family_home_tables
     from app.services.finance_runtime_tables import ensure_finance_runtime_tables
     from app.services.genealogy_runtime_tables import ensure_genealogy_tables
+    from app.services.governance_runtime_tables import ensure_governance_tables
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables
 
     state = app.state.runtime_status
+    component_results = {}
+    bootstrappers = (
+        ("engram", ensure_engram_runtime_tables),
+        ("genealogy", ensure_genealogy_tables),
+        ("family_home", ensure_family_home_tables),
+        ("finance", ensure_finance_runtime_tables),
+        ("health_prediction", ensure_health_prediction_runtime_tables),
+        ("governance", ensure_governance_tables),
+        ("wisegold", ensure_wisegold_tables),
+    )
 
     try:
-        await asyncio.wait_for(ensure_engram_runtime_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
-        await asyncio.wait_for(ensure_genealogy_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
-        await asyncio.wait_for(ensure_family_home_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
-        await asyncio.wait_for(ensure_finance_runtime_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
-        await asyncio.wait_for(
-            ensure_health_prediction_runtime_tables(),
-            timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS,
-        )
-        await asyncio.wait_for(ensure_wisegold_tables(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
+        bootstrap_errors = []
+        for component_name, bootstrapper in bootstrappers:
+            try:
+                await asyncio.wait_for(bootstrapper(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
+                component_results[component_name] = {"ready": True, "error": None}
+            except Exception as exc:
+                component_results[component_name] = {"ready": False, "error": str(exc)}
+                bootstrap_errors.append(f"{component_name}: {exc}")
+
+        app.state.bootstrap_components = component_results
+        all_components_ready = all(result["ready"] for result in component_results.values())
         state.update(
             {
-                "status": "healthy",
-                "db_ready": True,
+                "status": "healthy" if all_components_ready else "degraded",
+                "db_ready": all_components_ready,
                 "bootstrap_complete": True,
-                "last_error": None,
+                "last_error": None if all_components_ready else "; ".join(bootstrap_errors),
+                "bootstrap_components": component_results,
             }
         )
         _refresh_subsystem_status(app)
-        app.state.optional_runtime_task = asyncio.create_task(
-            _start_optional_runtime(app),
-            name="optional-runtime-bootstrap",
-        )
+        if all_components_ready:
+            app.state.optional_runtime_task = asyncio.create_task(
+                _start_optional_runtime(app),
+                name="optional-runtime-bootstrap",
+            )
     except asyncio.CancelledError:
         raise
     except Exception as exc:
         logger.exception("Runtime bootstrap failed")
+        app.state.bootstrap_components = component_results
         state.update(
             {
                 "status": "degraded",
                 "db_ready": False,
                 "bootstrap_complete": True,
                 "last_error": str(exc),
+                "bootstrap_components": component_results,
             }
         )
         _refresh_subsystem_status(app)
@@ -220,6 +239,7 @@ async def lifespan(app: FastAPI):
         "bootstrap_complete": False,
         "last_error": None,
     }
+    app.state.bootstrap_components = {}
     app.state.subsystem_status = _default_subsystem_status()
     _refresh_subsystem_status(app)
     await _start_saint_runtime(app)
@@ -267,6 +287,7 @@ app.include_router(tasks.router)
 app.include_router(autonomous_tasks.router)
 app.include_router(personality.router)
 app.include_router(health.router)
+app.include_router(runtime.router)
 app.include_router(social.router)
 app.include_router(saints.router)
 app.include_router(finance.router)
@@ -331,12 +352,15 @@ async def health_check():
             "last_error": None,
         },
     )
+    probe_safe_readiness = await collect_runtime_readiness(app, include_live_checks=False)
     return {
         "status": runtime_status["status"],
         "service": "EverAfter Autonomous AI API",
         "version": "1.0.0",
         "bootstrap": runtime_status,
         "subsystems": getattr(app.state, "subsystem_status", _default_subsystem_status()),
+        "capabilities": probe_safe_readiness["capabilities"],
+        "capability_summary": probe_safe_readiness["summary"],
     }
 
 

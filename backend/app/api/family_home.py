@@ -14,11 +14,13 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.session import create_supabase_client, get_session
 from app.models.family_home import BulletinMessage, CalendarEvent, FamilyTask, ShoppingItem
 
 router = APIRouter(prefix="/api/v1/family-home", tags=["Family Home"])
 logger = logging.getLogger(__name__)
+FAMILY_READ_SQL_TIMEOUT_SECONDS = settings.JOSEPH_READ_SQL_TIMEOUT_SECONDS
 
 
 def _get_user_id(current_user: dict) -> str:
@@ -128,6 +130,21 @@ async def _fetch_supabase_rows(
     return response.data or []
 
 
+async def _rollback_session(session: AsyncSession) -> None:
+    try:
+        await session.rollback()
+    except Exception:
+        return
+
+
+async def _execute_sql_read(session: AsyncSession, query: Any, label: str):
+    try:
+        return await asyncio.wait_for(session.execute(query), timeout=FAMILY_READ_SQL_TIMEOUT_SECONDS)
+    except Exception:
+        await _rollback_session(session)
+        raise
+
+
 def _format_calendar_event_record(event: Dict[str, Any]) -> Dict[str, Any]:
     date_value = event.get("date") or datetime.utcnow().strftime("%Y-%m-%d")
     time_value = event.get("time") or "12:00"
@@ -171,7 +188,7 @@ async def get_tasks(
     user_id = _get_user_id(current_user)
     query = select(FamilyTask).where(FamilyTask.user_id == user_id).order_by(FamilyTask.created_at.desc())
     try:
-        result = await session.execute(query)
+        result = await _execute_sql_read(session, query, "tasks")
         tasks = result.scalars().all()
 
         formatted_tasks = [_serialize_task(task) for task in tasks]
@@ -322,7 +339,7 @@ async def get_shopping_list(
     user_id = _get_user_id(current_user)
     query = select(ShoppingItem).where(ShoppingItem.user_id == user_id).order_by(ShoppingItem.created_at.desc())
     try:
-        result = await session.execute(query)
+        result = await _execute_sql_read(session, query, "shopping")
         items = result.scalars().all()
 
         formatted_items = [_serialize_item(item) for item in items]
@@ -496,7 +513,7 @@ async def get_calendar(
     user_id = _get_user_id(current_user)
     query = select(CalendarEvent).where(CalendarEvent.user_id == user_id)
     try:
-        result = await session.execute(query)
+        result = await _execute_sql_read(session, query, "calendar")
         events = result.scalars().all()
 
         formatted_events = []
@@ -582,7 +599,7 @@ async def get_bulletin(
     user_id = _get_user_id(current_user)
     query = select(BulletinMessage).where(BulletinMessage.user_id == user_id).order_by(BulletinMessage.created_at.desc())
     try:
-        result = await session.execute(query)
+        result = await _execute_sql_read(session, query, "bulletin")
         messages = result.scalars().all()
 
         formatted_messages = []

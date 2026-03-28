@@ -4,6 +4,8 @@ import { FamilyMember, AIPersonality, generateAIPersonality, activateAgent, getS
 import { emitSaintEvent } from '../../lib/saintBridge';
 import { apiClient } from '../../lib/api-client';
 import { getJosephVoiceProfile, synthesizeJosephVoice, type JosephVoiceProfileBundle } from '../../lib/joseph/voice';
+import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
 
 interface Props {
     member: FamilyMember;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export default function AgentPersonalityModal({ member, onClose, onActivated }: Props) {
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const [personality] = useState<AIPersonality>(() =>
         member.aiPersonality || generateAIPersonality(member)
     );
@@ -23,6 +26,8 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
     const [voicePreviewError, setVoicePreviewError] = useState<string | null>(null);
     const [voicePreviewOutput, setVoicePreviewOutput] = useState<string | null>(null);
     const isAlreadyActive = member.aiPersonality?.isActive === true;
+    const authToken = session?.access_token ?? null;
+    const liveVoiceAvailable = !authLoading && !isDemoMode && Boolean(authToken);
 
     const spouse = getSpouse(member.id);
     const children = getChildren(member.id);
@@ -40,15 +45,33 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
     useEffect(() => {
         let mounted = true;
         setLoadingVoice(true);
-        void getJosephVoiceProfile(member.id)
+        if (authLoading) {
+            return () => {
+                mounted = false;
+            };
+        }
+
+        if (!liveVoiceAvailable) {
+            setVoiceBundle(null);
+            setLoadingVoice(false);
+            return () => {
+                mounted = false;
+            };
+        }
+
+        void getJosephVoiceProfile(member.id, { authToken })
             .then((bundle) => {
                 if (mounted) {
                     setVoiceBundle(bundle);
                 }
             })
-            .catch(() => {
+            .catch((error) => {
                 if (mounted) {
-                    setVoiceBundle(null);
+                    if (!isAuthFailureMessage(error instanceof Error ? error.message : String(error || ''))) {
+                        setVoiceBundle(null);
+                    } else {
+                        setVoiceBundle(null);
+                    }
                 }
             })
             .finally(() => {
@@ -60,10 +83,15 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
         return () => {
             mounted = false;
         };
-    }, [member.id]);
+    }, [authLoading, authToken, liveVoiceAvailable, member.id]);
 
     const handlePreviewVoice = async () => {
         if (!member.engramId || !voiceReadyForAI || !voicePreviewText.trim()) {
+            return;
+        }
+
+        if (!authToken || isDemoMode) {
+            setVoicePreviewError('Sign in with a live account to preview a personal voice.');
             return;
         }
 
@@ -75,7 +103,7 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                 familyMemberId: member.id,
                 engramId: member.engramId,
                 textContent: voicePreviewText.trim(),
-            });
+            }, { authToken });
             setVoicePreviewOutput(result.output_ref || null);
             if (!result.output_ref) {
                 setVoicePreviewError('Voice synthesis completed, but the sidecar did not return an audio reference.');
@@ -243,6 +271,10 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                 Checking consented voice profile…
                             </div>
+                        ) : !liveVoiceAvailable ? (
+                            <p className="text-xs text-slate-400">
+                                Sign in with a live account to inspect or preview private voice profiles for this family member.
+                            </p>
                         ) : voiceBundle?.profile ? (
                             <div className="space-y-2 text-xs text-slate-300">
                                 <p>
@@ -280,7 +312,7 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                             />
                             <button
                                 onClick={() => void handlePreviewVoice()}
-                                disabled={!canPreviewVoice || synthesizing || !voicePreviewText.trim()}
+                                disabled={!canPreviewVoice || synthesizing || !voicePreviewText.trim() || !liveVoiceAvailable}
                                 className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {synthesizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Volume2 className="w-4 h-4" />}

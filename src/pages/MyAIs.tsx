@@ -38,7 +38,7 @@ interface PurchasedTemplate {
 }
 
 export default function MyAIs() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [purchases, setPurchases] = useState<PurchasedTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,12 +49,17 @@ export default function MyAIs() {
       return;
     }
     loadPurchases();
-  }, [user]);
+  }, [isDemoMode, navigate, user]);
 
   const loadPurchases = async () => {
     if (!user) return;
 
     try {
+      if (isDemoMode) {
+        setPurchases([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('marketplace_purchases')
         .select(`
@@ -94,7 +99,8 @@ export default function MyAIs() {
 
       setPurchases(purchasesWithInstances as PurchasedTemplate[]);
     } catch (error) {
-      console.error('Error loading purchases:', error);
+      console.warn('Error loading purchases:', error);
+      setPurchases([]);
     } finally {
       setLoading(false);
     }

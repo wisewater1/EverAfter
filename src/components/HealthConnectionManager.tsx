@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Radio, Moon, Sparkles, LayoutDashboard } from 'lucide-react';
 import TroubleshootingWizard from './TroubleshootingWizard';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
+import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 
 interface HealthConnection {
   id: string;
@@ -14,6 +15,8 @@ interface HealthConnection {
   sync_frequency: string;
   error_message: string;
 }
+
+const DEMO_HEALTH_CONNECTIONS_KEY = 'everafter_demo_health_connections';
 
 const HEALTH_SERVICES = [
   // Multi-Device Aggregators
@@ -122,7 +125,7 @@ const HEALTH_SERVICES = [
 ];
 
 export default function HealthConnectionManager() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -138,10 +141,15 @@ export default function HealthConnectionManager() {
     if (user) {
       fetchConnections();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchConnections = async () => {
     try {
+      if (isDemoMode) {
+        setConnections(readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('health_connections')
         .select('*')
@@ -150,7 +158,8 @@ export default function HealthConnectionManager() {
       if (error) throw error;
       setConnections(data || []);
     } catch (error) {
-      console.error('Error fetching connections:', error);
+      console.warn('Error fetching connections:', error);
+      setConnections([]);
     } finally {
       setLoading(false);
     }
@@ -158,6 +167,26 @@ export default function HealthConnectionManager() {
 
   const connectService = async (serviceType: string, serviceName: string) => {
     try {
+      if (isDemoMode) {
+        const nextConnections = writeDemoStorage(DEMO_HEALTH_CONNECTIONS_KEY, [
+          {
+            id: createDemoId(`health-${serviceType}`),
+            user_id: user?.id,
+            service_name: serviceName,
+            service_type: serviceType,
+            status: 'connected',
+            sync_frequency: 'daily',
+            last_sync_at: new Date().toISOString(),
+            error_message: '',
+          },
+          ...readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []).filter((connection) => connection.service_type !== serviceType),
+        ]);
+
+        setConnections(nextConnections);
+        alert(`${serviceName} connected in demo mode.`);
+        return;
+      }
+
       const { error } = await supabase
         .from('health_connections')
         .insert([{
@@ -181,6 +210,20 @@ export default function HealthConnectionManager() {
   const syncConnection = async (connectionId: string, serviceName: string) => {
     setSyncing(connectionId);
     try {
+      if (isDemoMode) {
+        const nextConnections = writeDemoStorage(
+          DEMO_HEALTH_CONNECTIONS_KEY,
+          readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []).map((connection) =>
+            connection.id === connectionId
+              ? { ...connection, status: 'connected', last_sync_at: new Date().toISOString(), error_message: '' }
+              : connection,
+          ),
+        );
+        setConnections(nextConnections);
+        alert(`Successfully synced data from ${serviceName} in demo mode.`);
+        return;
+      }
+
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       const { error } = await supabase
@@ -225,7 +268,7 @@ export default function HealthConnectionManager() {
       fetchConnections();
       alert(`Successfully synced data from ${serviceName}!`);
     } catch (error) {
-      console.error('Error syncing:', error);
+      console.warn('Error syncing:', error);
       alert('Sync failed');
     } finally {
       setSyncing(null);
@@ -236,6 +279,17 @@ export default function HealthConnectionManager() {
     if (!confirm('Are you sure you want to disconnect this service?')) return;
 
     try {
+      if (isDemoMode) {
+        const nextConnections = writeDemoStorage(
+          DEMO_HEALTH_CONNECTIONS_KEY,
+          readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []).map((connection) =>
+            connection.id === connectionId ? { ...connection, status: 'disconnected' } : connection,
+          ),
+        );
+        setConnections(nextConnections);
+        return;
+      }
+
       const { error } = await supabase
         .from('health_connections')
         .update({ status: 'disconnected' })
@@ -244,7 +298,7 @@ export default function HealthConnectionManager() {
       if (error) throw error;
       fetchConnections();
     } catch (error) {
-      console.error('Error disconnecting:', error);
+      console.warn('Error disconnecting:', error);
       alert('Failed to disconnect');
     }
   };

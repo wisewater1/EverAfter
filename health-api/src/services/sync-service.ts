@@ -1,5 +1,5 @@
 import { Job } from 'bullmq';
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 import { prisma } from '../utils/db.js';
 import { getProvider } from '../providers/index.js';
 import { decryptToken } from '../utils/crypto.js';

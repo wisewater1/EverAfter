@@ -1,6 +1,11 @@
 import { requestBackendJson } from '../backend-request';
 import { apiClient } from '../api-client';
 
+export interface JosephVoiceRequestOptions {
+  authToken?: string | null;
+  timeoutMs?: number;
+}
+
 export interface JosephVoiceSample {
   id: string;
   voice_profile_id: string;
@@ -80,27 +85,45 @@ function createTimeoutSignal(timeoutMs: number): AbortSignal | undefined {
   return AbortSignal.timeout(timeoutMs);
 }
 
-async function buildVoiceRequestInit(init: RequestInit = {}, timeoutMs: number = 20000): Promise<RequestInit> {
-  const authHeaders = await apiClient.getAuthHeaders(init.headers || {});
+async function buildVoiceRequestInitWithOptions(
+  init: RequestInit = {},
+  options: JosephVoiceRequestOptions = {},
+): Promise<RequestInit> {
+  const headers = new Headers(init.headers || {});
+
+  if (options.authToken) {
+    headers.set('Authorization', `Bearer ${options.authToken}`);
+  } else {
+    const authHeaders = await apiClient.getAuthHeaders(headers);
+    return {
+      ...init,
+      headers: authHeaders,
+      signal: init.signal ?? createTimeoutSignal(options.timeoutMs ?? 20000),
+    };
+  }
+
   return {
     ...init,
-    headers: authHeaders,
-    signal: init.signal ?? createTimeoutSignal(timeoutMs),
+    headers,
+    signal: init.signal ?? createTimeoutSignal(options.timeoutMs ?? 20000),
   };
 }
 
-export async function getJosephVoiceHealth(): Promise<JosephVoiceHealth> {
+export async function getJosephVoiceHealth(options: JosephVoiceRequestOptions = {}): Promise<JosephVoiceHealth> {
   return requestBackendJson<JosephVoiceHealth>(
     '/api/v1/joseph/voice/health',
-    await buildVoiceRequestInit(),
+    await buildVoiceRequestInitWithOptions({}, options),
     'Failed to load Joseph voice health.',
   );
 }
 
-export async function getJosephVoiceProfile(familyMemberId: string): Promise<JosephVoiceProfileBundle> {
+export async function getJosephVoiceProfile(
+  familyMemberId: string,
+  options: JosephVoiceRequestOptions = {},
+): Promise<JosephVoiceProfileBundle> {
   return requestBackendJson<JosephVoiceProfileBundle>(
     `/api/v1/joseph/voice/profiles/${familyMemberId}`,
-    await buildVoiceRequestInit(),
+    await buildVoiceRequestInitWithOptions({}, options),
     'Failed to load Joseph voice profile.',
   );
 }
@@ -111,7 +134,7 @@ export async function createJosephVoiceProfile(input: {
   consentPhrase: string;
   engramId?: string | null;
   voiceStyleNotes?: string | null;
-}): Promise<JosephVoiceProfileBundle> {
+}, options: JosephVoiceRequestOptions = {}): Promise<JosephVoiceProfileBundle> {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   appendBoolean(fd, 'consent_granted', input.consentGranted);
@@ -120,7 +143,7 @@ export async function createJosephVoiceProfile(input: {
   if (input.voiceStyleNotes) fd.append('voice_style_notes', input.voiceStyleNotes);
   return requestBackendJson<JosephVoiceProfileBundle>(
     '/api/v1/joseph/voice/profiles',
-    await buildVoiceRequestInit({ method: 'POST', body: fd }),
+    await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to create Joseph voice profile.',
   );
 }
@@ -137,7 +160,7 @@ export async function uploadJosephVoiceSample(input: {
   consentPhrase?: string;
   engramId?: string | null;
   transcribe?: boolean;
-}): Promise<{ profile: JosephVoiceProfile; sample: JosephVoiceSample }> {
+}, options: JosephVoiceRequestOptions = {}): Promise<{ profile: JosephVoiceProfile; sample: JosephVoiceSample }> {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   fd.append('clip_type', input.clipType);
@@ -151,7 +174,7 @@ export async function uploadJosephVoiceSample(input: {
   fd.append('audio_file', input.audioFile, input.filename);
   return requestBackendJson(
     '/api/v1/joseph/voice/samples',
-    await buildVoiceRequestInit({ method: 'POST', body: fd }),
+    await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to upload Joseph voice sample.',
   );
 }
@@ -163,7 +186,7 @@ export async function submitJosephVoiceQuizAnswer(input: {
   audioFile: Blob | File;
   filename: string;
   durationSeconds?: number;
-}): Promise<JosephVoiceQuizSuggestion> {
+}, options: JosephVoiceRequestOptions = {}): Promise<JosephVoiceQuizSuggestion> {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   fd.append('question_id', input.questionId);
@@ -172,7 +195,7 @@ export async function submitJosephVoiceQuizAnswer(input: {
   fd.append('audio_file', input.audioFile, input.filename);
   return requestBackendJson(
     '/api/v1/joseph/voice/quiz-answer',
-    await buildVoiceRequestInit({ method: 'POST', body: fd }),
+    await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to submit Joseph voice quiz answer.',
   );
 }
@@ -181,13 +204,13 @@ export async function approveJosephVoiceQuizAnswer(input: {
   sampleId: string;
   transcript: string;
   selectedAnswer: number;
-}): Promise<{ profile: JosephVoiceProfile; sample: JosephVoiceSample; approved_answer: number }> {
+}, options: JosephVoiceRequestOptions = {}): Promise<{ profile: JosephVoiceProfile; sample: JosephVoiceSample; approved_answer: number }> {
   const fd = new FormData();
   fd.append('transcript', input.transcript);
   fd.append('selected_answer', String(input.selectedAnswer));
   return requestBackendJson(
     `/api/v1/joseph/voice/quiz-answer/${input.sampleId}/approve`,
-    await buildVoiceRequestInit({ method: 'POST', body: fd }),
+    await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to approve Joseph voice answer.',
   );
 }
@@ -196,22 +219,25 @@ export async function startJosephVoiceTraining(input: {
   familyMemberId: string;
   engramId?: string | null;
   voiceStyleNotes?: string | null;
-}) {
+}, options: JosephVoiceRequestOptions = {}) {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   if (input.engramId) fd.append('engram_id', input.engramId);
   if (input.voiceStyleNotes) fd.append('voice_style_notes', input.voiceStyleNotes);
   return requestBackendJson(
     '/api/v1/joseph/voice/train',
-    await buildVoiceRequestInit({ method: 'POST', body: fd }),
+    await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to start Joseph voice training.',
   );
 }
 
-export async function getJosephVoiceTrainingStatus(familyMemberId: string) {
+export async function getJosephVoiceTrainingStatus(
+  familyMemberId: string,
+  options: JosephVoiceRequestOptions = {},
+) {
   return requestBackendJson(
     `/api/v1/joseph/voice/train/${familyMemberId}`,
-    await buildVoiceRequestInit(),
+    await buildVoiceRequestInitWithOptions({}, options),
     'Failed to load Joseph voice training status.',
   );
 }
@@ -220,14 +246,14 @@ export async function synthesizeJosephVoice(input: {
   familyMemberId: string;
   engramId: string;
   textContent: string;
-}) {
+}, options: JosephVoiceRequestOptions = {}) {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   fd.append('engram_id', input.engramId);
   fd.append('text_content', input.textContent);
   return requestBackendJson(
     '/api/v1/joseph/voice/synthesize',
-    await buildVoiceRequestInit({ method: 'POST', body: fd }),
+    await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to synthesize Joseph voice.',
   );
 }

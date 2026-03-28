@@ -36,7 +36,7 @@ interface Purchase {
 }
 
 export default function Marketplace() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<MarketplaceTemplate[]>([]);
@@ -58,9 +58,15 @@ export default function Marketplace() {
     if (user) {
       loadPurchases();
     }
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const loadTemplates = async () => {
+    if (isDemoMode) {
+      setTemplates([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('marketplace_templates')
@@ -72,14 +78,18 @@ export default function Marketplace() {
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      console.warn('Marketplace templates unavailable, falling back to an empty catalog:', error);
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
   };
 
   const loadPurchases = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) {
+      setPurchases([]);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -90,7 +100,7 @@ export default function Marketplace() {
       if (error) throw error;
       setPurchases(data || []);
     } catch (error) {
-      console.error('Error loading purchases:', error);
+      console.warn('Marketplace purchases unavailable during this session:', error);
     }
   };
 

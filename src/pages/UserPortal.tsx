@@ -49,7 +49,7 @@ interface Connection {
 }
 
 export default function UserPortal() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'directory' | 'connections' | 'messages'>('directory');
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -66,13 +66,22 @@ export default function UserPortal() {
       return;
     }
     loadData();
-  }, [user, activeTab]);
+  }, [user, activeTab, isDemoMode]);
 
   const loadData = async () => {
     if (!supabase) {
       setLoading(false);
       return;
     }
+
+    if (isDemoMode) {
+      setProfiles([]);
+      setConnections([]);
+      setConnectionStatuses({});
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       if (activeTab === 'directory') {
@@ -106,7 +115,10 @@ export default function UserPortal() {
         setConnections(data || []);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.warn('User portal data unavailable, falling back to empty state:', error);
+      setProfiles([]);
+      setConnections([]);
+      setConnectionStatuses({});
     } finally {
       setLoading(false);
     }

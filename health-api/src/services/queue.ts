@@ -1,20 +1,83 @@
 import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 import { SyncJobData, TokenRefreshJobData } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
-const connection: any = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+let warnedQueueDisabled = false;
+let syncQueue: Queue<any, any, string> | null = null;
+let tokenRefreshQueue: Queue<any, any, string> | null = null;
+let webhookQueue: Queue<any, any, string> | null = null;
 
-// Define job queues
-export const syncQueue = new Queue<SyncJobData, any, string>('health-sync', { connection });
-export const tokenRefreshQueue = new Queue<TokenRefreshJobData, any, string>('token-refresh', { connection });
-export const webhookQueue = new Queue<any, any, string>('webhook-processing', { connection });
+export function isQueueingEnabled(): boolean {
+  return Boolean(process.env.REDIS_URL);
+}
 
-// Sync job processor
+function logQueueDisabled(context: string): void {
+  if (warnedQueueDisabled) {
+    return;
+  }
+
+  warnedQueueDisabled = true;
+  logger.warn(`${context}: Redis-backed jobs are disabled because REDIS_URL is not configured`);
+}
+
+function getConnectionOptions(): { url: string } | null {
+  if (!isQueueingEnabled()) {
+    return null;
+  }
+
+  return { url: process.env.REDIS_URL! };
+}
+
+function getSyncQueue(): Queue<SyncJobData, any, string> | null {
+  if (syncQueue) {
+    return syncQueue as Queue<SyncJobData, any, string>;
+  }
+
+  const connection = getConnectionOptions();
+  if (!connection) {
+    return null;
+  }
+
+  syncQueue = new Queue('health-sync', { connection });
+  return syncQueue as Queue<SyncJobData, any, string>;
+}
+
+function getTokenRefreshQueue(): Queue<TokenRefreshJobData, any, string> | null {
+  if (tokenRefreshQueue) {
+    return tokenRefreshQueue as Queue<TokenRefreshJobData, any, string>;
+  }
+
+  const connection = getConnectionOptions();
+  if (!connection) {
+    return null;
+  }
+
+  tokenRefreshQueue = new Queue('token-refresh', { connection });
+  return tokenRefreshQueue as Queue<TokenRefreshJobData, any, string>;
+}
+
+function getWebhookQueue(): Queue<any, any, string> | null {
+  if (webhookQueue) {
+    return webhookQueue;
+  }
+
+  const connection = getConnectionOptions();
+  if (!connection) {
+    return null;
+  }
+
+  webhookQueue = new Queue('webhook-processing', { connection });
+  return webhookQueue;
+}
+
 export function createSyncWorker(processor: (job: Job<SyncJobData, any, string>) => Promise<void>) {
+  const connection = getConnectionOptions();
+  if (!connection) {
+    logQueueDisabled('Skipping sync worker startup');
+    return null;
+  }
+
   return new Worker<SyncJobData, any, string>(
     'health-sync',
     async (job) => {
@@ -33,8 +96,13 @@ export function createSyncWorker(processor: (job: Job<SyncJobData, any, string>)
   );
 }
 
-// Token refresh processor
 export function createTokenRefreshWorker(processor: (job: Job<TokenRefreshJobData, any, string>) => Promise<void>) {
+  const connection = getConnectionOptions();
+  if (!connection) {
+    logQueueDisabled('Skipping token refresh worker startup');
+    return null;
+  }
+
   return new Worker<TokenRefreshJobData, any, string>(
     'token-refresh',
     async (job) => {
@@ -50,8 +118,13 @@ export function createTokenRefreshWorker(processor: (job: Job<TokenRefreshJobDat
   );
 }
 
-// Webhook processor
 export function createWebhookWorker(processor: (job: Job<any, any, string>) => Promise<void>) {
+  const connection = getConnectionOptions();
+  if (!connection) {
+    logQueueDisabled('Skipping webhook worker startup');
+    return null;
+  }
+
   return new Worker<any, any, string>(
     'webhook-processing',
     async (job) => {
@@ -69,9 +142,14 @@ export function createWebhookWorker(processor: (job: Job<any, any, string>) => P
   );
 }
 
-// Add a sync job to the queue
 export async function enqueueSyncJob(data: SyncJobData) {
-  return await syncQueue.add('sync' as any, data, {
+  const queue = getSyncQueue();
+  if (!queue) {
+    logQueueDisabled('Skipping sync enqueue');
+    return null;
+  }
+
+  return await queue.add('sync' as any, data, {
     attempts: 3,
     backoff: {
       type: 'exponential',
@@ -80,9 +158,14 @@ export async function enqueueSyncJob(data: SyncJobData) {
   });
 }
 
-// Add a token refresh job
 export async function enqueueTokenRefresh(data: TokenRefreshJobData, delayMs?: number) {
-  return await tokenRefreshQueue.add('refresh' as any, data, {
+  const queue = getTokenRefreshQueue();
+  if (!queue) {
+    logQueueDisabled('Skipping token refresh enqueue');
+    return null;
+  }
+
+  return await queue.add('refresh' as any, data, {
     attempts: 5,
     backoff: {
       type: 'exponential',
@@ -92,9 +175,14 @@ export async function enqueueTokenRefresh(data: TokenRefreshJobData, delayMs?: n
   });
 }
 
-// Add a webhook processing job
 export async function enqueueWebhookJob(data: any) {
-  return await webhookQueue.add('process' as any, data, {
+  const queue = getWebhookQueue();
+  if (!queue) {
+    logQueueDisabled('Skipping webhook enqueue');
+    return null;
+  }
+
+  return await queue.add('process' as any, data, {
     attempts: 3,
     backoff: {
       type: 'exponential',
@@ -103,15 +191,19 @@ export async function enqueueWebhookJob(data: any) {
   });
 }
 
-// Schedule recurring token refresh checks (every hour)
 export async function scheduleTokenRefreshChecks() {
-  await tokenRefreshQueue.add(
+  const queue = getTokenRefreshQueue();
+  if (!queue) {
+    logQueueDisabled('Skipping recurring token refresh schedule');
+    return;
+  }
+
+  await queue.add(
     'check-expiring-tokens' as any,
-    // Provide a dummy initial object to fulfill the job data requirements
     { accountId: 'system', provider: Provider.TERRA } as any,
     {
       repeat: {
-        pattern: '0 * * * *', // Every hour
+        pattern: '0 * * * *',
       },
     }
   );

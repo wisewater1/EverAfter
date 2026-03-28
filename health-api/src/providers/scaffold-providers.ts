@@ -1,7 +1,7 @@
 // Scaffold implementations for providers pending full integration
 // These provide the structure but need complete API implementation
 
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 import { ProviderDriver, OAuthTokens, ProviderProfile, NormalizedMetric } from '../types/index.js';
 import { getProviderConfig } from '../config/providers.js';
 

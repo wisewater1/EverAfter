@@ -2,12 +2,13 @@
 // Integrates with existing Supabase database tables
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "binary"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // Provider enum for all supported health services

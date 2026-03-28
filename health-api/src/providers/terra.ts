@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Provider, MetricType } from '@prisma/client';
+import { Provider, MetricType } from '../generated/prisma/client.js';
 import { ProviderDriver, OAuthTokens, ProviderProfile, NormalizedMetric } from '../types/index.js';
 import { verifyHmacSignature } from '../utils/crypto.js';
 import { logger } from '../utils/logger.js';

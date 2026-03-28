@@ -2,6 +2,8 @@ import { supabase } from '../supabase';
 import axios from 'axios';
 import { API_BASE_URL, isDevelopment } from '../env';
 
+const DEMO_USER_ID = '00000000-0000-4000-8000-000000000001';
+
 export interface IntegrityReport {
     overallScore: number;
     dataIntegrity: number;
@@ -466,6 +468,41 @@ async function axiosWithAuthRetry<T = any>(
 export async function getSecurityIntegrity(userId: string): Promise<IntegrityReport> {
     const lastScan = new Date().toISOString();
 
+    if (userId === DEMO_USER_ID) {
+        try {
+            const monitoring = await getMonitoringStatus();
+            const michael = monitoring?.michael || {};
+            const findings = (michael.recent_findings || []).map((f: any) => ({
+                id: f.id || Math.random().toString(36).slice(2, 11),
+                type: f.type || 'system',
+                severity: f.severity || 'medium',
+                message: f.message || 'Guardian finding detected',
+                timestamp: f.timestamp || new Date().toISOString(),
+                resolved: false,
+                details: f.details,
+            }));
+            const overallScoreStr = typeof michael.integrity === 'string'
+                ? michael.integrity.replace('%', '')
+                : '100';
+
+            return {
+                overallScore: parseInt(overallScoreStr) || 100,
+                dataIntegrity: 100,
+                privacyStatus: 100,
+                lastScan: monitoring?.timestamp || lastScan,
+                alerts: findings,
+            };
+        } catch {
+            return {
+                overallScore: 100,
+                dataIntegrity: 100,
+                privacyStatus: 100,
+                lastScan,
+                alerts: [],
+            };
+        }
+    }
+
     try {
         // 1. Check Audit Logs for suspicious activity
         const { data: audits } = await supabase
@@ -665,7 +702,7 @@ export async function runCAIAudit(userId: string): Promise<{
             monitoring.michael?.status === 'warning' ? 'warning' :
             'clean';
 
-        return { integrityScore, adversarialFlags, phiLeeksDetected, status };
+        return { integrityScore, adversarialFlags, phiLeeksDetected: phiLeaksDetected, status };
     } catch (error) {
         console.error('Error running CAI audit:', error);
     }

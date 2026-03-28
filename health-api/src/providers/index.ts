@@ -1,4 +1,4 @@
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 import { ProviderDriver } from '../types/index.js';
 
 // Fully implemented providers

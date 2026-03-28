@@ -55,7 +55,7 @@ interface MineableEngram {
 }
 
 export default function CreatorDashboard() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -69,10 +69,27 @@ export default function CreatorDashboard() {
       return;
     }
     loadCreatorData();
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const loadCreatorData = async () => {
     if (!user) return;
+
+    if (isDemoMode) {
+      setProfile({
+        id: 'demo-creator-profile',
+        display_name: user.email?.split('@')[0] || 'Demo Creator',
+        creator_tier: 'free',
+        total_revenue: 0,
+        total_templates: 0,
+        total_sales: 0,
+        average_rating: 0,
+        stripe_onboarding_complete: false,
+      });
+      setTemplates([]);
+      setMineableEngrams([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -119,7 +136,19 @@ export default function CreatorDashboard() {
         setMineableEngrams(await mineableRes.json());
       }
     } catch (error) {
-      console.error('Error loading creator data:', error);
+      console.warn('Creator dashboard degraded to local fallback:', error);
+      setProfile((current) => current ?? {
+        id: 'degraded-creator-profile',
+        display_name: user.email?.split('@')[0] || 'Creator',
+        creator_tier: 'free',
+        total_revenue: 0,
+        total_templates: 0,
+        total_sales: 0,
+        average_rating: 0,
+        stripe_onboarding_complete: false,
+      });
+      setTemplates([]);
+      setMineableEngrams([]);
     } finally {
       setLoading(false);
     }

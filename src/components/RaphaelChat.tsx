@@ -34,7 +34,7 @@ interface RaphaelChatProps {
 }
 
 export default function RaphaelChat({ engramId }: RaphaelChatProps) {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [resolvedEngramId, setResolvedEngramId] = useState(engramId || '');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -60,6 +60,13 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
       };
     }
 
+    if (isDemoMode) {
+      setResolvedEngramId('demo-raphael');
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const bootstrapRaphael = async () => {
       try {
         const raphael = await apiClient.bootstrapSaint('raphael');
@@ -76,7 +83,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     return () => {
       cancelled = true;
     };
-  }, [engramId]);
+  }, [engramId, isDemoMode]);
 
   useEffect(() => {
     if (user) {
@@ -86,6 +93,15 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   }, [user, messages]);
 
   const fetchHealthContext = async () => {
+    if (isDemoMode) {
+      setHealthContext({
+        recentMetrics: 0,
+        upcomingAppointments: 0,
+        activePrescriptions: 0,
+      });
+      return;
+    }
+
     try {
       const data = await apiClient.getHealthSummary();
       setHealthContext({
@@ -132,7 +148,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
 
     // Extract and store health data from user message
     const extracted = extractHealthDataFromMessage(userInput);
-    if (extracted.length > 0 && user?.id) {
+    if (!isDemoMode && extracted.length > 0 && user?.id) {
       storeHealthMetrics(user.id, extracted, 'raphael_chat').then(result => {
         if (result.stored > 0) {
           const labels = extracted.map(d => `${d.metric_type.replace(/_/g, ' ')}: ${d.value} ${d.unit}`).join(', ');
@@ -150,7 +166,16 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
       let assistantContent = "I'm here to help.";
       let toolSuggestions = ['View health dashboard', 'Schedule appointment', 'Track medication'];
 
-      if (resolvedEngramId) {
+      if (isDemoMode) {
+        const labels = extracted.length > 0
+          ? extracted.map((entry) => `${entry.metric_type.replace(/_/g, ' ')} ${entry.value} ${entry.unit}`).join(', ')
+          : null;
+
+        assistantContent = labels
+          ? `Demo mode: I noted ${labels}. In a live session, Raphael would store those signals and use them in your next trajectory update.`
+          : 'Demo mode: Raphael is available for guided health walkthroughs, daily routines, and dashboard navigation.';
+        toolSuggestions = ['Open health dashboard', 'Review daily routine', 'Track medication'];
+      } else if (resolvedEngramId) {
         const response = await apiClient.sendChatMessage(resolvedEngramId, userInput, undefined);
         assistantContent = response.data?.message || assistantContent;
       } else {

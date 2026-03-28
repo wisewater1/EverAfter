@@ -15,7 +15,29 @@ class BackendRoutingError extends Error {}
 class BackendTerminalError extends Error {}
 
 function normalizeErrorMessage(message: string, endpoint: string): string {
-  const compact = message.trim().slice(0, 180).replace(/\s+/g, ' ');
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return `Backend request failed for ${endpoint}.`;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      detail?: unknown;
+      error?: unknown;
+      message?: unknown;
+    };
+    const candidate = parsed?.detail ?? parsed?.error ?? parsed?.message;
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().slice(0, 180).replace(/\s+/g, ' ');
+    }
+    if (candidate !== undefined && candidate !== null) {
+      return JSON.stringify(candidate).slice(0, 180).replace(/\s+/g, ' ');
+    }
+  } catch {
+    // Fall back to the original compact text path.
+  }
+
+  const compact = trimmed.slice(0, 180).replace(/\s+/g, ' ');
   if (!compact) {
     return `Backend request failed for ${endpoint}.`;
   }

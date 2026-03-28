@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { MetricType, Provider } from '@prisma/client';
+import { MetricType, Provider } from '../generated/prisma/client.js';
 import { AuthenticatedRequest, ApiResponse, MetricsQueryParams, DailySummary } from '../types/index.js';
 import { prisma } from '../utils/db.js';
 import { logger } from '../utils/logger.js';

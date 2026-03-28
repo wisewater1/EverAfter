@@ -48,6 +48,21 @@ describe('backend-request', () => {
     );
   });
 
+  it('unwraps JSON error payloads to the backend detail message', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: 'Not authenticated' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { requestBackendJson } = await import('../backend-request');
+
+    await expect(requestBackendJson('/api/v1/finance/wisegold/wallet')).rejects.toThrow('Not authenticated');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('falls through when the same-origin candidate returns HTML', async () => {
     const fetchMock = vi
       .fn()

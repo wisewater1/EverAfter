@@ -9,7 +9,7 @@ import bridgesRouter from './api/connections/bridges';
 import webhooksRouter from './api/connections/webhooks';
 import raphaelRouter from './api/raphael';
 import iotRouter from './api/connections/iot_webhooks';
-import { startScheduler } from './workers/scheduler';
+import { isSchedulerEnabled, startScheduler } from './workers/scheduler';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -35,12 +35,14 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Raphael Production API running on port ${PORT}`);
-  console.log(`📊 Prisma connected to database`);
+  console.log(`Raphael Production API running on port ${PORT}`);
+  console.log('Prisma connected to database');
 
-  if (process.env.NODE_ENV !== 'development') {
+  if (process.env.NODE_ENV !== 'development' && isSchedulerEnabled()) {
     startScheduler();
-    console.log('⏰ Scheduler started');
+    console.log('Scheduler started');
+  } else if (process.env.NODE_ENV !== 'development') {
+    console.log('Scheduler disabled: REDIS_URL is not configured');
   }
 });
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Provider } from '@prisma/client';
+import { Provider } from '../generated/prisma/client.js';
 import { AuthenticatedRequest, ApiResponse, ConnectionStatus } from '../types/index.js';
 import { prisma } from '../utils/db.js';
 import { getProvider, isProviderImplemented } from '../providers/index.js';

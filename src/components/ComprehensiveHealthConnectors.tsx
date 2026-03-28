@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { readDemoStorage, writeDemoStorage, createDemoId } from '../lib/demo-storage';
 import {
   Activity, Watch, Heart, Zap, Cloud, Shield,
   CheckCircle, Plus, Droplet, Stethoscope, FlaskConical, Link2,
@@ -15,6 +16,7 @@ interface HealthConnection {
   service_type: string;
   status: 'connected' | 'pending' | 'disconnected' | 'error' | 'coming_soon';
   last_sync_at?: string;
+  sync_frequency?: string;
 }
 
 type ServiceCategory =
@@ -380,8 +382,10 @@ const HEALTH_SERVICES: HealthService[] = [
   },
 ];
 
+const DEMO_HEALTH_CONNECTIONS_KEY = 'everafter_demo_health_connections';
+
 export default function ComprehensiveHealthConnectors() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
@@ -393,10 +397,17 @@ export default function ComprehensiveHealthConnectors() {
     if (user) {
       fetchConnections();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchConnections = async () => {
     try {
+      if (isDemoMode) {
+        const demoConnections = readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []);
+        setConnections(demoConnections);
+        setConnectedCount(demoConnections.filter((c) => c.status === 'connected').length);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('health_connections')
         .select('*')
@@ -406,7 +417,9 @@ export default function ComprehensiveHealthConnectors() {
       setConnections(data || []);
       setConnectedCount(data?.filter((c: HealthConnection) => c.status === 'connected').length || 0);
     } catch (error) {
-      console.error('Error fetching connections:', error);
+      console.warn('Error fetching connections:', error);
+      setConnections([]);
+      setConnectedCount(0);
     } finally {
       setLoading(false);
     }
@@ -415,6 +428,33 @@ export default function ComprehensiveHealthConnectors() {
   const connectService = async (serviceId: string, serviceName: string) => {
     setConnectingSource(serviceId);
     try {
+      if (isDemoMode) {
+        const currentConnections = readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []);
+        const existingConnection = currentConnections.find((connection) => connection.service_type === serviceId && connection.status !== 'disconnected');
+
+        if (existingConnection) {
+          alert(`${serviceName} is already connected in demo mode.`);
+          return;
+        }
+
+        const nextConnections = writeDemoStorage(DEMO_HEALTH_CONNECTIONS_KEY, [
+          {
+            id: createDemoId(`health-${serviceId}`),
+            service_name: serviceName,
+            service_type: serviceId,
+            status: 'connected' as const,
+            last_sync_at: new Date().toISOString(),
+            sync_frequency: 'daily',
+          },
+          ...currentConnections,
+        ]);
+
+        setConnections(nextConnections);
+        setConnectedCount(nextConnections.filter((connection) => connection.status === 'connected').length);
+        alert(`${serviceName} connected in demo mode.`);
+        return;
+      }
+
       // Create a pending connection record in frontend DB first
       const { error: dbError } = await supabase
         .from('health_connections')
@@ -462,10 +502,11 @@ export default function ComprehensiveHealthConnectors() {
       }
 
     } catch (error) {
-      console.error('Error connecting service:', error);
+      console.warn('Error connecting service:', error);
       alert(`Failed to connect service: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setConnectingSource(null);
       fetchConnections(); // refresh to reset pending state if failed
+    } finally {
+      setConnectingSource(null);
     }
   };
 

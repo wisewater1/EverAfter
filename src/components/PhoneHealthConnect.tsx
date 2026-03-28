@@ -48,7 +48,7 @@ interface SyncResult {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function PhoneHealthConnect() {
-    const { user } = useAuth();
+    const { user, isDemoMode } = useAuth();
     const [filter, setFilter] = useState<ConnectorCategory>('all');
     const [activePanel, setActivePanel] = useState<ActivePanel>(null);
     const [recentSyncs, setRecentSyncs] = useState<SyncResult[]>([]);
@@ -84,13 +84,18 @@ export default function PhoneHealthConnect() {
 
     useEffect(() => {
         fetchMetricsCount();
-    }, [user?.id]);
+    }, [isDemoMode, user?.id]);
 
     const fetchMetricsCount = useCallback(async () => {
+        if (isDemoMode) {
+            setTotalMetrics(0);
+            return;
+        }
+
         if (!user?.id) return;
         const { count } = await supabase.from('health_metrics').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
         setTotalMetrics(count || 0);
-    }, [user?.id]);
+    }, [isDemoMode, user?.id]);
 
     const addSync = (source: string, count: number) => {
         setRecentSyncs(prev => [{ source, metrics_stored: count, timestamp: new Date().toISOString() }, ...prev.slice(0, 7)]);

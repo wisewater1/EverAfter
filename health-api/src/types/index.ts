@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Provider, MetricType, AccountStatus } from '@prisma/client';
+import { Provider, MetricType, AccountStatus } from '../generated/prisma/client.js';
 
 export { Provider, MetricType, AccountStatus };
 

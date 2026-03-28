@@ -74,7 +74,7 @@ function deriveFamilyStatus() {
         }));
 }
 
-const JOSEPH_BOOTSTRAP_TIMEOUT_MS = 3500;
+const JOSEPH_CORE_BOOTSTRAP_TIMEOUT_MS = 9000;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
     return new Promise<T>((resolve, reject) => {
@@ -103,20 +103,28 @@ function normalizeFailureMessage(error: unknown): string {
     return message.trim().replace(/\s+/g, ' ');
 }
 
-function buildRecoveryWarning(rejections: PromiseRejectedResult[]): string {
-    const normalizedMessages = rejections
-        .map((result) => normalizeFailureMessage(result.reason))
-        .filter(Boolean);
-    const timeoutMessages = normalizedMessages.filter((message) => /timed out/i.test(message));
+function buildRecoveryWarning(failures: Array<{ label: string; reason: unknown }>): string {
+    const normalizedMessages = failures
+        .map((failure) => ({
+            label: failure.label,
+            message: normalizeFailureMessage(failure.reason),
+        }))
+        .filter((failure) => failure.message);
 
-    if (timeoutMessages.length === rejections.length) {
-        return 'St. Joseph entered recovery mode because family services timed out. Cached and local family data are shown while the backend catches up.';
+    if (normalizedMessages.length === 0) {
+        return 'St. Joseph entered recovery mode because live family services failed. Cached and local family data are shown until the backend recovers.';
     }
 
-    const detail = normalizedMessages[0];
-    return detail
-        ? `St. Joseph entered recovery mode because live family services failed: ${detail}`
-        : 'St. Joseph entered recovery mode because live family services failed. Cached and local family data are shown until the backend recovers.';
+    const timedOutFailures = normalizedMessages.filter((failure) => /timed out/i.test(failure.message));
+    const labels = normalizedMessages.map((failure) => failure.label).join(', ');
+
+    if (timedOutFailures.length === normalizedMessages.length) {
+        const noun = normalizedMessages.length === 1 ? 'service' : 'services';
+        return `St. Joseph entered recovery mode because ${noun} timed out: ${labels}. Cached and local family data are shown while the backend catches up.`;
+    }
+
+    const primaryFailure = normalizedMessages[0];
+    return `St. Joseph entered recovery mode because ${primaryFailure.label} failed: ${primaryFailure.message}`;
 }
 
 export default function StJosephFamilyDashboard() {
@@ -157,19 +165,27 @@ export default function StJosephFamilyDashboard() {
         setLoadWarning(null);
         setDegradedMode(false);
         try {
-            const results = await Promise.allSettled([
-                withTimeout(apiClient.getFamilyTasks(user.id), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Family tasks'),
-                withTimeout(apiClient.getShoppingList(user.id), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Shopping list'),
-                withTimeout(apiClient.getFamilyCalendar(user.id), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Family calendar'),
-                withTimeout(apiClient.getFamilyBulletin(), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Family bulletin'),
-                withTimeout(hydrateGenealogyInBackground(), JOSEPH_BOOTSTRAP_TIMEOUT_MS, 'Genealogy'),
-            ]);
+            void hydrateGenealogyInBackground().catch((error) => {
+                console.warn('Genealogy hydration stayed in background recovery mode:', error);
+            });
+
+            const coreRequests = [
+                { label: 'family tasks', request: withTimeout(apiClient.getFamilyTasks(user.id), JOSEPH_CORE_BOOTSTRAP_TIMEOUT_MS, 'Family tasks') },
+                { label: 'shopping list', request: withTimeout(apiClient.getShoppingList(user.id), JOSEPH_CORE_BOOTSTRAP_TIMEOUT_MS, 'Shopping list') },
+                { label: 'family calendar', request: withTimeout(apiClient.getFamilyCalendar(user.id), JOSEPH_CORE_BOOTSTRAP_TIMEOUT_MS, 'Family calendar') },
+                { label: 'family bulletin', request: withTimeout(apiClient.getFamilyBulletin(), JOSEPH_CORE_BOOTSTRAP_TIMEOUT_MS, 'Family bulletin') },
+            ] as const;
+
+            const results = await Promise.allSettled(coreRequests.map((entry) => entry.request));
 
             const nextTasks = results[0].status === 'fulfilled' ? results[0].value as FamilyTask[] : [];
             const nextShopping = results[1].status === 'fulfilled' ? results[1].value as ShoppingItem[] : [];
             const nextEvents = results[2].status === 'fulfilled' ? results[2].value as FamilyEvent[] : [];
             const nextBulletin = results[3].status === 'fulfilled' ? results[3].value : [];
-            const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+            const failures = results
+                .map((result, index) => ({ result, label: coreRequests[index].label }))
+                .filter((entry): entry is { result: PromiseRejectedResult; label: string } => entry.result.status === 'rejected')
+                .map((entry) => ({ label: entry.label, reason: entry.result.reason }));
 
             setTasks(nextTasks);
             setShopping(nextShopping);
@@ -192,7 +208,7 @@ export default function StJosephFamilyDashboard() {
             const normalizedMessage = normalizeFailureMessage(error);
             setLoadWarning(
                 /timed out/i.test(normalizedMessage)
-                    ? 'St. Joseph entered recovery mode because family services timed out. Cached and local family data are shown while the backend catches up.'
+                    ? 'St. Joseph entered recovery mode because a core family service timed out. Cached and local family data are shown while the backend catches up.'
                     : normalizedMessage || 'St. Joseph entered recovery mode because live family services failed.',
             );
         } finally {

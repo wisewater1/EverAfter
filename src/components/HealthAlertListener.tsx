@@ -16,11 +16,11 @@ interface AgentNotification {
 }
 
 export default function HealthAlertListener() {
-    const { user } = useAuth();
+    const { user, isDemoMode } = useAuth();
     const { showNotification } = useNotification();
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || isDemoMode) return;
 
         // 1. Fetch unread notifications on mount
         const fetchUnread = async () => {
@@ -95,7 +95,7 @@ export default function HealthAlertListener() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, showNotification]);
+    }, [user, isDemoMode, showNotification]);
 
     return null; // Headless component
 }

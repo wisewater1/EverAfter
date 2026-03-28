@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Target, Plus, TrendingUp, CheckCircle } from 'lucide-react';
+import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 
 interface HealthGoal {
   id: string;
@@ -17,8 +18,10 @@ interface HealthGoal {
   priority: string;
 }
 
+const DEMO_HEALTH_GOALS_KEY = 'everafter_demo_health_goals';
+
 export default function HealthGoals() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [goals, setGoals] = useState<HealthGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -37,10 +40,15 @@ export default function HealthGoals() {
     if (user) {
       fetchGoals();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchGoals = async () => {
     try {
+      if (isDemoMode) {
+        setGoals(readDemoStorage<HealthGoal[]>(DEMO_HEALTH_GOALS_KEY, []));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('health_goals')
         .select('*')
@@ -50,7 +58,8 @@ export default function HealthGoals() {
       if (error) throw error;
       setGoals(data || []);
     } catch (error) {
-      console.error('Error fetching goals:', error);
+      console.warn('Error fetching goals:', error);
+      setGoals([]);
     } finally {
       setLoading(false);
     }
@@ -63,6 +72,32 @@ export default function HealthGoals() {
     }
 
     try {
+      if (isDemoMode) {
+        const nextGoals = writeDemoStorage(DEMO_HEALTH_GOALS_KEY, [
+          {
+            id: createDemoId('goal'),
+            ...newGoal,
+            current_value: 0,
+            status: 'active',
+          },
+          ...readDemoStorage<HealthGoal[]>(DEMO_HEALTH_GOALS_KEY, []),
+        ]);
+
+        setGoals(nextGoals);
+        setShowAddModal(false);
+        setNewGoal({
+          goal_type: 'steps',
+          goal_title: '',
+          goal_description: '',
+          target_value: 10000,
+          target_unit: 'steps',
+          start_date: new Date().toISOString().split('T')[0],
+          target_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          priority: 'medium'
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('health_goals')
         .insert([{
@@ -94,6 +129,17 @@ export default function HealthGoals() {
 
   const updateProgress = async (goalId: string, newValue: number) => {
     try {
+      if (isDemoMode) {
+        const nextGoals = writeDemoStorage(
+          DEMO_HEALTH_GOALS_KEY,
+          readDemoStorage<HealthGoal[]>(DEMO_HEALTH_GOALS_KEY, []).map((goal) =>
+            goal.id === goalId ? { ...goal, current_value: newValue } : goal,
+          ),
+        );
+        setGoals(nextGoals);
+        return;
+      }
+
       const { error } = await supabase
         .from('health_goals')
         .update({ current_value: newValue })
@@ -102,12 +148,23 @@ export default function HealthGoals() {
       if (error) throw error;
       fetchGoals();
     } catch (error) {
-      console.error('Error updating progress:', error);
+      console.warn('Error updating progress:', error);
     }
   };
 
   const completeGoal = async (goalId: string) => {
     try {
+      if (isDemoMode) {
+        const nextGoals = writeDemoStorage(
+          DEMO_HEALTH_GOALS_KEY,
+          readDemoStorage<HealthGoal[]>(DEMO_HEALTH_GOALS_KEY, []).map((goal) =>
+            goal.id === goalId ? { ...goal, status: 'completed' } : goal,
+          ),
+        );
+        setGoals(nextGoals.filter((goal) => goal.status === 'active'));
+        return;
+      }
+
       const { error } = await supabase
         .from('health_goals')
         .update({ status: 'completed' })
@@ -116,7 +173,7 @@ export default function HealthGoals() {
       if (error) throw error;
       fetchGoals();
     } catch (error) {
-      console.error('Error completing goal:', error);
+      console.warn('Error completing goal:', error);
     }
   };
 

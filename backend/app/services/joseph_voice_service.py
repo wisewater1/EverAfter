@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -535,6 +536,8 @@ class JosephVoiceService:
                     "clip_type": sample.clip_type,
                     "transcript": sample.transcript,
                     "duration_seconds": sample.duration_seconds,
+                    "content_type": (sample.quality_json or {}).get("content_type") or "audio/webm",
+                    "audio_base64": base64.b64encode(Path(sample.storage_path).read_bytes()).decode("ascii"),
                 }
                 for sample in approved_samples
             ],

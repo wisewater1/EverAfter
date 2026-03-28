@@ -18,6 +18,8 @@ import {
   X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { readDemoStorage, writeDemoStorage, createDemoId } from '../lib/demo-storage';
 
 interface PersonalityProfile {
   id: string;
@@ -60,12 +62,15 @@ interface PersonalityProfileViewerProps {
   onClose: () => void;
 }
 
+const DEMO_PERSONALITY_PROFILES_KEY = 'everafter_demo_personality_profiles';
+
 export default function PersonalityProfileViewer({
   familyMemberId,
   familyMemberName,
   familyMemberRelationship,
   onClose,
 }: PersonalityProfileViewerProps) {
+  const { isDemoMode } = useAuth();
   const [profile, setProfile] = useState<PersonalityProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -74,12 +79,18 @@ export default function PersonalityProfileViewer({
 
   useEffect(() => {
     loadProfile();
-  }, [familyMemberId]);
+  }, [familyMemberId, isDemoMode]);
 
   const loadProfile = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      if (isDemoMode) {
+        const demoProfiles = readDemoStorage<Record<string, PersonalityProfile>>(DEMO_PERSONALITY_PROFILES_KEY, {});
+        setProfile(demoProfiles[familyMemberId] ?? null);
+        return;
+      }
 
       const { data, error: fetchError } = await supabase
         .from('family_personality_profiles')
@@ -93,7 +104,7 @@ export default function PersonalityProfileViewer({
 
       setProfile(data || null);
     } catch (err: any) {
-      console.error('Error loading profile:', err);
+      console.warn('Error loading profile:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -104,6 +115,75 @@ export default function PersonalityProfileViewer({
     try {
       setGenerating(true);
       setError(null);
+
+      if (isDemoMode) {
+        const demoProfile: PersonalityProfile = {
+          id: createDemoId('personality'),
+          family_member_id: familyMemberId,
+          profile_data: {
+            core_traits: {
+              grounded: {
+                value: 'Steady and dependable',
+                description: `${familyMemberName} presents as calm under pressure and prefers thoughtful, practical decisions.`,
+                confidence: 0.84,
+                evidence: ['Shows patience during difficult family decisions.', 'Prefers clear plans and consistent routines.'],
+              },
+            },
+            communication_style: {
+              supportive: {
+                value: 'Warm and direct',
+                description: `${familyMemberName} tends to communicate with reassurance first, then moves into concrete guidance.`,
+                confidence: 0.8,
+                evidence: ['Balances empathy with actionable next steps.', 'Uses concise language when clarity matters.'],
+              },
+            },
+            social_tendencies: {
+              relational: {
+                value: 'Family-centered',
+                description: `Interactions are strongly shaped by care for close relationships, especially as ${familyMemberRelationship}.`,
+                confidence: 0.78,
+                evidence: ['Prioritizes family harmony.', 'Engages most deeply in trusted circles.'],
+              },
+            },
+            interests: {
+              wellness: {
+                value: 'Health and stability',
+                description: 'Shows repeat interest in routines, wellbeing, and long-term family resilience.',
+                confidence: 0.72,
+                evidence: ['Returns to sustainability and quality-of-life themes.', 'Values practical improvements over novelty.'],
+              },
+            },
+            behavioral_patterns: {
+              decision_making: {
+                description: 'Prefers to gather enough context before acting, then follows through consistently.',
+              },
+            },
+            relationship_dynamics: {
+              trusted_anchor: {
+                value: 'Reliable presence',
+                description: `${familyMemberName} often fills the role of stabilizer and trusted sounding board.`,
+                confidence: 0.82,
+                evidence: ['Others look to them for reassurance.', 'Maintains consistency across stressful situations.'],
+              },
+            },
+          },
+          completeness_score: 76,
+          confidence_score: 0.81,
+          total_responses: 12,
+          questions_answered: 12,
+          last_analyzed_at: new Date().toISOString(),
+          profile_version: forceRegenerate ? 2 : 1,
+          created_at: new Date().toISOString(),
+        };
+
+        const demoProfiles = readDemoStorage<Record<string, PersonalityProfile>>(DEMO_PERSONALITY_PROFILES_KEY, {});
+        writeDemoStorage(DEMO_PERSONALITY_PROFILES_KEY, {
+          ...demoProfiles,
+          [familyMemberId]: demoProfile,
+        });
+        setProfile(demoProfile);
+        return;
+      }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const { data: { session } } = await supabase.auth.getSession();
@@ -132,7 +212,7 @@ export default function PersonalityProfileViewer({
 
       await loadProfile();
     } catch (err: any) {
-      console.error('Error generating profile:', err);
+      console.warn('Error generating profile:', err);
       setError(err.message);
     } finally {
       setGenerating(false);

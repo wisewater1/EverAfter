@@ -49,3 +49,11 @@ backend/models/
 
 # Local Netlify folder
 .netlify
+
+# Local runtime artifacts
+output/
+backend/storage/
+voice-ai-service/storage/
+.playwright-cli/
+playwright-report/
+test-results/

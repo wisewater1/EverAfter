@@ -1,20 +1,16 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../generated/prisma/client.js';
 import { logger } from './logger.js';
 
-export const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development'
-    ? ['query', 'error', 'warn']
-    : ['error'],
-});
+const connectionString = process.env.DATABASE_URL;
 
-prisma.$use(async (params, next) => {
-  const before = Date.now();
-  const result = await next(params);
-  const after = Date.now();
+if (!connectionString) {
+  throw new Error('DATABASE_URL is required to start the health API');
+}
 
-  logger.debug(`Query ${params.model}.${params.action} took ${after - before}ms`);
-  return result;
-});
+const adapter = new PrismaPg({ connectionString });
+
+export const prisma = new PrismaClient({ adapter });
 
 process.on('beforeExit', async () => {
   await prisma.$disconnect();

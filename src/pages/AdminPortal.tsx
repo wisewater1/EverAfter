@@ -48,7 +48,7 @@ interface Notification {
 }
 
 export default function AdminPortal() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
@@ -67,9 +67,22 @@ export default function AdminPortal() {
       return;
     }
     loadAdminData();
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const loadAdminData = async () => {
+    if (isDemoMode) {
+      setUsers([]);
+      setNotifications([]);
+      setStats({
+        totalUsers: 0,
+        newUsersToday: 0,
+        totalConnections: 0,
+        pendingNotifications: 0,
+      });
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: usersData, error: usersError } = await supabase.rpc('get_all_users_for_admin');
@@ -103,7 +116,15 @@ export default function AdminPortal() {
         pendingNotifications: (notificationsData || []).filter((n: Notification) => !n.is_read).length,
       });
     } catch (error) {
-      console.error('Error loading admin data:', error);
+      console.warn('Admin portal data unavailable, showing empty admin state:', error);
+      setUsers([]);
+      setNotifications([]);
+      setStats({
+        totalUsers: 0,
+        newUsersToday: 0,
+        totalConnections: 0,
+        pendingNotifications: 0,
+      });
     } finally {
       setLoading(false);
     }

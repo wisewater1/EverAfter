@@ -33,6 +33,7 @@
   "author": "EverAfter",
   "license": "PROPRIETARY",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.4.2",
     "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.7.9",
@@ -47,6 +48,7 @@
     "ioredis": "^5.4.1",
     "jose": "^5.9.6",
     "nanoid": "^5.0.8",
+    "pg": "^8.20.0",
     "prisma": "^7.4.2",
     "swagger-ui-express": "^5.0.1",
     "tsoa": "^6.4.0",

@@ -13,6 +13,7 @@ import ingestionRouter from './routes/ingestion.js';
 import {
   createSyncWorker,
   createTokenRefreshWorker,
+  isQueueingEnabled,
   scheduleTokenRefreshChecks,
 } from './services/queue.js';
 import { processSyncJob } from './services/sync-service.js';
@@ -136,7 +137,7 @@ async function start() {
     await connectDatabase();
 
     // Start background workers
-    if (process.env.NODE_ENV !== 'test') {
+    if (process.env.NODE_ENV !== 'test' && isQueueingEnabled()) {
       logger.info('Starting background workers...');
 
       createSyncWorker(processSyncJob);
@@ -146,6 +147,8 @@ async function start() {
       await scheduleTokenRefreshChecks();
 
       logger.info('Background workers started');
+    } else if (process.env.NODE_ENV !== 'test') {
+      logger.warn('Starting without background workers because REDIS_URL is not configured');
     }
 
     // Start HTTP server

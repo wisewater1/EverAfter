@@ -11,8 +11,10 @@ import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
 import GabrielDHTSummary from './GabrielDHTSummary';
 import WiseGoldPanel from './WiseGoldPanel';
 import { useAuth } from '../../contexts/AuthContext';
+import { isAuthFailureMessage } from '../../lib/auth-session';
 import { BankStatusResponse, Transaction, financeApi } from '../../lib/gabriel/finance';
 import { openPlaidLink } from '../../lib/gabriel/plaidLink';
+import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
@@ -45,6 +47,8 @@ export default function StGabrielFinanceDashboard() {
     const [financeCardError, setFinanceCardError] = useState<string | null>(null);
     const [monthCashFlow, setMonthCashFlow] = useState<number | null>(cachedMonthCashFlow);
     const [showGuardian, setShowGuardian] = useState(false);
+    const [financeCapability, setFinanceCapability] = useState<RuntimeCapability | null>(null);
+    const [plaidCapability, setPlaidCapability] = useState<RuntimeCapability | null>(null);
 
     useEffect(() => {
         const idleTimer = window.setTimeout(() => {
@@ -79,6 +83,21 @@ export default function StGabrielFinanceDashboard() {
             }
 
             try {
+                const readiness = await getRuntimeReadiness();
+                const nextFinanceCapability = getCapability(readiness, 'gabriel.finance');
+                const nextPlaidCapability = getCapability(readiness, 'gabriel.plaid');
+                setFinanceCapability(nextFinanceCapability);
+                setPlaidCapability(nextPlaidCapability);
+
+                if (nextFinanceCapability?.blocking) {
+                    setWgoldBalance(0);
+                    setWgoldPriceUsd(0);
+                    setBankStatus(null);
+                    setMonthCashFlow(null);
+                    setFinanceCardError(nextFinanceCapability.reason || 'Gabriel finance is temporarily unavailable until runtime dependencies recover.');
+                    return;
+                }
+
                 const [walletResult, priceResult, bankStatusResult, transactionsResult] = await Promise.allSettled([
                     financeApi.getWiseGoldWallet(),
                     financeApi.getWiseGoldPrice(),
@@ -133,7 +152,8 @@ export default function StGabrielFinanceDashboard() {
                 setWgoldPriceUsd(0);
                 setBankStatus(null);
                 setMonthCashFlow(null);
-                setFinanceCardError(err instanceof Error ? err.message : 'Unable to load connected account balances.');
+                const message = err instanceof Error ? err.message : 'Unable to load connected account balances.';
+                setFinanceCardError(isAuthFailureMessage(message) ? null : message);
             } finally {
                 setFinanceCardLoading(false);
             }
@@ -205,7 +225,8 @@ export default function StGabrielFinanceDashboard() {
                     : null,
             );
         } catch (err) {
-            setFinanceCardError(err instanceof Error ? err.message : 'Unable to refresh connected account balances.');
+            const message = err instanceof Error ? err.message : 'Unable to refresh connected account balances.';
+            setFinanceCardError(isAuthFailureMessage(message) ? null : message);
         } finally {
             setFinanceCardLoading(false);
         }
@@ -214,6 +235,16 @@ export default function StGabrielFinanceDashboard() {
     async function handleBankAction() {
         if (authLoading || isDemoMode || !session?.access_token) {
             setActiveView('ledger');
+            return;
+        }
+
+        if (financeCapability?.blocking) {
+            setFinanceCardError(financeCapability.reason || 'Gabriel finance is temporarily unavailable until runtime dependencies recover.');
+            return;
+        }
+
+        if (plaidCapability?.blocking) {
+            setFinanceCardError(plaidCapability.reason || 'Plaid is temporarily unavailable until runtime dependencies recover.');
             return;
         }
 
@@ -245,7 +276,8 @@ export default function StGabrielFinanceDashboard() {
             await refreshFinanceCardState();
         } catch (err) {
             console.error('Failed to complete bank action:', err);
-            setFinanceCardError(err instanceof Error ? err.message : 'Unable to connect or sync bank account.');
+            const message = err instanceof Error ? err.message : 'Unable to connect or sync bank account.';
+            setFinanceCardError(isAuthFailureMessage(message) ? null : message);
         } finally {
             setBankActionLoading(false);
         }

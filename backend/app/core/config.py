@@ -103,11 +103,16 @@ class Settings(BaseSettings):
     WISEGOLD_AUTOMATION_REGISTRAR: str = ""
     WISEGOLD_AUTOMATION_REGISTRY: str = ""
     VOICE_AI_BASE_URL: str = ""
+    VOICE_AI_DEV_BASE_URL: str = "http://127.0.0.1:8020"
     VOICE_AI_TIMEOUT_SECONDS: int = 20
     VOICE_AI_HEALTH_TIMEOUT_SECONDS: int = 3
     JOSEPH_VOICE_STORAGE_DIR: str = "storage/joseph_voice"
     JOSEPH_VOICE_MIN_APPROVED_SAMPLES: int = 6
     JOSEPH_VOICE_MIN_APPROVED_SECONDS: int = 90
+    JOSEPH_READ_SQL_TIMEOUT_SECONDS: float = 2.5
+    TERRA_API_KEY: str = ""
+    TERRA_DEV_ID: str = ""
+    TERRA_WEBHOOK_SECRET: str = ""
 
     OLLAMA_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "mistral"
@@ -130,6 +135,7 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = "development"
     ALLOW_DEV_AUTH_FALLBACK: bool = True
+    ALLOW_DEV_VOICE_PROVIDER: bool = True
     DEV_AUTH_USER_ID: str = ""
     ENABLE_SAINT_EVENT_LISTENER: bool = True
     ENABLE_SAINT_BACKGROUND_VIGILS: bool = False
@@ -183,6 +189,19 @@ class Settings(BaseSettings):
     @property
     def dev_auth_fallback_enabled(self) -> bool:
         return self.ALLOW_DEV_AUTH_FALLBACK and not self.is_production
+
+    @property
+    def dev_voice_provider_enabled(self) -> bool:
+        return self.ALLOW_DEV_VOICE_PROVIDER and not self.is_production
+
+    @property
+    def resolved_voice_ai_base_url(self) -> str:
+        configured = self.VOICE_AI_BASE_URL.strip().rstrip("/")
+        if configured:
+            return configured
+        if self.dev_voice_provider_enabled:
+            return self.VOICE_AI_DEV_BASE_URL.strip().rstrip("/")
+        return ""
 
     @property
     def saint_action_auto_approve_enabled(self) -> bool:
