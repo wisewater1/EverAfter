@@ -304,36 +304,36 @@ function getSectorStates(hasHealthProfile: boolean, hasQuiz: boolean, relativeCo
     {
       name: 'Raphael',
       icon: Heart,
-      state: hasHealthProfile ? 'live' : 'mock',
+      state: hasHealthProfile ? 'live' : 'pending',
       detail: hasHealthProfile ? 'Health profile captured and ready for vitals.' : 'Will open in guided baseline mode until health data lands.',
       accent: 'text-emerald-300',
     },
     {
       name: 'Joseph',
       icon: GitBranch,
-      state: relativeCount > 0 ? 'live' : 'mock',
-      detail: relativeCount > 0 ? `${relativeCount} family link${relativeCount === 1 ? '' : 's'} will open the family tree with real structure.` : 'Will open with starter genealogy so the dashboard is never empty.',
+      state: relativeCount > 0 ? 'live' : 'seeded',
+      detail: relativeCount > 0 ? `${relativeCount} family link${relativeCount === 1 ? '' : 's'} will open the family tree with real structure.` : 'Will open from the canonical genealogy seed until more family records are added.',
       accent: 'text-amber-300',
     },
     {
       name: 'Gabriel',
       icon: Wallet,
-      state: 'mock',
-      detail: 'Finance stays in starter mode until a bank account or transaction source is connected.',
+      state: 'pending',
+      detail: 'Finance stays blocked until a bank account or transaction source is connected.',
       accent: 'text-cyan-300',
     },
     {
       name: 'Anthony',
       icon: Shield,
-      state: 'mock',
-      detail: 'Audit surfaces initialize with baseline evidence until the first scan or verifier run.',
+      state: 'pending',
+      detail: 'Audit surfaces initialize after the first scan or verifier run completes.',
       accent: 'text-violet-300',
     },
     {
       name: 'Trinity',
       icon: Sparkles,
-      state: hasQuiz || hasHealthProfile || relativeCount > 0 ? 'hybrid' : 'mock',
-      detail: 'Combines real sectors when available and labels inferred placeholders where the graph is still thin.',
+      state: hasQuiz || hasHealthProfile || relativeCount > 0 ? 'forming' : 'pending',
+      detail: 'Combines live saint sectors as they become available through canonical runtime dependencies.',
       accent: 'text-sky-300',
     },
   ];
@@ -726,7 +726,7 @@ export default function FirstEngramStep({
               <div>
                 <h3 className="text-lg font-medium text-white">Genealogy starter</h3>
                 <p className="mt-1 text-sm text-slate-400">
-                  Seed the first Joseph nodes now. If you leave this light, Joseph opens in starter mock mode.
+                  Seed the first Joseph nodes now so the family graph opens with canonical structure.
                 </p>
               </div>
             </div>
@@ -802,7 +802,7 @@ export default function FirstEngramStep({
               <div className="space-y-2">
                 {relatives.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 px-4 py-5 text-sm text-slate-500">
-                    No relatives added yet. Joseph will still open with starter lineage until you replace it with real family data.
+                    No relatives added yet. Joseph will still open from your primary genealogy anchor until more family data is added.
                   </div>
                 ) : (
                   relatives.map((relative) => (
@@ -835,7 +835,7 @@ export default function FirstEngramStep({
           <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
             <h3 className="text-lg font-medium text-white">Sector startup states</h3>
             <p className="mt-1 text-sm text-slate-400">
-              Unconnected domains still start in useful mock mode instead of rendering empty tabs.
+              This preview shows which saint sectors are live, seeded, or still waiting on their required data sources.
             </p>
 
             <div className="mt-4 space-y-3">

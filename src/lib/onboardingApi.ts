@@ -1,5 +1,5 @@
 import { requestBackendJson } from './backend-request';
-import { supabase } from './supabase';
+import { buildAccessTokenHeaders } from './auth-session';
 
 export interface OnboardingReconcilePayload {
   current_step?: number;
@@ -46,13 +46,7 @@ export interface OnboardingReconcilePayload {
 }
 
 async function buildAuthHeaders(extraHeaders: HeadersInit = {}): Promise<HeadersInit> {
-  const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
-  const token = sessionResult.data.session?.access_token;
-
-  return {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...extraHeaders,
-  };
+  return buildAccessTokenHeaders(extraHeaders);
 }
 
 export async function getOnboardingStatus() {

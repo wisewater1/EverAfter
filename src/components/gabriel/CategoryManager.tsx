@@ -114,7 +114,7 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     {error && (
                         <div className={`rounded-xl border p-4 text-sm ${degradedMode ? 'border-amber-500/20 bg-amber-500/10 text-amber-200' : 'border-rose-500/20 bg-rose-500/10 text-rose-400'}`}>
-                            <strong>{degradedMode ? 'Recovery mode:' : 'Error:'}</strong> {error}
+                            <strong>{degradedMode ? 'Live sync delayed:' : 'Error:'}</strong> {error}
                         </div>
                     )}
 
@@ -170,7 +170,7 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
                         {!loading && existingGroups.length === 0 && (
                             <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/50 p-6 text-sm text-slate-400">
                                 {degradedMode
-                                    ? 'Category management is online in degraded mode. Live categories are unavailable right now, but you can retry later without the modal hanging.'
+                                    ? 'Live categories are unavailable right now. Retry when Gabriel reconnects.'
                                     : 'No categories were found yet.'}
                             </div>
                         )}

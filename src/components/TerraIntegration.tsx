@@ -9,6 +9,7 @@ import {
 
 const IS_DEV = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
 const USE_MOCK = import.meta.env.VITE_MOCK_TERRA_DATA === 'true';
+const ALLOW_DEV_MOCKS = import.meta.env.VITE_ALLOW_DEV_MOCKS === 'true';
 
 export default function TerraIntegration() {
   const { user } = useAuth();
@@ -18,7 +19,7 @@ export default function TerraIntegration() {
   const [connecting, setConnecting] = useState(false);
   const [configValid, setConfigValid] = useState(false);
   const [missingConfig, setMissingConfig] = useState<string[]>([]);
-  const isMockMode = IS_DEV && USE_MOCK;
+  const isMockMode = IS_DEV && USE_MOCK && ALLOW_DEV_MOCKS;
 
   useEffect(() => {
     const validation = validateTerraConfig();
@@ -96,7 +97,7 @@ export default function TerraIntegration() {
           '⚠️ OAuth Blocked in Sandbox\n\n' +
           'This environment blocks OAuth flows.\n\n' +
           'Solutions:\n' +
-          '1. Enable mock mode: VITE_MOCK_TERRA_DATA=true\n' +
+          '1. Enable dev-only mock mode: VITE_MOCK_TERRA_DATA=true and VITE_ALLOW_DEV_MOCKS=true\n' +
           '2. Use ngrok: npx ngrok http 5173\n' +
           '3. Deploy to public HTTPS URL\n\n' +
           'See TERRA_OAUTH_SETUP_GUIDE.md for details.'
@@ -228,7 +229,7 @@ export default function TerraIntegration() {
             <Settings className="w-5 h-5 text-yellow-400" />
             <div>
               <p className="text-yellow-400 font-medium text-sm">🔧 Development Mode Active</p>
-              <p className="text-yellow-300/70 text-xs">Using mock Terra data for testing. Set VITE_MOCK_TERRA_DATA=false for real OAuth.</p>
+              <p className="text-yellow-300/70 text-xs">Using explicit dev-only Terra mock data. Disable `VITE_MOCK_TERRA_DATA` or `VITE_ALLOW_DEV_MOCKS` for the real OAuth path.</p>
             </div>
           </div>
         </div>

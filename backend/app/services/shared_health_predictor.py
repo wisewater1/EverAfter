@@ -575,6 +575,68 @@ class SharedHealthPredictor:
             )
         return actions
 
+    async def detect_early_warnings(
+        self,
+        user_id: str,
+        metrics_history: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        warnings: List[Dict[str, Any]] = []
+
+        resting_hr = self._average_metric(metrics_history, ["heart_rate", "resting_hr"])
+        glucose = self._average_metric(metrics_history, ["glucose", "glucose_variability", "a1c"])
+        sleep = self._average_metric(metrics_history, ["sleep_duration", "sleep_quality"])
+        stress = self._average_metric(metrics_history, ["stress_level", "mood"])
+
+        if resting_hr is not None and resting_hr >= 95:
+            warnings.append(
+                {
+                    "warning_id": f"{user_id}-heart-rate",
+                    "metric": "heart_rate",
+                    "severity": "high",
+                    "message": "Resting heart rate is elevated above the preferred recovery range.",
+                    "recommended_action": "Review hydration, sleep debt, and near-term exertion before adding more load.",
+                    "confidence": 82,
+                }
+            )
+
+        if glucose is not None and glucose >= 140:
+            warnings.append(
+                {
+                    "warning_id": f"{user_id}-glucose",
+                    "metric": "glucose",
+                    "severity": "high",
+                    "message": "Glucose is trending above the stable daily target range.",
+                    "recommended_action": "Review nutrition, medication adherence, and follow-up measurements with Raphael.",
+                    "confidence": 78,
+                }
+            )
+
+        if sleep is not None and sleep < 6:
+            warnings.append(
+                {
+                    "warning_id": f"{user_id}-sleep",
+                    "metric": "sleep_duration",
+                    "severity": "moderate",
+                    "message": "Sleep recovery is below the minimum threshold Raphael expects.",
+                    "recommended_action": "Protect the next recovery window and avoid stacking additional stressors.",
+                    "confidence": 74,
+                }
+            )
+
+        if stress is not None and stress >= 7:
+            warnings.append(
+                {
+                    "warning_id": f"{user_id}-stress",
+                    "metric": "stress_level",
+                    "severity": "moderate",
+                    "message": "Stress signals are elevated and may compound other risk lanes.",
+                    "recommended_action": "Reduce avoidable load and add one concrete recovery action today.",
+                    "confidence": 69,
+                }
+            )
+
+        return warnings
+
     def _build_member_prediction(
         self,
         member: Dict[str, Any],
@@ -819,3 +881,6 @@ class SharedHealthPredictor:
             },
             "generated_at": iso_now(),
         }
+
+
+shared_predictor = SharedHealthPredictor()

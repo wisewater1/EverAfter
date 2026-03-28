@@ -127,9 +127,13 @@ export default function CareerChat({ publicToken }: CareerChatProps) {
         .from('career_profiles')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
         setProfile(data);
         setCareerContext(prev => ({ ...prev, hasProfile: true }));
       }

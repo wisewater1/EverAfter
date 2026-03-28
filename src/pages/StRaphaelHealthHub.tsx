@@ -35,6 +35,8 @@ import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge'
 import { apiClient } from '../lib/api-client';
 import { requestBackendJson } from '../lib/backend-request';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
+import { getCapability, getRuntimeReadiness } from '../lib/runtime-readiness';
+import FeatureBlockedState from '../components/FeatureBlockedState';
 
 interface Insight {
     text: string;
@@ -52,17 +54,21 @@ interface VitalsData {
 
 type ActiveView = 'overview' | 'simulation' | 'lab' | 'governance' | 'analytics' | 'trajectory' | 'chat';
 
-interface SynapsePulseResult {
-    narrative: string;
-    confidence: { score: number };
-    evidence: { label: string };
-}
-
 interface FamilyRiskChip {
     member_id: string;
     member_name: string;
     risk_level: string;
     colour: string;
+}
+
+interface RaphaelHealthSummary {
+    metrics?: number;
+    sleep_score?: number | null;
+    activity_score?: number | null;
+    hrv_avg?: number | null;
+    resting_heart_rate?: number | null;
+    readiness_score?: number | null;
+    last_sync_at?: string | null;
 }
 
 function raphaelSummaryHasData(summary: any): boolean {
@@ -79,40 +85,63 @@ function raphaelSummaryHasData(summary: any): boolean {
     return false;
 }
 
-function buildFallbackSynapsePulse(): SynapsePulseResult {
+function mapRaphaelSummaryToVitals(summary: RaphaelHealthSummary): VitalsData {
+    const restingHeartRate = Number(summary.resting_heart_rate || 0);
+    const hrvAverage = Number(summary.hrv_avg || 0);
+    const activityScore = Number(summary.activity_score || 0);
+    const sleepScore = Number(summary.sleep_score || 0);
+
     return {
-        narrative: 'Live synapse prediction is temporarily unavailable. Raphael is staying responsive with a degraded local pulse based on your latest available context.',
-        confidence: { score: 41 },
-        evidence: { label: 'degraded mode' },
+        heartRate: { avg: restingHeartRate, max: restingHeartRate },
+        hrv: { avg: hrvAverage },
+        steps: { total: Math.round((activityScore / 100) * 10000) },
+        sleep: { hours: Number(((sleepScore / 100) * 8).toFixed(1)) },
     };
 }
 
-function buildFallbackFamilyRiskMap(): FamilyRiskChip[] {
-    const colourByRisk: Record<string, string> = {
-        low: '#10b981',
-        moderate: '#f59e0b',
-        high: '#ef4444',
-    };
+function buildRaphaelInsights(summary: RaphaelHealthSummary): Insight[] {
+    const insights: Insight[] = [];
 
-    return getFamilyMembers()
-        .filter((member) => !member.deathDate)
-        .slice(0, 8)
-        .map((member) => {
-            const healthSignals = (member.infoStack || []).filter((entry) => entry.category === 'health').length;
-            const riskLevel = healthSignals >= 2 ? 'high' : healthSignals === 1 ? 'moderate' : 'low';
-
-            return {
-                member_id: member.id,
-                member_name: `${member.firstName} ${member.lastName}`.trim() || 'Family Member',
-                risk_level: riskLevel,
-                colour: colourByRisk[riskLevel],
-            };
+    if (typeof summary.readiness_score === 'number') {
+        insights.push({
+            text:
+                summary.readiness_score >= 75
+                    ? 'Readiness is strong today. Recovery capacity looks resilient.'
+                    : summary.readiness_score >= 55
+                        ? 'Readiness is moderate. Protect recovery windows and avoid unnecessary load.'
+                        : 'Readiness is low. Favor recovery, hydration, and a lighter schedule.',
+            severity:
+                summary.readiness_score >= 75
+                    ? 'info'
+                    : summary.readiness_score >= 55
+                        ? 'warning'
+                        : 'attention',
+            category: 'readiness',
         });
+    }
+
+    if (typeof summary.sleep_score === 'number' && summary.sleep_score < 60) {
+        insights.push({
+            text: 'Sleep quality is trailing the target range. Prioritize an earlier recovery window tonight.',
+            severity: 'warning',
+            category: 'sleep',
+        });
+    }
+
+    if (typeof summary.activity_score === 'number' && summary.activity_score < 45) {
+        insights.push({
+            text: 'Movement is below the daily target. A shorter recovery walk would improve current trajectory quality.',
+            severity: 'warning',
+            category: 'activity',
+        });
+    }
+
+    return insights;
 }
 
 export default function StRaphaelHealthHub() {
     const navigate = useNavigate();
-    const { user, isDemoMode } = useAuth();
+    const { user } = useAuth();
     const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
 
     const [activeView, setActiveView] = useState<ActiveView>('overview');
@@ -123,40 +152,48 @@ export default function StRaphaelHealthHub() {
     const [lastRun, setLastRun] = useState<Date | null>(null);
     const [statusAura, setStatusAura] = useState<'stable' | 'drift' | 'critical'>('stable');
     const [hubNotice, setHubNotice] = useState<string | null>(null);
+    const [hubBlockedReason, setHubBlockedReason] = useState<string | null>(null);
 
     const activeConnectionsCount = getActiveConnectionsCount();
 
     useEffect(() => {
         loadHubData();
-    }, [isDemoMode]);
+    }, []);
 
     async function loadHubData() {
-        if (isDemoMode) {
-            setHasData(false);
-            setVitals(null);
-            setInsights([]);
-            setLastRun(new Date());
-            setStatusAura('stable');
-            setHubNotice('Demo mode is using local fallback health context instead of live biometric sync.');
-            setLoading(false);
-            return;
-        }
-
         try {
             setLoading(true);
-            const data = await requestBackendJson<any>(
-                '/api/me/raphael/summary',
-                {},
+            setHubBlockedReason(null);
+            const readiness = await getRuntimeReadiness();
+            const hubCapability = getCapability(readiness, 'raphael.hub');
+            if (hubCapability?.blocking) {
+                setHasData(false);
+                setVitals(null);
+                setInsights([]);
+                setLastRun(null);
+                setStatusAura('stable');
+                setHubBlockedReason(hubCapability.reason || 'Raphael hub runtime dependencies are unavailable.');
+                setHubNotice(null);
+                return;
+            }
+
+            const headers = await apiClient.getAuthHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const data = await requestBackendJson<RaphaelHealthSummary>(
+                '/api/v1/health/summary',
+                { headers },
                 'Failed to load Raphael hub summary.',
             );
             if (raphaelSummaryHasData(data)) {
+                const summaryInsights = buildRaphaelInsights(data);
                 setHasData(true);
-                setVitals(data.vitals);
-                setInsights(data.insights || []);
-                setLastRun(data.lastRun ? new Date(data.lastRun) : null);
+                setVitals(mapRaphaelSummaryToVitals(data));
+                setInsights(summaryInsights);
+                setLastRun(data.last_sync_at ? new Date(data.last_sync_at) : null);
 
-                const warningCount = (data.insights || []).filter((i: Insight) => i.severity === 'warning').length;
-                const attentionCount = (data.insights || []).filter((i: Insight) => i.severity === 'attention').length;
+                const warningCount = summaryInsights.filter((i: Insight) => i.severity === 'warning').length;
+                const attentionCount = summaryInsights.filter((i: Insight) => i.severity === 'attention').length;
 
                 if (attentionCount > 0) setStatusAura('critical');
                 else if (warningCount > 0) setStatusAura('drift');
@@ -165,19 +202,22 @@ export default function StRaphaelHealthHub() {
             else {
                 setHasData(false);
                 setVitals(null);
-                setInsights(data.insights || []);
-                setLastRun(data.lastRun ? new Date(data.lastRun) : null);
+                setInsights(buildRaphaelInsights(data));
+                setLastRun(data.last_sync_at ? new Date(data.last_sync_at) : null);
                 setStatusAura('stable');
             }
             setHubNotice(null);
+            setHubBlockedReason(null);
         } catch (error) {
             setHasData(false);
             setVitals(null);
             setInsights([]);
-            setLastRun(new Date());
+            setLastRun(null);
             setStatusAura('stable');
-            setHubNotice('Live Raphael hub data is temporarily unavailable. Showing a degraded local state instead.');
-            console.warn('Raphael hub degraded to local fallback:', error);
+            const nextReason = error instanceof Error ? error.message : 'Live Raphael hub data is unavailable.';
+            setHubBlockedReason(nextReason);
+            setHubNotice(null);
+            console.warn('Raphael hub unavailable:', error);
         } finally {
             setLoading(false);
         }
@@ -262,6 +302,12 @@ export default function StRaphaelHealthHub() {
                                 </div>
                             )}
                         </div>
+                    ) : hubBlockedReason ? (
+                        <FeatureBlockedState
+                            title="Raphael Hub Unavailable"
+                            reason={hubBlockedReason}
+                            detail="Raphael waits for live health dependencies instead of fabricating local biometric state."
+                        />
                     ) : (
                         <div className="p-8 rounded-2xl bg-teal-500/5 border border-teal-500/10 text-center">
                             <p className="text-teal-400/60 italic text-sm">Waiting for biometric sync...</p>
@@ -337,6 +383,14 @@ export default function StRaphaelHealthHub() {
 
                     {/* Main Content Area */}
                     <div className="lg:col-span-9">
+                        {hubBlockedReason ? (
+                            <FeatureBlockedState
+                                title="Raphael Is Blocked"
+                                reason={hubBlockedReason}
+                                detail="The health hub stays blocked until live summary, prediction, and device dependencies recover."
+                            />
+                        ) : (
+                            <>
                         {activeView === 'overview' && (
                             <div className="space-y-6">
                                 {/* Summary View */}
@@ -458,6 +512,8 @@ export default function StRaphaelHealthHub() {
                                 <RaphaelChat />
                             </div>
                         )}
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -538,13 +594,13 @@ function HubInsightCard({ insight }: { insight: Insight }) {
 
 function SynapsePulse() {
     const [pulsing, setPulsing] = useState(false);
-    const [result, setResult] = useState<SynapsePulseResult | null>(null);
-    const [degradedNotice, setDegradedNotice] = useState<string | null>(null);
+    const [result, setResult] = useState<any | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const triggerPulse = async () => {
         setPulsing(true);
         setResult(null);
-        setDegradedNotice(null);
+        setError(null);
         try {
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
@@ -552,16 +608,14 @@ function SynapsePulse() {
             const data = await requestBackendJson<any>('/api/v1/causal-twin/predictions', { headers }, 'Failed to trigger synapse pulse.');
             const prediction = data?.predictions?.[0];
             if (!prediction) {
-                setResult(buildFallbackSynapsePulse());
-                setDegradedNotice('Live synapse data was empty, so Raphael switched to degraded mode.');
+                setError('No live synapse prediction is available right now.');
                 return;
             }
 
             setResult(prediction);
         } catch (e) {
             console.error(e);
-            setResult(buildFallbackSynapsePulse());
-            setDegradedNotice('Live synapse prediction is slow right now. Raphael is showing a degraded pulse instead of failing hard.');
+            setError(e instanceof Error ? e.message : 'Failed to trigger synapse pulse.');
         } finally {
             setPulsing(false);
         }
@@ -595,9 +649,9 @@ function SynapsePulse() {
                 </button>
             </div>
 
-            {degradedNotice && (
-                <div className="relative mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                    {degradedNotice}
+            {error && (
+                <div className="relative mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                    {error}
                 </div>
             )}
 
@@ -643,24 +697,14 @@ function SynapsePulse() {
 }
 
 function FamilyHealthHeatmap() {
-    const { isDemoMode } = useAuth();
     const [members, setMembers] = useState<FamilyRiskChip[]>([]);
     const [loading, setLoading] = useState(true);
-    const [degradedNotice, setDegradedNotice] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
 
         const loadFamilyMap = async () => {
-            if (isDemoMode) {
-                if (!cancelled) {
-                    setMembers(buildFallbackFamilyRiskMap());
-                    setDegradedNotice('Demo mode is showing a local family risk map instead of live predictions.');
-                    setLoading(false);
-                }
-                return;
-            }
-
             try {
                 const rawMembers = getFamilyMembers()
                     .filter((member) => !member.deathDate)
@@ -728,18 +772,13 @@ function FamilyHealthHeatmap() {
 
                 if (!cancelled) {
                     setMembers(familyMap);
-                    setDegradedNotice(null);
+                    setError(null);
                 }
             } catch (e) {
-                console.warn('Family risk map degraded to local fallback:', e);
+                console.warn('Family risk map unavailable:', e);
                 if (!cancelled) {
-                    const fallbackMap = buildFallbackFamilyRiskMap();
-                    setMembers(fallbackMap);
-                    setDegradedNotice(
-                        fallbackMap.length > 0
-                            ? 'Live family risk analysis is temporarily unavailable. Showing a degraded local family map instead.'
-                            : 'Live family risk analysis is temporarily unavailable.',
-                    );
+                    setMembers([]);
+                    setError(e instanceof Error ? e.message : 'Live family risk analysis is unavailable.');
                 }
             } finally {
                 if (!cancelled) {
@@ -753,7 +792,7 @@ function FamilyHealthHeatmap() {
         return () => {
             cancelled = true;
         };
-    }, [isDemoMode]);
+    }, []);
 
     if (loading) return null;
 
@@ -763,9 +802,9 @@ function FamilyHealthHeatmap() {
                 <Shield className="w-4 h-4 text-emerald-400" />
                 Trinity Synapse: Family Risk Map
             </h3>
-            {degradedNotice && (
-                <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                    {degradedNotice}
+            {error && (
+                <div className="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                    {error}
                 </div>
             )}
             {members.length === 0 ? (

@@ -66,6 +66,28 @@ def _looks_like_placeholder_database_url(raw_url: str) -> bool:
     return any(marker in upper_candidate for marker in placeholder_markers)
 
 
+def _expand_loopback_origins(origins: List[str]) -> List[str]:
+    expanded: List[str] = []
+
+    for origin in origins:
+        normalized = origin.strip()
+        if not normalized:
+            continue
+        if normalized not in expanded:
+            expanded.append(normalized)
+
+        if "://localhost" in normalized:
+            loopback_variant = normalized.replace("://localhost", "://127.0.0.1", 1)
+            if loopback_variant not in expanded:
+                expanded.append(loopback_variant)
+        elif "://127.0.0.1" in normalized:
+            localhost_variant = normalized.replace("://127.0.0.1", "://localhost", 1)
+            if localhost_variant not in expanded:
+                expanded.append(localhost_variant)
+
+    return expanded
+
+
 class Settings(BaseSettings):
     DATABASE_URL: str
     PRISMA_DATABASE_URL: str = ""
@@ -73,6 +95,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = Field(default="", validation_alias=AliasChoices("SUPABASE_URL", "VITE_SUPABASE_URL"))
     SUPABASE_ANON_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"))
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY"))
+    SUPABASE_JWT_ISSUER: str = ""
+    SUPABASE_JWT_AUDIENCE: str = "authenticated"
 
     JWT_SECRET_KEY: str = "dev-jwt-secret"
     JWT_ALGORITHM: str = "HS256"
@@ -130,11 +154,13 @@ class Settings(BaseSettings):
 
     HOST: str = "0.0.0.0"
     PORT: int = 8010
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:5000,https://everafterai.net,https://www.everafterai.net"
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5000,http://127.0.0.1:5000,https://everafterai.net,https://www.everafterai.net"
     CORS_ORIGIN_REGEX: str = r"^https://.*\.netlify\.app$"
 
     ENVIRONMENT: str = "development"
     ALLOW_DEV_AUTH_FALLBACK: bool = True
+    ALLOW_PRESENTATION_DEMO_AUTH: bool = True
+    DEMO_AUTH_TOKEN: str = "demo-show-token"
     ALLOW_DEV_VOICE_PROVIDER: bool = True
     DEV_AUTH_USER_ID: str = ""
     ENABLE_SAINT_EVENT_LISTENER: bool = True
@@ -153,7 +179,7 @@ class Settings(BaseSettings):
 
     @property
     def BACKEND_CORS_ORIGINS(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return _expand_loopback_origins([origin.strip() for origin in self.CORS_ORIGINS.split(",")])
 
     @property
     def database_url_normalized(self) -> str:
@@ -180,7 +206,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return _expand_loopback_origins([origin.strip() for origin in self.CORS_ORIGINS.split(",")])
 
     @property
     def is_production(self) -> bool:
@@ -189,6 +215,10 @@ class Settings(BaseSettings):
     @property
     def dev_auth_fallback_enabled(self) -> bool:
         return self.ALLOW_DEV_AUTH_FALLBACK and not self.is_production
+
+    @property
+    def presentation_demo_auth_enabled(self) -> bool:
+        return self.ALLOW_PRESENTATION_DEMO_AUTH and bool(self.DEMO_AUTH_TOKEN.strip())
 
     @property
     def dev_voice_provider_enabled(self) -> bool:

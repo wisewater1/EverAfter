@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import OnboardingProgress from '../components/onboarding/OnboardingProgress';
 import WelcomeStep from '../components/onboarding/WelcomeStep';
 import MeetRaphaelStep from '../components/onboarding/MeetRaphaelStep';
@@ -120,64 +119,64 @@ export default function Onboarding() {
     }
 
     try {
-      try {
-        const statusBundle = await withTimeout(
-          getOnboardingStatus(),
-          ONBOARDING_LOAD_TIMEOUT_MS,
-          'Timed out while loading canonical onboarding status'
-        );
+      const statusBundle = await withTimeout(
+        getOnboardingStatus(),
+        ONBOARDING_LOAD_TIMEOUT_MS,
+        'Timed out while loading canonical onboarding status'
+      );
 
-        const profile = statusBundle?.profile;
-        const status = statusBundle?.onboarding_status;
-        const demographics = statusBundle?.health_profile;
-        const mediaConsent = statusBundle?.media_consent;
+      const profile = statusBundle?.profile;
+      const status = statusBundle?.onboarding_status;
+      const demographics = statusBundle?.health_profile;
+      const mediaConsent = statusBundle?.media_consent;
 
-        if (profile?.has_completed_onboarding) {
-          navigate('/dashboard');
-          return;
+      if (profile?.has_completed_onboarding) {
+        navigate('/dashboard');
+        return;
+      }
+
+      if (status) {
+        setCompletedSteps(status.completed_steps || []);
+        const savedStepIndex = Math.max((status.current_step ?? 1) - 1, 0);
+        const savedStep = STEP_ORDER[Math.min(savedStepIndex, STEP_ORDER.length - 2)];
+
+        if (savedStep) {
+          setCurrentStep(savedStep);
         }
+      }
 
-        if (status) {
-          setCompletedSteps(status.completed_steps || []);
-          const savedStepIndex = Math.max((status.current_step ?? 1) - 1, 0);
-          const savedStep = STEP_ORDER[Math.min(savedStepIndex, STEP_ORDER.length - 2)];
-
-          if (savedStep) {
-            setCurrentStep(savedStep);
+      const healthProfileFromDatabase = demographics
+        ? {
+            dateOfBirth: demographics.date_of_birth,
+            gender: demographics.gender,
+            weightKg: demographics.weight_kg,
+            heightCm: demographics.height_cm,
+            healthConditions: demographics.health_conditions || [],
+            allergies: demographics.allergies || [],
+            healthGoals: demographics.health_goals || [],
+            activityLevel: demographics.activity_level,
           }
-        }
+        : null;
 
-        const healthProfileFromBackend = demographics
-          ? {
-              dateOfBirth: demographics.date_of_birth,
-              gender: demographics.gender,
-              weightKg: demographics.weight_kg,
-              heightCm: demographics.height_cm,
-              healthConditions: demographics.health_conditions || [],
-              allergies: demographics.allergies || [],
-              healthGoals: demographics.health_goals || [],
-              activityLevel: demographics.activity_level,
-            }
-          : null;
+      const mediaConsentFromBackend = mediaConsent
+        ? {
+            photoLibraryAccess: Boolean(mediaConsent.photo_library_access),
+            cameraAccess: Boolean(mediaConsent.camera_access),
+            videoAccess: Boolean(mediaConsent.video_access),
+            allowFaceDetection: Boolean(mediaConsent.allow_face_detection),
+            allowExpressionAnalysis: Boolean(mediaConsent.allow_expression_analysis),
+          }
+        : null;
 
-        const mediaConsentFromBackend = mediaConsent
-          ? {
-              photoLibraryAccess: Boolean(mediaConsent.photo_library_access),
-              cameraAccess: Boolean(mediaConsent.camera_access),
-              videoAccess: Boolean(mediaConsent.video_access),
-              allowFaceDetection: Boolean(mediaConsent.allow_face_detection),
-              allowExpressionAnalysis: Boolean(mediaConsent.allow_expression_analysis),
-            }
-          : null;
+      const healthProfileDraft = loadHealthProfileDraft(user.id);
+      const starterEngramDraft = loadStarterEngramDraft(user.id);
 
-        const healthProfileDraft = loadHealthProfileDraft(user.id);
-        const starterEngramDraft = loadStarterEngramDraft(user.id);
-
+      if (healthProfileFromDatabase || healthProfileDraft || starterEngramDraft) {
         setOnboardingData((prev) => ({
           ...prev,
           healthProfile: {
             ...prev.healthProfile,
-            ...(healthProfileFromBackend || {}),
+            ...(healthProfileFromDatabase || {}),
             ...(healthProfileDraft || {}),
           },
           mediaConsent: mediaConsentFromBackend || prev.mediaConsent,
@@ -194,121 +193,19 @@ export default function Onboarding() {
             statusBundle?.family_setup || starterEngramDraft?.familySetup || prev.familySetup,
         }));
 
-        if (healthProfileDraft && !healthProfileFromBackend) {
+        if (healthProfileDraft && !healthProfileFromDatabase) {
           setLoadWarning(
             'Recovered an unsynced health profile draft from this device. Continue onboarding to retry canonical backend sync.'
           );
-        } else if (starterEngramDraft && !statusBundle?.family_setup) {
-          setLoadWarning(
-            'Recovered your AI and family setup from this device. Continue onboarding to import it into the canonical onboarding backend.'
-          );
-        }
-
-        return;
-      } catch (backendError) {
-        console.warn('Canonical onboarding status unavailable, falling back to Supabase reads:', backendError);
-      }
-
-      if (!supabase) {
-        setLoadWarning('Supabase is unavailable. Onboarding is running in limited mode.');
-        return;
-      }
-
-      // Check if user has already completed onboarding
-      const [{ data: profile }, { data: status }, { data: demographics }] = await Promise.all([
-        withTimeout(
-          supabase
-            .from('profiles')
-            .select('has_completed_onboarding, onboarding_skipped')
-            .eq('id', user.id)
-            .maybeSingle(),
-          ONBOARDING_LOAD_TIMEOUT_MS,
-          'Timed out while loading the profile'
-        ),
-        withTimeout(
-          supabase
-            .from('onboarding_status')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle(),
-          ONBOARDING_LOAD_TIMEOUT_MS,
-          'Timed out while loading onboarding status'
-        ),
-        withTimeout(
-          supabase
-            .from('health_demographics')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle(),
-          ONBOARDING_LOAD_TIMEOUT_MS,
-          'Timed out while loading health demographics'
-        ),
-      ]);
-
-      if (profile?.has_completed_onboarding) {
-        navigate('/dashboard');
-        return;
-      }
-
-      if (status) {
-        setCompletedSteps(status.completed_steps || []);
-        const savedStepIndex = Math.max((status.current_step ?? 1) - 1, 0);
-        const savedStep = STEP_ORDER[Math.min(savedStepIndex, STEP_ORDER.length - 2)];
-
-        if (savedStep) {
-          setCurrentStep(savedStep);
-        }
-      } else {
-        // Initialize onboarding for new user
-        void supabase.from('onboarding_status').insert({
-          user_id: user.id,
-          current_step: 1,
-          completed_steps: [],
-        });
-      }
-
-      const healthProfileFromDatabase = demographics
-        ? {
-            dateOfBirth: demographics.date_of_birth,
-            gender: demographics.gender,
-            weightKg: demographics.weight_kg,
-            heightCm: demographics.height_cm,
-            healthConditions: demographics.health_conditions || [],
-            allergies: demographics.allergies || [],
-            healthGoals: demographics.health_goals || [],
-            activityLevel: demographics.activity_level,
-          }
-        : null;
-
-      const healthProfileDraft = loadHealthProfileDraft(user.id);
-      const starterEngramDraft = loadStarterEngramDraft(user.id);
-
-      if (healthProfileFromDatabase || healthProfileDraft || starterEngramDraft) {
-        setOnboardingData((prev) => ({
-          ...prev,
-          healthProfile: {
-            ...prev.healthProfile,
-            ...(healthProfileFromDatabase || {}),
-            ...(healthProfileDraft || {}),
-          },
-          firstEngram: starterEngramDraft?.firstEngram || prev.firstEngram,
-          personalityQuiz: starterEngramDraft?.personalityQuiz || prev.personalityQuiz,
-          familySetup: starterEngramDraft?.familySetup || prev.familySetup,
-        }));
-
-        if (healthProfileDraft && !healthProfileFromDatabase) {
-          setLoadWarning(
-            'Recovered an unsynced health profile draft from this device. Continue onboarding to retry cloud save.'
-          );
         } else if (starterEngramDraft) {
           setLoadWarning(
-            'Recovered your AI and family setup from this device. Continue onboarding to carry that data into Joseph and Trinity.'
+            'Recovered your AI and family setup from this device. Continue onboarding to import it into the canonical onboarding backend.'
           );
         }
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
-      setLoadWarning('Onboarding loaded in recovery mode. Progress details may be delayed, but you can continue.');
+      setLoadWarning('Failed to load canonical onboarding status. You can still start from a fresh onboarding state.');
     } finally {
       setLoading(false);
     }
@@ -318,7 +215,7 @@ export default function Onboarding() {
     if (!authLoading && loading) {
       const watchdog = window.setTimeout(() => {
         console.warn('Onboarding: Loading watchdog released spinner');
-        setLoadWarning('Onboarding took too long to load. Recovery mode is active.');
+        setLoadWarning('Onboarding took too long to load. Please verify backend readiness before continuing.');
         setLoading(false);
       }, ONBOARDING_LOAD_TIMEOUT_MS + 2000);
 

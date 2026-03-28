@@ -171,6 +171,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
     from app.services.genealogy_runtime_tables import ensure_genealogy_tables
     from app.services.governance_runtime_tables import ensure_governance_tables
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
+    from app.services.time_capsule_runtime_tables import ensure_time_capsule_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables
 
     state = app.state.runtime_status
@@ -182,6 +183,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
         ("finance", ensure_finance_runtime_tables),
         ("health_prediction", ensure_health_prediction_runtime_tables),
         ("governance", ensure_governance_tables),
+        ("time_capsules", ensure_time_capsule_tables),
         ("wisegold", ensure_wisegold_tables),
     )
 

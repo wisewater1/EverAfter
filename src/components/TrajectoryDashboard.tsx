@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, AlertCircle, CheckCircle2, Database, Droplets, History, Plus, RefreshCw, Save, Shield, Thermometer, TrendingUp, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchHealthMetrics, fetchTrajectoryHistory, generateDelphiPrediction, generateSimulatedPrediction, saveTrajectorySnapshot, storeHealthMetrics, type DelphiPrediction, type ExtractedHealthData, type HealthDataPoint } from '../lib/raphael/healthDataService';
+import { fetchHealthMetrics, fetchTrajectoryHistory, generateDelphiPrediction, saveTrajectorySnapshot, storeHealthMetrics, type DelphiPrediction, type ExtractedHealthData, type HealthDataPoint } from '../lib/raphael/healthDataService';
 
 interface QuickEntryField {
     label: string;
@@ -43,7 +43,7 @@ function formatRelativeRecordedAt(timestamp: string) {
 }
 
 const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
-    const { user, isDemoMode } = useAuth();
+    const { user } = useAuth();
     const [prediction, setPrediction] = useState<DelphiPrediction | null>(null);
     const [recentMetrics, setRecentMetrics] = useState<HealthDataPoint[]>([]);
     const [trajectoryHistory, setTrajectoryHistory] = useState<DelphiPrediction[]>([]);
@@ -58,33 +58,31 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
         if (!effectiveUserId) return;
         setLoading(true);
 
-        if (isDemoMode) {
-            setPrediction(generateSimulatedPrediction());
-            setRecentMetrics([]);
-            setTrajectoryHistory([]);
-            setLoading(false);
-            return;
-        }
-
         try {
-            const [pred, metrics, history] = await Promise.all([
-                generateDelphiPrediction(effectiveUserId),
-                fetchHealthMetrics(effectiveUserId, 30),
-                fetchTrajectoryHistory(effectiveUserId, 6),
-            ]);
-            setPrediction(pred);
+            const metrics = await fetchHealthMetrics(effectiveUserId, 30);
             setRecentMetrics(metrics);
+
+            if (metrics.length === 0) {
+                setPrediction(null);
+                setTrajectoryHistory([]);
+                return;
+            }
+
+            const history = await fetchTrajectoryHistory(effectiveUserId, 6);
             setTrajectoryHistory(history);
+
+            const pred = await generateDelphiPrediction(effectiveUserId);
+            setPrediction(pred);
             saveTrajectorySnapshot(effectiveUserId, pred).catch(() => {});
         } catch (error) {
-            console.warn('Delphi prediction degraded to simulated mode:', error);
-            setPrediction(generateSimulatedPrediction());
+            console.warn('Delphi prediction unavailable:', error);
+            setPrediction(null);
             setRecentMetrics([]);
             setTrajectoryHistory([]);
         } finally {
             setLoading(false);
         }
-    }, [effectiveUserId, isDemoMode]);
+    }, [effectiveUserId]);
 
     useEffect(() => {
         void loadPrediction();
@@ -108,9 +106,9 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
             prediction?.contributing_factors?.[1] || 'Watch the next 24h trend window for early drift signals.',
         ]
         : [
-            'No live biometric baseline yet. Use quick entry to replace simulated trajectory data.',
+            'No live biometric baseline yet. Use quick entry to establish the first Delphi baseline.',
             `Start with ${metricCoverage.slice(0, 3).map((metric) => metric.label).join(', ')} to improve convergence quickly.`,
-            'Once at least five real observations exist, Delphi can build a more defensible trajectory baseline.',
+            'Once at least five live observations exist, Delphi can build a defensible trajectory baseline.',
         ];
 
     const readinessTone = prediction?.data_source === 'live' && (prediction?.confidence || 0) >= 0.75 ? 'ready' : prediction?.data_source === 'live' ? 'building' : 'seed';
@@ -119,7 +117,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
         ? 'Delphi has enough recent signal to support trajectory monitoring and next-step guidance.'
         : readinessTone === 'building'
             ? 'Live metrics are present, but more repeated observations will improve confidence and anomaly detection.'
-            : 'No live biometric baseline yet. Record vitals to move Delphi out of simulation mode.';
+            : 'No live biometric baseline yet. Record vitals to initialize Delphi.';
 
     const handleQuickEntrySave = async () => {
         if (!effectiveUserId) return;
@@ -173,8 +171,8 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
                         <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">Delphi Health Trajectory</h1>
                         <p className="text-zinc-400 font-medium">Predictive AI-derived physiological insights</p>
                         <div className="flex flex-wrap items-center gap-3 mt-3">
-                            {prediction?.data_source === 'simulated' ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400">Simulated - log vitals for live predictions</span>
+                            {prediction?.data_source !== 'live' ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400">Awaiting live vitals</span>
                             ) : (
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"><Database size={10} /> Live Data - {prediction?.metrics_used} metrics</span>
                             )}
@@ -244,7 +242,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
                     <div className="flex items-center gap-3 mb-4 text-blue-400"><Thermometer size={20} /><h3 className="font-semibold uppercase tracking-widest text-xs">Model Trust</h3></div>
                     <div className="flex items-end gap-2"><span className="text-3xl font-bold text-white">{prediction?.confidence != null ? (prediction.confidence * 100).toFixed(0) : '0'}%</span><span className="text-zinc-500 text-xs mb-1">Delphi convergence</span></div>
                     <div className="mt-4 w-full bg-white/5 h-1.5 rounded-full overflow-hidden"><div className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-1000" style={{ width: `${(prediction?.confidence || 0) * 100}%` }}></div></div>
-                    <p className="text-zinc-600 text-[10px] mt-2 uppercase tracking-widest">Based on {prediction?.metrics_used || 0} data points · {prediction?.data_source === 'live' ? 'Real data' : 'Simulated'}</p>
+                    <p className="text-zinc-600 text-[10px] mt-2 uppercase tracking-widest">Based on {prediction?.metrics_used || 0} data points · {prediction?.data_source === 'live' ? 'Real data' : 'Awaiting inputs'}</p>
                 </div>
                 <div className="backdrop-blur-lg bg-zinc-900/40 border border-white/10 rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-4 text-emerald-400"><Shield size={20} /><h3 className="font-semibold uppercase tracking-widest text-xs">Trajectory Readiness</h3></div>

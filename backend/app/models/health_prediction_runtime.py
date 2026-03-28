@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, JSON, String
+from sqlalchemy import Column, DateTime, Float, Integer, JSON, String
 from sqlalchemy.sql import func
 
 from app.db.session import Base
@@ -26,3 +26,20 @@ class HealthPredictionScenario(Base):
     cloned_from_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class DelphiTrajectory(Base):
+    __tablename__ = "delphi_trajectories"
+
+    id = Column(String, primary_key=True, default=generate_cuid)
+    user_id = Column(String, nullable=False, index=True)
+    prediction_type = Column(String, nullable=False, default="composite_health")
+    predicted_value = Column(Float, nullable=False, default=0.0)
+    confidence = Column(Float, nullable=False, default=0.0)
+    risk_level = Column(String, nullable=False, default="unknown")
+    contributing_factors = Column(JSON, nullable=False, default=list)
+    trajectory_data = Column(JSON, nullable=False, default=list)
+    metrics_used = Column(Integer, nullable=False, default=0)
+    data_source = Column(String, nullable=False, default="live")
+    generated_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)

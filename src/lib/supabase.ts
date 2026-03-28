@@ -4,7 +4,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables. App will load in limited mode.');
+  console.warn('Missing Supabase environment variables. Auth-backed routes will remain unavailable until configuration is complete.');
 }
 
 // Export null if keys are missing to prevent crash, check for null before usage

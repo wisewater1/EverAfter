@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { withTimeout } from '../lib/withTimeout';
+import { getOnboardingStatus } from '../lib/onboardingApi';
+import { getRouteGate, getRuntimeReadiness, type RuntimeRouteGate } from '../lib/runtime-readiness';
+import FeatureBlockedState from './FeatureBlockedState';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,6 +18,8 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   const location = useLocation();
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [routeGate, setRouteGate] = useState<RuntimeRouteGate | null>(null);
+  const [routeGateLoading, setRouteGateLoading] = useState(false);
 
   // Routes that should skip onboarding check
   const onboardingExemptRoutes = ['/onboarding', '/portal/profile'];
@@ -40,8 +44,48 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   }, [user?.id, isDemoMode]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadRouteGate() {
+      if (!user) {
+        setRouteGate(null);
+        setRouteGateLoading(false);
+        return;
+      }
+
+      setRouteGateLoading(true);
+      try {
+        const readiness = await getRuntimeReadiness();
+        if (!cancelled) {
+          setRouteGate(getRouteGate(readiness, location.pathname));
+        }
+      } catch (error) {
+        console.warn('ProtectedRoute: failed to load route readiness', error);
+        if (!cancelled) {
+          setRouteGate(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setRouteGateLoading(false);
+        }
+      }
+    }
+
+    if (!authLoading && user) {
+      void loadRouteGate();
+    } else if (!authLoading) {
+      setRouteGate(null);
+      setRouteGateLoading(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, location.pathname, user]);
+
+  useEffect(() => {
     async function checkOnboardingStatus() {
-      if (!user || isDemoMode || skipOnboardingCheck || isExemptRoute) {
+      if (!user || isDemoMode || skipOnboardingCheck || isExemptRoute || routeGateLoading || Boolean(routeGate?.blocking)) {
         setNeedsOnboarding(false);
         setCheckingOnboarding(false);
         return;
@@ -50,31 +94,17 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
       setCheckingOnboarding(true);
 
       try {
-        if (!supabase) {
-          console.warn('Supabase client not initialized in ProtectedRoute');
-          setCheckingOnboarding(false);
-          return;
-        }
-
-        const { data: profile, error } = await withTimeout(
-          supabase
-            .from('profiles')
-            .select('has_completed_onboarding, onboarding_skipped')
-            .eq('id', user.id)
-            .single(),
+        const bundle = await withTimeout(
+          getOnboardingStatus(),
           ONBOARDING_CHECK_TIMEOUT_MS,
           'Timed out while checking onboarding status'
         );
 
-        if (error) {
-          console.error('Error checking onboarding status:', error);
-          // If profile doesn't exist or error, don't block access
-          setCheckingOnboarding(false);
-          return;
-        }
+        const profile = bundle?.profile || null;
+        const status = bundle?.onboarding_status || null;
 
         // User needs onboarding if they haven't completed it AND haven't skipped it
-        const requiresOnboarding = !profile?.has_completed_onboarding && !profile?.onboarding_skipped;
+        const requiresOnboarding = !profile?.has_completed_onboarding && !profile?.onboarding_skipped && !status?.onboarding_complete;
         setNeedsOnboarding(requiresOnboarding);
         try {
           window.sessionStorage.setItem(`everafter_onboarding_required_${user.id}`, requiresOnboarding ? '1' : '0');
@@ -93,7 +123,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     } else if (!authLoading) {
       setCheckingOnboarding(false);
     }
-  }, [user, authLoading, isDemoMode, skipOnboardingCheck, isExemptRoute]);
+  }, [user, authLoading, isDemoMode, skipOnboardingCheck, isExemptRoute, routeGate, routeGateLoading]);
 
   useEffect(() => {
     if (!authLoading && checkingOnboarding) {
@@ -123,6 +153,27 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (routeGateLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Checking runtime dependencies...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (routeGate?.blocking) {
+    return (
+      <FeatureBlockedState
+        title="This route is unavailable"
+        reason={routeGate.reason || 'This route is blocked until its runtime dependencies recover.'}
+        detail={`Route: ${location.pathname}`}
+      />
+    );
   }
 
   // Redirect to onboarding if needed (but not if already on an exempt route)

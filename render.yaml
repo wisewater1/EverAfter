@@ -22,6 +22,10 @@ services:
         value: false
       - key: ALLOW_DEV_AUTH_FALLBACK
         value: false
+      - key: ALLOW_PRESENTATION_DEMO_AUTH
+        value: true
+      - key: DEMO_AUTH_TOKEN
+        value: demo-show-token
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL
@@ -30,6 +34,10 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: SUPABASE_JWT_ISSUER
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
       - key: JWT_SECRET_KEY
         sync: false
       - key: OPENAI_API_KEY

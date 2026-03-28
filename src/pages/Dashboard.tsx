@@ -2,7 +2,6 @@ import { Suspense, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import MobileMenu from '../components/MobileMenu';
 import SaintsNavigation from '../components/SaintsNavigation';
 import { lazyWithRetry } from '../lib/lazyWithRetry';
@@ -121,36 +120,15 @@ export default function Dashboard() {
         return;
       }
 
-      if (!user?.id || !supabase) {
+      if (!user?.id) {
         setLoadingOnboardingResume(false);
         return;
       }
 
       try {
-        let profile: any = null;
-        let status: any = null;
-
-        try {
-          const bundle = await getOnboardingStatus();
-          profile = bundle?.profile || null;
-          status = bundle?.onboarding_status || null;
-        } catch (backendError) {
-          console.warn('Canonical onboarding status unavailable on dashboard, falling back to Supabase:', backendError);
-          const [{ data: fallbackProfile }, { data: fallbackStatus }] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('has_completed_onboarding, onboarding_skipped')
-              .eq('id', user.id)
-              .maybeSingle(),
-            supabase
-              .from('onboarding_status')
-              .select('current_step, completed_steps, onboarding_complete, last_step_at')
-              .eq('user_id', user.id)
-              .maybeSingle(),
-          ]);
-          profile = fallbackProfile;
-          status = fallbackStatus;
-        }
+        const bundle = await getOnboardingStatus();
+        const profile = bundle?.profile || null;
+        const status = bundle?.onboarding_status || null;
 
         const isComplete = Boolean(profile?.has_completed_onboarding || status?.onboarding_complete);
         const completedSteps = Array.isArray(status?.completed_steps) ? status.completed_steps : [];
@@ -169,6 +147,14 @@ export default function Dashboard() {
         });
       } catch (error) {
         console.error('Failed to load onboarding resume state:', error);
+        setOnboardingResume({
+          visible: false,
+          progressPercent: 0,
+          completedCount: 0,
+          currentLabel: ONBOARDING_STEPS[0],
+          skipped: false,
+          lastUpdated: null,
+        });
       } finally {
         setLoadingOnboardingResume(false);
       }

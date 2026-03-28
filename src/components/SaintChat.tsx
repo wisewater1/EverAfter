@@ -3,6 +3,7 @@ import { Send, User, Book, Brain, X, Sparkles } from 'lucide-react';
 import { apiClient, type SaintBootstrapResult, type SaintChatResult } from '../lib/api-client';
 import { useAuth } from '../contexts/AuthContext';
 import { getCapability, getRuntimeReadiness } from '../lib/runtime-readiness';
+import FeatureBlockedState from './FeatureBlockedState';
 
 interface SaintChatProps {
     saintId: string;
@@ -31,7 +32,6 @@ interface KnowledgeItem {
 }
 
 interface SaintAvailabilityState {
-    mode: 'full' | 'degraded';
     persistenceAvailable: boolean;
     historyAvailable: boolean;
     knowledgeAvailable: boolean;
@@ -40,7 +40,6 @@ interface SaintAvailabilityState {
 type SaintStep = 'bootstrap' | 'history' | 'knowledge' | 'chat';
 
 const DEFAULT_SAINT_AVAILABILITY: SaintAvailabilityState = {
-    mode: 'full',
     persistenceAvailable: true,
     historyAvailable: true,
     knowledgeAvailable: true,
@@ -70,11 +69,11 @@ function formatSaintError(step: SaintStep, error: unknown): string {
     }
 
     if (step === 'knowledge') {
-        return 'Knowledge could not be loaded. Chat is still available.';
+        return 'Knowledge could not be loaded, so this Saint stays unavailable until storage recovers.';
     }
 
     if (step === 'history') {
-        return 'History could not be loaded. You can still start a new conversation.';
+        return 'History could not be loaded, so this Saint stays unavailable until storage recovers.';
     }
 
     if (step === 'chat') {
@@ -96,10 +95,8 @@ function shouldSuppressInitError(errorMessage: string): boolean {
 }
 
 function deriveAvailabilityFromBootstrap(result?: SaintBootstrapResult | null): SaintAvailabilityState {
-    const degraded = Boolean(result?.degraded || result?.mode === 'degraded');
-    const persistenceAvailable = result?.persistence_available ?? !degraded;
+    const persistenceAvailable = result?.persistence_available ?? true;
     return {
-        mode: degraded ? 'degraded' : 'full',
         persistenceAvailable,
         historyAvailable: persistenceAvailable,
         knowledgeAvailable: persistenceAvailable,
@@ -107,38 +104,12 @@ function deriveAvailabilityFromBootstrap(result?: SaintBootstrapResult | null): 
 }
 
 function deriveAvailabilityFromChat(result?: SaintChatResult | null): SaintAvailabilityState {
-    const degraded = Boolean(result?.degraded || result?.mode === 'degraded');
-    const persistenceAvailable = result?.persistence_available ?? !degraded;
+    const persistenceAvailable = result?.persistence_available ?? true;
     return {
-        mode: degraded ? 'degraded' : 'full',
         persistenceAvailable,
         historyAvailable: result?.history_available ?? persistenceAvailable,
         knowledgeAvailable: result?.knowledge_available ?? persistenceAvailable,
     };
-}
-
-function buildDegradedNote(availability: SaintAvailabilityState): string {
-    const limits: string[] = [];
-    if (!availability.persistenceAvailable) limits.push('new memories are not being saved');
-    if (!availability.historyAvailable) limits.push('chat history is unavailable');
-    if (!availability.knowledgeAvailable) limits.push('stored knowledge is unavailable');
-    limits.push('live domain context may be limited');
-
-    const recoveryTarget =
-        availability.persistenceAvailable && availability.historyAvailable && availability.knowledgeAvailable
-            ? 'until live backend context recovers.'
-            : 'until backend storage recovers.';
-
-    return `Running in degraded mode. ${limits.join(', ')} ${recoveryTarget}`;
-}
-
-function buildLocalDegradedReply(saintName: string, saintTitle: string, message: string): string {
-    const trimmed = message.trim();
-    if (!trimmed) {
-        return `${saintName} is available in local degraded mode, but live backend context is unavailable right now.`;
-    }
-
-    return `${saintName}, ${saintTitle}, is responding in local degraded mode. I can acknowledge your request, but live backend context, saved memory, and domain-specific records are unavailable right now. Your message was: "${trimmed.slice(0, 180)}"`;
 }
 
 export default function SaintChat({
@@ -157,18 +128,16 @@ export default function SaintChat({
     const [loading, setLoading] = useState(false);
     const [bootstrapping, setBootstrapping] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [degradedMode, setDegradedMode] = useState(false);
+    const [blockedReason, setBlockedReason] = useState<string | null>(null);
     const [availability, setAvailability] = useState<SaintAvailabilityState>(DEFAULT_SAINT_AVAILABILITY);
     const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
     const [showKnowledge, setShowKnowledge] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const buildInitialAssistantMessage = (degraded: boolean): Message => ({
-        id: degraded ? 'init-degraded' : 'init',
+    const buildInitialAssistantMessage = (): Message => ({
+        id: 'init',
         role: 'assistant',
-        content: degraded
-            ? `${initialMessage || `Greetings. I am ${saintName}, ${saintTitle}.`} Live backend context is temporarily unavailable, so I am running in degraded mode. I will stay visible instead of failing closed, but live knowledge, history, and response quality may be limited until the backend recovers.`
-            : initialMessage || `Greetings. I am ${saintName}, ${saintTitle}. How may I assist you today?`,
+        content: initialMessage || `Greetings. I am ${saintName}, ${saintTitle}. How may I assist you today?`,
         timestamp: new Date().toISOString()
     });
 
@@ -189,7 +158,6 @@ export default function SaintChat({
 
     useEffect(() => {
         const init = async () => {
-            let fallbackTimer: number | null = null;
             try {
                 if (authLoading) {
                     return;
@@ -197,20 +165,13 @@ export default function SaintChat({
 
                 setBootstrapping(true);
                 setError(null);
-                setDegradedMode(false);
+                setBlockedReason(null);
                 setAvailability(DEFAULT_SAINT_AVAILABILITY);
-                setMessages([buildInitialAssistantMessage(false)]);
+                setMessages([buildInitialAssistantMessage()]);
 
                 if (isDemoMode || !session?.access_token) {
-                    setDegradedMode(true);
-                    setAvailability({
-                        mode: 'degraded',
-                        persistenceAvailable: false,
-                        historyAvailable: false,
-                        knowledgeAvailable: false,
-                    });
                     setKnowledge([]);
-                    setMessages([buildInitialAssistantMessage(true)]);
+                    setBlockedReason('Your Saint session is not authorized. Please sign in again.');
                     setBootstrapping(false);
                     return;
                 }
@@ -219,16 +180,8 @@ export default function SaintChat({
                     const readiness = await getRuntimeReadiness();
                     const storageCapability = getCapability(readiness, 'saint.storage');
                     if (storageCapability?.blocking) {
-                        setDegradedMode(true);
-                        setAvailability({
-                            mode: 'degraded',
-                            persistenceAvailable: false,
-                            historyAvailable: false,
-                            knowledgeAvailable: false,
-                        });
                         setKnowledge([]);
-                        setError(storageCapability.reason || `Persistent saint storage is unavailable for ${saintName}.`);
-                        setMessages([buildInitialAssistantMessage(true)]);
+                        setBlockedReason(storageCapability.reason || `Persistent saint storage is unavailable for ${saintName}.`);
                         setBootstrapping(false);
                         return;
                     }
@@ -236,24 +189,16 @@ export default function SaintChat({
                     console.warn('Failed to load saint storage readiness:', readinessError);
                 }
 
-                fallbackTimer = window.setTimeout(() => {
-                    setDegradedMode(true);
-                    setAvailability({
-                        mode: 'degraded',
-                        persistenceAvailable: false,
-                        historyAvailable: false,
-                        knowledgeAvailable: false,
-                    });
-                    setError((prev) => prev || `Live Saint services are taking longer than expected. ${saintName} is staying visible in degraded mode until the backend reconnects.`);
-                    setMessages((prev) => (prev.length > 0 ? prev : [buildInitialAssistantMessage(true)]));
-                    setBootstrapping(false);
-                }, 2500);
-
                 const bootstrapResult = await apiClient.bootstrapSaint(saintId);
                 const bootstrapAvailability = deriveAvailabilityFromBootstrap(bootstrapResult);
                 setAvailability(bootstrapAvailability);
-                setDegradedMode(bootstrapAvailability.mode === 'degraded');
-                setMessages([buildInitialAssistantMessage(bootstrapAvailability.mode === 'degraded')]);
+                if (!bootstrapAvailability.persistenceAvailable) {
+                    setKnowledge([]);
+                    setBlockedReason(`Persistent saint storage is unavailable for ${saintName}.`);
+                    return;
+                }
+
+                setMessages([buildInitialAssistantMessage()]);
 
                 const [knowledgeResult, historyResult] = await Promise.allSettled([
                     apiClient.getSaintKnowledge(saintId),
@@ -265,9 +210,8 @@ export default function SaintChat({
                 } else {
                     console.error('Failed to load saint knowledge:', knowledgeResult.reason);
                     setKnowledge([]);
-                    setAvailability((prev) => ({ ...prev, knowledgeAvailable: false, mode: 'degraded' }));
-                    setDegradedMode(true);
-                    setError((prev) => prev || formatSaintError('knowledge', knowledgeResult.reason));
+                    setBlockedReason(formatSaintError('knowledge', knowledgeResult.reason));
+                    return;
                 }
 
                 if (historyResult.status === 'fulfilled' && historyResult.value.length > 0) {
@@ -281,28 +225,16 @@ export default function SaintChat({
                 } else {
                     if (historyResult.status === 'rejected') {
                         console.error('Failed to load saint history:', historyResult.reason);
-                        setAvailability((prev) => ({ ...prev, historyAvailable: false, mode: 'degraded' }));
-                        setDegradedMode(true);
-                        setError(prev => prev || formatSaintError('history', historyResult.reason));
+                        setBlockedReason(formatSaintError('history', historyResult.reason));
                     }
                 }
             } catch (err) {
                 console.error('Failed to initialize saint:', err);
-                setDegradedMode(true);
-                setAvailability({
-                    mode: 'degraded',
-                    persistenceAvailable: false,
-                    historyAvailable: false,
-                    knowledgeAvailable: false,
-                });
                 const nextError = formatSaintError('bootstrap', err);
+                setBlockedReason(nextError);
                 setError(shouldSuppressInitError(nextError) ? null : nextError);
                 setKnowledge([]);
-                setMessages([buildInitialAssistantMessage(true)]);
             } finally {
-                if (fallbackTimer) {
-                    window.clearTimeout(fallbackTimer);
-                }
                 setBootstrapping(false);
             }
         };
@@ -326,30 +258,21 @@ export default function SaintChat({
         setError(null);
 
         try {
-            if (isDemoMode || !session?.access_token) {
-                const nextAvailability = {
-                    mode: 'degraded' as const,
-                    persistenceAvailable: false,
-                    historyAvailable: false,
-                    knowledgeAvailable: false,
-                };
-                setAvailability(nextAvailability);
-                setDegradedMode(true);
-                setKnowledge([]);
-                const aiMsg: Message = {
-                    id: `${Date.now()}-local`,
-                    role: 'assistant',
-                    content: buildLocalDegradedReply(saintName, saintTitle, userMsg.content),
-                    timestamp: new Date().toISOString(),
-                };
-                setMessages(prev => [...prev, aiMsg]);
+            if (isDemoMode || !session?.access_token || blockedReason) {
+                setError(blockedReason || 'Your Saint session is not authorized. Please sign in again.');
                 return;
             }
 
             const response = await apiClient.chatWithSaint(saintId, userMsg.content, false, userContext);
             const nextAvailability = deriveAvailabilityFromChat(response);
             setAvailability(nextAvailability);
-            setDegradedMode(nextAvailability.mode === 'degraded');
+            if (!nextAvailability.persistenceAvailable || !nextAvailability.historyAvailable || !nextAvailability.knowledgeAvailable) {
+                const unavailableReason = 'This Saint became unavailable because backend storage or history is no longer healthy.';
+                setKnowledge([]);
+                setBlockedReason(unavailableReason);
+                setError(unavailableReason);
+                return;
+            }
             // specific cast to handle extra properties
             const responseData = response as any;
 
@@ -371,9 +294,10 @@ export default function SaintChat({
                 }
             } catch (knowledgeError) {
                 console.error('Failed to refresh saint knowledge:', knowledgeError);
-                setAvailability((prev) => ({ ...prev, knowledgeAvailable: false, mode: 'degraded' }));
-                setDegradedMode(true);
-                setError(prev => prev || formatSaintError('knowledge', knowledgeError));
+                const unavailableReason = formatSaintError('knowledge', knowledgeError);
+                setKnowledge([]);
+                setBlockedReason(unavailableReason);
+                setError(prev => prev || unavailableReason);
             }
 
         } catch (err) {
@@ -384,8 +308,7 @@ export default function SaintChat({
         }
     };
 
-    const knowledgeDisabled = !availability.knowledgeAvailable && knowledge.length === 0;
-    const degradedNote = degradedMode ? buildDegradedNote(availability) : null;
+    const knowledgeDisabled = Boolean(blockedReason) || !availability.knowledgeAvailable && knowledge.length === 0;
 
     return (
         <div className="flex h-full bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
@@ -408,7 +331,7 @@ export default function SaintChat({
                             type="button"
                             onClick={() => setShowKnowledge(!showKnowledge)}
                             className={`p-2 rounded-lg transition-colors relative ${knowledgeDisabled ? 'cursor-not-allowed text-slate-300' : showKnowledge ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-600 hover:bg-slate-100'}`}
-                            title={knowledgeDisabled ? 'Stored knowledge is unavailable while backend storage is degraded.' : "View Saint's Knowledge"}
+                            title={knowledgeDisabled ? (blockedReason || 'Stored knowledge is unavailable while backend storage is unavailable.') : "View Saint's Knowledge"}
                             disabled={knowledgeDisabled}
                         >
                             <Book className="w-5 h-5" />
@@ -437,55 +360,60 @@ export default function SaintChat({
                             </div>
                         )}
 
-                        {degradedNote && (
-                            <div className="mx-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                                <Sparkles className="h-4 w-4 shrink-0" />
-                                <span>{degradedNote}</span>
-                            </div>
-                        )}
-
                         {error && (
-                            <div className={`mx-4 flex items-center gap-2 rounded-lg border p-4 text-sm ${degradedMode ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-red-100 bg-red-50 text-red-600'}`}>
+                            <div className="mx-4 flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-600">
                                 <span>{error}</span>
                             </div>
                         )}
 
-                        {messages.map((msg) => (
-                            <div
-                                key={msg.id}
-                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                <div
-                                    className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
-                                        ? `bg-${primaryColor}-600 text-white`
-                                        : 'bg-white border border-slate-100 text-slate-700'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2 mb-1.5 opacity-80 border-b border-white/10 pb-1">
-                                        {msg.role === 'user' ? (
-                                            <User className="w-3 h-3" />
-                                        ) : (
-                                            <Icon className="w-3 h-3" />
-                                        )}
-                                        <span className="text-xs font-semibold uppercase tracking-wider">
-                                            {msg.role === 'user' ? 'You' : saintName}
-                                        </span>
-                                    </div>
-                                    <div className="whitespace-pre-wrap leading-relaxed text-sm">
-                                        {msg.content}
-                                    </div>
-                                </div>
+                        {blockedReason && !bootstrapping ? (
+                            <div className="mx-4">
+                                <FeatureBlockedState
+                                    title={`${saintName} Is Unavailable`}
+                                    reason={blockedReason}
+                                    detail="This chat stays blocked until the required runtime storage and history dependencies recover."
+                                />
                             </div>
-                        ))}
-                        {loading && (
-                            <div className="flex justify-start">
-                                <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3">
-                                    <Icon className={`w-4 h-4 text-${primaryColor}-500 animate-bounce`} />
-                                    <span className="text-sm text-slate-500">Thinking...</span>
-                                </div>
-                            </div>
+                        ) : (
+                            <>
+                                {messages.map((msg) => (
+                                    <div
+                                        key={msg.id}
+                                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        <div
+                                            className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
+                                                ? `bg-${primaryColor}-600 text-white`
+                                                : 'bg-white border border-slate-100 text-slate-700'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-2 mb-1.5 opacity-80 border-b border-white/10 pb-1">
+                                                {msg.role === 'user' ? (
+                                                    <User className="w-3 h-3" />
+                                                ) : (
+                                                    <Icon className="w-3 h-3" />
+                                                )}
+                                                <span className="text-xs font-semibold uppercase tracking-wider">
+                                                    {msg.role === 'user' ? 'You' : saintName}
+                                                </span>
+                                            </div>
+                                            <div className="whitespace-pre-wrap leading-relaxed text-sm">
+                                                {msg.content}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {loading && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+                                            <Icon className={`w-4 h-4 text-${primaryColor}-500 animate-bounce`} />
+                                            <span className="text-sm text-slate-500">Thinking...</span>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </>
                         )}
-                        <div ref={messagesEndRef} />
                     </>
                 </div>
 
@@ -497,14 +425,14 @@ export default function SaintChat({
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                            placeholder={`Ask ${saintName} for guidance...`}
+                            placeholder={blockedReason ? `${saintName} is unavailable until runtime dependencies recover.` : `Ask ${saintName} for guidance...`}
                             className="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm"
-                            disabled={loading || bootstrapping}
-                            aria-disabled={loading || bootstrapping}
+                            disabled={loading || bootstrapping || Boolean(blockedReason)}
+                            aria-disabled={loading || bootstrapping || Boolean(blockedReason)}
                         />
                         <button
                             onClick={handleSend}
-                            disabled={!input.trim() || loading || bootstrapping}
+                            disabled={!input.trim() || loading || bootstrapping || Boolean(blockedReason)}
                             className={`p-2 rounded-lg bg-${primaryColor}-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-${primaryColor}-700 transition-colors shadow-sm`}
                         >
                             <Send className="w-4 h-4" />

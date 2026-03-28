@@ -1,9 +1,10 @@
 from app.db.session import Base, get_engine
-from app.models.health_prediction_runtime import HealthPredictionScenario
+from app.models.health_prediction_runtime import DelphiTrajectory, HealthPredictionScenario
 
 
 HEALTH_PREDICTION_RUNTIME_TABLES = [
     HealthPredictionScenario.__table__,
+    DelphiTrajectory.__table__,
 ]
 
 

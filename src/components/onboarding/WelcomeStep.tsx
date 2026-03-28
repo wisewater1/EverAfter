@@ -33,7 +33,7 @@ const SAINTS = [
     detail: 'Family tree, OCEAN personality layers, and continuity planning.',
     icon: GitBranch,
     accent: 'from-amber-400/20 to-orange-400/10 border-amber-400/20 text-amber-200',
-    chip: 'Starts from genealogy seed or safe starter mock',
+    chip: 'Starts from your genealogy seed and expands as family data is added',
   },
   {
     name: 'St. Gabriel',
@@ -41,7 +41,7 @@ const SAINTS = [
     detail: 'Budgets, transactions, WiseGold, and linked-account readiness.',
     icon: Wallet,
     accent: 'from-teal-400/20 to-cyan-400/10 border-teal-400/20 text-teal-200',
-    chip: 'Falls back to guided mock state until bank connect',
+    chip: 'Unlocks live treasury features once finance data is connected',
   },
   {
     name: 'St. Anthony',
@@ -57,7 +57,7 @@ const SAINTS = [
     detail: 'Family risk, goals, inheritance, and coordinated planning.',
     icon: Sparkles,
     accent: 'from-sky-400/20 to-indigo-400/10 border-sky-400/20 text-sky-200',
-    chip: 'Synthesizes real sectors and labels mock assumptions clearly',
+    chip: 'Synthesizes live saint sectors once the required signals are available',
   },
 ];
 
@@ -101,11 +101,11 @@ export default function WelcomeStep({ onNext, onSkip, saving }: WelcomeStepProps
               <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 backdrop-blur-xl">
                 <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
                   <Lock className="h-4 w-4 text-emerald-300" />
-                  Real-first, mock when missing
+                  Real dependency startup
                 </div>
                 <p className="text-sm text-slate-400">
-                  Missing sectors are explicitly initialized in mock-safe mode instead of
-                  rendering empty screens.
+                  Each saint opens against its canonical runtime path, with readiness checks
+                  preventing partially configured sectors from pretending to be live.
                 </p>
               </div>
             </div>

@@ -40,8 +40,16 @@ def verify_supabase_token(token: str) -> Dict[str, Any]:
         payload = jwt.get_unverified_claims(token)
 
         issuer = str(payload.get("iss") or "")
-        if settings.SUPABASE_URL and issuer and not issuer.startswith(settings.SUPABASE_URL):
+        expected_issuer = settings.SUPABASE_JWT_ISSUER.strip() or settings.SUPABASE_URL.strip()
+        if expected_issuer and issuer and not issuer.startswith(expected_issuer):
             raise ValueError("Supabase token issuer mismatch")
+
+        expected_audience = settings.SUPABASE_JWT_AUDIENCE.strip()
+        audience = payload.get("aud")
+        if expected_audience and audience:
+            audiences = audience if isinstance(audience, list) else [audience]
+            if expected_audience not in [str(candidate) for candidate in audiences]:
+                raise ValueError("Supabase token audience mismatch")
 
         expires_at = payload.get("exp")
         if expires_at is not None:

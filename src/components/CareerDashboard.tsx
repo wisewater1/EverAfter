@@ -108,11 +108,15 @@ export default function CareerDashboard() {
   };
 
   const fetchProfile = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('career_profiles')
       .select('*')
       .eq('user_id', user?.id)
-      .single();
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
 
     if (data) {
       setProfile(data);

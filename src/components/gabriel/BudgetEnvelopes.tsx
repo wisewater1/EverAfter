@@ -43,7 +43,7 @@ export default function BudgetEnvelopes() {
                 setError(
                     cached.length > 0
                         ? 'Live budget sync is taking longer than expected. Showing the last known envelope snapshot.'
-                        : 'Live budget sync is taking longer than expected. Recovery mode is active until Gabriel reconnects.'
+                        : 'Live budget sync is taking longer than expected. Gabriel is waiting for the finance runtime to reconnect.'
                 );
                 setLoading(false);
 
@@ -101,7 +101,7 @@ export default function BudgetEnvelopes() {
 
             {error && (
                 <div className={`rounded-xl border p-4 text-sm ${degradedMode ? 'border-amber-500/20 bg-amber-500/10 text-amber-200' : 'border-rose-500/20 bg-rose-500/10 text-rose-400'}`}>
-                    <strong>{degradedMode ? 'Recovery mode:' : 'API error:'}</strong> {error}
+                    <strong>{degradedMode ? 'Live sync delayed:' : 'API error:'}</strong> {error}
                     {error.includes('401') && (
                         <p className="mt-1 text-xs text-rose-300/60">Your session may have expired. Try logging out and back in.</p>
                     )}
@@ -113,8 +113,8 @@ export default function BudgetEnvelopes() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>
                         {envelopes.length > 0
-                            ? 'Refreshing live finance data. Showing the last known envelope snapshot while Gabriel reconnects.'
-                            : 'Connecting to live finance data. The envelope view will fail open if the backend stays slow.'}
+                                ? 'Refreshing live finance data. Showing the last known envelope snapshot while Gabriel reconnects.'
+                            : 'Connecting to live finance data. The envelope view will stay idle until Gabriel responds.'}
                     </span>
                 </div>
             )}
@@ -180,14 +180,14 @@ export default function BudgetEnvelopes() {
                         {loading
                             ? 'Loading finance data...'
                             : degradedMode
-                                ? 'Gabriel is online in degraded mode.'
+                                ? 'Live Gabriel budget data is still unavailable.'
                                 : 'No budget envelopes found yet.'}
                     </p>
                     <p className="mt-2 text-sm text-slate-500">
                         {loading
                             ? 'Live budget data is still loading. If the backend remains unavailable, this panel will stay usable instead of hanging.'
                             : degradedMode
-                            ? 'Live finance data is unavailable, so the center pane is falling open with an empty envelope view instead of hanging.'
+                            ? 'The last live budget fetch failed, so this view is waiting for Gabriel to reconnect.'
                             : 'Add a category to start budgeting.'}
                     </p>
                 </div>

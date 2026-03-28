@@ -59,7 +59,7 @@ describe('SaintChat', () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
-  it('keeps built-in saints visible in degraded mode without the init failure banner', async () => {
+  it('blocks saint chat when persistence is unavailable instead of rendering degraded local mode', async () => {
     render(
       <SaintChat
         saintId="gabriel"
@@ -71,14 +71,11 @@ describe('SaintChat', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByText(/running in degraded mode/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/St\. Gabriel Is Unavailable/i)).toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Ask St. Gabriel for guidance/i)).not.toBeDisabled();
-    });
-
-    expect(screen.queryByText('Failed to initialize Saint AI. Please try again.')).not.toBeInTheDocument();
-    expect(screen.getByText(/Treasury Analyst mode is active/i)).toBeInTheDocument();
+    expect(screen.getByText(/Persistent saint storage is unavailable for St\. Gabriel/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/St\. Gabriel is unavailable until runtime dependencies recover/i)).toBeDisabled();
+    expect(screen.queryByText(/running in degraded mode/i)).not.toBeInTheDocument();
   });
 });

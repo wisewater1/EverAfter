@@ -1,4 +1,4 @@
-from app.core.config import _normalize_database_url
+from app.core.config import _expand_loopback_origins, _normalize_database_url
 
 
 def test_preserves_supabase_pooler_url_by_default():
@@ -17,3 +17,12 @@ def test_can_force_direct_supabase_host_when_requested():
     )
 
     assert normalized == "postgresql+asyncpg://postgres:secret@db.sncvecvgxwkkxnxbvglv.supabase.co:5432/postgres"
+
+
+def test_expands_localhost_and_loopback_origin_variants():
+    expanded = _expand_loopback_origins(["http://localhost:5173", "http://127.0.0.1:3000"])
+
+    assert "http://localhost:5173" in expanded
+    assert "http://127.0.0.1:5173" in expanded
+    assert "http://127.0.0.1:3000" in expanded
+    assert "http://localhost:3000" in expanded

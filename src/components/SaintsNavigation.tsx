@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Shield, Users, Lock, Search, Wallet } from 'lucide-react';
+import { getRouteGate, getRuntimeReadiness } from '../lib/runtime-readiness';
 
 interface Saint {
   id: string;
@@ -14,6 +16,7 @@ interface Saint {
 
 export default function SaintsNavigation() {
   const navigate = useNavigate();
+  const [blockedRoutes, setBlockedRoutes] = useState<Record<string, string>>({});
 
   const saints: Saint[] = [
     {
@@ -74,6 +77,43 @@ export default function SaintsNavigation() {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRouteAvailability() {
+      try {
+        const readiness = await getRuntimeReadiness();
+        if (cancelled) return;
+
+        const nextBlockedRoutes: Record<string, string> = {};
+        for (const saint of saints) {
+          if (!saint.route) continue;
+          const gate = getRouteGate(readiness, saint.route);
+          if (gate?.blocking) {
+            nextBlockedRoutes[saint.route] = gate.reason || 'Route dependencies are unavailable.';
+          }
+        }
+
+        setBlockedRoutes(nextBlockedRoutes);
+      } catch (error) {
+        console.warn('Failed to load saint route readiness:', error);
+      }
+    }
+
+    void loadRouteAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const renderedSaints = saints.map((saint) => {
+    if (!saint.route) return saint;
+    return {
+      ...saint,
+      available: saint.available && !blockedRoutes[saint.route],
+    };
+  });
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
       {/* Backdrop */}
@@ -93,7 +133,7 @@ export default function SaintsNavigation() {
 
           {/* Saints Grid — each button is a flex-col card+name */}
           <div className="grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4">
-            {saints.map((saint, index) => {
+            {renderedSaints.map((saint, index) => {
               const Icon = saint.icon;
               const isCenter = index === 2; // St. Raphael
 
@@ -102,6 +142,7 @@ export default function SaintsNavigation() {
                   key={saint.id}
                   onClick={() => handleSaintClick(saint)}
                   disabled={!saint.available}
+                  title={saint.route ? blockedRoutes[saint.route] || undefined : undefined}
                   className={`group flex flex-col items-center gap-1.5 transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
                     } ${saint.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                   style={{ transform: isCenter ? 'translateY(-8px)' : 'translateY(0)' }}

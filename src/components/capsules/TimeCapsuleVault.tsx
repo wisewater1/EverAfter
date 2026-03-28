@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
     Lock, Unlock, Mail, Plus, Clock,
     Calendar, Sparkles, Send, X, Loader
 } from 'lucide-react';
+import { buildAccessTokenHeaders } from '../../lib/auth-session';
+import { requestBackendJson } from '../../lib/backend-request';
 
 interface TimeCapsule {
     id: string;
@@ -34,8 +35,15 @@ export default function TimeCapsuleVault() {
 
     const fetchCapsules = async () => {
         try {
-            const res = await axios.get('/api/v1/time-capsules');
-            setCapsules(res.data);
+            const headers = await buildAccessTokenHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            const data = await requestBackendJson<TimeCapsule[]>(
+                '/api/v1/time-capsules/',
+                { headers },
+                'Failed to load time capsules.',
+            );
+            setCapsules(data);
         } catch (error) {
             console.error(error);
         } finally {
@@ -45,15 +53,26 @@ export default function TimeCapsuleVault() {
 
     const handleCreate = async () => {
         try {
-            await axios.post('/api/v1/time-capsules', {
-                title: newTitle,
-                content: newContent,
-                unlock_condition: targetDate, // Simplification for prototype
-                sender_saint_id: targetSaint
-                // unlock_date would be parsed here in real app
+            const headers = await buildAccessTokenHeaders({
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
             });
+            await requestBackendJson<TimeCapsule>(
+                '/api/v1/time-capsules/',
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        title: newTitle,
+                        content: newContent,
+                        unlock_condition: targetDate,
+                        sender_saint_id: targetSaint,
+                    }),
+                },
+                'Failed to create the time capsule.',
+            );
             setShowCreateModal(false);
-            fetchCapsules();
+            await fetchCapsules();
             // Reset form
             setNewTitle('');
             setNewContent('');
@@ -66,15 +85,24 @@ export default function TimeCapsuleVault() {
         if (!targetSaint || targetSaint === 'user') return;
         setIsGenerating(true);
         try {
-            const res = await axios.post('/api/v1/time-capsules/generate-letter', null, {
-                params: {
-                    saint_id: targetSaint,
-                    topic: "Advice for the future",
-                    target_date: targetDate || "5 years"
-                }
+            const headers = await buildAccessTokenHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
             });
-            setNewTitle(res.data.title);
-            setNewContent(res.data.content);
+            const params = new URLSearchParams({
+                saint_id: targetSaint,
+                topic: 'Advice for the future',
+                target_date: targetDate || '5 years',
+            });
+            const data = await requestBackendJson<Pick<TimeCapsule, 'title' | 'content'>>(
+                `/api/v1/time-capsules/generate-letter?${params.toString()}`,
+                {
+                    method: 'POST',
+                    headers,
+                },
+                'Failed to generate the capsule letter.',
+            );
+            setNewTitle(data.title || '');
+            setNewContent(data.content || '');
         } catch (error) {
             console.error("Generation failed", error);
         } finally {
@@ -84,8 +112,18 @@ export default function TimeCapsuleVault() {
 
     const handleUnlock = async (id: string) => {
         try {
-            await axios.post(`/api/v1/time-capsules/${id}/unlock`);
-            fetchCapsules(); // Refresh to see unlocked content
+            const headers = await buildAccessTokenHeaders({
+                'Bypass-Tunnel-Reminder': 'true',
+            });
+            await requestBackendJson<TimeCapsule>(
+                `/api/v1/time-capsules/${id}/unlock`,
+                {
+                    method: 'POST',
+                    headers,
+                },
+                'Failed to unlock the time capsule.',
+            );
+            await fetchCapsules();
         } catch (error) {
             alert("This capsule cannot be unlocked yet.");
         }

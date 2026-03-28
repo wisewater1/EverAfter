@@ -43,6 +43,13 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         request.state.current_user = {"id": demo_user_id, "sub": demo_user_id}
 
     @staticmethod
+    def _is_demo_presentation_token(token: str) -> bool:
+        configured_token = settings.DEMO_AUTH_TOKEN.strip()
+        if not settings.presentation_demo_auth_enabled or not configured_token:
+            return False
+        return token == configured_token
+
+    @staticmethod
     def _unauthorized_response(detail: str) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,6 +64,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         return self._unauthorized_response(detail)
 
     async def dispatch(self, request: Request, call_next):
+        if request.method.upper() == "OPTIONS":
+            return await call_next(request)
+
         if request.url.path in PUBLIC_PATHS:
             return await call_next(request)
 
@@ -81,6 +91,10 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 fallback_response = await self._fallback_or_unauthorized(request, "Invalid authorization scheme")
                 if fallback_response is not None:
                     return fallback_response
+                return await call_next(request)
+
+            if self._is_demo_presentation_token(token):
+                await self._apply_demo_user(request)
                 return await call_next(request)
 
             try:

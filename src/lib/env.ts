@@ -34,7 +34,7 @@ function validateEnv(): Env {
   if (!anonKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
 
   if (missingVars.length > 0) {
-    const msg = `Environment validation failed: Missing ${missingVars.join(', ')}. App will load in limited mode.`;
+    const msg = `Environment validation failed: Missing ${missingVars.join(', ')}. Runtime-gated features will remain unavailable until configuration is complete.`;
     if (isProd) {
       console.error(msg);
     } else {
