@@ -121,3 +121,39 @@ async def test_collect_runtime_readiness_registers_all_route_dependencies(monkey
             assert dep in capability_ids, f"Missing runtime capability for route dependency {dep}"
 
     assert readiness["capability_map"]["trinity.synapse"]["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_collect_runtime_readiness_accepts_supabase_session_auth_without_custom_jwt(monkeypatch):
+    app = SimpleNamespace(
+        state=SimpleNamespace(
+            runtime_status={
+                "status": "healthy",
+                "db_ready": True,
+                "bootstrap_complete": True,
+                "last_error": None,
+            },
+            bootstrap_components={
+                "engram": {"ready": True, "error": None},
+                "genealogy": {"ready": True, "error": None},
+                "family_home": {"ready": True, "error": None},
+                "finance": {"ready": True, "error": None},
+                "health_prediction": {"ready": True, "error": None},
+                "governance": {"ready": True, "error": None},
+                "time_capsules": {"ready": True, "error": None},
+                "wisegold": {"ready": True, "error": None},
+            },
+        )
+    )
+
+    monkeypatch.setattr("app.services.runtime_readiness.settings.ENVIRONMENT", "production")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.JWT_SECRET_KEY", "dev-jwt-secret")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.SUPABASE_ANON_KEY", "anon-key")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setattr("app.services.runtime_readiness._storage_dir_ready", lambda _path: (True, None))
+    monkeypatch.setattr("app.services.runtime_readiness.settings.ALLOW_DEV_AUTH_FALLBACK", False)
+
+    readiness = await collect_runtime_readiness(app, include_live_checks=False)
+
+    assert readiness["capability_map"]["auth.session"]["status"] == "healthy"

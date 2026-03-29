@@ -19,6 +19,13 @@ def test_can_force_direct_supabase_host_when_requested():
     assert normalized == "postgresql+asyncpg://postgres:secret@db.sncvecvgxwkkxnxbvglv.supabase.co:5432/postgres"
 
 
+def test_scopes_supabase_pooler_username_when_project_ref_is_missing():
+    raw = "postgresql://postgres:secret@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+    normalized = _normalize_database_url(raw, "https://sncvecvgxwkkxnxbvglv.supabase.co")
+
+    assert normalized == "postgresql+asyncpg://postgres.sncvecvgxwkkxnxbvglv:secret@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+
+
 def test_expands_localhost_and_loopback_origin_variants():
     expanded = _expand_loopback_origins(["http://localhost:5173", "http://127.0.0.1:3000"])
 

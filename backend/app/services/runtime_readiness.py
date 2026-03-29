@@ -56,6 +56,10 @@ def _is_default_jwt_secret() -> bool:
     return settings.JWT_SECRET_KEY.strip() in {"", "dev-jwt-secret", "your_secret_key_here_change_in_production", "your_secret_key_here"}
 
 
+def _supabase_session_auth_ready() -> bool:
+    return bool(settings.SUPABASE_URL.strip())
+
+
 def _storage_dir_ready(path_value: str) -> tuple[bool, str | None]:
     try:
         target = Path(path_value)
@@ -209,13 +213,13 @@ async def collect_runtime_readiness(app: FastAPI, *, include_live_checks: bool =
     auth_reason: str | None = None
     if settings.is_production and settings.dev_auth_fallback_enabled:
         auth_reason = "Development auth fallback is enabled in production."
-    elif settings.is_production and _is_default_jwt_secret():
-        auth_reason = "JWT secret is not configured for production-grade auth."
+    elif settings.is_production and _is_default_jwt_secret() and not _supabase_session_auth_ready():
+        auth_reason = "Neither JWT secret nor Supabase session auth is configured for production."
 
     capabilities.append(
         _build_capability(
             "auth.session",
-            ["JWT_SECRET_KEY"],
+            ["JWT_SECRET_KEY", "SUPABASE_URL"],
             status="healthy" if auth_reason is None else "unavailable",
             reason=auth_reason,
         )

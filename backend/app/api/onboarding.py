@@ -8,6 +8,7 @@ frontend can stop treating local drafts and direct Supabase reads as the source 
 from __future__ import annotations
 
 from datetime import datetime
+import logging
 from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
@@ -25,6 +26,7 @@ from app.services import dht_store
 from app.services.dht_engine import compute_behavioral_modifiers
 
 router = APIRouter(prefix="/api/v1/onboarding", tags=["Onboarding"])
+logger = logging.getLogger(__name__)
 
 
 class HealthProfilePayload(BaseModel):
@@ -111,6 +113,27 @@ def _split_name(full_name: Optional[str]) -> tuple[str, str]:
     if not parts:
         return ("Primary", "User")
     return (parts[0], " ".join(parts[1:]) or "User")
+
+
+def _default_profile_bundle(current_user: Dict[str, Any]) -> Dict[str, Any]:
+    user_id = _user_id(current_user)
+    email = _user_email(current_user, user_id)
+    return {
+        "profile": {
+            "id": user_id,
+            "full_name": _user_display_name(current_user, email),
+            "has_completed_onboarding": False,
+            "onboarding_skipped": False,
+        },
+        "onboarding_status": {
+            "user_id": user_id,
+            "current_step": 1,
+            "completed_steps": [],
+            "onboarding_complete": False,
+        },
+        "health_profile": None,
+        "media_consent": None,
+    }
 
 
 def _find_primary_node(nodes: List[FamilyNode], self_name: Optional[str]) -> Optional[FamilyNode]:
@@ -395,63 +418,78 @@ async def get_onboarding_status(
     session: AsyncSession = Depends(get_session),
 ):
     user_id = _user_id(current_user)
-    client = create_supabase_client()
-    profile_res = client.table("profiles").select("id, full_name, has_completed_onboarding, onboarding_skipped").eq("id", user_id).limit(1).execute()
-    status_res = client.table("onboarding_status").select("*").eq("user_id", user_id).limit(1).execute()
-    health_res = client.table("health_demographics").select("*").eq("user_id", user_id).limit(1).execute()
-    media_res = client.table("media_consent").select("*").eq("user_id", user_id).limit(1).execute()
-    profile_bundle = {
-        "profile": (profile_res.data or [None])[0],
-        "onboarding_status": (status_res.data or [None])[0],
-        "health_profile": (health_res.data or [None])[0],
-        "media_consent": (media_res.data or [None])[0],
-    }
+    profile_bundle = _default_profile_bundle(current_user)
+    try:
+        client = create_supabase_client()
+        profile_res = client.table("profiles").select("id, full_name, has_completed_onboarding, onboarding_skipped").eq("id", user_id).limit(1).execute()
+        status_res = client.table("onboarding_status").select("*").eq("user_id", user_id).limit(1).execute()
+        health_res = client.table("health_demographics").select("*").eq("user_id", user_id).limit(1).execute()
+        media_res = client.table("media_consent").select("*").eq("user_id", user_id).limit(1).execute()
+        profile_bundle = {
+            "profile": (profile_res.data or [None])[0] or profile_bundle["profile"],
+            "onboarding_status": (status_res.data or [None])[0] or profile_bundle["onboarding_status"],
+            "health_profile": (health_res.data or [None])[0],
+            "media_consent": (media_res.data or [None])[0],
+        }
+    except Exception:
+        logger.warning("Onboarding status profile load failed for user %s", user_id, exc_info=True)
 
-    nodes_result = await session.execute(select(FamilyNode).where(FamilyNode.user_id == user_id))
-    nodes = list(nodes_result.scalars().all())
+    nodes: List[FamilyNode] = []
+    try:
+        nodes_result = await session.execute(select(FamilyNode).where(FamilyNode.user_id == user_id))
+        nodes = list(nodes_result.scalars().all())
+    except Exception:
+        logger.warning("Onboarding family load failed for user %s", user_id, exc_info=True)
+
     primary_node = _find_primary_node(nodes, (profile_bundle.get("profile") or {}).get("full_name"))
 
     family_setup = None
     personality_quiz = None
     if primary_node is not None:
-        rels_result = await session.execute(
-            select(FamilyRelationship).where(
-                (FamilyRelationship.from_node_id == primary_node.id) | (FamilyRelationship.to_node_id == primary_node.id)
+        try:
+            rels_result = await session.execute(
+                select(FamilyRelationship).where(
+                    (FamilyRelationship.from_node_id == primary_node.id) | (FamilyRelationship.to_node_id == primary_node.id)
+                )
             )
-        )
-        relatives: List[Dict[str, Any]] = []
-        for relationship in rels_result.scalars().all():
-            other_id = relationship.to_node_id if relationship.from_node_id == primary_node.id else relationship.from_node_id
-            other = next((node for node in nodes if node.id == other_id), None)
-            if other is None:
-                continue
-            first_name, last_name = _split_name(other.name)
-            relatives.append(
-                {
-                    "id": other.id,
-                    "firstName": first_name,
-                    "lastName": last_name,
-                    "relationship": relationship.relation_type,
-                    "birthYear": str(other.birth_date or "")[:4] or None,
-                }
-            )
-        family_setup = {
-            "selfName": primary_node.name,
-            "relatives": relatives,
-        }
-
-        latest_ocean = dht_store.get_latest_ocean(primary_node.id)
-        if latest_ocean is not None:
-            personality_quiz = {
-                "answers": {},
-                "scores": {
-                    "openness": latest_ocean.scores.O,
-                    "conscientiousness": latest_ocean.scores.C,
-                    "extraversion": latest_ocean.scores.E,
-                    "agreeableness": latest_ocean.scores.A,
-                    "neuroticism": latest_ocean.scores.N,
-                },
+            relatives: List[Dict[str, Any]] = []
+            for relationship in rels_result.scalars().all():
+                other_id = relationship.to_node_id if relationship.from_node_id == primary_node.id else relationship.from_node_id
+                other = next((node for node in nodes if node.id == other_id), None)
+                if other is None:
+                    continue
+                first_name, last_name = _split_name(other.name)
+                relatives.append(
+                    {
+                        "id": other.id,
+                        "firstName": first_name,
+                        "lastName": last_name,
+                        "relationship": relationship.relation_type,
+                        "birthYear": str(other.birth_date or "")[:4] or None,
+                    }
+                )
+            family_setup = {
+                "selfName": primary_node.name,
+                "relatives": relatives,
             }
+        except Exception:
+            logger.warning("Onboarding relationship load failed for user %s", user_id, exc_info=True)
+
+        try:
+            latest_ocean = dht_store.get_latest_ocean(primary_node.id)
+            if latest_ocean is not None:
+                personality_quiz = {
+                    "answers": {},
+                    "scores": {
+                        "openness": latest_ocean.scores.O,
+                        "conscientiousness": latest_ocean.scores.C,
+                        "extraversion": latest_ocean.scores.E,
+                        "agreeableness": latest_ocean.scores.A,
+                        "neuroticism": latest_ocean.scores.N,
+                    },
+                }
+        except Exception:
+            logger.warning("Onboarding OCEAN profile load failed for user %s", user_id, exc_info=True)
 
     try:
         user_uuid = UUID(user_id)
@@ -459,7 +497,8 @@ async def get_onboarding_status(
             select(Engram).where(Engram.user_id == user_uuid).order_by(Engram.created_at.desc())
         )
         first_engram = next(iter(engram_result.scalars().all()), None)
-    except ValueError:
+    except Exception:
+        logger.warning("Onboarding engram load failed for user %s", user_id, exc_info=True)
         first_engram = None
 
     return {

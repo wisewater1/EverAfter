@@ -25,7 +25,7 @@ def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_hos
 
     parsed = urlsplit(database_url)
     hostname = parsed.hostname or ""
-    if not hostname.endswith(".pooler.supabase.com") or not force_direct_host:
+    if not hostname.endswith(".pooler.supabase.com"):
         return database_url
 
     username = unquote(parsed.username or "")
@@ -37,6 +37,19 @@ def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_hos
     if not project_ref:
         project_ref = _extract_supabase_project_ref(supabase_url)
     if not project_ref or not password:
+        return database_url
+
+    if not force_direct_host and username == "postgres":
+        scoped_netloc = f"{quote(f'postgres.{project_ref}', safe='')}:{quote(password, safe='')}@{hostname}:{parsed.port or 6543}"
+        return urlunsplit((
+            parsed.scheme or "postgresql+asyncpg",
+            scoped_netloc,
+            parsed.path or "/postgres",
+            parsed.query,
+            parsed.fragment,
+        ))
+
+    if not force_direct_host:
         return database_url
 
     direct_netloc = f"{quote('postgres', safe='')}:{quote(password, safe='')}@db.{project_ref}.supabase.co:5432"
