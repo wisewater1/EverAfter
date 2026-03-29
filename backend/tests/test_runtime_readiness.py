@@ -157,3 +157,34 @@ async def test_collect_runtime_readiness_accepts_supabase_session_auth_without_c
     readiness = await collect_runtime_readiness(app, include_live_checks=False)
 
     assert readiness["capability_map"]["auth.session"]["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_dashboard_route_is_degraded_instead_of_blocked_when_non_auth_dependencies_fail():
+    app = SimpleNamespace(
+        state=SimpleNamespace(
+            runtime_status={
+                "status": "degraded",
+                "db_ready": False,
+                "bootstrap_complete": True,
+                "last_error": "engram: Tenant or user not found",
+            },
+            bootstrap_components={
+                "engram": {"ready": False, "error": "Tenant or user not found"},
+                "genealogy": {"ready": False, "error": "Tenant or user not found"},
+                "family_home": {"ready": False, "error": "Tenant or user not found"},
+                "finance": {"ready": False, "error": "Tenant or user not found"},
+                "health_prediction": {"ready": False, "error": "Tenant or user not found"},
+                "governance": {"ready": False, "error": "Tenant or user not found"},
+                "time_capsules": {"ready": False, "error": "Tenant or user not found"},
+                "wisegold": {"ready": False, "error": "Tenant or user not found"},
+            },
+        )
+    )
+
+    readiness = await collect_runtime_readiness(app, include_live_checks=False)
+    dashboard_route = next(route for route in readiness["routes"] if route["path"] == "/dashboard")
+
+    assert readiness["capability_map"]["auth.session"]["status"] == "healthy"
+    assert dashboard_route["status"] == "degraded"
+    assert dashboard_route["blocking"] is False

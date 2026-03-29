@@ -13,6 +13,7 @@ from app.services.voice_ai_service import voice_ai_service
 
 CapabilityRecord = Dict[str, Any]
 RouteGateRecord = Dict[str, Any]
+ROUTE_HARD_BLOCKER_CAPABILITIES = {"auth.session", "frontend.supabase"}
 
 
 def _checked_at() -> str:
@@ -168,7 +169,8 @@ def _build_route_gate(definition: Dict[str, Any], capability_map: Dict[str, Capa
     for dep in deps:
         capability = capability_map.get(dep)
         if capability is None:
-            blockers.append(
+            target_bucket = blockers if dep in ROUTE_HARD_BLOCKER_CAPABILITIES else degraded
+            target_bucket.append(
                 {
                     "id": dep,
                     "status": "unavailable",
@@ -178,7 +180,7 @@ def _build_route_gate(definition: Dict[str, Any], capability_map: Dict[str, Capa
             continue
         if capability["status"] == "healthy":
             continue
-        if capability["status"] == "degraded":
+        if capability["status"] == "degraded" or dep not in ROUTE_HARD_BLOCKER_CAPABILITIES:
             degraded.append(capability)
             continue
         blockers.append(capability)
@@ -196,7 +198,7 @@ def _build_route_gate(definition: Dict[str, Any], capability_map: Dict[str, Capa
         "path": definition["path"],
         "deps": deps,
         "status": status,
-        "blocking": status != "healthy",
+        "blocking": bool(blockers),
         "reason": reason,
         "prod_exposed": bool(definition.get("prod_exposed", True)),
         "feature_flag": definition.get("feature_flag"),
