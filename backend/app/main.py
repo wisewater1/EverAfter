@@ -127,6 +127,15 @@ async def _start_optional_runtime(app: FastAPI) -> None:
     background_tasks = getattr(app.state, "background_tasks", [])
     saints_status = app.state.subsystem_status["saints"]
 
+    try:
+        from app.services.health_fhir_imports import health_fhir_import_worker
+
+        background_tasks.append(
+            asyncio.create_task(health_fhir_import_worker.run_forever(), name="health-fhir-import-worker")
+        )
+    except Exception:
+        logger.exception("Failed to start health FHIR import worker")
+
     if settings.ENABLE_SAINT_BACKGROUND_VIGILS:
         try:
             from app.services.saint_runtime import saint_runtime
@@ -170,6 +179,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
     from app.services.finance_runtime_tables import ensure_finance_runtime_tables
     from app.services.genealogy_runtime_tables import ensure_genealogy_tables
     from app.services.governance_runtime_tables import ensure_governance_tables
+    from app.services.health_import_runtime_tables import ensure_health_import_runtime_tables
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
     from app.services.time_capsule_runtime_tables import ensure_time_capsule_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables
@@ -182,6 +192,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
         ("family_home", ensure_family_home_tables),
         ("finance", ensure_finance_runtime_tables),
         ("health_prediction", ensure_health_prediction_runtime_tables),
+        ("health_imports", ensure_health_import_runtime_tables),
         ("governance", ensure_governance_tables),
         ("time_capsules", ensure_time_capsule_tables),
         ("wisegold", ensure_wisegold_tables),

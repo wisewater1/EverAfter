@@ -13,7 +13,6 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import CrossChainBridgeModal from './CrossChainBridgeModal';
 import { isAuthFailureMessage } from '../../lib/auth-session';
-import { isProduction } from '../../lib/env';
 import { financeApi } from '../../lib/gabriel/finance';
 import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
@@ -185,87 +184,18 @@ export default function WiseGoldPanel() {
   const [covenantAmounts, setCovenantAmounts] = useState<Record<string, string>>({});
   const [activeCovenantAction, setActiveCovenantAction] = useState<string | null>(null);
 
-  const applyDevFallback = (message: string) => {
-    setWallet({ id: 'dev-mock', balance: 1450.5, solana_pubkey: '7xYz...1kPq', last_manna_claim: new Date().toISOString() });
-    setBond({ tier: 'Gold', ritual_score: 84.5, multiplier: 1.5 });
-    setWill({ status: 'ACTIVE', last_heartbeat: new Date().toISOString(), heirs: '[]' });
-    setPolicy({
-      current_tax_rate: 0.005,
-      current_base_manna: 0.5,
-      daily_manna_pool: 35762.61,
-      total_circulating: 1045260.91,
-      last_gold_price: 89.5,
-      stress_level: 1,
-      last_tick_velocity: 3200,
-      last_gold_delta: 0.4,
-      last_tick_at: new Date().toISOString(),
-    });
-    setSocialStanding({
-      reputation_bps: 7820,
-      normalized_score: 0.782,
-      daily_manna_multiplier_bps: 13250,
-      governance_weight_bps: 11910,
-      tier: 'Trusted',
-      total_interactions: 18,
-      distinct_peers: 7,
-      reciprocal_peers: 5,
-      inbound_sentiment_avg: 0.81,
-      inbound_rapport_avg: 0.77,
-      outbound_sentiment_avg: 0.74,
-      last_calculated_at: new Date().toISOString(),
-    });
-    setCovenants([
-      { id: 'dev-cov-1', name: 'St. Joseph Family Vault', total_vault: 12500, members: 5, quorum: 3, pending_withdrawals: 0 },
-      { id: 'dev-cov-2', name: 'Founders Covenant', total_vault: 50000, members: 12, quorum: 6, pending_withdrawals: 1 },
-    ]);
-    setLedger([
-      {
-        id: 'dev-ledger-1',
-        entry_type: 'MANNA_DISTRIBUTION',
-        direction: 'credit',
-        amount: 0.75,
-        balance_after: 1450.5,
-        status: 'COMPLETED',
-        description: 'Daily manna distribution applied.',
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: 'dev-ledger-2',
-        entry_type: 'COVENANT_WITHDRAWAL',
-        direction: 'credit',
-        amount: 120,
-        balance_after: 1449.75,
-        status: 'PENDING_QUORUM',
-        description: 'Withdrawal request submitted to Founders Covenant.',
-        covenant_name: 'Founders Covenant',
-        created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-      },
-    ]);
-    setAttestations([
-      {
-        id: 'dev-attestation-1',
-        covenant_id: 'dev-cov-1',
-        covenant_key: '0xdev',
-        covenant_name: 'St. Joseph Family Vault',
-        status: 'ACTIVE',
-        attestation_type: 'BACKEND_COVENANT_MEMBERSHIP',
-        wallet_address: '0xdev',
-        issued_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-        last_verified_at: new Date().toISOString(),
-      },
-    ]);
-    setPolicySummary({
-      attestation_status: { active: true, count: 1 },
-      limits: { mint: 190.5, withdraw: 761.25, bridge: 420.75 },
-      actions: {
-        mint: { allowed: true, reason_code: 'ALLOW', reason: 'Mint is allowed under the current covenant and treasury policy.', effective_limit: 190.5, attested: true, attestation_count: 1 },
-        withdraw: { allowed: true, reason_code: 'ALLOW', reason: 'Withdraw is allowed under the current covenant and treasury policy.', effective_limit: 761.25, attested: true, attestation_count: 1 },
-        bridge: { allowed: true, reason_code: 'ALLOW', reason: 'Bridge is allowed under the current covenant and treasury policy.', effective_limit: 420.75, attested: true, attestation_count: 1 },
-      },
-    });
-    setWgoldPriceUsd(89.5);
-    setError(`Development fallback active: ${message}`);
+  const clearWiseGoldState = (message: string) => {
+    setWallet(null);
+    setBond(null);
+    setWill(null);
+    setPolicy(null);
+    setSocialStanding(null);
+    setCovenants([]);
+    setLedger([]);
+    setAttestations([]);
+    setPolicySummary(null);
+    setWgoldPriceUsd(null);
+    setError(message);
   };
 
   const loadWiseGoldData = async () => {
@@ -280,11 +210,7 @@ export default function WiseGoldPanel() {
 
     if (!token) {
       const message = 'WiseGold requires an authenticated session.';
-      if (isProduction) {
-        setError(message);
-      } else {
-        applyDevFallback(message);
-      }
+      clearWiseGoldState(message);
       setLoading(false);
       return;
     }
@@ -295,21 +221,7 @@ export default function WiseGoldPanel() {
       setWiseGoldCapability(capability);
       if (capability?.blocking) {
         const message = capability.reason || 'WiseGold is temporarily unavailable until runtime dependencies recover.';
-        if (isProduction) {
-          setError(message);
-          setWallet(null);
-          setBond(null);
-          setWill(null);
-          setPolicy(null);
-          setSocialStanding(null);
-          setCovenants([]);
-          setLedger([]);
-          setAttestations([]);
-          setPolicySummary(null);
-          setWgoldPriceUsd(null);
-        } else {
-          applyDevFallback(message);
-        }
+        clearWiseGoldState(message);
         return;
       }
 
@@ -336,21 +248,7 @@ export default function WiseGoldPanel() {
     } catch (err) {
       const message = normalizeWiseGoldError(err, 'WiseGold live data is temporarily unavailable.');
       console.error('WiseGold data load failed:', err);
-      if (isProduction) {
-        setError(message);
-        setWallet(null);
-        setBond(null);
-        setWill(null);
-        setPolicy(null);
-        setSocialStanding(null);
-        setCovenants([]);
-        setLedger([]);
-        setAttestations([]);
-        setPolicySummary(null);
-        setWgoldPriceUsd(null);
-      } else {
-        applyDevFallback(message);
-      }
+      clearWiseGoldState(message);
     } finally {
       setLoading(false);
     }

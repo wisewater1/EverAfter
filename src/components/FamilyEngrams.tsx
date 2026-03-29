@@ -781,6 +781,11 @@ interface EngramDetailViewProps {
 }
 
 function EngramDetailView({ member, onBack, onRefresh }: EngramDetailViewProps) {
+  const navigate = useNavigate();
+  const timeSinceInteraction = member.last_interaction
+    ? Math.floor((Date.now() - new Date(member.last_interaction).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-y-auto">
       <div className="max-w-6xl mx-auto p-4">
@@ -794,9 +799,77 @@ function EngramDetailView({ member, onBack, onRefresh }: EngramDetailViewProps) 
         <div className="glass-card p-8">
           <h2 className="text-3xl font-bold text-white mb-4">{member.name}</h2>
           <p className="text-slate-400 capitalize mb-6">{member.relationship}</p>
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="space-y-6">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h3 className="text-lg font-semibold text-white mb-3">Engram Summary</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Moments</p>
+                    <p className="text-2xl font-semibold text-white">{member.moments_count}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Last Interaction</p>
+                    <p className="text-base font-medium text-white">
+                      {timeSinceInteraction === null ? 'No interactions yet' : timeSinceInteraction === 0 ? 'Today' : `${timeSinceInteraction} day${timeSinceInteraction === 1 ? '' : 's'} ago`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Created</p>
+                    <p className="text-base font-medium text-white">
+                      {new Date(member.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Status</p>
+                    <p className="text-base font-medium text-emerald-300">
+                      {member.last_interaction ? 'Interactive engram' : 'Memory profile in progress'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          <div className="text-center py-12 text-slate-400">
-            Detail view coming soon...
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h3 className="text-lg font-semibold text-white mb-3">Personality Traits</h3>
+                {member.personality_traits.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {member.personality_traits.map((trait, idx) => (
+                      <span
+                        key={`${trait}-${idx}`}
+                        className="px-3 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 text-sm border border-cyan-500/20"
+                      >
+                        {trait}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">
+                    No traits have been captured yet. Open the Family Dashboard to add memories, questionnaire answers, and voice context.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 h-fit">
+              <h3 className="text-lg font-semibold text-white mb-3">Next Actions</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => navigate('/family-dashboard')}
+                  className="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-medium text-slate-950 transition-colors hover:bg-cyan-400"
+                >
+                  Open Family Dashboard
+                </button>
+                <button
+                  onClick={onRefresh}
+                  className="w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-200 transition-colors hover:border-white/20 hover:text-white"
+                >
+                  Refresh Engram Data
+                </button>
+                <p className="text-sm leading-relaxed text-slate-400">
+                  This member is already part of the live family system. Continue their profile, memories, and Joseph workflows from the Family Dashboard.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from app.auth.dependencies import get_current_user
 from uuid import UUID
-from app.core.config import settings
 
 async def get_current_user_id(current_user: dict = Depends(get_current_user)) -> str:
     for key in ("sub", "id"):
@@ -12,9 +11,6 @@ async def get_current_user_id(current_user: dict = Depends(get_current_user)) ->
             return str(UUID(str(value)))
         except ValueError:
             continue
-
-    if settings.dev_auth_fallback_enabled and settings.DEV_AUTH_USER_ID:
-        return settings.DEV_AUTH_USER_ID
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

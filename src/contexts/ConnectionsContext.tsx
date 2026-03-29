@@ -26,14 +26,14 @@ interface ConnectionsContextType {
 const ConnectionsContext = createContext<ConnectionsContextType | undefined>(undefined);
 
 export function ConnectionsProvider({ children }: { children: React.ReactNode }) {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const loadConnections = useCallback(async () => {
-    if (!user || isDemoMode) {
+    if (!user) {
       setConnections([]);
       setLoading(false);
       return;
@@ -53,13 +53,13 @@ export function ConnectionsProvider({ children }: { children: React.ReactNode })
     } finally {
       setLoading(false);
     }
-  }, [user, isDemoMode]);
+  }, [user]);
 
   useEffect(() => {
     loadConnections();
 
     // Subscribe to real-time updates
-    if (user && !isDemoMode) {
+    if (user) {
       const subscription = supabase
         .channel('connections-changes')
         .on(
@@ -80,7 +80,7 @@ export function ConnectionsProvider({ children }: { children: React.ReactNode })
         subscription.unsubscribe();
       };
     }
-  }, [user, isDemoMode, loadConnections]);
+  }, [user, loadConnections]);
 
   const openConnectionsPanel = useCallback((category?: string) => {
     setActiveCategory(category || null);

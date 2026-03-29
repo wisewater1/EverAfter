@@ -177,7 +177,7 @@ function App() {
                   <Route path="/beyond-modules" element={nonCoreRoutesEnabled ? <BeyondModules /> : publicReleaseRedirect} />
                   <Route path="/dark-glass-carousel" element={nonCoreRoutesEnabled ? <DarkGlassCarouselShowcase /> : publicReleaseRedirect} />
                   <Route path="/dev/device-check" element={nonCoreRoutesEnabled ? <DeviceCheck /> : publicReleaseRedirect} />
-                  <Route path="/raphael-prototype" element={<Navigate to="/health-dashboard" replace />} />
+                  <Route path="/raphael-prototype" element={nonCoreRoutesEnabled ? <Navigate to="/health-dashboard" replace /> : publicReleaseRedirect} />
                   <Route path="/raphael" element={<Navigate to="/health-dashboard" replace />} />
                   <Route
                     path="/digital-legacy"

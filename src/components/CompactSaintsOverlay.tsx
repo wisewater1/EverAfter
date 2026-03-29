@@ -309,7 +309,7 @@ export default function CompactSaintsOverlay() {
                             <h4 className={`text-xs sm:text-sm font-semibold truncate ${isTrainable ? 'text-white' : 'text-slate-500'}`}>{saint.name}</h4>
                             {!isTrainable && (
                               <span className="px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-slate-700/50 border border-slate-600/30 rounded uppercase tracking-wider">
-                                Coming Soon
+                                Unavailable
                               </span>
                             )}
                             {saint.tier === 'premium' && !saint.active && isTrainable && (

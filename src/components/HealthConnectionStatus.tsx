@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, RefreshCw, Settings } from 'lucide-react';
-import { readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 
 interface HealthConnection {
   id: string;
@@ -12,8 +11,6 @@ interface HealthConnection {
   last_sync_at: string | null;
   error_message: string | null;
 }
-
-const DEMO_HEALTH_CONNECTIONS_KEY = 'everafter_demo_health_connections';
 
 export default function HealthConnectionStatus() {
   const { user, isDemoMode } = useAuth();
@@ -25,15 +22,10 @@ export default function HealthConnectionStatus() {
     if (user) {
       fetchConnections();
     }
-  }, [isDemoMode, user]);
+  }, [user]);
 
   const fetchConnections = async () => {
     try {
-      if (isDemoMode) {
-        setConnections(readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []));
-        return;
-      }
-
       const { data, error } = await supabase
         .from('health_connections')
         .select('*')
@@ -52,19 +44,6 @@ export default function HealthConnectionStatus() {
   const syncConnection = async (connectionId: string) => {
     setSyncing(connectionId);
     try {
-      if (isDemoMode) {
-        const nextConnections = writeDemoStorage(
-          DEMO_HEALTH_CONNECTIONS_KEY,
-          readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []).map((connection) =>
-            connection.id === connectionId
-              ? { ...connection, last_sync_at: new Date().toISOString(), status: 'connected' as const }
-              : connection,
-          ),
-        );
-        setConnections(nextConnections);
-        return;
-      }
-
       const { error } = await supabase
         .from('health_connections')
         .update({
@@ -148,9 +127,12 @@ export default function HealthConnectionStatus() {
       </div>
 
       {connections.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-purple-200 mb-4">No health services connected yet</p>
-          <button className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all font-medium">
+          <div className="text-center py-8">
+            <p className="text-purple-200 mb-4">No health services connected yet</p>
+          <button
+            onClick={() => window.location.assign('/devices')}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all font-medium"
+          >
             Connect a Service
           </button>
         </div>

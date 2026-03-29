@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getWidgetCatalogStatus, type WidgetCatalogStatus } from '../lib/health-widget-catalog';
 import {
   X,
   Plus,
@@ -28,9 +29,10 @@ interface WidgetType {
   category: string;
   defaultSize: { width: number; height: number };
   requiredSources: string[];
+  status: WidgetCatalogStatus;
 }
 
-const widgetTypes: WidgetType[] = [
+const baseWidgetTypes = [
   {
     id: 'glucose_trend',
     name: 'Glucose Trend',
@@ -177,6 +179,11 @@ const widgetTypes: WidgetType[] = [
   },
 ];
 
+const widgetTypes: WidgetType[] = baseWidgetTypes.map((widget) => ({
+  ...widget,
+  status: getWidgetCatalogStatus(widget.id),
+}));
+
 interface WidgetLibraryProps {
   dashboardId: string;
   onClose: () => void;
@@ -194,6 +201,11 @@ export default function WidgetLibrary({ dashboardId, onClose, onWidgetAdded }: W
     : widgetTypes.filter(w => w.category === selectedCategory);
 
   async function addWidget(widgetType: WidgetType) {
+    if (widgetType.status !== 'live') {
+      setError(`${widgetType.name} is still planned and cannot be added yet.`);
+      return;
+    }
+
     try {
       setAdding(widgetType.id);
       setError(null);
@@ -290,6 +302,7 @@ export default function WidgetLibrary({ dashboardId, onClose, onWidgetAdded }: W
             {filteredWidgets.map((widget) => {
               const Icon = widget.icon;
               const isAdding = adding === widget.id;
+              const isPlanned = widget.status !== 'live';
 
               return (
                 <div
@@ -301,13 +314,24 @@ export default function WidgetLibrary({ dashboardId, onClose, onWidgetAdded }: W
                       <Icon className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-semibold mb-1">{widget.name}</h4>
+                      <div className="mb-1 flex items-center gap-2">
+                        <h4 className="text-white font-semibold">{widget.name}</h4>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                            isPlanned
+                              ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                              : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                          }`}
+                        >
+                          {isPlanned ? 'Planned' : 'Live'}
+                        </span>
+                      </div>
                       <p className="text-sm text-slate-400 line-clamp-2">{widget.description}</p>
                     </div>
                   </div>
 
                   <div className="mb-3 text-xs text-slate-500">
-                    Size: {widget.defaultSize.width}×{widget.defaultSize.height} units
+                    Size: {widget.defaultSize.width}x{widget.defaultSize.height} units
                   </div>
 
                   {widget.requiredSources.length > 0 && (
@@ -333,10 +357,16 @@ export default function WidgetLibrary({ dashboardId, onClose, onWidgetAdded }: W
 
                   <button
                     onClick={() => addWidget(widget)}
-                    disabled={isAdding}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2"
+                    disabled={isAdding || isPlanned}
+                    className={`w-full px-4 py-2 rounded-lg transition-all text-sm font-medium flex items-center justify-center gap-2 ${
+                      isPlanned
+                        ? 'cursor-not-allowed border border-slate-600/50 bg-slate-700/50 text-slate-400'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed'
+                    }`}
                   >
-                    {isAdding ? (
+                    {isPlanned ? (
+                      'Planned - Not Addable Yet'
+                    ) : isAdding ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         Adding...

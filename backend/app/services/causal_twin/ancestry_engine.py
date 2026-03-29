@@ -13,7 +13,7 @@ import math
 import random
 from datetime import datetime
 from typing import Any, List, Dict
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import ProgrammingError
 from app.db.session import get_session_factory
 from app.models.genealogy import FamilyNode
@@ -99,6 +99,46 @@ def _generation_risk_factor(generation: int) -> float:
 # ---------------------------------------------------------------------------
 
 class AncestryEngine:
+    async def _load_family_history_overlays(self, session, user_id: str) -> List[str]:
+        try:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT resource_type, category, display_text, resource_data
+                    FROM health_clinical_records
+                    WHERE user_id = :user_id
+                      AND (
+                        resource_type = 'FamilyMemberHistory'
+                        OR category = 'family_history'
+                        OR (
+                          resource_type = 'Condition'
+                          AND (
+                            lower(coalesce(category, '')) LIKE '%family%'
+                            OR lower(coalesce(display_text, '')) LIKE '%heredit%'
+                          )
+                        )
+                      )
+                    ORDER BY coalesce(effective_date, created_at) DESC
+                    LIMIT 25
+                    """
+                ),
+                {"user_id": user_id},
+            )
+        except Exception:
+            await session.rollback()
+            return []
+
+        overlays: List[str] = []
+        for row in result.mappings().all():
+            display = str(row.get("display_text") or "").strip()
+            if not display:
+                resource_data = row.get("resource_data") or {}
+                conditions = resource_data.get("condition") or []
+                if conditions:
+                    display = str(((conditions[0].get("code") or {}).get("text")) or "").strip()
+            if display and display not in overlays:
+                overlays.append(display)
+        return overlays
 
     async def predict_member_trajectory(
         self,
@@ -175,6 +215,8 @@ class AncestryEngine:
                 await session.rollback()
                 return []
             
+            hereditary_conditions = await self._load_family_history_overlays(session, user_id)
+
             members = []
             for node in nodes:
                 # Extract traits from health_metrics JSON or similar
@@ -191,11 +233,12 @@ class AncestryEngine:
                     "birthYear": int(node.birth_date.split("-")[0]) if node.birth_date else None
                 })
             
-            return await self.get_family_health_map(members)
+            return await self.get_family_health_map(members, hereditary_conditions=hereditary_conditions)
 
     async def get_family_health_map(
         self,
         members: list[dict],
+        hereditary_conditions: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Lightweight risk heat-map for every living family member."""
         results = []
@@ -230,9 +273,21 @@ class AncestryEngine:
 
             # Convert wellness → risk (canonical scale: higher = worse)
             risk_score = wellness_to_risk(wellness)
+            if hereditary_conditions:
+                risk_score = min(100.0, risk_score + min(12.0, 4.0 + len(hereditary_conditions) * 2.0))
             r_level = risk_level(risk_score)
             colour = {"low": "#10b981", "moderate": "#f59e0b",
                       "high": "#f97316", "critical": "#ef4444"}.get(r_level, "#f59e0b")
+            top_risks = _derive_risk_factors(traits, occ, age)
+            if hereditary_conditions:
+                top_risks.insert(
+                    0,
+                    {
+                        "factor": f"Family history: {hereditary_conditions[0]}",
+                        "impact": "moderate",
+                        "modifiable": False,
+                    },
+                )
 
             results.append({
                 "member_id": m.get("id"),
@@ -241,7 +296,7 @@ class AncestryEngine:
                 "risk_score": round(risk_score, 1),
                 "risk_level": r_level,
                 "colour": colour,
-                "top_risk": _derive_risk_factors(traits, occ, age)[:1],
+                "top_risk": top_risks[:1],
             })
 
         return results

@@ -71,6 +71,40 @@ async def test_collect_runtime_readiness_marks_governance_unavailable_when_boots
 
 
 @pytest.mark.asyncio
+async def test_collect_runtime_readiness_marks_auth_unavailable_when_demo_auth_is_enabled(monkeypatch):
+    app = SimpleNamespace(
+        state=SimpleNamespace(
+            runtime_status={
+                "status": "healthy",
+                "db_ready": True,
+                "bootstrap_complete": True,
+                "last_error": None,
+            },
+            bootstrap_components={
+                "engram": {"ready": True, "error": None},
+                "genealogy": {"ready": True, "error": None},
+                "family_home": {"ready": True, "error": None},
+                "finance": {"ready": True, "error": None},
+                "health_prediction": {"ready": True, "error": None},
+                "governance": {"ready": True, "error": None},
+                "time_capsules": {"ready": True, "error": None},
+                "wisegold": {"ready": True, "error": None},
+            },
+        )
+    )
+
+    monkeypatch.setattr("app.services.runtime_readiness.settings.ENVIRONMENT", "development")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.ALLOW_PRESENTATION_DEMO_AUTH", True)
+    monkeypatch.setattr("app.services.runtime_readiness.settings.DEMO_AUTH_TOKEN", "demo-show-token")
+
+    readiness = await collect_runtime_readiness(app, include_live_checks=False)
+    capability = readiness["capability_map"]["auth.session"]
+
+    assert capability["status"] == "unavailable"
+    assert "Presentation demo auth" in capability["reason"]
+
+
+@pytest.mark.asyncio
 async def test_collect_runtime_readiness_registers_all_route_dependencies(monkeypatch):
     app = SimpleNamespace(
         state=SimpleNamespace(
@@ -100,6 +134,8 @@ async def test_collect_runtime_readiness_registers_all_route_dependencies(monkey
     monkeypatch.setattr("app.services.runtime_readiness.settings.TERRA_DEV_ID", "terra-dev")
     monkeypatch.setattr("app.services.runtime_readiness.settings.TERRA_WEBHOOK_SECRET", "terra-secret")
     monkeypatch.setattr("app.services.runtime_readiness.settings.WISEGOLD_ORACLE_API_KEY", "wisegold-key")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.CHAINLINK_RPC_URL", "https://rpc.example.com")
+    monkeypatch.setattr("app.services.runtime_readiness.settings.CHAINLINK_XAU_USD_FEED", "0xfeed")
     monkeypatch.setattr("app.services.runtime_readiness.settings.PLAID_CLIENT_ID", "plaid-id")
     monkeypatch.setattr("app.services.runtime_readiness.settings.PLAID_SECRET", "plaid-secret")
     monkeypatch.setattr("app.services.runtime_readiness.os.getenv", lambda key, default="": {

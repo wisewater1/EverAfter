@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle2, XCircle, Loader2, Sparkles, Activity } from 'lucide-react';
 
 export default function OAuthCallback() {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -41,14 +41,6 @@ export default function OAuthCallback() {
       }
 
       if (!code) {
-        if (isDemoMode) {
-          setStatus('error');
-          setMessage('Demo mode cannot complete a live OAuth handshake, but the callback route is responding normally.');
-          setTimeout(() => {
-            navigate('/health-dashboard');
-          }, 3500);
-          return;
-        }
         throw new Error('No authorization code received');
       }
 

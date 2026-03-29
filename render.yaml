@@ -23,9 +23,9 @@ services:
       - key: ALLOW_DEV_AUTH_FALLBACK
         value: false
       - key: ALLOW_PRESENTATION_DEMO_AUTH
-        value: true
+        value: false
       - key: DEMO_AUTH_TOKEN
-        value: demo-show-token
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL
@@ -61,6 +61,10 @@ services:
       - key: PLAID_SECRET
         sync: false
       - key: WISEGOLD_ORACLE_API_KEY
+        sync: false
+      - key: CHAINLINK_RPC_URL
+        sync: false
+      - key: CHAINLINK_XAU_USD_FEED
         sync: false
   - type: web
     name: everafter-voice-ai
