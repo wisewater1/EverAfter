@@ -99,11 +99,12 @@ export default function SystemMonitorDashboard() {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-mono">
             {/* Header */}
-            <header className="h-16 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-6 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex items-center gap-4">
+            <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/50 px-4 py-3 backdrop-blur-md sm:px-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3 sm:gap-4">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+                        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -111,25 +112,29 @@ export default function SystemMonitorDashboard() {
                         <Activity className="w-6 h-6 text-emerald-500" />
                         <div>
                             <h1 className="text-lg font-bold text-slate-100 tracking-tight">System Monitor</h1>
-                            <p className="text-xs text-slate-500">Real-time Telemetry</p>
+                            <p className="text-xs text-slate-500">
+                                <span className="sm:hidden">Live telemetry</span>
+                                <span className="hidden sm:inline">Real-time Telemetry</span>
+                            </p>
                         </div>
                     </div>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-slate-500" />
-                        <span className="text-slate-300">Uptime: {metrics ? formatUptime(metrics.uptime_seconds) : '--'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-emerald-400">System Nominal</span>
+                    <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-6">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-slate-500" />
+                            <span className="text-slate-300">Uptime: {metrics ? formatUptime(metrics.uptime_seconds) : '--'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-emerald-400">System Nominal</span>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <main className="p-6 max-w-7xl mx-auto space-y-6">
+            <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-slate-500 text-xs uppercase tracking-wider">CPU Load</span>
@@ -157,7 +162,7 @@ export default function SystemMonitorDashboard() {
                             <span className="text-slate-500 text-xs uppercase tracking-wider">Requests</span>
                             <Zap className="w-4 h-4 text-amber-400" />
                         </div>
-                        <div className="text-2xl font-bold text-white">{metrics?.throughput.total_requests.toLocaleString()}</div>
+                        <div className="text-xl font-bold text-white sm:text-2xl">{metrics?.throughput.total_requests.toLocaleString()}</div>
                         <p className="text-xs text-slate-500 mt-1">Total served</p>
                     </div>
 
@@ -166,7 +171,7 @@ export default function SystemMonitorDashboard() {
                             <span className="text-slate-500 text-xs uppercase tracking-wider">Error Rate</span>
                             <AlertTriangle className={`w-4 h-4 ${metrics && metrics.throughput.error_rate > 0 ? 'text-rose-500' : 'text-emerald-500'}`} />
                         </div>
-                        <div className={`text-2xl font-bold ${metrics && metrics.throughput.error_rate > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        <div className={`text-xl font-bold sm:text-2xl ${metrics && metrics.throughput.error_rate > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                             {metrics?.throughput.error_rate.toFixed(1)}%
                         </div>
                         <p className="text-xs text-slate-500 mt-1">{metrics?.throughput.error_count} errors</p>

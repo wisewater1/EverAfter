@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field
 
 from app.db.session import get_session
 from app.services.health.service import health_service
@@ -14,6 +16,162 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/health", tags=["health"])
 
 
+class HealthMetricWrite(BaseModel):
+    metric_type: str
+    value: float
+    unit: str
+    source: str = "manual_entry"
+    recorded_at: Optional[str] = None
+
+
+class HealthMetricsWriteRequest(BaseModel):
+    metrics: List[HealthMetricWrite] = Field(default_factory=list)
+
+
+async def _fetch_metric_rows(
+    session: AsyncSession,
+    user_id: str,
+    since: Optional[datetime] = None,
+):
+    where_since = "\n          and recorded_at >= :since" if since is not None else ""
+    params: Dict[str, Any] = {"user_id": user_id}
+    if since is not None:
+        params["since"] = since
+    queries = [
+        f"""
+        select metric_type, metric_value as metric_value, metric_unit as metric_unit, recorded_at, source
+        from health_metrics
+        where user_id = :user_id{where_since}
+        order by recorded_at asc
+        """,
+        f"""
+        select metric_type, value as metric_value, unit as metric_unit, recorded_at, source
+        from health_metrics
+        where user_id = :user_id{where_since}
+        order by recorded_at asc
+        """,
+    ]
+    last_error: Optional[Exception] = None
+    for query in queries:
+        try:
+            result = await session.execute(text(query), params)
+            return result.mappings().all()
+        except Exception as exc:
+            last_error = exc
+            await session.rollback()
+    if last_error:
+        raise last_error
+    return []
+
+
+async def _aggregate_metric_rows(session: AsyncSession, user_id: str):
+    queries = [
+        """
+        select metric_type, avg(metric_value) as avg_value, count(*) as sample_count, max(recorded_at) as last_recorded_at
+        from health_metrics
+        where user_id = :user_id
+        group by metric_type
+        """,
+        """
+        select metric_type, avg(value) as avg_value, count(*) as sample_count, max(recorded_at) as last_recorded_at
+        from health_metrics
+        where user_id = :user_id
+        group by metric_type
+        """,
+    ]
+    last_error: Optional[Exception] = None
+    for query in queries:
+        try:
+            result = await session.execute(text(query), {"user_id": user_id})
+            return result.mappings().all()
+        except Exception as exc:
+            last_error = exc
+            await session.rollback()
+    if last_error:
+        raise last_error
+    return []
+
+
+async def _insert_metric_row(session: AsyncSession, user_id: str, metric: HealthMetricWrite, recorded_at: datetime):
+    queries = [
+        """
+        insert into health_metrics (user_id, metric_type, metric_value, metric_unit, recorded_at, source)
+        values (:user_id, :metric_type, :value, :unit, :recorded_at, :source)
+        """,
+        """
+        insert into health_metrics (user_id, metric_type, value, unit, recorded_at, source)
+        values (:user_id, :metric_type, :value, :unit, :recorded_at, :source)
+        """,
+    ]
+    params = {
+        "user_id": user_id,
+        "metric_type": metric.metric_type,
+        "value": metric.value,
+        "unit": metric.unit,
+        "recorded_at": recorded_at,
+        "source": metric.source or "manual_entry",
+    }
+    last_error: Optional[Exception] = None
+    for query in queries:
+        try:
+            await session.execute(text(query), params)
+            return
+        except Exception as exc:
+            last_error = exc
+            await session.rollback()
+    if last_error:
+        raise last_error
+
+
+@router.get("/metrics", response_model=Dict[str, Any])
+async def list_health_metrics(
+    lookbackDays: int = 30,
+    session: AsyncSession = Depends(get_session),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    user_id = str(current_user.get("sub") or current_user.get("id") or "")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unable to resolve current user")
+
+    since = datetime.utcnow() - timedelta(days=max(1, lookbackDays))
+    rows = await _fetch_metric_rows(session, user_id, since)
+
+    return {
+        "metrics": [
+            {
+                "metric_type": row["metric_type"],
+                "value": float(row["metric_value"]),
+                "unit": row["metric_unit"],
+                "recorded_at": row["recorded_at"].isoformat() if row["recorded_at"] else None,
+                "source": row["source"] or "manual_entry",
+            }
+            for row in rows
+        ]
+    }
+
+
+@router.post("/metrics", response_model=Dict[str, Any])
+async def store_health_metrics(
+    payload: HealthMetricsWriteRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    user_id = str(current_user.get("sub") or current_user.get("id") or "")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unable to resolve current user")
+    if not payload.metrics:
+        raise HTTPException(status_code=400, detail="At least one health metric is required.")
+
+    stored = 0
+    for metric in payload.metrics:
+        recorded_at = datetime.fromisoformat(metric.recorded_at) if metric.recorded_at else datetime.utcnow()
+        await _insert_metric_row(session, user_id, metric, recorded_at)
+        stored += 1
+
+    await session.commit()
+    return {"stored": stored}
+
+
 @router.get("/summary", response_model=Dict[str, Any])
 async def get_health_summary(
     session: AsyncSession = Depends(get_session),
@@ -24,18 +182,7 @@ async def get_health_summary(
         raise HTTPException(status_code=401, detail="Unable to resolve current user")
 
     try:
-        result = await session.execute(
-            text(
-                """
-                select metric_type, avg(value) as avg_value, count(*) as sample_count, max(recorded_at) as last_recorded_at
-                from health_metrics
-                where user_id = :user_id
-                group by metric_type
-                """
-            ),
-            {"user_id": user_id},
-        )
-        rows = result.mappings().all()
+        rows = await _aggregate_metric_rows(session, user_id)
     except Exception:
         rows = []
 

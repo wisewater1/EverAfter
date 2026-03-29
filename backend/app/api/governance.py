@@ -44,5 +44,4 @@ async def trigger_governance_check(
 ):
     """Manually trigger a governance cycle check."""
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
-    await health_governance_service.run_governance_cycle(user_id)
-    return {"status": "cycle_complete"}
+    return await health_governance_service.run_governance_cycle(user_id)

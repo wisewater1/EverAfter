@@ -139,6 +139,16 @@ function buildRaphaelInsights(summary: RaphaelHealthSummary): Insight[] {
     return insights;
 }
 
+const RAPHAEL_NAV_ITEMS = [
+    { key: 'overview', label: 'Command Overview', mobileLabel: 'Overview', icon: Layout },
+    { key: 'simulation', label: 'Decision Simulator', mobileLabel: 'Simulator', icon: Target },
+    { key: 'lab', label: 'Experiment Lab', mobileLabel: 'Lab', icon: Beaker },
+    { key: 'governance', label: 'Governance', mobileLabel: 'Governance', icon: Shield },
+    { key: 'analytics', label: 'Biometric Analytics', mobileLabel: 'Analytics', icon: Activity },
+    { key: 'trajectory', label: 'Neural Trajectory', mobileLabel: 'Trajectory', icon: Brain },
+    { key: 'chat', label: 'Raphael AI Oracle', mobileLabel: 'Oracle', icon: MessagesSquare },
+] as const;
+
 export default function StRaphaelHealthHub() {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -228,6 +238,7 @@ export default function StRaphaelHealthHub() {
         drift: 'bg-amber-500/5',
         critical: 'bg-red-500/5'
     };
+    const activeNavItem = RAPHAEL_NAV_ITEMS.find((item) => item.key === activeView) ?? RAPHAEL_NAV_ITEMS[0];
 
     if (loading) {
         return (
@@ -248,26 +259,26 @@ export default function StRaphaelHealthHub() {
                 <div className={`absolute bottom-0 left-1/4 w-[500px] h-[500px] ${auraStyles[statusAura]} rounded-full blur-[120px] transition-all duration-1000`}></div>
             </div>
 
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            <div className="relative mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
                 {/* Cinematic Header */}
-                <div className="mb-8 p-8 rounded-[32px] bg-gradient-to-br from-[#12121a]/95 via-[#0d0d12]/95 to-[#12121a]/95 backdrop-blur-3xl border border-white/[0.03] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                        <div className="flex items-center gap-5">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-emerald-500/20 border border-teal-500/30 flex items-center justify-center shadow-lg shadow-teal-500/10">
-                                <Brain className="w-8 h-8 text-teal-400" />
+                <div className="mb-6 rounded-[28px] border border-white/[0.03] bg-gradient-to-br from-[#12121a]/95 via-[#0d0d12]/95 to-[#12121a]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl sm:mb-8 sm:p-6 lg:p-8">
+                    <div className="mb-5 flex flex-col gap-4 sm:gap-5 md:mb-8 md:flex-row md:items-center md:justify-between md:gap-6">
+                        <div className="flex items-center gap-3 sm:gap-5">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-teal-500/30 bg-gradient-to-br from-teal-500/20 to-emerald-500/20 shadow-lg shadow-teal-500/10 sm:h-16 sm:w-16">
+                                <Brain className="h-6 w-6 text-teal-400 sm:h-8 sm:w-8" />
                             </div>
-                            <div>
-                                <h1 className="text-3xl font-bold text-white tracking-tight">St. Raphael Hub</h1>
+                            <div className="min-w-0">
+                                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">St. Raphael Hub</h1>
                                 <p className="text-slate-400 text-sm mt-1">Sovereign 2.0 Collective Intelligence • {user?.email}</p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
                             <SecurityIntegrityBadge />
                             <button
                                 onClick={() => openConnectionsPanel('health')}
-                                className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all relative"
+                                className="relative rounded-2xl border border-white/5 bg-white/[0.03] p-3 text-slate-400 transition-all hover:text-white"
                             >
                                 <Link2 className="w-5 h-5" />
                                 {activeConnectionsCount > 0 && (
@@ -278,10 +289,11 @@ export default function StRaphaelHealthHub() {
                             </button>
                             <button
                                 onClick={() => navigate('/dashboard')}
-                                className="px-5 py-2.5 rounded-2xl bg-white/[0.03] border border-white/5 text-slate-300 hover:text-white transition-all flex items-center gap-2 group"
+                                className="group flex items-center gap-2 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-2.5 text-slate-300 transition-all hover:text-white sm:px-5"
                             >
                                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                                <span className="font-medium">Exit</span>
+                                <span className="font-medium sm:hidden">Back</span>
+                                <span className="hidden font-medium sm:inline">Exit</span>
                             </button>
                         </div>
                     </div>
@@ -309,8 +321,9 @@ export default function StRaphaelHealthHub() {
                             detail="Raphael waits for live health dependencies instead of fabricating local biometric state."
                         />
                     ) : (
-                        <div className="p-8 rounded-2xl bg-teal-500/5 border border-teal-500/10 text-center">
-                            <p className="text-teal-400/60 italic text-sm">Waiting for biometric sync...</p>
+                        <div className="rounded-2xl border border-teal-500/10 bg-teal-500/5 p-6 text-center sm:p-8">
+                            <p className="text-sm italic text-teal-400/60 sm:hidden">Waiting for live health sync.</p>
+                            <p className="hidden text-sm italic text-teal-400/60 sm:block">Waiting for biometric sync...</p>
                         </div>
                     )}
 
@@ -321,45 +334,42 @@ export default function StRaphaelHealthHub() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="mb-4 space-y-3 lg:hidden">
+                    <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                        <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Raphael Mode</div>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                            <div className="flex items-center gap-2 text-white">
+                                <activeNavItem.icon className="h-4 w-4 text-teal-400" />
+                                <span>{activeNavItem.label}</span>
+                            </div>
+                            <span className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{lastRun ? formatTime(lastRun) : 'Live'}</span>
+                        </div>
+                    </div>
+                    <select
+                        value={activeView}
+                        onChange={(event) => setActiveView(event.target.value as ActiveView)}
+                        className="w-full rounded-2xl border border-white/10 bg-[#0f1016] px-4 py-3 text-sm text-white outline-none transition-colors focus:border-teal-500/40"
+                    >
+                        {RAPHAEL_NAV_ITEMS.map((item) => (
+                            <option key={item.key} value={item.key}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                     {/* Sidebar Navigation */}
-                    <div className="lg:col-span-3 space-y-4">
-                        <NavButton
-                            active={activeView === 'overview'}
-                            onClick={() => setActiveView('overview')}
-                            icon={Layout}
-                            label="Command Overview"
-                        />
-                        <NavButton
-                            active={activeView === 'simulation'}
-                            onClick={() => setActiveView('simulation')}
-                            icon={Target}
-                            label="Decision Simulator"
-                        />
-                        <NavButton
-                            active={activeView === 'lab'}
-                            onClick={() => setActiveView('lab')}
-                            icon={Beaker}
-                            label="Experiment Lab"
-                        />
-                        <NavButton
-                            active={activeView === 'governance'}
-                            onClick={() => setActiveView('governance')}
-                            icon={Shield}
-                            label="Governance"
-                        />
-                        <NavButton
-                            active={activeView === 'analytics'}
-                            onClick={() => setActiveView('analytics')}
-                            icon={Activity}
-                            label="Biometric Analytics"
-                        />
-                        <NavButton
-                            active={activeView === 'trajectory'}
-                            onClick={() => setActiveView('trajectory')}
-                            icon={Brain}
-                            label="Neural Trajectory"
-                        />
+                    <div className="hidden space-y-4 lg:col-span-3 lg:block">
+                        {RAPHAEL_NAV_ITEMS.map((item) => (
+                            <NavButton
+                                key={item.key}
+                                active={activeView === item.key}
+                                onClick={() => setActiveView(item.key)}
+                                icon={item.icon}
+                                label={item.label}
+                            />
+                        ))}
                         <NavButton
                             active={activeView === 'lab'}
                             onClick={() => setActiveView('lab')}

@@ -5,11 +5,10 @@ Monitors health metrics, detects drift, and manages governance proposals.
 import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from sqlalchemy import select, update, insert
+from sqlalchemy import select
 from sqlalchemy.exc import ProgrammingError
 from app.db.session import get_session_factory
 from app.models.governance import GovernanceProposal, HealthProtocol, ProposalStatus, ProposalType
-from app.models.causal_twin import Experiment, DriftEvent, ModelStatus
 from app.services.causal_twin.drift_monitor import drift_monitor
 from app.services.causal_twin.experiment_engine import experiment_engine
 from app.ai.llm_client import get_llm_client
@@ -31,17 +30,36 @@ class HealthGovernanceService:
             or ("governance_protocols" in detail and "does not exist" in detail)
         )
 
-    async def run_governance_cycle(self, user_id: str):
+    async def run_governance_cycle(self, user_id: str) -> Dict[str, Any]:
         """
         Main loop: Check for drift, monitor protocols, and suggest proposals.
         """
-        # 1. Check for model drift
-        drift_status = drift_monitor.get_model_status(user_id)
-        if drift_status["status"] == ModelStatus.DEGRADED.value:
-            await self._handle_model_drift(user_id, drift_status)
+        # 1. Actively evaluate drift instead of only reading cached model status.
+        drift_scan = drift_monitor.check_drift(user_id)
+        if drift_scan.get("drift_detected"):
+            await self._handle_model_drift(user_id, drift_scan)
 
         # 2. Check for protocol violations
         await self._check_protocol_compliance(user_id)
+
+        proposals = await self.list_proposals(user_id)
+        pending_count = sum(1 for proposal in proposals if proposal.get("status") == ProposalStatus.PENDING.value)
+
+        if drift_scan.get("drift_detected") and pending_count > 0:
+            message = "Drift detected. Raphael opened a governance proposal for review."
+        elif drift_scan.get("drift_detected"):
+            message = "Drift detected. Raphael reviewed governance actions and found no new proposal was required."
+        elif pending_count > 0:
+            message = "Drift scan completed. Existing governance proposals remain available for review."
+        else:
+            message = "Drift scan completed. No new governance proposals were required."
+
+        return {
+            "status": "cycle_complete",
+            "drift_detected": bool(drift_scan.get("drift_detected")),
+            "pending_proposals": pending_count,
+            "message": message,
+        }
 
     async def _handle_model_drift(self, user_id: str, drift_status: Dict[str, Any]):
         """

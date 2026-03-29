@@ -89,4 +89,68 @@ describe('backend-request', () => {
     expect(String(secondCall?.[0])).toContain('/api/v1/health/summary');
     expect(secondCall?.[1]).toEqual(expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
+
+  it('prefers the local backend for governance endpoints in dev', async () => {
+    Object.defineProperty(import.meta, 'env', {
+      value: {
+        ...originalEnv,
+        DEV: true,
+        PROD: false,
+        VITE_API_BASE_URL: '',
+        VITE_API_FALLBACK_URL: '',
+        VITE_API_TUNNEL_URL: '',
+        VITE_RENDER_API_URL: '',
+        VITE_LOCAL_API_URL: '',
+      },
+      writable: true,
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ proposals: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { requestBackendJson } = await import('../backend-request');
+
+    await expect(requestBackendJson('/governance/proposals')).resolves.toEqual({ proposals: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:8010/governance/proposals');
+  });
+
+  it('sends governance POST requests to the local backend first in dev', async () => {
+    Object.defineProperty(import.meta, 'env', {
+      value: {
+        ...originalEnv,
+        DEV: true,
+        PROD: false,
+        VITE_API_BASE_URL: '',
+        VITE_API_FALLBACK_URL: '',
+        VITE_API_TUNNEL_URL: '',
+        VITE_RENDER_API_URL: '',
+        VITE_LOCAL_API_URL: '',
+      },
+      writable: true,
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: 'cycle_complete' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { requestBackendJson } = await import('../backend-request');
+
+    await expect(requestBackendJson('/governance/check-drift', { method: 'POST' })).resolves.toEqual({ status: 'cycle_complete' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:8010/governance/check-drift');
+  });
 });

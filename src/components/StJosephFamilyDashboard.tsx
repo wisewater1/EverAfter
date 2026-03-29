@@ -36,23 +36,23 @@ import { AdvancedShoppingTab } from './joseph/AdvancedShoppingTab';
 
 type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams' | 'create-ai';
 
-const TABS: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
-    { key: 'tree', label: 'Family Tree', icon: GitBranch },
-    { key: 'members', label: 'Members', icon: UserCheck },
-    { key: 'quiz', label: 'Personality Quiz', icon: Brain },
-    { key: 'media', label: 'Media Intel', icon: Info },
-    { key: 'predictions', label: 'Predictions', icon: Activity },
-    { key: 'create-ai', label: 'Create Your AI', icon: Sparkles },
-    { key: 'delphi', label: '⚕ Delphi', icon: Activity },
-    { key: 'society', label: 'Society', icon: Users },
-    { key: 'timeline', label: 'Timeline', icon: History },
-    { key: 'tasks', label: 'Tasks', icon: CheckSquare },
-    { key: 'shopping', label: 'Shopping', icon: ShoppingCart },
-    { key: 'calendar', label: 'Calendar', icon: Calendar },
-    { key: 'genealogy', label: 'Genealogy', icon: Search },
-    { key: 'training', label: 'Training Lab', icon: Sparkles },
-    { key: 'engrams', label: 'Custom Engrams', icon: Brain },
-    { key: 'chat', label: 'Chat', icon: MessageCircle },
+const TABS: { key: TabKey; label: string; mobileLabel: string; icon: ComponentType<{ className?: string }> }[] = [
+    { key: 'tree', label: 'Family Tree', mobileLabel: 'Tree', icon: GitBranch },
+    { key: 'members', label: 'Members', mobileLabel: 'Members', icon: UserCheck },
+    { key: 'quiz', label: 'Personality Quiz', mobileLabel: 'Quiz', icon: Brain },
+    { key: 'media', label: 'Media Intel', mobileLabel: 'Media', icon: Info },
+    { key: 'predictions', label: 'Predictions', mobileLabel: 'Predict', icon: Activity },
+    { key: 'create-ai', label: 'Create Your AI', mobileLabel: 'Create AI', icon: Sparkles },
+    { key: 'delphi', label: 'Delphi', mobileLabel: 'Delphi', icon: Activity },
+    { key: 'society', label: 'Society', mobileLabel: 'Society', icon: Users },
+    { key: 'timeline', label: 'Timeline', mobileLabel: 'Timeline', icon: History },
+    { key: 'tasks', label: 'Tasks', mobileLabel: 'Tasks', icon: CheckSquare },
+    { key: 'shopping', label: 'Shopping', mobileLabel: 'Shop', icon: ShoppingCart },
+    { key: 'calendar', label: 'Calendar', mobileLabel: 'Calendar', icon: Calendar },
+    { key: 'genealogy', label: 'Genealogy', mobileLabel: 'Roots', icon: Search },
+    { key: 'training', label: 'Training Lab', mobileLabel: 'Training', icon: Sparkles },
+    { key: 'engrams', label: 'Custom Engrams', mobileLabel: 'Engrams', icon: Brain },
+    { key: 'chat', label: 'Chat', mobileLabel: 'Chat', icon: MessageCircle },
 ];
 
 function sanitizeDashboardCopy(value: string) {
@@ -301,62 +301,93 @@ export default function StJosephFamilyDashboard() {
     }
 
     const resolvedSummary = summary ?? buildFallbackSummary(tasks, shopping, events);
+    const activeTabConfig = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
+        <div className="min-h-screen bg-slate-950 px-4 py-4 text-slate-200 sm:py-6 md:p-8">
             {/* Header */}
-            <div className="max-w-7xl mx-auto mb-8">
+            <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors group"
+                    className="mb-4 flex items-center gap-2 text-slate-400 transition-colors group hover:text-white sm:mb-6"
                 >
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-sm font-medium">Back to Dashboard</span>
+                    <span className="text-sm font-medium sm:hidden">Back</span>
+                    <span className="hidden text-sm font-medium sm:inline">Back to Dashboard</span>
                 </button>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4 shrink-0">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center p-4 shadow-lg shadow-amber-500/10 shrink-0">
+                <div className="flex flex-col gap-4 sm:gap-5 md:flex-row md:items-center md:justify-between md:gap-6">
+                    <div className="flex items-center gap-3 shrink-0 sm:gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-3 shadow-lg shadow-amber-500/10 sm:h-16 sm:w-16 sm:p-4">
                             <Users className="w-full h-full text-amber-400" />
                         </div>
                         <div className="min-w-0">
-                            <h1 className="text-3xl font-light text-white tracking-tight whitespace-nowrap">St. Joseph</h1>
-                            <p className="text-amber-500/60 font-medium uppercase tracking-[0.2em] text-[10px] whitespace-nowrap">The Family Guardian</p>
+                            <h1 className="text-2xl font-light tracking-tight text-white whitespace-nowrap sm:text-3xl">St. Joseph</h1>
+                            <p className="text-[9px] font-medium uppercase tracking-[0.18em] text-amber-500/60 whitespace-nowrap sm:text-[10px]">The Family Guardian</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-center md:justify-end shrink-0 md:ml-auto gap-3">
+                    <div className="flex items-center justify-center gap-3 shrink-0 md:ml-auto md:justify-end">
                         <SecurityIntegrityBadge />
                     </div>
                 </div>
 
-                <SaintsQuickNav />
+                <div className="mt-3 sm:mt-4">
+                    <SaintsQuickNav />
+                </div>
 
                 {(loading || degradedMode || loadWarning) && (
-                    <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${degradedMode || loadWarning ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : 'border-slate-800 bg-slate-900/60 text-slate-300'}`}>
+                    <div className={`mt-3 rounded-2xl border px-3 py-3 text-sm sm:mt-4 sm:px-4 ${degradedMode || loadWarning ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : 'border-slate-800 bg-slate-900/60 text-slate-300'}`}>
                         <div className="flex items-center gap-2">
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : 'text-amber-400'}`} />
-                            <span>
-                                {loading
-                                    ? 'St. Joseph is loading the remaining panels in the background.'
-                                    : loadWarning || 'St. Joseph is running in recovery mode.'}
-                            </span>
+                            {loading ? (
+                                <>
+                                    <span className="sm:hidden">Loading remaining family panels.</span>
+                                    <span className="hidden sm:inline">St. Joseph is loading the remaining panels in the background.</span>
+                                </>
+                            ) : (
+                                <span>{loadWarning || 'St. Joseph is running in recovery mode.'}</span>
+                            )}
                         </div>
                     </div>
                 )}
 
-                <div className="mt-4 flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto w-full max-w-[calc(100vw-2rem)] md:max-w-none hide-scrollbar">
-                    {TABS.map(({ key, label, icon: TabIcon }) => (
+                <div className="mt-3 sm:hidden">
+                    <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        Section
+                    </label>
+                    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-2">
+                        <div className="mb-2 flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                            <activeTabConfig.icon className="h-3.5 w-3.5 shrink-0" />
+                            <span>{sanitizeDashboardCopy(activeTabConfig.label)}</span>
+                        </div>
+                        <select
+                            value={activeTab}
+                            onChange={(event) => setActiveTab(event.target.value as TabKey)}
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition-colors focus:border-amber-500/40"
+                        >
+                            {TABS.map((tab) => (
+                                <option key={tab.key} value={tab.key}>
+                                    {sanitizeDashboardCopy(tab.label)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="mt-4 hidden w-full max-w-[calc(100vw-2rem)] items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/5 bg-slate-900/50 p-1.5 hide-scrollbar md:max-w-none sm:flex">
+                    {TABS.map(({ key, label, mobileLabel, icon: TabIcon }) => (
                         <button
                             key={key}
                             onClick={() => setActiveTab(key)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 ${activeTab === key
+                            className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${activeTab === key
                                 ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
                                 : 'text-slate-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
-                            <TabIcon className="w-3.5 h-3.5 shrink-0" />
-                            {sanitizeDashboardCopy(label)}
+                            <TabIcon className="h-3.5 w-3.5 shrink-0" />
+                            <span className="md:hidden">{sanitizeDashboardCopy(mobileLabel)}</span>
+                            <span className="hidden md:inline">{sanitizeDashboardCopy(label)}</span>
                         </button>
                     ))}
                 </div>

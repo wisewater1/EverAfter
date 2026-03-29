@@ -71,15 +71,15 @@ function buildBannerState(input: {
 
 type MichaelTab = 'overview' | 'threats' | 'vulnerabilities' | 'integrity' | 'compliance' | 'network' | 'chat' | 'health-dht';
 
-const TABS: { key: MichaelTab; label: string; icon: ComponentType<{ className?: string }> }[] = [
-    { key: 'overview', label: 'Overview', icon: Shield },
-    { key: 'threats', label: 'Threats', icon: AlertTriangle },
-    { key: 'vulnerabilities', label: 'CVEs', icon: Search },
-    { key: 'integrity', label: 'File Integrity', icon: FileText },
-    { key: 'compliance', label: 'Compliance', icon: ClipboardCheck },
-    { key: 'network', label: 'Saints Network', icon: Network },
-    { key: 'health-dht', label: 'Health Alerts', icon: Activity },
-    { key: 'chat', label: 'Chat', icon: MessageCircle },
+const TABS: { key: MichaelTab; label: string; mobileLabel: string; icon: ComponentType<{ className?: string }> }[] = [
+    { key: 'overview', label: 'Overview', mobileLabel: 'Overview', icon: Shield },
+    { key: 'threats', label: 'Threats', mobileLabel: 'Threats', icon: AlertTriangle },
+    { key: 'vulnerabilities', label: 'CVEs', mobileLabel: 'CVEs', icon: Search },
+    { key: 'integrity', label: 'File Integrity', mobileLabel: 'Integrity', icon: FileText },
+    { key: 'compliance', label: 'Compliance', mobileLabel: 'Compliance', icon: ClipboardCheck },
+    { key: 'network', label: 'Saints Network', mobileLabel: 'Network', icon: Network },
+    { key: 'health-dht', label: 'Health Alerts', mobileLabel: 'Alerts', icon: Activity },
+    { key: 'chat', label: 'Chat', mobileLabel: 'Chat', icon: MessageCircle },
 ];
 
 export default function StMichaelSecurityDashboard() {
@@ -103,6 +103,7 @@ export default function StMichaelSecurityDashboard() {
     const privacySubtitle = accessAlerts.length > 0 ? `${accessAlerts.length} protected events under review` : 'All consent tokens valid';
     const leakStatus = criticalAlerts.length > 0 ? 'WATCH' : 'ACTIVE';
     const isolationStatus = report && report.privacyStatus < 100 ? 'REVIEW' : 'SECURE';
+    const activeTabConfig = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
 
     const scanBannerTitle = (status: ScanBannerStatus) => {
         switch (status) {
@@ -277,37 +278,42 @@ export default function StMichaelSecurityDashboard() {
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
             </div>
 
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="relative mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
                 {/* Navigation & Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-6">
+                <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3 sm:gap-6">
                         <button onClick={() => navigate('/saints')}
-                            className="w-10 h-10 bg-slate-900/50 hover:bg-slate-900 border border-white/5 rounded-xl flex items-center justify-center transition-all group">
+                            className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-slate-900/50 transition-all hover:bg-slate-900">
                             <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-white" />
                         </button>
-                        <div>
-                            <div className="flex items-center gap-3 mb-1">
+                        <div className="min-w-0">
+                            <div className="mb-1 flex items-center gap-3">
                                 <Shield className="w-6 h-6 text-sky-400" />
-                                <h1 className="text-3xl font-light tracking-tight text-white">St. Michael Security</h1>
+                                <h1 className="text-2xl font-light tracking-tight text-white sm:text-3xl">St. Michael Security</h1>
                             </div>
-                            <p className="text-slate-500 text-sm">Wazuh-Inspired XDR & SIEM - Autonomous Guardian</p>
+                            <p className="text-xs text-slate-500 sm:text-sm">
+                                <span className="sm:hidden">Guardian scan and security ledger</span>
+                                <span className="hidden sm:inline">Wazuh-Inspired XDR & SIEM - Autonomous Guardian</span>
+                            </p>
                         </div>
                     </div>
                     <button onClick={handleManualScan} disabled={scanning}
-                        className={`px-6 py-3 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 text-white rounded-xl transition-all flex items-center gap-2 font-medium shadow-lg shadow-sky-500/20 ${scanning ? 'animate-pulse' : ''}`}>
+                        className={`flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-white transition-all shadow-lg shadow-sky-500/20 hover:bg-sky-500 disabled:bg-slate-800 sm:px-6 ${scanning ? 'animate-pulse' : ''}`}>
                         {scanning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                        {scanning ? 'Scanning...' : 'Full Scan'}
+                        <span className="sm:hidden">{scanning ? 'Scanning...' : 'Scan'}</span>
+                        <span className="hidden sm:inline">{scanning ? 'Scanning...' : 'Full Scan'}</span>
                     </button>
                 </div>
 
                 {lastScanHandoff && (
-                    <div className={`mb-6 rounded-2xl px-5 py-4 ${scanBannerClasses(lastScanHandoff.status)}`}>
+                    <div className={`mb-6 rounded-2xl px-4 py-4 sm:px-5 ${scanBannerClasses(lastScanHandoff.status)}`}>
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-white">
-                                    St. Michael full-app gauntlet {scanBannerTitle(lastScanHandoff.status)}
+                                    <span className="sm:hidden">Michael scan {scanBannerTitle(lastScanHandoff.status)}</span>
+                                    <span className="hidden sm:inline">St. Michael full-app gauntlet {scanBannerTitle(lastScanHandoff.status)}</span>
                                 </p>
-                                <p className="text-xs text-slate-300 mt-1">
+                                <p className="mt-1 text-xs text-slate-300">
                                     Integrity {lastScanHandoff.systemIntegrity}% • Findings {lastScanHandoff.findingsCount} • Vulnerabilities {lastScanHandoff.vulnerabilitiesCount}
                                     {lastScanHandoff.status !== 'failed' && ' • Delivered to St. Anthony for auditing'}
                                 </p>
@@ -318,7 +324,8 @@ export default function StMichaelSecurityDashboard() {
                                     className="inline-flex items-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-300 transition-colors hover:bg-sky-500/20 hover:text-white"
                                 >
                                     <Eye className="w-4 h-4" />
-                                    Open Anthony Audit
+                                    <span className="sm:hidden">Audit</span>
+                                    <span className="hidden sm:inline">Open Anthony Audit</span>
                                 </button>
                             )}
                         </div>
@@ -328,15 +335,39 @@ export default function StMichaelSecurityDashboard() {
                 <SaintsQuickNav />
 
                 {/* Tab Navigation */}
-                <div className="flex items-center gap-1.5 bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 mb-8 overflow-x-auto">
-                    {TABS.map(({ key, label, icon: TabIcon }) => (
+                <div className="mb-4 mt-4 sm:hidden">
+                    <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        Security View
+                    </label>
+                    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-2">
+                        <div className="mb-2 flex items-center gap-2 rounded-xl bg-sky-500/10 px-3 py-2 text-xs text-sky-200">
+                            <activeTabConfig.icon className="h-3.5 w-3.5 shrink-0" />
+                            <span>{activeTabConfig.label}</span>
+                        </div>
+                        <select
+                            value={activeTab}
+                            onChange={(event) => setActiveTab(event.target.value as MichaelTab)}
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition-colors focus:border-sky-500/40"
+                        >
+                            {TABS.map((tab) => (
+                                <option key={tab.key} value={tab.key}>
+                                    {tab.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="mb-8 hidden items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/5 bg-slate-900/50 p-1.5 sm:flex">
+                    {TABS.map(({ key, label, mobileLabel, icon: TabIcon }) => (
                         <button key={key} onClick={() => setActiveTab(key)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${activeTab === key
+                            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${activeTab === key
                                 ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20'
                                 : 'text-slate-400 hover:text-white hover:bg-white/5'
                                 }`}>
-                            <TabIcon className="w-3.5 h-3.5" />
-                            {label}
+                            <TabIcon className="h-3.5 w-3.5" />
+                            <span className="md:hidden">{mobileLabel}</span>
+                            <span className="hidden md:inline">{label}</span>
                         </button>
                     ))}
                 </div>

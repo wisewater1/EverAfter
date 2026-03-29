@@ -7,6 +7,8 @@
  */
 
 import { supabase } from '../supabase';
+import { apiClient } from '../api-client';
+import { requestBackendJson } from '../backend-request';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -173,23 +175,34 @@ export async function storeHealthMetrics(
 ): Promise<{ stored: number; error?: string }> {
     if (!dataPoints.length) return { stored: 0 };
 
-    const rows = dataPoints.map(dp => ({
-        user_id: userId,
-        metric_type: dp.metric_type,
-        metric_value: dp.value,
-        metric_unit: dp.unit,
-        recorded_at: new Date().toISOString(),
-        source,
-    }));
-
-    const { error } = await supabase.from('health_metrics').insert(rows);
-
-    if (error) {
+    try {
+        const headers = await apiClient.getAuthHeaders({
+            'Bypass-Tunnel-Reminder': 'true',
+            'Content-Type': 'application/json',
+        });
+        const response = await requestBackendJson<{ stored: number }>(
+            '/api/v1/health/metrics',
+            {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    metrics: dataPoints.map((point) => ({
+                        metric_type: point.metric_type,
+                        value: point.value,
+                        unit: point.unit,
+                        source,
+                        recorded_at: new Date().toISOString(),
+                    })),
+                }),
+            },
+            'Failed to store health metrics.',
+        );
+        return { stored: Number(response?.stored || 0) };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to store health metrics.';
         console.error('Failed to store health metrics:', error);
-        return { stored: 0, error: error.message };
+        return { stored: 0, error: message };
     }
-
-    return { stored: rows.length };
 }
 
 /**
@@ -199,28 +212,26 @@ export async function fetchHealthMetrics(
     userId: string,
     lookbackDays: number = 30
 ): Promise<HealthDataPoint[]> {
-    const since = new Date();
-    since.setDate(since.getDate() - lookbackDays);
-
-    const { data, error } = await supabase
-        .from('health_metrics')
-        .select('metric_type, metric_value, metric_unit, recorded_at, source')
-        .eq('user_id', userId)
-        .gte('recorded_at', since.toISOString())
-        .order('recorded_at', { ascending: true });
-
-    if (error) {
-        console.warn('Health metrics unavailable, falling back to local simulation:', error);
+    try {
+        const headers = await apiClient.getAuthHeaders({
+            'Bypass-Tunnel-Reminder': 'true',
+        });
+        const data = await requestBackendJson<{ metrics?: HealthDataPoint[] }>(
+            `/api/v1/health/metrics?lookbackDays=${lookbackDays}`,
+            { headers },
+            'Failed to load health metrics.',
+        );
+        return (data.metrics || []).map((row: any) => ({
+            metric_type: row.metric_type,
+            value: Number(row.value),
+            unit: row.unit,
+            recorded_at: row.recorded_at,
+            source: row.source,
+        }));
+    } catch (error) {
+        console.warn('Health metrics unavailable:', error);
         return [];
     }
-
-    return (data || []).map((row: any) => ({
-        metric_type: row.metric_type,
-        value: Number(row.metric_value),
-        unit: row.metric_unit,
-        recorded_at: row.recorded_at,
-        source: row.source
-    }));
 }
 
 /**

@@ -16,6 +16,15 @@ import { BankStatusResponse, Transaction, financeApi } from '../../lib/gabriel/f
 import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
 
+type GabrielView = 'budget' | 'ledger' | 'reports' | 'wisegold';
+
+const GABRIEL_VIEWS: Array<{ key: GabrielView; label: string; mobileLabel: string; icon: typeof Wallet }> = [
+    { key: 'budget', label: 'Budget Envelopes', mobileLabel: 'Budget', icon: Wallet },
+    { key: 'ledger', label: 'Transactions', mobileLabel: 'Ledger', icon: DollarSign },
+    { key: 'reports', label: 'Reports & Analysis', mobileLabel: 'Reports', icon: PieChart },
+    { key: 'wisegold', label: 'Sovereign Economy', mobileLabel: 'WiseGold', icon: Sparkles },
+];
+
 export default function StGabrielFinanceDashboard() {
     const navigate = useNavigate();
     const { user, session, loading: authLoading, isDemoMode } = useAuth();
@@ -37,7 +46,7 @@ export default function StGabrielFinanceDashboard() {
 
         return bankTransactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
     })();
-    const [activeView, setActiveView] = useState<'budget' | 'ledger' | 'reports' | 'wisegold'>('budget');
+    const [activeView, setActiveView] = useState<GabrielView>('budget');
     const [showCouncil, setShowCouncil] = useState(true);
     const [wgoldBalance, setWgoldBalance] = useState(0);
     const [wgoldPriceUsd, setWgoldPriceUsd] = useState(72.00);
@@ -194,6 +203,7 @@ export default function StGabrielFinanceDashboard() {
 
     const wgoldValueUsd = wgoldBalance * wgoldPriceUsd;
     const totalNetWorth = linkedAccountBalance + wgoldValueUsd;
+    const activeViewConfig = GABRIEL_VIEWS.find((view) => view.key === activeView) ?? GABRIEL_VIEWS[0];
 
     async function refreshFinanceCardState() {
         if (authLoading || isDemoMode || !session?.access_token) {
@@ -284,56 +294,67 @@ export default function StGabrielFinanceDashboard() {
     }
 
     return (
-        <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
+        <div className="flex min-h-screen flex-col overflow-hidden bg-slate-950 font-sans text-slate-200 lg:h-screen lg:flex-row">
             {/* Sidebar Navigation */}
-            <div className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
-                <div className="p-6">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
+            <div className="w-full border-b border-slate-800 bg-slate-900 lg:flex lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
+                <div className="p-4 sm:p-6">
+                    <div className="mb-5 flex items-center gap-3 sm:mb-8">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10">
                             <Wallet className="w-6 h-6 text-emerald-500" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <h1 className="text-lg font-semibold text-white tracking-tight">St. Gabriel Finance</h1>
-                            <p className="text-xs text-slate-500 font-medium">Financial Steward</p>
+                            <p className="text-xs font-medium text-slate-500">
+                                <span className="sm:hidden">Financial steward</span>
+                                <span className="hidden sm:inline">Financial Steward</span>
+                            </p>
                         </div>
                     </div>
 
-                    <nav className="space-y-2">
-                        <button
-                            onClick={() => setActiveView('budget')}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeView === 'budget' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-                        >
-                            <Wallet className="w-4 h-4" />
-                            Budget Envelopes
-                        </button>
-                        <button
-                            onClick={() => setActiveView('ledger')}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeView === 'ledger' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-                        >
-                            <DollarSign className="w-4 h-4" />
-                            Transactions
-                        </button>
-                        <button
-                            onClick={() => setActiveView('reports')}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeView === 'reports' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-                        >
-                            <PieChart className="w-4 h-4" />
-                            Reports & Analysis
-                        </button>
+                    <div className="lg:hidden">
+                        <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                            Finance View
+                        </label>
+                        <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-2">
+                            <div className="mb-2 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                                <activeViewConfig.icon className="h-3.5 w-3.5 shrink-0" />
+                                <span>{activeViewConfig.label}</span>
+                            </div>
+                            <select
+                                value={activeView}
+                                onChange={(event) => setActiveView(event.target.value as GabrielView)}
+                                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition-colors focus:border-emerald-500/40"
+                            >
+                                {GABRIEL_VIEWS.map((view) => (
+                                    <option key={view.key} value={view.key}>
+                                        {view.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
 
-                        <div className="my-2 border-t border-slate-800/50"></div>
-
-                        <button
-                            onClick={() => setActiveView('wisegold')}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeView === 'wisegold' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
-                        >
-                            <Sparkles className="w-4 h-4 text-amber-500" />
-                            Sovereign Economy
-                        </button>
+                    <nav className="hidden space-y-2 lg:block">
+                        {GABRIEL_VIEWS.map((view) => {
+                            const Icon = view.icon;
+                            const activeClasses = view.key === 'wisegold'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                            return (
+                                <button
+                                    key={view.key}
+                                    onClick={() => setActiveView(view.key)}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${activeView === view.key ? activeClasses : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+                                >
+                                    <Icon className={`w-4 h-4 ${view.key === 'wisegold' ? 'text-amber-500' : ''}`} />
+                                    {view.label}
+                                </button>
+                            );
+                        })}
                     </nav>
                 </div>
 
-                <div className="mt-auto p-4 border-t border-slate-800">
+                <div className="border-t border-slate-800 p-4 lg:mt-auto">
                     <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                         <div className="text-xs text-slate-500 uppercase font-bold mb-2">Net Worth</div>
                         {financeCardLoading ? (
@@ -430,41 +451,43 @@ export default function StGabrielFinanceDashboard() {
                     </div>
                     <button
                         onClick={() => navigate('/saints')}
-                        className="mt-4 w-full flex items-center justify-center gap-2 py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                        className="mt-4 flex w-full items-center justify-center gap-2 py-2 text-xs text-slate-500 transition-colors hover:text-slate-300"
                     >
                         <ArrowLeft className="w-3 h-3" />
-                        Back to Saints
+                        <span className="sm:hidden">Back</span>
+                        <span className="hidden sm:inline">Back to Saints</span>
                     </button>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex min-w-0 flex-1 flex-col">
                 {/* Top Bar */}
-                <header className="h-16 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-6">
-                    <h2 className="text-lg font-medium text-white">
+                <header className="flex min-h-16 flex-col gap-3 border-b border-slate-800 bg-slate-900/50 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-0">
+                    <h2 className="text-base font-medium text-white sm:text-lg">
                         {activeView === 'budget' && 'Envelope Budget'}
                         {activeView === 'ledger' && 'Transaction Ledger'}
                         {activeView === 'reports' && 'Financial Health Check'}
                         {activeView === 'wisegold' && 'WiseGold Network'}
                     </h2>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                         <SecurityIntegrityBadge />
-                        <button className="p-2 text-slate-400 hover:text-white transition-colors">
+                        <button className="p-2 text-slate-400 transition-colors hover:text-white">
                             <Plus className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setShowCouncil(!showCouncil)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${showCouncil ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
+                            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${showCouncil ? 'border border-indigo-500/30 bg-indigo-500/20 text-indigo-300' : 'border border-slate-700 bg-slate-800 text-slate-400'}`}
                         >
                             <MessageSquare className="w-3.5 h-3.5" />
-                            {showCouncil ? 'Hide Council' : 'Ask Council'}
+                            <span className="sm:hidden">{showCouncil ? 'Hide' : 'Council'}</span>
+                            <span className="hidden sm:inline">{showCouncil ? 'Hide Council' : 'Ask Council'}</span>
                         </button>
                     </div>
                 </header>
 
                 {/* Content */}
-                <main className="flex-1 overflow-auto p-6 bg-slate-950 relative">
+                <main className="relative flex-1 overflow-auto bg-slate-950 p-4 sm:p-6">
                     {/* Saints Quick Nav */}
                     <div className="mb-4">
                         <SaintsQuickNav />
@@ -511,7 +534,7 @@ export default function StGabrielFinanceDashboard() {
 
             {/* The Financial Council (Chat Sidebar) */}
             {showCouncil && (
-                <div className="w-96 bg-slate-900 border-l border-slate-800 flex flex-col shadow-2xl">
+                <div className="flex w-full flex-col border-t border-slate-800 bg-slate-900 shadow-2xl lg:w-96 lg:border-l lg:border-t-0">
                     <div className="p-4 border-b border-slate-800 bg-slate-900/50">
                         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                             <Shield className="w-4 h-4 text-indigo-400" />

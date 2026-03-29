@@ -44,8 +44,16 @@ function normalizeErrorMessage(message: string, endpoint: string): string {
   return compact;
 }
 
+function isBackendEndpoint(endpoint: string): boolean {
+  return endpoint.startsWith('/api/v1') || endpoint.startsWith('/governance');
+}
+
 export function getBackendCandidateUrls(endpoint: string): string[] {
   const candidates = new Set<string>();
+
+  if (isDevelopment && endpoint.startsWith('/governance')) {
+    candidates.add(`http://localhost:8010${endpoint}`);
+  }
 
   if (endpoint.startsWith('/')) {
     candidates.add(endpoint);
@@ -59,11 +67,20 @@ export function getBackendCandidateUrls(endpoint: string): string[] {
     candidates.add(`${baseUrl}${endpoint}`);
   }
 
-  if (isDevelopment && endpoint.startsWith('/api/v1')) {
+  if (isDevelopment && isBackendEndpoint(endpoint) && !endpoint.startsWith('/governance')) {
     candidates.add(`http://localhost:8010${endpoint}`);
   }
 
   return Array.from(candidates);
+}
+
+function shouldTryNextCandidate(response: Response, candidateUrl: string, endpoint: string): boolean {
+  return (
+    isDevelopment &&
+    candidateUrl === endpoint &&
+    isBackendEndpoint(endpoint) &&
+    (response.status === 404 || response.status === 405)
+  );
 }
 
 async function parseResponseText<T>(response: Response, endpoint: string): Promise<T> {
@@ -124,6 +141,11 @@ export async function requestBackendJson<T>(
       }
 
       if (!response.ok) {
+        if (shouldTryNextCandidate(response, candidateUrl, endpoint)) {
+          lastError = new BackendRoutingError(`Backend route ${endpoint} is not available on the current origin.`);
+          continue;
+        }
+
         const text = await response.text();
         const compact = normalizeErrorMessage(text, endpoint);
 
@@ -179,6 +201,11 @@ export async function requestBackendResponse(
       }
 
       if (!response.ok) {
+        if (shouldTryNextCandidate(response, candidateUrl, endpoint)) {
+          lastError = new BackendRoutingError(`Backend route ${endpoint} is not available on the current origin.`);
+          continue;
+        }
+
         const text = await response.text();
         const compact = normalizeErrorMessage(text, endpoint);
 

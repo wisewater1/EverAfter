@@ -1,12 +1,14 @@
 from datetime import datetime
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 
-from app.api.causal_twin import get_next_measurements
+from app.api.causal_twin import get_evidence_trail, get_next_measurements
 from app.api.finance import get_bank_connection_status, get_wisegold_wallet_info
 from app.api.genealogy import get_family_tree
+from app.api.governance import trigger_governance_check
 from app.api.invitations import InvitationCreateRequest, create_invitation
 from app.api.monitoring import get_system_status, trigger_michael_scan
 from app.api.saints import bootstrap_saint
@@ -129,6 +131,66 @@ async def test_michael_system_status_smoke(monkeypatch):
     result = await get_system_status(current_user={"id": "user-1"}, session=object())
 
     assert result["michael"]["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_raphael_governance_check_runs_drift_evaluation(monkeypatch):
+    async def fake_handle(user_id, drift_scan):
+        assert user_id == "user-1"
+        assert drift_scan["drift_detected"] is True
+
+    async def fake_protocols(user_id):
+        assert user_id == "user-1"
+
+    async def fake_list(user_id):
+        assert user_id == "user-1"
+        return [{"id": "proposal-1", "status": "pending"}]
+
+    monkeypatch.setattr(
+        "app.services.causal_twin.health_governance_service.drift_monitor.check_drift",
+        lambda user_id: {"drift_detected": True, "message": "accuracy dropped"},
+    )
+    monkeypatch.setattr(
+        "app.services.causal_twin.health_governance_service.health_governance_service._handle_model_drift",
+        fake_handle,
+    )
+    monkeypatch.setattr(
+        "app.services.causal_twin.health_governance_service.health_governance_service._check_protocol_compliance",
+        fake_protocols,
+    )
+    monkeypatch.setattr(
+        "app.services.causal_twin.health_governance_service.health_governance_service.list_proposals",
+        fake_list,
+    )
+
+    result = await trigger_governance_check(current_user={"id": "user-1"})
+
+    assert result["status"] == "cycle_complete"
+    assert result["drift_detected"] is True
+    assert result["pending_proposals"] == 1
+    assert "Drift detected" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_raphael_evidence_trail_seeds_serializable_entries(monkeypatch):
+    monkeypatch.setattr(
+        "app.api.causal_twin.evidence_ledger.get_audit_trail",
+        lambda *_args, **_kwargs: [],
+    )
+    monkeypatch.setattr(
+        "app.api.causal_twin.evidence_ledger.compare_quality_over_time",
+        lambda *_args, **_kwargs: {"entries": 3, "trend": "stable"},
+    )
+    monkeypatch.setattr(
+        "app.services.causal_twin.evidence_ledger.akashic.search",
+        AsyncMock(return_value=[]),
+    )
+
+    result = await get_evidence_trail(current_user={"id": "user-1"})
+
+    assert len(result["entries"]) == 3
+    assert all(isinstance(entry["id"], str) for entry in result["entries"])
+    assert result["quality_trend"]["trend"] == "stable"
 
 
 @pytest.mark.asyncio

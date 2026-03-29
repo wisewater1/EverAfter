@@ -2,13 +2,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Heart, Shield, Users, BarChart3, Search, Activity, Sparkles } from 'lucide-react';
 
 const SAINTS = [
-    { path: '/health-dashboard', label: 'Raphael', sublabel: 'Health', icon: Heart, color: 'teal' },
-    { path: '/security-dashboard', label: 'Michael', sublabel: 'Security', icon: Shield, color: 'blue' },
-    { path: '/family-dashboard', label: 'Joseph', sublabel: 'Family', icon: Users, color: 'amber' },
-    { path: '/finance-dashboard', label: 'Gabriel', sublabel: 'Finance', icon: BarChart3, color: 'emerald' },
-    { path: '/anthony-dashboard', label: 'Anthony', sublabel: 'Audit', icon: Search, color: 'violet' },
-    { path: '/monitor', label: 'Monitor', sublabel: 'System', icon: Activity, color: 'rose' },
-    { path: '/trinity', label: 'Trinity', sublabel: 'Unified', icon: Sparkles, color: 'gold' },
+    { path: '/health-dashboard', label: 'Raphael', mobileLabel: 'Rap', sublabel: 'Health', icon: Heart, color: 'teal' },
+    { path: '/security-dashboard', label: 'Michael', mobileLabel: 'Mich', sublabel: 'Security', icon: Shield, color: 'blue' },
+    { path: '/family-dashboard', label: 'Joseph', mobileLabel: 'Joe', sublabel: 'Family', icon: Users, color: 'amber' },
+    { path: '/finance-dashboard', label: 'Gabriel', mobileLabel: 'Gab', sublabel: 'Finance', icon: BarChart3, color: 'emerald' },
+    { path: '/anthony-dashboard', label: 'Anthony', mobileLabel: 'Ant', sublabel: 'Audit', icon: Search, color: 'violet' },
+    { path: '/monitor', label: 'Monitor', mobileLabel: 'Mon', sublabel: 'System', icon: Activity, color: 'rose' },
+    { path: '/trinity', label: 'Trinity', mobileLabel: 'Tri', sublabel: 'Unified', icon: Sparkles, color: 'gold' },
 ];
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; activeBg: string }> = {
@@ -26,7 +26,7 @@ export default function SaintsQuickNav() {
     const location = useLocation();
 
     return (
-        <div className="flex items-center gap-1 bg-white/[0.02] border border-white/5 rounded-xl p-1 overflow-x-auto w-full custom-scrollbar">
+        <div className="flex items-center gap-1 rounded-2xl border border-white/5 bg-white/[0.02] p-1 overflow-x-auto w-full custom-scrollbar">
             {SAINTS.map(s => {
                 const Icon = s.icon;
                 const colors = COLOR_MAP[s.color] || COLOR_MAP.teal;
@@ -36,13 +36,14 @@ export default function SaintsQuickNav() {
                     <button
                         key={s.path}
                         onClick={() => navigate(s.path)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap flex-shrink-0 ${isActive
+                        className={`flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-[10px] font-medium transition-all whitespace-nowrap flex-shrink-0 sm:px-2.5 sm:text-[11px] ${isActive
                             ? `${colors.activeBg} ${colors.text} border ${colors.border}`
                             : `text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]`
                             }`}
                     >
-                        <Icon className="w-3 h-3 flex-shrink-0" />
-                        <span>{s.label}</span>
+                        <Icon className="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
+                        <span className="sm:hidden">{s.mobileLabel}</span>
+                        <span className="hidden sm:inline">{s.label}</span>
                     </button>
                 );
             })}

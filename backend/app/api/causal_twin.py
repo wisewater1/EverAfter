@@ -277,7 +277,7 @@ async def get_evidence_trail(
 
     # If empty, seed with demo data
     if not entries:
-        entries = _seed_demo_evidence(user_id)
+        entries = await _seed_demo_evidence(user_id)
 
     quality = evidence_ledger.compare_quality_over_time(user_id)
     return {"entries": entries, "quality_trend": quality}
@@ -346,7 +346,7 @@ async def get_next_measurements(
 # HELPERS
 # ============================================================
 
-def _seed_demo_evidence(user_id: str) -> list:
+async def _seed_demo_evidence(user_id: str) -> list:
     """Seed demo evidence entries for first-time users."""
     demos = [
         {
@@ -370,7 +370,7 @@ def _seed_demo_evidence(user_id: str) -> list:
     ]
     entries = []
     for d in demos:
-        entry = evidence_ledger.record_recommendation(
+        entry = await evidence_ledger.record_recommendation(
             user_id=user_id,
             recommendation_text=d["text"],
             data_sources=d["sources"],

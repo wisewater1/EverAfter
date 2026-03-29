@@ -12,55 +12,98 @@ import SecurityIntegrityBadge from '../shared/SecurityIntegrityBadge';
 import AnthonyStaleDataPanel from './AnthonyStaleDataPanel';
 import { useAuth } from '../../contexts/AuthContext';
 
+type AnthonyTab = 'readiness' | 'flow' | 'jit' | 'ledger' | 'stream' | 'chat' | 'dht-recovery';
+
+const ANTHONY_TABS: Array<{ key: AnthonyTab; label: string; mobileLabel: string; icon: typeof ShieldCheck }> = [
+    { key: 'readiness', label: 'Audit Readiness', mobileLabel: 'Readiness', icon: ShieldCheck },
+    { key: 'flow', label: 'Data Flow Map', mobileLabel: 'Flow', icon: Network },
+    { key: 'ledger', label: 'Cryptographic Ledger', mobileLabel: 'Ledger', icon: FileText },
+    { key: 'stream', label: 'Event Stream', mobileLabel: 'Stream', icon: Activity },
+    { key: 'jit', label: 'JIT Access', mobileLabel: 'JIT', icon: Key },
+    { key: 'chat', label: 'Consult St. Anthony', mobileLabel: 'Chat', icon: MessageCircle },
+    { key: 'dht-recovery', label: 'Health Recovery', mobileLabel: 'Recovery', icon: Search },
+];
+
 export default function StAnthonyAuditDashboard() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'readiness' | 'flow' | 'jit' | 'ledger' | 'stream' | 'chat' | 'dht-recovery'>('readiness');
+    const [activeTab, setActiveTab] = useState<AnthonyTab>('readiness');
     const ledgerFilter = searchParams.get('filter') || undefined;
+    const activeTabConfig = ANTHONY_TABS.find((tab) => tab.key === activeTab) ?? ANTHONY_TABS[0];
 
     useEffect(() => {
         const requestedTab = searchParams.get('tab');
         if (!requestedTab) return;
 
-        const allowedTabs = new Set(['readiness', 'flow', 'jit', 'ledger', 'stream', 'chat', 'dht-recovery']);
+        const allowedTabs = new Set(ANTHONY_TABS.map((tab) => tab.key));
         if (allowedTabs.has(requestedTab)) {
-            setActiveTab(requestedTab as typeof activeTab);
+            setActiveTab(requestedTab as AnthonyTab);
         }
     }, [searchParams]);
 
     return (
-        <div className="space-y-8 p-6 bg-slate-950 min-h-screen text-slate-200">
+        <div className="min-h-screen space-y-6 bg-slate-950 p-4 text-slate-200 sm:space-y-8 sm:p-6">
             {/* Header Section */}
-            <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-3 sm:gap-4">
                     <button
                         onClick={() => navigate('/saints')}
-                        className="p-2 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-400 hover:text-white rounded-xl transition-all"
+                        className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-2 text-slate-400 transition-all hover:border-slate-600 hover:bg-slate-800 hover:text-white"
                         title="Back to Saints"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20 shadow-lg shadow-amber-500/10">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 shadow-lg shadow-amber-500/10 sm:h-12 sm:w-12">
                             <Search className="w-6 h-6 text-amber-500" />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-3xl font-light tracking-tight text-white flex items-center gap-2">
-                                St. Anthony <span className="text-amber-500/50 text-xl font-thin">| Audit & Recovery</span>
+                            <h1 className="flex items-center gap-2 text-2xl font-light tracking-tight text-white sm:text-3xl">
+                                <span>St. Anthony</span>
+                                <span className="hidden text-xl font-thin text-amber-500/50 sm:inline">| Audit & Recovery</span>
                             </h1>
-                            <p className="text-slate-400 max-w-2xl leading-relaxed text-sm">
+                            <p className="text-xs leading-relaxed text-slate-400 sm:hidden">
+                                Audit trails, recovery, and event proofs.
+                            </p>
+                            <p className="hidden max-w-2xl text-xs leading-relaxed text-slate-400 sm:block sm:text-sm">
                                 "The Finder of Lost Things" — Tracking your digital assets, recovering lost data, and maintaining a ledger of all system events.
                             </p>
                         </div>
                     </div>
+                </div>
+                <div className="flex items-center justify-end">
+                    <SecurityIntegrityBadge />
                 </div>
             </div>
 
             <SaintsQuickNav />
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-6 border-b border-slate-800 overflow-x-auto custom-scrollbar">
+            <div className="sm:hidden">
+                <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    Audit View
+                </label>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-2">
+                    <div className="mb-2 flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                        <activeTabConfig.icon className="h-3.5 w-3.5 shrink-0" />
+                        <span>{activeTabConfig.label}</span>
+                    </div>
+                    <select
+                        value={activeTab}
+                        onChange={(event) => setActiveTab(event.target.value as AnthonyTab)}
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition-colors focus:border-amber-500/40"
+                    >
+                        {ANTHONY_TABS.map((tab) => (
+                            <option key={tab.key} value={tab.key}>
+                                {tab.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            <div className="hidden items-center gap-6 overflow-x-auto border-b border-slate-800 custom-scrollbar sm:flex">
                 <button
                     onClick={() => setActiveTab('readiness')}
                     className={`pb-4 text-sm font-medium transition-all relative flex items-center gap-2 whitespace-nowrap ${activeTab === 'readiness' ? 'text-amber-500' : 'text-slate-500 hover:text-slate-400'}`}
@@ -120,7 +163,7 @@ export default function StAnthonyAuditDashboard() {
             </div>
 
             {/* Content Area */}
-            <div className="min-h-[600px] mt-8">
+            <div className="mt-6 min-h-[600px] sm:mt-8">
                 {activeTab === 'readiness' && <ContinuousControls />}
                 {activeTab === 'flow' && <DataFlowMap />}
                 {activeTab === 'jit' && <JITAccess />}

@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -12,6 +13,7 @@ class EvidenceLedger:
     def __init__(self):
         # In-memory store for prototyping (production: use DB models)
         self._entries: List[Dict[str, Any]] = []
+        self._grounding_timeout_seconds = 1.5
 
     async def record_recommendation(
         self,
@@ -29,12 +31,18 @@ class EvidenceLedger:
         """Record a new recommendation and fetch scientific grounding from Akashic Records."""
         
         # Search Akashic for scientific context
-        grounding = await akashic.search(
-            query=recommendation_text,
-            limit=2,
-            min_score=0.4,
-            filters={"type": "medical_research"}
-        )
+        try:
+            grounding = await asyncio.wait_for(
+                akashic.search(
+                    query=recommendation_text,
+                    limit=2,
+                    min_score=0.4,
+                    filters={"type": "medical_research"}
+                ),
+                timeout=self._grounding_timeout_seconds,
+            )
+        except Exception:
+            grounding = []
 
         entry = {
             "id": str(uuid.uuid4()),

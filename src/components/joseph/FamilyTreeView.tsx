@@ -191,21 +191,26 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
     return (
         <div className="space-y-6">
             {/* St. Joseph AI Insight */}
-            <div className="bg-gradient-to-r from-amber-500/10 to-violet-500/10 border border-amber-500/20 rounded-3xl p-6">
-                <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center shrink-0">
+            <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-violet-500/10 p-4 sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 shrink-0">
                         <Sparkles className="w-5 h-5 text-amber-400" />
                     </div>
                     <div className="flex-1">
-                        <p className="text-sm text-slate-300 leading-relaxed">
+                        <p className="hidden text-sm leading-relaxed text-slate-300 sm:block">
                             <span className="text-amber-400 font-medium">St. Joseph:</span> "Your family tree holds wisdom across generations. Click on any member to view their story, or <span className="text-violet-400 font-medium">create an AI agent</span> to converse with their spirit."
+                        </p>
+                        <p className="text-sm leading-relaxed text-slate-300 sm:hidden">
+                            <span className="font-medium text-amber-400">St. Joseph:</span> Tap a family member to open their story or build an AI profile.
                         </p>
                     </div>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-medium rounded-xl transition-all shadow-lg shadow-amber-500/20 shrink-0"
+                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-medium text-white transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 sm:justify-start"
                     >
-                        <Plus className="w-3.5 h-3.5" /> Add Member
+                        <Plus className="w-3.5 h-3.5" />
+                        <span className="sm:hidden">Add</span>
+                        <span className="hidden sm:inline">Add Member</span>
                     </button>
                 </div>
             </div>
