@@ -50,8 +50,8 @@ describe('ProtectedRoute', () => {
       path: '/finance-dashboard',
       status: 'unavailable',
       blocking: true,
-      deps: ['gabriel.finance'],
-      reason: 'Finance runtime is unavailable.',
+      deps: ['auth.session'],
+      reason: 'Session auth is unavailable.',
       checked_at: new Date().toISOString(),
       prod_exposed: true,
     });
@@ -75,7 +75,40 @@ describe('ProtectedRoute', () => {
       expect(screen.getByText(/This route is unavailable/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Finance runtime is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/Session auth is unavailable/i)).toBeInTheDocument();
     expect(screen.queryByText('Finance Dashboard')).not.toBeInTheDocument();
+  });
+
+  it('renders children when only non-auth runtime dependencies are degraded', async () => {
+    getRouteGateMock.mockReturnValue({
+      path: '/finance-dashboard',
+      status: 'unavailable',
+      blocking: true,
+      deps: ['gabriel.finance'],
+      reason: 'Finance runtime is unavailable.',
+      checked_at: new Date().toISOString(),
+      prod_exposed: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/finance-dashboard']}>
+        <Routes>
+          <Route
+            path="/finance-dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Finance Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Finance Dashboard')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/This route is unavailable/i)).not.toBeInTheDocument();
   });
 });

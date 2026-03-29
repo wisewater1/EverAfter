@@ -12,6 +12,14 @@ interface ProtectedRouteProps {
   skipOnboardingCheck?: boolean;
 }
 
+function hasHardRouteBlocker(routeGate: RuntimeRouteGate | null | undefined): boolean {
+  if (!routeGate?.blocking) {
+    return false;
+  }
+
+  return routeGate.deps.some((dep) => dep === 'auth.session' || dep === 'frontend.supabase');
+}
+
 export default function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
   const ONBOARDING_CHECK_TIMEOUT_MS = 2500;
   const { user, loading: authLoading, isDemoMode } = useAuth();
@@ -20,6 +28,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [routeGate, setRouteGate] = useState<RuntimeRouteGate | null>(null);
   const [routeGateLoading, setRouteGateLoading] = useState(false);
+  const routeHasHardBlocker = hasHardRouteBlocker(routeGate);
 
   // Routes that should skip onboarding check
   const onboardingExemptRoutes = ['/onboarding', '/portal/profile'];
@@ -85,7 +94,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
 
   useEffect(() => {
     async function checkOnboardingStatus() {
-      if (!user || isDemoMode || skipOnboardingCheck || isExemptRoute || routeGateLoading || Boolean(routeGate?.blocking)) {
+      if (!user || isDemoMode || skipOnboardingCheck || isExemptRoute || routeGateLoading || routeHasHardBlocker) {
         setNeedsOnboarding(false);
         setCheckingOnboarding(false);
         return;
@@ -123,7 +132,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     } else if (!authLoading) {
       setCheckingOnboarding(false);
     }
-  }, [user, authLoading, isDemoMode, skipOnboardingCheck, isExemptRoute, routeGate, routeGateLoading]);
+  }, [user, authLoading, isDemoMode, skipOnboardingCheck, isExemptRoute, routeHasHardBlocker, routeGateLoading]);
 
   useEffect(() => {
     if (!authLoading && checkingOnboarding) {
@@ -166,7 +175,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     );
   }
 
-  if (routeGate?.blocking) {
+  if (routeHasHardBlocker) {
     return (
       <FeatureBlockedState
         title="This route is unavailable"

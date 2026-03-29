@@ -134,7 +134,11 @@ async def list_health_metrics(
         raise HTTPException(status_code=401, detail="Unable to resolve current user")
 
     since = datetime.utcnow() - timedelta(days=max(1, lookbackDays))
-    rows = await _fetch_metric_rows(session, user_id, since)
+    try:
+        rows = await _fetch_metric_rows(session, user_id, since)
+    except Exception:
+        logger.warning("Health metrics unavailable for user %s", user_id, exc_info=True)
+        rows = []
 
     return {
         "metrics": [

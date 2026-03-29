@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 import asyncio
+import logging
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -22,6 +23,7 @@ from app.services.mentorship_service import get_mentorship_service
 from app.services.saint_runtime import saint_runtime
 
 router = APIRouter(prefix="/api/v1/engrams", tags=["engrams"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[EngramResponse])
@@ -46,18 +48,25 @@ async def list_engrams(
         # Local development fallback when sub is "demo-user-001"
         query = select(Engram).order_by(Engram.created_at.desc())
 
-    result = await session.execute(query)
-    engrams = result.scalars().all()
+    try:
+        result = await session.execute(query)
+        engrams = result.scalars().all()
+    except Exception:
+        logger.warning("Engram list unavailable for user %s", sub or "unknown", exc_info=True)
+        return []
 
     engram_voice_map: Dict[str, VoiceProfile] = {}
     if engrams:
-        engram_ids = [str(engram.id) for engram in engrams]
-        voice_result = await session.execute(
-            select(VoiceProfile).where(VoiceProfile.engram_id.in_(engram_ids))
-        )
-        for profile in voice_result.scalars().all():
-            if profile.engram_id and profile.engram_id not in engram_voice_map:
-                engram_voice_map[profile.engram_id] = profile
+        try:
+            engram_ids = [str(engram.id) for engram in engrams]
+            voice_result = await session.execute(
+                select(VoiceProfile).where(VoiceProfile.engram_id.in_(engram_ids))
+            )
+            for profile in voice_result.scalars().all():
+                if profile.engram_id and profile.engram_id not in engram_voice_map:
+                    engram_voice_map[profile.engram_id] = profile
+        except Exception:
+            logger.warning("Voice profile lookup unavailable while listing engrams for user %s", sub or "unknown", exc_info=True)
 
     # The EngramResponse schema requires 'relationship' and 'engram_type',
     # but the SQLAlchemy model (ArchetypalAI) doesn't have them. 
