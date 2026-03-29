@@ -114,7 +114,7 @@ ROUTE_DEFINITIONS: List[Dict[str, Any]] = [
     {"path": "/onboarding", "deps": ["auth.session", "onboarding.canonical"], "prod_exposed": True},
     {"path": "/dashboard", "deps": ["auth.session", "saint.storage", "onboarding.canonical"], "prod_exposed": True},
     {"path": "/health-dashboard", "deps": ["auth.session", "raphael.hub"], "prod_exposed": True},
-    {"path": "/raphael-prototype", "deps": ["auth.session", "raphael.hub"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
+    {"path": "/raphael-prototype", "deps": ["auth.session", "raphael.hub"], "prod_exposed": True},
     {"path": "/raphael", "deps": ["auth.session", "raphael.hub"], "prod_exposed": True},
     {"path": "/security-dashboard", "deps": ["auth.session", "michael.security"], "prod_exposed": True},
     {"path": "/michael-dashboard", "deps": ["auth.session", "michael.security"], "prod_exposed": True},
@@ -141,13 +141,13 @@ ROUTE_DEFINITIONS: List[Dict[str, Any]] = [
     {"path": "/marketplace", "deps": ["marketplace.core"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/creator", "deps": ["auth.session", "marketplace.core"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/my-ais", "deps": ["auth.session", "marketplace.core"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
-    {"path": "/portal", "deps": ["auth.session", "saint.storage"], "prod_exposed": True},
-    {"path": "/portal/profile", "deps": ["auth.session", "frontend.supabase"], "prod_exposed": True},
+    {"path": "/portal", "deps": ["auth.session", "saint.storage"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
+    {"path": "/portal/profile", "deps": ["auth.session", "frontend.supabase"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/admin/portal", "deps": ["auth.session", "anthony.audit"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/beyond-modules", "deps": ["auth.session", "saint.storage"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/dark-glass-carousel", "deps": [], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/dev/device-check", "deps": ["devices.terra"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
-    {"path": "/digital-legacy", "deps": ["auth.session", "legacy.vault"], "prod_exposed": True},
+    {"path": "/digital-legacy", "deps": ["auth.session", "legacy.vault"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/legacy-vault", "deps": ["auth.session", "legacy.vault"], "prod_exposed": True},
     {"path": "/insurance/connect", "deps": ["auth.session", "legacy.vault", "notifications.smtp"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
     {"path": "/insurance", "deps": ["auth.session", "legacy.vault", "notifications.smtp"], "prod_exposed": False, "feature_flag": "VITE_ENABLE_NON_CORE_ROUTES"},
@@ -207,10 +207,8 @@ async def collect_runtime_readiness(app: FastAPI, *, include_live_checks: bool =
     capabilities: List[CapabilityRecord] = []
 
     auth_reason: str | None = None
-    if settings.dev_auth_fallback_enabled:
-        auth_reason = "Development auth fallback is enabled."
-    elif settings.presentation_demo_auth_enabled:
-        auth_reason = "Presentation demo auth is enabled."
+    if settings.is_production and settings.dev_auth_fallback_enabled:
+        auth_reason = "Development auth fallback is enabled in production."
     elif settings.is_production and _is_default_jwt_secret():
         auth_reason = "JWT secret is not configured for production-grade auth."
 
@@ -324,22 +322,11 @@ async def collect_runtime_readiness(app: FastAPI, *, include_live_checks: bool =
     wisegold_deps = [
         "gabriel.finance",
         "WISEGOLD_ORACLE_API_KEY",
-        "CHAINLINK_RPC_URL",
-        "CHAINLINK_XAU_USD_FEED",
     ]
     wisegold_reason = None
-    wisegold_ready = (
-        db_ready
-        and bool(settings.WISEGOLD_ORACLE_API_KEY.strip())
-        and bool(settings.CHAINLINK_RPC_URL.strip())
-        and bool(settings.CHAINLINK_XAU_USD_FEED.strip())
-    )
+    wisegold_ready = db_ready and bool(settings.WISEGOLD_ORACLE_API_KEY.strip())
     if not settings.WISEGOLD_ORACLE_API_KEY.strip():
         wisegold_reason = "WISEGOLD_ORACLE_API_KEY is not configured."
-    elif not settings.CHAINLINK_RPC_URL.strip():
-        wisegold_reason = "CHAINLINK_RPC_URL is not configured."
-    elif not settings.CHAINLINK_XAU_USD_FEED.strip():
-        wisegold_reason = "CHAINLINK_XAU_USD_FEED is not configured."
     elif not db_ready:
         wisegold_reason = str(runtime_status.get("last_error") or "Finance runtime is unavailable.")
     capabilities.append(

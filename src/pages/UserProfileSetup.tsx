@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 import {
   ArrowLeft,
   Save,
@@ -38,6 +39,8 @@ interface UserProfile {
   allow_connection_requests: boolean;
 }
 
+const DEMO_PROFILE_KEY = 'everafter_demo_user_profile';
+
 const buildDefaultProfile = (user: { id?: string; email?: string; user_metadata?: Record<string, any> } | null): Partial<UserProfile> => ({
   user_id: user?.id ?? '',
   full_name: user?.user_metadata?.full_name ?? '',
@@ -58,7 +61,7 @@ const buildDefaultProfile = (user: { id?: string; email?: string; user_metadata?
 });
 
 export default function UserProfileSetup() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,12 +76,17 @@ export default function UserProfileSetup() {
       return;
     }
     loadProfile();
-  }, [navigate, user]);
+  }, [isDemoMode, navigate, user]);
 
   const loadProfile = async () => {
     if (!user) return;
 
     try {
+      if (isDemoMode) {
+        setProfile(readDemoStorage(DEMO_PROFILE_KEY, buildDefaultProfile(user)));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -105,6 +113,17 @@ export default function UserProfileSetup() {
 
     setSaving(true);
     try {
+      if (isDemoMode) {
+        writeDemoStorage(DEMO_PROFILE_KEY, {
+          ...buildDefaultProfile(user),
+          ...profile,
+          user_id: user.id,
+        });
+        alert('Profile saved locally in demo mode.');
+        navigate('/portal');
+        return;
+      }
+
       const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('id')

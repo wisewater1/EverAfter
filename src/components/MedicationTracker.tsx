@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Pill, Plus, Check, X, Clock, AlertTriangle, Upload, Trash2, RefreshCw } from 'lucide-react';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
+import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 
 interface Prescription {
   id: string;
@@ -26,6 +27,9 @@ interface MedicationLog {
   status: 'taken' | 'missed' | 'skipped';
   notes: string;
 }
+
+const DEMO_MEDICATIONS_KEY = 'everafter_demo_medications';
+const DEMO_MEDICATION_LOGS_KEY = 'everafter_demo_medication_logs';
 
 export default function MedicationTracker() {
   const { user, isDemoMode } = useAuth();
@@ -55,10 +59,15 @@ export default function MedicationTracker() {
       fetchMedications();
       fetchLogs();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchMedications = async () => {
     try {
+      if (isDemoMode) {
+        setPrescriptions(readDemoStorage<Prescription[]>(DEMO_MEDICATIONS_KEY, []));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('prescriptions')
         .select('*')
@@ -77,6 +86,11 @@ export default function MedicationTracker() {
 
   const fetchLogs = async () => {
     try {
+      if (isDemoMode) {
+        setLogs(readDemoStorage<MedicationLog[]>(DEMO_MEDICATION_LOGS_KEY, []));
+        return;
+      }
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -104,6 +118,34 @@ export default function MedicationTracker() {
     setUploadProgress(0);
 
     try {
+      if (isDemoMode) {
+        const nextPrescriptions = writeDemoStorage(DEMO_MEDICATIONS_KEY, [
+          {
+            id: createDemoId('medication'),
+            ...newMedication,
+            end_date: '',
+            is_active: true,
+            notes: newMedication.notes,
+            attachment_file_ids: attachedFiles.map((_, index) => `demo-attachment-${index + 1}`),
+          },
+          ...readDemoStorage<Prescription[]>(DEMO_MEDICATIONS_KEY, []),
+        ]);
+
+        setPrescriptions(nextPrescriptions);
+        setShowAddModal(false);
+        setNewMedication({
+          medication_name: '',
+          dosage: '',
+          frequency: 'once_daily',
+          prescribing_doctor: '',
+          start_date: new Date().toISOString().split('T')[0],
+          refills_remaining: 0,
+          notes: ''
+        });
+        setAttachedFiles([]);
+        return;
+      }
+
       const uploadedFileIds: string[] = [];
 
       // Upload files if any
@@ -162,6 +204,27 @@ export default function MedicationTracker() {
 
   const logMedication = async (prescriptionId: string, status: 'taken' | 'missed' | 'skipped') => {
     try {
+      if (isDemoMode) {
+        const now = new Date().toISOString();
+        const currentLogs = readDemoStorage<MedicationLog[]>(DEMO_MEDICATION_LOGS_KEY, []);
+        const nextLogs = writeDemoStorage(DEMO_MEDICATION_LOGS_KEY, [
+          {
+            id: createDemoId('med-log'),
+            prescription_id: prescriptionId,
+            taken_at: now,
+            status,
+            notes: '',
+          },
+          ...currentLogs.filter((log) => {
+            const logDate = new Date(log.taken_at).toDateString();
+            return !(log.prescription_id === prescriptionId && logDate === new Date(now).toDateString());
+          }),
+        ]);
+
+        setLogs(nextLogs);
+        return;
+      }
+
       const { error } = await supabase
         .from('medication_logs')
         .insert([{

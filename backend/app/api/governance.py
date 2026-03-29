@@ -1,14 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any
-from app.api.auth_utils import get_current_user_id
 from app.auth.dependencies import get_current_user
 from app.services.causal_twin.health_governance_service import health_governance_service
 
 router = APIRouter(prefix="/governance", tags=["Health Governance"])
-
-
-async def _resolve_requested_user_id(current_user: dict, member_id: str | None = None) -> str:
-    return member_id or await get_current_user_id(current_user)
 
 @router.get("/proposals")
 async def list_proposals(
@@ -16,7 +11,7 @@ async def list_proposals(
     current_user: dict = Depends(get_current_user)
 ):
     """List all governance proposals for the user."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     proposals = await health_governance_service.list_proposals(user_id)
     return {"proposals": proposals}
 
@@ -48,5 +43,5 @@ async def trigger_governance_check(
     current_user: dict = Depends(get_current_user)
 ):
     """Manually trigger a governance cycle check."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     return await health_governance_service.run_governance_cycle(user_id)

@@ -73,16 +73,13 @@ class RitualEngine:
             pass
         return ""
 
-    def _get_health_insight(self, user_id: Optional[str]) -> str:
-        if not user_id:
-            return ""
-
+    def _get_health_insight(self) -> str:
         try:
             import asyncio
             from app.services.health.service import health_service
 
             async def _inner():
-                predictions = await health_service.get_predictions(user_id, [])
+                predictions = await health_service.get_predictions("demo-user-001", [])
                 if predictions:
                     return f"\nSt. Raphael's Soul Insight: {predictions[0].description}"
                 return ""
@@ -167,7 +164,6 @@ class RitualEngine:
         user_context: str,
         participants: List[str],
         ancestor_id: Optional[str] = None,
-        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate a scripted ritual. Uses LLM when available, falls back to
@@ -175,7 +171,7 @@ class RitualEngine:
         """
         saint_personas = self._get_saint_personas(participants)
         ancestor_context = self._get_ancestor_context(ancestor_id)
-        health_insight = self._get_health_insight(user_id)
+        health_insight = self._get_health_insight()
 
         llm = self._get_llm()
         if not llm:

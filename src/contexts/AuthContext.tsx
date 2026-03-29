@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { withTimeout } from '../lib/withTimeout';
 import { attemptAuthConfigRecovery, isInvalidApiKeyError } from '../lib/auth-config-recovery';
+import { clearDemoAuth, enableDemoAuth, isDemoAuthEnabled, readDemoAuthState } from '../lib/demo-auth';
 
 export interface ErrorNotificationHook {
   showError: (message: string, severity?: 'critical' | 'warning' | 'info') => void;
@@ -18,6 +19,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  startDemoMode: () => void;
   setErrorNotifier: (notifier: ErrorNotificationHook) => void;
 }
 
@@ -71,15 +73,25 @@ function readWarmAuthState(): { session: Session | null; user: User | null } {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const warmAuthState = readWarmAuthState();
+  const demoAuthState = readDemoAuthState();
+  const warmAuthState = demoAuthState.user ? demoAuthState : readWarmAuthState();
   const [user, setUser] = useState<User | null>(warmAuthState.user);
   const [session, setSession] = useState<Session | null>(warmAuthState.session);
   const [loading, setLoading] = useState(!warmAuthState.user);
-  const [isDemoMode] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(Boolean(demoAuthState.user));
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
     console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
+    if (isDemoAuthEnabled()) {
+      const demoState = readDemoAuthState();
+      setSession(demoState.session);
+      setUser(demoState.user);
+      setIsDemoMode(true);
+      setLoading(false);
+      return;
+    }
+
     if (!supabase) {
       console.warn('AuthContext: Supabase client is null');
       setLoading(false);
@@ -156,6 +168,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    clearDemoAuth();
+    setIsDemoMode(false);
     if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -202,6 +216,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    clearDemoAuth();
+    setIsDemoMode(false);
     if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -243,6 +259,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    clearDemoAuth();
+    setIsDemoMode(false);
+    if (isDemoMode) {
+      setSession(null);
+      setUser(null);
+      return { error: null };
+    }
+
     if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -264,6 +288,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const startDemoMode = () => {
+    const demoState = enableDemoAuth();
+    setSession(demoState.session);
+    setUser(demoState.user);
+    setIsDemoMode(true);
+    setLoading(false);
+  };
+
   const value = {
     user,
     session,
@@ -273,6 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     resetPassword,
+    startDemoMode,
     setErrorNotifier,
   };
 

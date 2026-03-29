@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from './supabase';
+import { readDemoAuthState } from './demo-auth';
 
 const AUTH_SNAPSHOT_KEY = 'everafter_auth_snapshot';
 
@@ -20,6 +21,11 @@ function deriveSupabaseStorageKey(): string | null {
 function readPersistedSession(): Session | null {
   if (typeof window === 'undefined') {
     return null;
+  }
+
+  const demoState = readDemoAuthState();
+  if (demoState.session?.access_token) {
+    return demoState.session;
   }
 
   const storageKeys = [AUTH_SNAPSHOT_KEY, deriveSupabaseStorageKey()].filter(Boolean) as string[];

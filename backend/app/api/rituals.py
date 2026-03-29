@@ -7,7 +7,6 @@ import os
 
 from app.services.ritual_engine import ritual_engine
 from app.auth.dependencies import get_current_user
-from app.api.auth_utils import get_current_user_id
 
 router = APIRouter(prefix="/api/v1/rituals", tags=["rituals"])
 
@@ -32,6 +31,11 @@ def _save_history(data: Dict[str, Any]):
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
+
+def _get_user_id(current_user: dict) -> str:
+    return current_user.get("id") or current_user.get("sub", "anonymous")
+
+
 class RitualRequest(BaseModel):
     ritual_type: str
     context: str
@@ -45,13 +49,11 @@ async def generate_ritual_script(
     current_user: dict = Depends(get_current_user)
 ):
     """Generates a multi-saint ritual script. Returns a pre-written script if LLM unavailable."""
-    user_id = await get_current_user_id(current_user)
     script = await ritual_engine.generate_ritual(
         ritual_type=request.ritual_type,
         user_context=request.context,
         participants=request.participants,
-        ancestor_id=request.ancestor_id,
-        user_id=user_id,
+        ancestor_id=request.ancestor_id
     )
     return script
 
@@ -63,7 +65,7 @@ async def complete_ritual(
 ):
     """Logs the completion of a ritual to the persistent history file."""
     from datetime import datetime, timezone
-    user_id = await get_current_user_id(current_user)
+    user_id = _get_user_id(current_user)
 
     history = _load_history()
     if user_id not in history:
@@ -90,7 +92,7 @@ async def get_ritual_history(
     current_user: dict = Depends(get_current_user)
 ):
     """Returns the user's completed ritual history."""
-    user_id = await get_current_user_id(current_user)
+    user_id = _get_user_id(current_user)
     history = _load_history()
     user_history = history.get(user_id, [])
     return {

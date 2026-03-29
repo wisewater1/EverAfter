@@ -3,6 +3,7 @@ import { Calendar, Mail, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 
 interface LegacyItem {
   id: string;
@@ -23,8 +24,11 @@ interface LegacyItem {
   created_at: string;
 }
 
+const DEMO_LEGACY_VAULT_KEY = 'everafter_demo_legacy_vault';
+const DEMO_LEGACY_PREMIUM_KEY = 'everafter_demo_legacy_premium';
+
 export default function DigitalLegacy() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'time_capsules' | 'memorial' | 'will' | 'messages'>('time_capsules');
   const [items, setItems] = useState<LegacyItem[]>([]);
@@ -45,7 +49,7 @@ export default function DigitalLegacy() {
       loadLegacyItems();
       checkPremiumStatus();
     }
-  }, [activeTab, user]);
+  }, [activeTab, isDemoMode, user]);
 
   const loadLegacyItems = async () => {
     if (!user) return;
@@ -57,6 +61,12 @@ export default function DigitalLegacy() {
         will: 'digital_will',
         messages: 'scheduled_message',
       };
+
+      if (isDemoMode) {
+        const demoItems = readDemoStorage<LegacyItem[]>(DEMO_LEGACY_VAULT_KEY, []);
+        setItems(demoItems.filter((item) => item.vault_type === typeMap[activeTab]));
+        return;
+      }
 
       const { data, error } = await supabase
         .from('legacy_vault')
@@ -77,6 +87,11 @@ export default function DigitalLegacy() {
 
   const checkPremiumStatus = async () => {
     if (!user) return;
+
+    if (isDemoMode) {
+      setHasPremiumLegacy(readDemoStorage<boolean>(DEMO_LEGACY_PREMIUM_KEY, false));
+      return;
+    }
 
     const { data } = await supabase
       .from('user_subscriptions')
@@ -105,6 +120,38 @@ export default function DigitalLegacy() {
         .split(',')
         .map(r => r.trim())
         .filter(r => r);
+
+      if (isDemoMode) {
+        writeDemoStorage(DEMO_LEGACY_VAULT_KEY, [
+          {
+            id: createDemoId('legacy'),
+            vault_type: newItem.type,
+            title: newItem.title,
+            content: {
+              message: newItem.message,
+              recipients: recipientsList,
+            },
+            recipients: recipientsList,
+            scheduled_delivery_date: newItem.deliveryDate || undefined,
+            delivery_status: 'scheduled',
+            is_public: false,
+            storage_tier: hasPremiumLegacy ? '25_year' : 'standard',
+            created_at: new Date().toISOString(),
+          },
+          ...readDemoStorage<LegacyItem[]>(DEMO_LEGACY_VAULT_KEY, []),
+        ]);
+
+        setShowCreateModal(false);
+        setNewItem({
+          type: 'time_capsule',
+          title: '',
+          message: '',
+          recipients: '',
+          deliveryDate: '',
+        });
+        loadLegacyItems();
+        return;
+      }
 
       const { error } = await supabase
         .from('legacy_vault')
@@ -142,6 +189,15 @@ export default function DigitalLegacy() {
     if (!confirm('Are you sure you want to delete this item?')) return;
 
     try {
+      if (isDemoMode) {
+        writeDemoStorage(
+          DEMO_LEGACY_VAULT_KEY,
+          readDemoStorage<LegacyItem[]>(DEMO_LEGACY_VAULT_KEY, []).filter((item) => item.id !== id),
+        );
+        loadLegacyItems();
+        return;
+      }
+
       const { error } = await supabase
         .from('legacy_vault')
         .delete()
@@ -508,10 +564,17 @@ export default function DigitalLegacy() {
 
                     if (error) throw error;
                     if (data?.url) {
-                  window.location.href = data.url;
+                      window.location.href = data.url;
                     }
                     return;
                   } catch (err) {
+                    if (isDemoMode) {
+                      writeDemoStorage(DEMO_LEGACY_PREMIUM_KEY, true);
+                      setHasPremiumLegacy(true);
+                      setShowUpgradeModal(false);
+                      return;
+                    }
+
                     console.error('Upgrade error:', err);
                     alert('Failed to start upgrade. Please try again.');
                   }

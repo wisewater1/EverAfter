@@ -98,7 +98,7 @@ class Settings(BaseSettings):
     SUPABASE_JWT_ISSUER: str = ""
     SUPABASE_JWT_AUDIENCE: str = "authenticated"
 
-    JWT_SECRET_KEY: str = ""
+    JWT_SECRET_KEY: str = "dev-jwt-secret"
     JWT_ALGORITHM: str = "HS256"
     TOKEN_EXPIRE_MINUTES: int = 43200
 
@@ -158,9 +158,9 @@ class Settings(BaseSettings):
     CORS_ORIGIN_REGEX: str = r"^https://.*\.netlify\.app$"
 
     ENVIRONMENT: str = "development"
-    ALLOW_DEV_AUTH_FALLBACK: bool = False
-    ALLOW_PRESENTATION_DEMO_AUTH: bool = False
-    DEMO_AUTH_TOKEN: str = ""
+    ALLOW_DEV_AUTH_FALLBACK: bool = True
+    ALLOW_PRESENTATION_DEMO_AUTH: bool = True
+    DEMO_AUTH_TOKEN: str = "demo-show-token"
     ALLOW_DEV_VOICE_PROVIDER: bool = True
     DEV_AUTH_USER_ID: str = ""
     ENABLE_SAINT_EVENT_LISTENER: bool = True
@@ -218,11 +218,7 @@ class Settings(BaseSettings):
 
     @property
     def presentation_demo_auth_enabled(self) -> bool:
-        return (
-            self.ALLOW_PRESENTATION_DEMO_AUTH
-            and not self.is_production
-            and bool(self.DEMO_AUTH_TOKEN.strip())
-        )
+        return self.ALLOW_PRESENTATION_DEMO_AUTH and bool(self.DEMO_AUTH_TOKEN.strip())
 
     @property
     def dev_voice_provider_enabled(self) -> bool:

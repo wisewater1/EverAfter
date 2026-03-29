@@ -1,31 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { readDemoStorage, writeDemoStorage, createDemoId } from '../lib/demo-storage';
 import {
-  Activity,
-  AlertCircle,
-  Building2,
-  CheckCircle,
-  Cloud,
-  Clock,
-  Droplet,
-  FlaskConical,
-  Heart,
-  LayoutDashboard,
-  Link2,
-  Moon,
-  Plus,
-  Radio,
-  RefreshCw,
-  Scale,
-  Shield,
-  Smartphone,
-  Sparkles,
-  Stethoscope,
-  Watch,
-  Zap,
+  Activity, Watch, Heart, Zap, Cloud, Shield,
+  CheckCircle, Plus, Droplet, Stethoscope, FlaskConical, Link2,
+  Sparkles, Code, LayoutDashboard, Building2, Clock, Scale,
+  Radio, Smartphone, Moon, Upload
 } from 'lucide-react';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
+
+interface HealthConnection {
+  id: string;
+  service_name: string;
+  service_type: string;
+  status: 'connected' | 'pending' | 'disconnected' | 'error' | 'coming_soon';
+  last_sync_at?: string;
+  sync_frequency?: string;
+}
 
 type ServiceCategory =
   | 'aggregators'
@@ -36,511 +28,520 @@ type ServiceCategory =
   | 'platform'
   | 'custom';
 
-type ConnectorStatus = 'live' | 'beta' | 'planned';
-
-interface RegistryProvider {
+interface HealthService {
   id: string;
-  provider_key: string;
-  display_name: string;
-  description: string;
-  category: 'os_hub' | 'wearable' | 'metabolic' | 'home_vitals' | 'fertility' | 'aggregator';
-  vendor_name: string;
-  icon_url?: string | null;
-  brand_color?: string | null;
-  oauth_enabled: boolean;
-  oauth_authorize_url?: string | null;
-  oauth_client_id_env_key?: string | null;
-  supported_metrics: string[];
-  is_enabled: boolean;
-  is_beta: boolean;
-}
-
-interface HealthConnectionRow {
-  id: string;
-  provider?: string | null;
-  service_name?: string | null;
-  service_type?: string | null;
-  status?: string | null;
-  last_sync_at?: string | null;
-}
-
-interface ProviderAccountRow {
-  id: string;
-  provider: string;
-  status?: string | null;
-  last_sync_at?: string | null;
-  updated_at?: string | null;
-}
-
-interface ConnectorCard {
-  providerKey: string;
   name: string;
   category: ServiceCategory;
   description: string;
   icon: React.ComponentType<any>;
   color: string;
   features: string[];
-  status: ConnectorStatus;
-  canConnect: boolean;
-  badgeLabel: string;
+  status?: 'available' | 'coming_soon';
+  deviceCount?: string;
+  specialties?: string[];
 }
 
-interface ConnectionState {
-  id: string;
-  providerKey: string;
-  status: string;
-  lastSyncAt?: string | null;
-  source: 'health_connections' | 'provider_accounts';
-}
-
-interface RoadmapProvider {
-  providerKey: string;
-  name: string;
-  category: ServiceCategory;
-  description: string;
-  icon: React.ComponentType<any>;
-  color: string;
-  features: string[];
-  badgeLabel: string;
-}
-
-const CATEGORY_CONFIG: Array<{ id: ServiceCategory | 'all'; label: string; icon: React.ComponentType<any> }> = [
-  { id: 'all', label: 'All Connectors', icon: Link2 },
-  { id: 'aggregators', label: 'Multi-Device', icon: Cloud },
-  { id: 'wearables', label: 'Wearables', icon: Watch },
-  { id: 'glucose', label: 'CGM', icon: Droplet },
-  { id: 'ehr', label: 'Health Records', icon: Stethoscope },
-  { id: 'research', label: 'Research', icon: FlaskConical },
-  { id: 'platform', label: 'Platforms', icon: Smartphone },
-];
-
-const CATEGORY_TITLES: Record<ServiceCategory, string> = {
-  aggregators: 'Unified Data Aggregators',
-  wearables: 'Wearables and Sensors',
-  glucose: 'Glucose and Metabolic',
-  ehr: 'Clinical and Health Records',
-  research: 'Research and Extended Integrations',
-  platform: 'Platform Integrations',
-  custom: 'Custom Plugins',
-};
-
-const PROVIDER_ICON_OVERRIDES: Record<string, React.ComponentType<any>> = {
-  terra: Cloud,
-  fitbit: Watch,
-  oura: Moon,
-  garmin: Watch,
-  whoop: Activity,
-  dexcom_cgm: Droplet,
-  abbott_libre: Droplet,
-  withings: Scale,
-  particle_health: Building2,
-  '1up_health': Building2,
-  health_gorilla: FlaskConical,
-  zus_health: Shield,
-  smart_on_fhir: Stethoscope,
-  cms_blue_button: Shield,
-  apple_health: Heart,
-  android_health_connect: Smartphone,
-  samsung_health: Smartphone,
-  ble_heart_rate: Heart,
-  ble_blood_pressure: Activity,
-  ble_weight_scale: Scale,
-  ble_glucose_meter: Droplet,
-  ble_pulse_oximeter: Radio,
-};
-
-const ROADMAP_PROVIDERS: RoadmapProvider[] = [
+const HEALTH_SERVICES: HealthService[] = [
+  // Multi-Device Aggregators
   {
-    providerKey: 'validic',
+    id: 'terra',
+    name: 'Terra',
+    category: 'aggregators',
+    description: 'Unified API for 300+ wearables with real-time webhooks',
+    icon: Cloud,
+    color: 'from-purple-600 to-violet-600',
+    features: ['300+ Devices', 'Real-time', 'Normalized', 'Webhooks'],
+    status: 'available',
+    deviceCount: '300+'
+  },
+  {
+    id: 'validic',
     name: 'Validic',
     category: 'aggregators',
-    description: 'Enterprise-grade connection to 600+ devices and apps.',
+    description: 'Enterprise-grade connection to 600+ devices and apps',
     icon: Shield,
     color: 'from-indigo-600 to-blue-600',
-    features: ['600+ Devices', 'Clinical', 'EHR-integrated'],
-    badgeLabel: 'Planned',
+    features: ['600+ Devices', 'EHR-integrated', 'RPM', 'Clinical'],
+    status: 'coming_soon',
+    deviceCount: '600+'
   },
   {
-    providerKey: 'human_api',
+    id: 'human_api',
     name: 'Human API',
     category: 'aggregators',
-    description: 'Consumer-controlled wellness plus medical-record aggregation.',
+    description: 'Consumer-controlled health data: wearables + medical records',
     icon: Link2,
     color: 'from-blue-600 to-cyan-600',
-    features: ['Medical Records', 'Wearables', 'Normalized'],
-    badgeLabel: 'Planned',
+    features: ['Wellness', 'Medical Records', 'Normalized', 'Link Flow'],
+    status: 'coming_soon'
   },
   {
-    providerKey: 'metriport',
+    id: 'metriport',
     name: 'Metriport',
-    category: 'ehr',
-    description: 'Open-source universal API for EHRs and wearables.',
-    icon: Zap,
+    category: 'aggregators',
+    description: 'Open-source universal API for EHRs and wearables',
+    icon: Code,
     color: 'from-cyan-600 to-teal-600',
-    features: ['FHIR', 'Open-source', 'Clinical'],
-    badgeLabel: 'Planned',
+    features: ['EHR', 'Wearables', 'Open-source', 'Transparent'],
+    status: 'coming_soon'
   },
   {
-    providerKey: 'rook',
+    id: 'rook',
     name: 'ROOK',
     category: 'aggregators',
-    description: 'Wearable aggregation with SDK-first onboarding.',
-    icon: Cloud,
+    description: 'Connect 400+ wearables through one API + SDK',
+    icon: Zap,
     color: 'from-orange-600 to-red-600',
-    features: ['API', 'SDK', 'Wearables'],
-    badgeLabel: 'Planned',
+    features: ['400+ Devices', 'API', 'SDK', 'Fast Integration'],
+    status: 'coming_soon',
+    deviceCount: '400+'
   },
   {
-    providerKey: 'spike_api',
+    id: 'spike_api',
     name: 'Spike API',
     category: 'aggregators',
-    description: 'Broad health-device and lab aggregation layer.',
+    description: '360° health data across 500+ wearables, IoT, and labs',
     icon: Radio,
     color: 'from-pink-600 to-rose-600',
-    features: ['Wearables', 'Labs', 'AI-ready'],
-    badgeLabel: 'Planned',
+    features: ['500+ Sources', 'IoT', 'Labs', 'AI-ready'],
+    status: 'coming_soon',
+    deviceCount: '500+'
+  },
+
+  // ========== NEW CLINICAL AGGREGATORS (11 INTEGRATIONS) ==========
+  {
+    id: 'particle_health',
+    name: 'Particle Health',
+    category: 'ehr',
+    description: 'Unified API for clinical records and claims from 270M+ patients',
+    icon: Building2,
+    color: 'from-indigo-600 to-purple-600',
+    features: ['Clinical Records', 'Claims Data', 'FHIR R4', '270M Patients'],
+    status: 'available'
   },
   {
-    providerKey: 'fitabase',
+    id: '1up_health',
+    name: '1upHealth',
+    category: 'ehr',
+    description: 'FHIR-based aggregation from 9,000+ healthcare organizations',
+    icon: Building2,
+    color: 'from-emerald-600 to-teal-600',
+    features: ['FHIR R4', '9K+ Orgs', 'Labs', 'Medications'],
+    status: 'available'
+  },
+  {
+    id: 'health_gorilla',
+    name: 'Health Gorilla',
+    category: 'ehr',
+    description: 'Clinical lab results from 10,000+ laboratories',
+    icon: FlaskConical,
+    color: 'from-green-600 to-emerald-600',
+    features: ['Lab Results', '10K+ Labs', 'Real-time', 'Imaging'],
+    status: 'available'
+  },
+  {
+    id: 'zus_health',
+    name: 'Zus Health',
+    category: 'ehr',
+    description: 'Comprehensive clinical data from 300+ health systems',
+    icon: Shield,
+    color: 'from-violet-600 to-purple-600',
+    features: ['Clinical Data', 'Care Coordination', '300+ Systems', 'FHIR'],
+    status: 'available'
+  },
+  {
+    id: 'smart_on_fhir_generic',
+    name: 'SMART on FHIR (Generic)',
+    category: 'ehr',
+    description: 'Connect to any FHIR R4 compliant EHR (Epic, Cerner, Allscripts)',
+    icon: Stethoscope,
+    color: 'from-orange-600 to-red-600',
+    features: ['FHIR R4', 'EHR Universal', 'Labs', 'Meds', 'Conditions'],
+    status: 'available'
+  },
+  {
+    id: 'cms_blue_button',
+    name: 'Medicare Blue Button',
+    category: 'ehr',
+    description: 'Medicare claims and coverage (60M+ beneficiaries)',
+    icon: Shield,
+    color: 'from-blue-700 to-cyan-700',
+    features: ['Medicare', 'Claims', 'Coverage', '60M Users'],
+    status: 'available'
+  },
+  {
+    id: 'ble_heart_rate',
+    name: 'BLE Heart Rate Monitor',
+    category: 'wearables',
+    description: 'Any Bluetooth heart rate monitor (generic GATT profile)',
+    icon: Heart,
+    color: 'from-red-600 to-rose-600',
+    features: ['Bluetooth', 'HR', 'HRV', 'Universal'],
+    status: 'available'
+  },
+  {
+    id: 'ble_blood_pressure',
+    name: 'BLE Blood Pressure',
+    category: 'wearables',
+    description: 'Bluetooth BP monitors (Omron, A&D, iHealth compatible)',
+    icon: Activity,
+    color: 'from-blue-600 to-cyan-600',
+    features: ['Bluetooth', 'BP', 'Pulse', 'Omron'],
+    status: 'available'
+  },
+  {
+    id: 'ble_weight_scale',
+    name: 'BLE Weight Scale',
+    category: 'wearables',
+    description: 'Bluetooth smart scales (Withings, Fitbit, Eufy)',
+    icon: Scale,
+    color: 'from-emerald-600 to-green-600',
+    features: ['Bluetooth', 'Weight', 'BMI', 'Body Fat'],
+    status: 'available'
+  },
+  {
+    id: 'ble_glucose_meter',
+    name: 'BLE Glucose Meter',
+    category: 'glucose',
+    description: 'Bluetooth glucose meters (OneTouch, Contour, Accu-Chek)',
+    icon: Droplet,
+    color: 'from-amber-600 to-orange-600',
+    features: ['Bluetooth', 'Glucose', 'OneTouch', 'Contour'],
+    status: 'available'
+  },
+  {
+    id: 'ble_pulse_oximeter',
+    name: 'BLE Pulse Oximeter',
+    category: 'wearables',
+    description: 'Bluetooth SpO2 monitors (generic pulse oximeter profile)',
+    icon: Radio,
+    color: 'from-cyan-600 to-blue-600',
+    features: ['Bluetooth', 'SpO2', 'Pulse', 'Universal'],
+    status: 'available'
+  },
+  // ========== END NEW INTEGRATIONS ==========
+
+  // Platform Integrations
+  {
+    id: 'apple_healthkit',
+    name: 'Apple HealthKit',
+    category: 'platform',
+    description: 'iOS on-device health store with unified schema',
+    icon: Smartphone,
+    color: 'from-red-500 to-pink-500',
+    features: ['On-device', 'Privacy', 'iOS/Watch', 'Unified Schema'],
+    status: 'coming_soon'
+  },
+  {
+    id: 'health_connect',
+    name: 'Health Connect',
+    category: 'platform',
+    description: 'Android on-device hub with FHIR medical records',
+    icon: Smartphone,
+    color: 'from-green-600 to-emerald-600',
+    features: ['On-device', 'Android', 'FHIR', 'Samsung Health'],
+    status: 'coming_soon'
+  },
+
+  // Individual Wearables
+  {
+    id: 'fitbit',
+    name: 'Fitbit',
+    category: 'wearables',
+    description: 'Popular fitness tracker and smartwatch',
+    icon: Watch,
+    color: 'from-blue-600 to-cyan-600',
+    features: ['Steps', 'Heart Rate', 'Sleep', 'Calories'],
+    status: 'available'
+  },
+  {
+    id: 'oura_ring',
+    name: 'Oura Ring',
+    category: 'wearables',
+    description: 'Advanced sleep and recovery tracking ring',
+    icon: Moon,
+    color: 'from-slate-600 to-gray-600',
+    features: ['Readiness', 'Sleep', 'HRV', 'Temperature'],
+    status: 'available'
+  },
+  {
+    id: 'whoop',
+    name: 'WHOOP',
+    category: 'wearables',
+    description: 'Performance optimization wearable',
+    icon: Activity,
+    color: 'from-gray-700 to-slate-700',
+    features: ['Strain', 'Recovery', 'Sleep', 'HRV'],
+    status: 'coming_soon'
+  },
+  {
+    id: 'garmin',
+    name: 'Garmin',
+    category: 'wearables',
+    description: 'Fitness and outdoor GPS watches',
+    icon: Watch,
+    color: 'from-orange-600 to-amber-600',
+    features: ['Activity', 'Heart Rate', 'VO2 Max'],
+    status: 'coming_soon'
+  },
+  {
+    id: 'withings',
+    name: 'Withings',
+    category: 'wearables',
+    description: 'Connected scales and health monitors',
+    icon: Scale,
+    color: 'from-teal-600 to-emerald-600',
+    features: ['Weight', 'BP', 'Heart Rate'],
+    status: 'coming_soon'
+  },
+  {
+    id: 'polar',
+    name: 'Polar',
+    category: 'wearables',
+    description: 'Training load and performance tracking',
+    icon: Heart,
+    color: 'from-red-600 to-orange-600',
+    features: ['Training Load', 'Recovery', 'HRV'],
+    status: 'coming_soon'
+  },
+
+  // Glucose Monitoring
+  {
+    id: 'dexcom_cgm',
+    name: 'Dexcom CGM',
+    category: 'glucose',
+    description: 'Continuous glucose monitoring with real-time data',
+    icon: Droplet,
+    color: 'from-blue-500 to-indigo-500',
+    features: ['Glucose', 'Trends', 'Alerts', 'TIR'],
+    status: 'available'
+  },
+  {
+    id: 'abbott_libre',
+    name: 'Abbott Libre',
+    category: 'glucose',
+    description: 'FreeStyle Libre via aggregator partners',
+    icon: Droplet,
+    color: 'from-green-500 to-teal-500',
+    features: ['Glucose', 'TIR', 'Reports'],
+    status: 'available'
+  },
+  {
+    id: 'manual_cgm_upload',
+    name: 'Manual Upload',
+    category: 'glucose',
+    description: 'Upload CSV/JSON files from any CGM device',
+    icon: Upload,
+    color: 'from-slate-600 to-gray-600',
+    features: ['CSV Import', 'JSON Import', 'Bulk Upload'],
+    status: 'available'
+  },
+
+  // Electronic Health Records
+  {
+    id: 'smart_fhir',
+    name: 'SMART on FHIR',
+    category: 'ehr',
+    description: 'Electronic Health Records (Epic, Cerner)',
+    icon: Stethoscope,
+    color: 'from-indigo-600 to-purple-600',
+    features: ['Lab Results', 'HbA1c', 'Medications'],
+    status: 'coming_soon'
+  },
+
+  // Research & Wellness
+  {
+    id: 'fitabase',
     name: 'Fitabase',
     category: 'research',
-    description: 'Research exports and analysis for Fitbit and Garmin.',
+    description: 'Research platform for Fitbit & Garmin with API',
     icon: FlaskConical,
     color: 'from-violet-600 to-purple-600',
-    features: ['Research', 'Exports', 'IRB-friendly'],
-    badgeLabel: 'Planned',
+    features: ['Research', 'Exports', 'API', 'IRB-friendly'],
+    status: 'coming_soon'
   },
   {
-    providerKey: 'fitrockr',
+    id: 'fitrockr',
     name: 'Fitrockr',
     category: 'research',
-    description: 'Garmin research workflows with live stream support.',
+    description: 'Garmin research platform with live streaming API',
     icon: Radio,
     color: 'from-orange-600 to-red-600',
-    features: ['Garmin', 'Live Stream', 'Research'],
-    badgeLabel: 'Planned',
+    features: ['Garmin', 'REST API', 'Live Stream', 'Healthcare'],
+    status: 'coming_soon'
   },
   {
-    providerKey: 'openmhealth',
+    id: 'openmhealth',
     name: 'Open mHealth',
     category: 'research',
-    description: 'Schema-first interoperability for health data pipelines.',
-    icon: Zap,
+    description: 'Open data schemas and normalization with Shimmer',
+    icon: Code,
     color: 'from-teal-600 to-cyan-600',
-    features: ['Standards', 'Open-source', 'Normalization'],
-    badgeLabel: 'Planned',
+    features: ['Standards', 'Open-source', 'Shimmer', 'DIY'],
+    status: 'coming_soon'
   },
 ];
 
-function mapRegistryCategory(provider: RegistryProvider): ServiceCategory {
-  if (provider.provider_key === 'terra') return 'aggregators';
-
-  const metrics = provider.supported_metrics || [];
-  if (
-    provider.category === 'aggregator' &&
-    metrics.some((metric) =>
-      ['clinical_records', 'lab_results', 'medications', 'conditions', 'claims', 'procedures'].includes(metric),
-    )
-  ) {
-    return 'ehr';
-  }
-
-  switch (provider.category) {
-    case 'os_hub':
-      return 'platform';
-    case 'wearable':
-    case 'home_vitals':
-    case 'fertility':
-      return 'wearables';
-    case 'metabolic':
-      return 'glucose';
-    case 'aggregator':
-      return 'aggregators';
-    default:
-      return 'research';
-  }
-}
-
-function iconForProvider(provider: RegistryProvider): React.ComponentType<any> {
-  return PROVIDER_ICON_OVERRIDES[provider.provider_key] || Activity;
-}
-
-function gradientForProvider(provider: RegistryProvider): string {
-  switch (provider.provider_key) {
-    case 'terra':
-      return 'from-purple-600 to-violet-600';
-    case 'fitbit':
-      return 'from-blue-600 to-cyan-600';
-    case 'oura':
-      return 'from-slate-600 to-gray-600';
-    case 'dexcom_cgm':
-      return 'from-orange-600 to-amber-600';
-    case 'abbott_libre':
-      return 'from-green-600 to-teal-600';
-    case 'smart_on_fhir':
-    case 'particle_health':
-    case '1up_health':
-    case 'health_gorilla':
-    case 'zus_health':
-      return 'from-indigo-600 to-purple-600';
-    default:
-      return 'from-teal-600 to-cyan-600';
-  }
-}
-
-function featuresForProvider(provider: RegistryProvider): string[] {
-  const metrics = provider.supported_metrics || [];
-  if (metrics.length === 0) {
-    return [provider.vendor_name];
-  }
-
-  return metrics
-    .slice(0, 4)
-    .map((metric) => metric.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()));
-}
-
-function buildConnectorCard(provider: RegistryProvider): ConnectorCard {
-  const connectable = Boolean(
-    provider.is_enabled &&
-    provider.oauth_enabled &&
-    provider.oauth_authorize_url &&
-    provider.oauth_client_id_env_key,
-  );
-
-  let status: ConnectorStatus = 'planned';
-  let badgeLabel = 'Planned';
-  if (connectable) {
-    status = provider.is_beta ? 'beta' : 'live';
-    badgeLabel = provider.is_beta ? 'Beta' : 'Live';
-  } else if (provider.is_beta) {
-    status = 'beta';
-    badgeLabel = 'Beta';
-  }
-
-  return {
-    providerKey: provider.provider_key,
-    name: provider.display_name,
-    category: mapRegistryCategory(provider),
-    description: provider.description,
-    icon: iconForProvider(provider),
-    color: gradientForProvider(provider),
-    features: featuresForProvider(provider),
-    status,
-    canConnect: connectable,
-    badgeLabel,
-  };
-}
-
-function normalizeProviderKey(connection: HealthConnectionRow): string {
-  const candidate =
-    connection.provider ||
-    connection.service_type ||
-    connection.service_name ||
-    '';
-
-  const normalized = candidate.toLowerCase().trim();
-  switch (normalized) {
-    case 'apple_healthkit':
-      return 'apple_health';
-    case 'health_connect':
-      return 'android_health_connect';
-    case 'oura_ring':
-      return 'oura';
-    case 'smart_on_fhir_generic':
-    case 'smart_fhir':
-      return 'smart_on_fhir';
-    default:
-      return normalized.replace(/[^a-z0-9]+/g, '_');
-  }
-}
-
-function mergeConnectionState(
-  connectionRows: HealthConnectionRow[],
-  providerAccountRows: ProviderAccountRow[],
-): Map<string, ConnectionState> {
-  const index = new Map<string, ConnectionState>();
-
-  for (const connection of connectionRows) {
-    const providerKey = normalizeProviderKey(connection);
-    if (!providerKey) continue;
-    index.set(providerKey, {
-      id: connection.id,
-      providerKey,
-      status: String(connection.status || 'pending'),
-      lastSyncAt: connection.last_sync_at || null,
-      source: 'health_connections',
-    });
-  }
-
-  for (const account of providerAccountRows) {
-    const providerKey = String(account.provider || '').trim();
-    if (!providerKey) continue;
-
-    const existing = index.get(providerKey);
-    const accountStatus = String(account.status || 'active');
-    if (!existing || existing.status !== 'connected') {
-      index.set(providerKey, {
-        id: account.id,
-        providerKey,
-        status: accountStatus === 'active' ? 'connected' : accountStatus,
-        lastSyncAt: account.last_sync_at || account.updated_at || null,
-        source: 'provider_accounts',
-      });
-    }
-  }
-
-  return index;
-}
-
-function formatSyncLabel(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleString();
-}
+const DEMO_HEALTH_CONNECTIONS_KEY = 'everafter_demo_health_connections';
 
 export default function ComprehensiveHealthConnectors() {
   const { user, isDemoMode } = useAuth();
-  const [providers, setProviders] = useState<RegistryProvider[]>([]);
-  const [connections, setConnections] = useState<Map<string, ConnectionState>>(new Map());
+  const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'all'>('all');
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'all'>('all');
+  const [connectedCount, setConnectedCount] = useState(0);
   const [showCustomDashboard, setShowCustomDashboard] = useState(false);
 
   useEffect(() => {
-    void loadData();
-  }, [user?.id, isDemoMode]);
-
-  const liveCards = useMemo(() => providers.map(buildConnectorCard), [providers]);
-  const connectionCount = Array.from(connections.values()).filter((connection) =>
-    ['connected', 'active', 'synced'].includes(connection.status),
-  ).length;
-
-  const roadmapCards = useMemo(() => {
-    const liveProviderKeys = new Set(liveCards.map((card) => card.providerKey));
-    return ROADMAP_PROVIDERS.filter((provider) => !liveProviderKeys.has(provider.providerKey));
-  }, [liveCards]);
-
-  const allCards = useMemo(() => {
-    const live = liveCards.map((card) => ({
-      ...card,
-      connection: connections.get(card.providerKey),
-    }));
-    const roadmap = roadmapCards.map((card) => ({
-      ...card,
-      connection: undefined,
-    }));
-    return [...live, ...roadmap];
-  }, [connections, liveCards, roadmapCards]);
-
-  const filteredCards = selectedCategory === 'all'
-    ? allCards
-    : allCards.filter((card) => card.category === selectedCategory);
-
-  const groupedCards = filteredCards.reduce((acc, card) => {
-    if (!acc[card.category]) {
-      acc[card.category] = [];
+    if (user) {
+      fetchConnections();
     }
-    acc[card.category].push(card);
-    return acc;
-  }, {} as Record<ServiceCategory, Array<(typeof filteredCards)[number]>>);
+  }, [isDemoMode, user]);
 
-  async function loadData() {
-    if (!supabase) {
-      setProviders([]);
-      setConnections(new Map());
-      setError('Supabase is not configured for health connectors.');
-      setLoading(false);
-      return;
-    }
-
+  const fetchConnections = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      if (isDemoMode) {
+        const demoConnections = readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []);
+        setConnections(demoConnections);
+        setConnectedCount(demoConnections.filter((c) => c.status === 'connected').length);
+        return;
+      }
 
-      const providerQuery = supabase
-        .from('health_providers_registry')
-        .select(
-          'id, provider_key, display_name, description, category, vendor_name, icon_url, brand_color, oauth_enabled, oauth_authorize_url, oauth_client_id_env_key, supported_metrics, is_enabled, is_beta',
-        )
-        .eq('is_enabled', true)
-        .order('display_name');
+      const { data, error } = await supabase
+        .from('health_connections')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const connectionQuery = user
-        ? supabase
-            .from('health_connections')
-            .select('id, provider, service_name, service_type, status, last_sync_at')
-            .eq('user_id', user.id)
-        : Promise.resolve({ data: [], error: null } as any);
-
-      const accountQuery = user
-        ? supabase
-            .from('provider_accounts')
-            .select('id, provider, status, last_sync_at, updated_at')
-            .eq('user_id', user.id)
-        : Promise.resolve({ data: [], error: null } as any);
-
-      const [{ data: providerRows, error: providerError }, { data: connectionRows, error: connectionError }, { data: accountRows, error: accountError }] =
-        await Promise.all([providerQuery, connectionQuery, accountQuery]);
-
-      if (providerError) throw providerError;
-      if (connectionError) throw connectionError;
-      if (accountError) throw accountError;
-
-      setProviders((providerRows || []) as RegistryProvider[]);
-      setConnections(mergeConnectionState((connectionRows || []) as HealthConnectionRow[], (accountRows || []) as ProviderAccountRow[]));
-    } catch (err: any) {
-      console.error('Error loading health connectors:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load health connectors.');
-      setProviders([]);
-      setConnections(new Map());
+      if (error) throw error;
+      setConnections(data || []);
+      setConnectedCount(data?.filter((c: HealthConnection) => c.status === 'connected').length || 0);
+    } catch (error) {
+      console.warn('Error fetching connections:', error);
+      setConnections([]);
+      setConnectedCount(0);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function handleConnect(providerKey: string) {
-    if (!supabase) {
-      setError('Supabase is not configured for health connectors.');
-      return;
-    }
-    if (isDemoMode) {
-      setError('Health connectors require a real signed-in account. Presentation mode cannot start live OAuth connections.');
-      return;
-    }
-
-    setConnectingSource(providerKey);
-    setError(null);
-
+  const connectService = async (serviceId: string, serviceName: string) => {
+    setConnectingSource(serviceId);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('health-oauth-initiate', {
-        body: { provider_key: providerKey },
+      if (isDemoMode) {
+        const currentConnections = readDemoStorage<HealthConnection[]>(DEMO_HEALTH_CONNECTIONS_KEY, []);
+        const existingConnection = currentConnections.find((connection) => connection.service_type === serviceId && connection.status !== 'disconnected');
+
+        if (existingConnection) {
+          alert(`${serviceName} is already connected in demo mode.`);
+          return;
+        }
+
+        const nextConnections = writeDemoStorage(DEMO_HEALTH_CONNECTIONS_KEY, [
+          {
+            id: createDemoId(`health-${serviceId}`),
+            service_name: serviceName,
+            service_type: serviceId,
+            status: 'connected' as const,
+            last_sync_at: new Date().toISOString(),
+            sync_frequency: 'daily',
+          },
+          ...currentConnections,
+        ]);
+
+        setConnections(nextConnections);
+        setConnectedCount(nextConnections.filter((connection) => connection.status === 'connected').length);
+        alert(`${serviceName} connected in demo mode.`);
+        return;
+      }
+
+      // Create a pending connection record in frontend DB first
+      const { error: dbError } = await supabase
+        .from('health_connections')
+        .insert([{
+          user_id: user?.id,
+          service_name: serviceName,
+          service_type: serviceId,
+          status: 'pending',
+          sync_frequency: 'daily'
+        }]);
+
+      if (dbError) throw dbError;
+
+      // Ensure we have a valid session to authenticate with the health-api
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No valid session found for health API authentication.');
+      }
+
+      // Hit our new custom node.js rest API
+      const API_BASE_URL = import.meta.env.VITE_HEALTH_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${API_BASE_URL}/api/connections/me/connect/${serviceId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (invokeError) {
-        throw invokeError;
+      const resData = await response.json();
+
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error || 'Failed to generate OAuth URL');
       }
 
-      if (!data?.authorization_url) {
-        throw new Error('The provider did not return an authorization URL.');
+      // Smooth transition to provider's auth page
+      if (resData.data?.authUrl) {
+        // Add a slight delay so user can see the premium loading animation 
+        // before being whisked away to the OAuth page
+        setTimeout(() => {
+          window.location.href = resData.data.authUrl;
+        }, 1200);
+      } else {
+        throw new Error('No authorization URL returned from the service');
       }
 
-      window.location.href = data.authorization_url;
-    } catch (err: any) {
-      console.error('Error initiating health connection:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initiate provider connection.');
+    } catch (error) {
+      console.warn('Error connecting service:', error);
+      alert(`Failed to connect service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      fetchConnections(); // refresh to reset pending state if failed
     } finally {
       setConnectingSource(null);
     }
-  }
+  };
+
+  const categories = [
+    { id: 'all', label: 'All Connectors', icon: Link2 },
+    { id: 'aggregators', label: 'Multi-Device', icon: Cloud },
+    { id: 'wearables', label: 'Wearables', icon: Watch },
+    { id: 'glucose', label: 'CGM', icon: Droplet },
+    { id: 'ehr', label: 'Health Records', icon: Stethoscope },
+    { id: 'research', label: 'Research', icon: FlaskConical },
+    { id: 'platform', label: 'Platforms', icon: Smartphone },
+  ];
+
+  const filteredServices = selectedCategory === 'all'
+    ? HEALTH_SERVICES
+    : HEALTH_SERVICES.filter(s => s.category === selectedCategory);
+
+  const getCategoryTitle = (category: ServiceCategory) => {
+    const titles = {
+      aggregators: 'Unified Data Aggregators',
+      wearables: 'Individual Wearables',
+      glucose: 'Glucose Monitoring',
+      ehr: 'Electronic Health Records',
+      research: 'Research & Wellness Platforms',
+      platform: 'Platform Integrations',
+      custom: 'Custom Plugins'
+    };
+    return titles[category];
+  };
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-[#1a1a24] to-[#13131a] p-6 shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28]">
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
         <div className="flex items-center justify-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
+          <div className="w-5 h-5 border-2 border-slate-700 border-t-teal-400 rounded-full animate-spin"></div>
           <div className="text-slate-400">Loading health connectors...</div>
         </div>
       </div>
@@ -549,174 +550,189 @@ export default function ComprehensiveHealthConnectors() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-[#1a1a24] to-[#13131a] p-6 shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28]">
-        <div className="mb-6 flex items-start justify-between gap-4">
+      {/* Header */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
+        <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="mb-2 text-2xl font-bold tracking-tight text-white">Health Device Connections</h2>
-            <p className="text-sm text-slate-400">
-              Live cards can start a real OAuth connection now. Planned cards stay visible as roadmap surfaces until the backend contract is fully provisioned.
-            </p>
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Health Device Connections</h2>
+            <p className="text-slate-400 text-sm">Connect your wearables, CGM devices, and fitness trackers to sync health data automatically.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => void loadData()}
-              className="flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/5 hover:text-white"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </button>
-            <div className="rounded-xl border border-teal-500/20 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 px-4 py-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]">
+            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border border-teal-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-teal-400" />
-                <span className="text-sm font-medium text-teal-400">{connectionCount} Connected</span>
+                <CheckCircle className="w-4 h-4 text-teal-400" />
+                <span className="text-teal-400 font-medium text-sm">{connectedCount} Connected</span>
               </div>
             </div>
           </div>
         </div>
 
-        {isDemoMode && (
-          <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
-              <div>
-                <p className="font-medium text-amber-200">Presentation mode is read-only for live health connectors.</p>
-                <p className="mt-1 text-sm text-amber-100/80">
-                  Sign in with a real account to initiate OAuth connections and sync live device data.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-900/20 p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-300" />
-              <div>
-                <p className="font-medium text-red-200">Connector error</p>
-                <p className="mt-1 text-sm text-red-100/80">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {CATEGORY_CONFIG.map((category) => {
-            const Icon = category.icon;
-            const isActive = selectedCategory === category.id;
+        {/* Category Filter */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            const isActive = selectedCategory === cat.id;
             return (
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`flex-shrink-0 whitespace-nowrap rounded-xl px-4 py-2.5 font-medium transition-all duration-300 ${
-                  isActive
-                    ? 'border border-teal-500/30 bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4)]'
-                    : 'border border-transparent text-slate-500 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] hover:border-white/5 hover:bg-white/5 hover:text-slate-300'
-                }`}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id as ServiceCategory | 'all')}
+                className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 whitespace-nowrap ${isActive
+                  ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4)] border border-teal-500/30'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] border border-transparent hover:border-white/5'
+                  }`}
               >
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm">{category.label}</span>
-                </div>
+                <Icon className="w-4 h-4" />
+                <span className="text-sm">{cat.label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {Object.entries(groupedCards).map(([category, cards]) => (
-        <div key={category} className="space-y-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-bold text-white">{CATEGORY_TITLES[category as ServiceCategory]}</h3>
-            <div className="h-px flex-1 bg-gradient-to-r from-slate-700 to-transparent" />
+      {/* Services Grid by Category */}
+      {selectedCategory === 'all' ? (
+        Object.entries(
+          HEALTH_SERVICES.reduce((acc, service) => {
+            if (!acc[service.category]) acc[service.category] = [];
+            acc[service.category].push(service);
+            return acc;
+          }, {} as Record<ServiceCategory, HealthService[]>)
+        ).map(([category, services]) => (
+          <div key={category} className="space-y-4">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold text-white">{getCategoryTitle(category as ServiceCategory)}</h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {services.map(service => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  connection={connections.find(c => c.service_type === service.id && c.status !== 'disconnected')}
+                  onConnect={connectService}
+                  isConnecting={connectingSource === service.id}
+                />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card) => (
-              <ConnectorServiceCard
-                key={card.providerKey}
-                card={card}
-                connection={card.connection}
-                disabled={isDemoMode}
-                isConnecting={connectingSource === card.providerKey}
-                onConnect={handleConnect}
-              />
-            ))}
-          </div>
+        ))
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredServices.map(service => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              connection={connections.find(c => c.service_type === service.id && c.status !== 'disconnected')}
+              onConnect={connectService}
+              isConnecting={connectingSource === service.id}
+            />
+          ))}
         </div>
-      ))}
+      )}
 
-      <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-[#1a1a24] to-[#13131a] p-6 shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28]">
+      {/* Custom Plugin Builder */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-purple-500/30 bg-gradient-to-br from-purple-500/20 to-pink-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]">
-            <Sparkles className="h-6 w-6 text-purple-400" />
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-purple-500/30">
+            <Sparkles className="w-6 h-6 text-purple-400" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-2 text-lg font-bold text-white">Create Your Own Health Plugin</h3>
-            <p className="mb-4 text-sm text-slate-400">Build custom dashboards combining normalized data across the connectors you have already enabled.</p>
-            <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-xl border border-teal-500/20 bg-gradient-to-br from-teal-500/5 to-cyan-500/5 p-3">
-                <div className="mb-1 text-xs text-teal-400">Connected Sources</div>
-                <div className="text-xl font-bold text-white">{connectionCount}</div>
+            <h3 className="text-lg font-bold text-white mb-2">Create Your Own Health Plugin</h3>
+            <p className="text-slate-400 text-sm mb-4">Build custom dashboards combining multiple data sources</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/20">
+                <div className="text-teal-400 text-xs mb-1">Connected Sources</div>
+                <div className="text-white text-xl font-bold">{connectedCount}</div>
               </div>
-              <div className="rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 p-3">
-                <div className="mb-1 text-xs text-blue-400">Data Points</div>
-                <div className="text-xl font-bold text-white">Live</div>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/20">
+                <div className="text-blue-400 text-xs mb-1">Data Points</div>
+                <div className="text-white text-xl font-bold">All</div>
               </div>
-              <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 p-3">
-                <div className="mb-1 text-xs text-purple-400">Views</div>
-                <div className="text-xl font-bold text-white">Custom</div>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/20">
+                <div className="text-purple-400 text-xs mb-1">Views</div>
+                <div className="text-white text-xl font-bold">Custom</div>
               </div>
-              <div className="rounded-xl border border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-red-500/5 p-3">
-                <div className="mb-1 text-xs text-orange-400">Insights</div>
-                <div className="text-xl font-bold text-white">AI</div>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/20">
+                <div className="text-orange-400 text-xs mb-1">Insights</div>
+                <div className="text-white text-xl font-bold">AI</div>
               </div>
+            </div>
+            <div className="mb-4">
+              <p className="text-slate-400 text-sm mb-2 font-medium">Features You Can Build:</p>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-400 text-xs">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-400" />
+                  Unified health timeline across all devices
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-400" />
+                  Custom correlation charts (glucose vs activity)
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-400" />
+                  Personalized health score algorithms
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-400" />
+                  Multi-metric comparison dashboards
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-400" />
+                  Automated health reports
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-teal-400" />
+                  Real-time alert systems
+                </li>
+              </ul>
             </div>
             <button
               onClick={() => setShowCustomDashboard(true)}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-medium text-white shadow-lg transition-all duration-300 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium transition-all duration-300 flex items-center gap-2 shadow-lg hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="w-4 h-4" />
               Start Building Your Custom Plugin
             </button>
-            {connectionCount === 0 && (
-              <p className="mt-2 text-xs text-teal-400">
-                Connect at least one live source to unlock normalized device metrics in your custom dashboards.
-              </p>
+            {connectedCount === 0 && (
+              <p className="text-teal-400 text-xs mt-2">Preview mode: Connect health sources to enable live data</p>
             )}
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-teal-500/20 bg-gradient-to-br from-teal-500/5 to-cyan-500/5 p-4 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.2)]">
+      {/* Privacy & Security */}
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-500/5 to-cyan-500/5 border border-teal-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.2)]">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-teal-500/20 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]">
-            <Shield className="h-5 w-5 text-teal-400" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center flex-shrink-0 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-teal-500/20">
+            <Shield className="w-5 h-5 text-teal-400" />
           </div>
           <div className="flex-1">
-            <p className="mb-2 text-sm font-medium text-teal-400">Privacy and Security</p>
-            <ul className="space-y-1 text-xs leading-relaxed text-slate-400">
-              <li>- Live connectors use the registry-backed OAuth initiation flow.</li>
-              <li>- Planned connectors stay visible as roadmap cards and do not initiate network requests.</li>
-              <li>- Connection status is derived from canonical `health_connections` and `provider_accounts` records.</li>
-              <li>- No connector in this surface falls back to localhost-only APIs or placeholder OAuth endpoints.</li>
+            <p className="text-teal-400 font-medium text-sm mb-2">Privacy & Security</p>
+            <ul className="text-slate-400 text-xs leading-relaxed space-y-1">
+              <li>• All connections use OAuth 2.0 for secure authentication</li>
+              <li>• Your credentials are never stored in our database</li>
+              <li>• Data is encrypted in transit and at rest</li>
+              <li>• You can disconnect any service at any time</li>
+              <li>• We only access health data you explicitly authorize</li>
             </ul>
           </div>
         </div>
       </div>
 
+      {/* Custom Plugin Builder Modal */}
       {showCustomDashboard && (
-        <div className="fixed inset-0 z-50 overflow-auto bg-black/90 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-auto">
           <div className="min-h-screen p-4">
-            <div className="mx-auto max-w-7xl">
+            <div className="max-w-7xl mx-auto">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-2xl font-bold text-white">
-                  <LayoutDashboard className="h-7 w-7 text-violet-400" />
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <LayoutDashboard className="w-7 h-7 text-violet-400" />
                   Custom Health Plugin Builder
-                  <Sparkles className="h-6 w-6 animate-pulse text-violet-400" />
+                  <Sparkles className="w-6 h-6 text-violet-400 animate-pulse" />
                 </h2>
                 <button
                   onClick={() => setShowCustomDashboard(false)}
-                  className="rounded-lg bg-slate-700 px-4 py-2 text-white transition-all hover:bg-slate-600"
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
                 >
                   Close
                 </button>
@@ -730,95 +746,91 @@ export default function ComprehensiveHealthConnectors() {
   );
 }
 
-interface ConnectorServiceCardProps {
-  card: ConnectorCard & { connection?: ConnectionState };
-  connection?: ConnectionState;
-  disabled: boolean;
-  isConnecting: boolean;
-  onConnect: (providerKey: string) => void;
+interface ServiceCardProps {
+  service: HealthService;
+  connection?: HealthConnection;
+  onConnect: (serviceId: string, serviceName: string) => void;
+  syncing: string | null;
+  isConnecting?: boolean;
 }
 
-function ConnectorServiceCard({ card, connection, disabled, isConnecting, onConnect }: ConnectorServiceCardProps) {
-  const Icon = card.icon;
-  const badgeTone =
-    card.status === 'live'
-      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-      : card.status === 'beta'
-        ? 'border-sky-500/20 bg-sky-500/10 text-sky-300'
-        : 'border-amber-500/20 bg-amber-500/10 text-amber-300';
-
-  const lastSyncLabel = formatSyncLabel(connection?.lastSyncAt);
-  const isConnected = Boolean(connection) && ['connected', 'active', 'synced'].includes(connection.status);
-  const canInitiate = card.canConnect && !disabled;
+function ServiceCard({ service, connection, onConnect, isConnecting }: Omit<ServiceCardProps, 'syncing'>) {
+  const Icon = service.icon;
+  const isComingSoon = service.status === 'coming_soon';
 
   return (
-    <div className="group rounded-2xl border border-white/5 bg-gradient-to-br from-[#1a1a24] to-[#13131a] p-5 shadow-[4px_4px_8px_#08080c,-4px_-4px_8px_#1c1c28] transition-all duration-300 hover:border-teal-500/20">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${card.color} shadow-lg transition-transform group-hover:scale-105`}>
-            <Icon className="h-6 w-6 text-white" />
+    <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[4px_4px_8px_#08080c,-4px_-4px_8px_#1c1c28] border border-white/5 hover:border-teal-500/20 transition-all duration-300 group">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className={`w-12 h-12 bg-gradient-to-br ${service.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform flex-shrink-0`}>
+            <Icon className="w-6 h-6 text-white" />
           </div>
-          <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2">
-              <h3 className="truncate text-[15px] font-bold leading-tight text-white">{card.name}</h3>
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] ${badgeTone}`}>
-                {card.badgeLabel}
-              </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 overflow-visible">
+              <h3 className="text-white font-bold text-[15px] leading-tight flex-1">{service.name}</h3>
+              {service.deviceCount && (
+                <span className="text-[10px] text-teal-400 font-bold bg-teal-400/10 px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap">{service.deviceCount}</span>
+              )}
             </div>
-            <p className="line-clamp-2 text-[11px] leading-snug text-slate-500">{card.description}</p>
+            <p className="text-slate-500 text-[10px] leading-snug mt-1 line-clamp-2">{service.description}</p>
           </div>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        {card.features.map((feature) => (
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {service.features.map((feature, idx) => (
           <span
-            key={feature}
-            className="rounded-lg border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] px-2 py-1 text-xs font-medium text-slate-400"
+            key={idx}
+            className="px-2 py-1 rounded-lg bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 text-slate-400 text-xs font-medium"
           >
             {feature}
           </span>
         ))}
       </div>
 
-      {isConnected ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-medium text-green-400">
-            <CheckCircle className="h-4 w-4" />
-            Connected
-          </div>
-          {lastSyncLabel && <p className="text-xs text-slate-400">Last synced: {lastSyncLabel}</p>}
-        </div>
-      ) : canInitiate ? (
+      {isComingSoon ? (
         <button
-          onClick={() => onConnect(card.providerKey)}
+          disabled
+          className="w-full px-3 py-2.5 rounded-xl bg-slate-800/40 text-slate-500 font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-700/30 cursor-not-allowed"
+        >
+          <Clock className="w-3.5 h-3.5" />
+          Planned
+        </button>
+      ) : connection ? (
+        <div className="space-y-2">
+          {connection.last_sync_at && (
+            <p className="text-slate-400 text-xs">
+              Last synced: {new Date(connection.last_sync_at).toLocaleString()}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-900/30 text-green-400 border border-green-500/30 text-xs font-medium">
+              <CheckCircle className="w-3 h-3" />
+              Connected
+            </span>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => onConnect(service.id, service.name)}
           disabled={isConnecting}
-          className={`relative flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${card.color} px-4 py-3 text-sm font-medium text-white shadow-lg transition-all duration-300 ${
-            isConnecting ? 'opacity-80' : 'hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]'
-          }`}
+          className={`w-full px-4 py-3 bg-gradient-to-r ${service.color} text-white rounded-xl ${isConnecting ? 'opacity-80' : 'hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]'} transition-all duration-300 text-sm font-medium flex items-center justify-center gap-2 shadow-lg relative overflow-hidden`}
         >
           {isConnecting ? (
             <>
-              <div className="absolute inset-0 animate-pulse bg-white/20" />
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              <span className="relative z-10 font-semibold tracking-wide">Connecting...</span>
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span className="relative z-10 tracking-wide font-semibold">Connecting...</span>
             </>
           ) : (
             <>
-              <Plus className="h-4 w-4" />
-              Connect {card.name}
+              <Plus className="w-4 h-4" />
+              Connect {service.name}
             </>
           )}
-        </button>
-      ) : (
-        <button
-          disabled
-          className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-700/30 bg-slate-800/40 px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-500"
-        >
-          <Clock className="h-3.5 w-3.5" />
-          {disabled ? 'Sign In To Connect' : card.badgeLabel}
         </button>
       )}
     </div>
   );
 }
+

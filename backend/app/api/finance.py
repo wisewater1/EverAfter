@@ -99,6 +99,9 @@ def _get_user_id(current_user: dict) -> str:
     if user_id:
         return str(user_id)
 
+    if settings.dev_auth_fallback_enabled and settings.DEV_AUTH_USER_ID:
+        return settings.DEV_AUTH_USER_ID
+
     raise HTTPException(status_code=401, detail="User ID not found in token")
 
 # Endpoints
@@ -464,10 +467,7 @@ async def run_wisegold_tick(
 @router.get("/wisegold/price")
 async def get_wisegold_price():
     """Get the live XAU/USD price from Chainlink Data Feeds"""
-    try:
-        price = await ChainlinkService.get_latest_xau_usd_price()
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+    price = await ChainlinkService.get_latest_xau_usd_price()
     return {"xau_usd_price": price, "timestamp": datetime.utcnow().isoformat()}
 
 @router.post("/wisegold/bridge/ccip")

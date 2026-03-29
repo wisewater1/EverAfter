@@ -20,7 +20,6 @@ from app.services.embeddings import get_embeddings_service
 from app.services.personality_synthesizer import generate_value_driven_personality
 from app.services.mentorship_service import get_mentorship_service
 from app.services.saint_runtime import saint_runtime
-from app.api.auth_utils import get_current_user_id
 
 router = APIRouter(prefix="/api/v1/engrams", tags=["engrams"])
 
@@ -30,10 +29,22 @@ async def list_engrams(
     session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = UUID(await get_current_user_id(current_user))
-    query = select(Engram).where(
-        (Engram.user_id == user_id) | (Engram.name == 'St. Raphael')
-    ).order_by(Engram.created_at.desc())
+    sub = current_user.get("sub")
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User ID (sub) not found in token"
+        )
+    
+    try:
+        user_id = UUID(sub)
+        # Get user's own engrams OR archetypal engrams (like St. Raphael)
+        query = select(Engram).where(
+            (Engram.user_id == user_id) | (Engram.name == 'St. Raphael')
+        ).order_by(Engram.created_at.desc())
+    except ValueError:
+        # Local development fallback when sub is "demo-user-001"
+        query = select(Engram).order_by(Engram.created_at.desc())
 
     result = await session.execute(query)
     engrams = result.scalars().all()
@@ -93,7 +104,6 @@ async def create_engram(
     session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
-    current_user_id = UUID(await get_current_user_id(current_user))
     # Generate deep JSON personality matrix based on user's basic description
     personality_matrix = await generate_value_driven_personality(
         name=engram_data.name,
@@ -102,7 +112,7 @@ async def create_engram(
     )
 
     new_engram = Engram(
-        user_id=current_user_id,
+        user_id=engram_data.user_id,
         name=engram_data.name,
         avatar_url=engram_data.avatar_url,
         description=engram_data.description or "",
@@ -208,7 +218,6 @@ async def create_response(
     session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
-    current_user_id = await get_current_user_id(current_user)
     query = select(Engram).where(Engram.id == engram_id)
     result = await session.execute(query)
     engram = result.scalar_one_or_none()
@@ -221,7 +230,7 @@ async def create_response(
 
     new_response = EngramDailyResponse(
         engram_id=response_data.engram_id,
-        user_id=current_user_id,
+        user_id=str(current_user.get("sub")),
         question_text=response_data.question_text,
         response_text=response_data.response_text,
         question_category=response_data.question_category,
@@ -252,7 +261,6 @@ async def bulk_ingest_vignette(
     session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
-    current_user_id = await get_current_user_id(current_user)
     vignette = payload.get("vignette", "")
     if not vignette:
         raise HTTPException(status_code=400, detail="No vignette provided")
@@ -264,7 +272,7 @@ async def bulk_ingest_vignette(
     for i, para in enumerate(paragraphs):
         new_response = EngramDailyResponse(
             engram_id=engram_id,
-            user_id=current_user_id,
+            user_id=str(current_user.get("sub")),
             question_text=f"Legacy Vignette Segment {i+1}",
             response_text=para,
             question_category="vignette",
@@ -357,7 +365,15 @@ async def batch_sync_engrams(
     Syncs multiple family members to the engram backend.
     Returns a mapping of local member IDs to backend engram IDs.
     """
-    user_uuid = UUID(await get_current_user_id(current_user))
+    user_id_str = current_user.get("sub")
+    if not user_id_str:
+        raise HTTPException(status_code=401, detail="User ID not found")
+    
+    try:
+        user_uuid = UUID(user_id_str)
+    except ValueError:
+        # Fallback for demo-user-001
+        user_uuid = uuid.uuid4() 
 
     id_mapping = {}
     

@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.api.auth_utils import get_current_user_id
 from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.causal_twin.counterfactual_engine import counterfactual_engine
@@ -25,10 +24,6 @@ from app.schemas.causal_twin import (
 )
 
 router = APIRouter(prefix="/api/v1/causal-twin", tags=["causal-twin"])
-
-
-async def _resolve_requested_user_id(current_user: dict, member_id: Optional[str] = None) -> str:
-    return member_id or await get_current_user_id(current_user)
 
 
 async def _derive_measurement_context(session: AsyncSession, user_id: str) -> Dict[str, List[str]]:
@@ -121,7 +116,7 @@ async def get_family_health_map(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate a risk colour heat-map for all living family members from the database."""
-    user_id = await get_current_user_id(current_user)
+    user_id = current_user.get("id", current_user.get("sub", "demo-user-001"))
     result = await ancestry_engine.get_family_health_map_for_user(user_id)
     return {"family_map": result, "total": len(result)}
 
@@ -139,7 +134,8 @@ async def simulate_scenario(
     current_user: dict = Depends(get_current_user)
 ):
     """Run a 'What If' counterfactual simulation for the user or a specific family member."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    # Use the requested member_id if provided, otherwise default to the primary user
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     
     # Run simulation (engine now handles internal stats fetching)
     result = await counterfactual_engine.simulate_scenarios(
@@ -157,7 +153,7 @@ async def get_active_predictions(
     current_user: dict = Depends(get_current_user)
 ):
     """Get current active predictions for the user or a specific family member."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
 
     # Generate a default prediction set if none exist (default activity)
     default = await counterfactual_engine.simulate_scenarios(
@@ -178,7 +174,7 @@ async def create_experiment(
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new N-of-1 experiment."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     result = await experiment_engine.create_experiment(
         user_id=user_id,
         name=request.name,
@@ -202,7 +198,7 @@ async def list_experiments(
     current_user: dict = Depends(get_current_user)
 ):
     """List all experiments for the current user."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     experiments = await experiment_engine.list_experiments(user_id)
     return {"experiments": experiments}
 
@@ -273,7 +269,7 @@ async def get_evidence_trail(
     current_user: dict = Depends(get_current_user)
 ):
     """Get the recommendation evidence audit trail."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
 
     entries = evidence_ledger.get_audit_trail(
         user_id=user_id, limit=limit, evidence_type=evidence_type
@@ -309,7 +305,7 @@ async def get_model_health(
     current_user: dict = Depends(get_current_user)
 ):
     """Get drift status, accuracy trend, and model state."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     model_status = drift_monitor.get_model_status(user_id)
     drift_history = drift_monitor.get_drift_history(user_id)
     return {
@@ -329,7 +325,7 @@ async def get_next_measurements(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get prioritized measurement recommendations."""
-    user_id = await _resolve_requested_user_id(current_user, member_id)
+    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     measurement_context = await _derive_measurement_context(session, user_id)
     recommendations = measurement_recommender.rank_measurements(
         user_id=user_id,

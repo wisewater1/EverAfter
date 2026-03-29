@@ -3,6 +3,7 @@
 // and GeneWeb-inspired genealogy tools (GEDCOM, relationship paths, source citations)
 
 import { requestBackendJson } from '../backend-request';
+import { isDemoAuthEnabled } from '../demo-auth';
 import { isDevelopment } from '../env';
 import { supabase } from '../supabase';
 export type Gender = 'male' | 'female' | 'other';
@@ -472,6 +473,14 @@ async function loadGenealogyFromBackend() {
     const baseRelationships = mergedLocal.relationships;
     const baseEvents = mergedLocal.events;
     const baseSources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
+
+    if (isDemoAuthEnabled()) {
+        _members = baseMembers;
+        _relationships = baseRelationships;
+        _events = baseEvents;
+        _sources = baseSources;
+        return;
+    }
 
     try {
         const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };

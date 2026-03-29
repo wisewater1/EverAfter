@@ -182,11 +182,11 @@ export default function SaintsNavigation() {
                         </div>
                       )}
 
-                      {/* Availability state */}
+                      {/* Coming soon */}
                       {!saint.available && (
                         <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-sm py-1">
                           <p className="text-[8px] sm:text-[9px] font-semibold text-slate-400 text-center uppercase tracking-wider">
-                            Unavailable
+                            Coming Soon
                           </p>
                         </div>
                       )}

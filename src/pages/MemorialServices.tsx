@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 import {
   Heart,
   MapPin,
@@ -58,6 +59,8 @@ interface MemorialPlan {
   created_at: string;
   updated_at: string;
 }
+
+const DEMO_MEMORIAL_PLANS_KEY = 'everafter_demo_memorial_plans';
 
 export default function MemorialServices() {
   const { user, isDemoMode } = useAuth();
@@ -153,13 +156,18 @@ export default function MemorialServices() {
     if (user) {
       fetchPlans();
     }
-  }, [user]);
+  }, [isDemoMode, user]);
 
   const fetchPlans = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
+      if (isDemoMode) {
+        setPlans(readDemoStorage<MemorialPlan[]>(DEMO_MEMORIAL_PLANS_KEY, []));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('memorial_plans')
         .select('*')
@@ -194,6 +202,29 @@ export default function MemorialServices() {
     const normalizedType = serviceType === 'all' ? 'memorial' : serviceType;
 
     try {
+      if (isDemoMode) {
+        const nextPlans = writeDemoStorage(DEMO_MEMORIAL_PLANS_KEY, [
+          {
+            id: createDemoId('memorial-plan'),
+            user_id: user.id,
+            service_type: normalizedType,
+            preferences: {
+              category: normalizedType,
+              mode: 'demo',
+            },
+            budget: 5000,
+            status: 'planning',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          ...readDemoStorage<MemorialPlan[]>(DEMO_MEMORIAL_PLANS_KEY, []),
+        ]);
+
+        setPlans(nextPlans);
+        setActiveTab('planning');
+        return;
+      }
+
       const { error } = await supabase.from('memorial_plans').insert({
         user_id: user.id,
         service_type: normalizedType,

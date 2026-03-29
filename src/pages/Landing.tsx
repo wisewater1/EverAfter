@@ -4,7 +4,7 @@ import { Brain, Heart, Shield, Crown, Star, ArrowRight, LogIn, Sparkles } from '
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, startDemoMode } = useAuth();
 
   const saints = [
     {
@@ -102,10 +102,13 @@ export default function Landing() {
               <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => navigate('/login')}
-              className="px-8 py-4 bg-blue-600/15 text-blue-300 border border-blue-400/20 rounded-xl hover:bg-blue-600/20 hover:text-blue-200 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
+              onClick={() => {
+                startDemoMode();
+                navigate('/dashboard');
+              }}
+              className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
             >
-              Sign In
+              Demo for Show
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

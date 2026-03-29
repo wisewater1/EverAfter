@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { buildAccessTokenHeaders } from '../lib/auth-session';
-import { requestBackendJson } from '../lib/backend-request';
 import { Loader, AlertCircle, RefreshCw, LayoutDashboard } from 'lucide-react';
-import WidgetRenderer, { type WidgetPayload } from './WidgetRenderer';
+import WidgetRenderer from './WidgetRenderer';
 
 interface Widget {
   id: string;
@@ -28,30 +26,10 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [widgetPayloads, setWidgetPayloads] = useState<Record<string, WidgetPayload>>({});
-  const [widgetPayloadLoading, setWidgetPayloadLoading] = useState(false);
 
   useEffect(() => {
-    void loadWidgets();
-  }, [dashboardId]);
-
-  useEffect(() => {
-    if (widgets.length === 0) {
-      setWidgetPayloads({});
-      return;
-    }
-
-    void loadWidgetPayloads(widgets);
-    const refreshSeconds = Math.max(
-      15,
-      Math.min(...widgets.map((widget) => Math.max(15, widget.refresh_interval || 60))),
-    );
-    const interval = window.setInterval(() => {
-      void loadWidgetPayloads(widgets);
-    }, refreshSeconds * 1000);
-
-    return () => window.clearInterval(interval);
-  }, [widgets, refreshTrigger]);
+    loadWidgets();
+  }, [dashboardId, refreshTrigger]);
 
   async function loadWidgets() {
     try {
@@ -65,60 +43,13 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
         .order('position_y')
         .order('position_x');
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
       setWidgets(data || []);
     } catch (err: any) {
       console.error('Error loading widgets:', err);
       setError('Failed to load dashboard widgets');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadWidgetPayloads(targetWidgets: Widget[]) {
-    try {
-      if (Object.keys(widgetPayloads).length === 0) {
-        setWidgetPayloadLoading(true);
-      }
-
-      const headers = await buildAccessTokenHeaders({
-        'Content-Type': 'application/json',
-      });
-      const data = await requestBackendJson<{ items?: Record<string, WidgetPayload> }>(
-        '/api/v1/health/widgets/data',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            widgets: targetWidgets.map((widget) => ({
-              id: widget.id,
-              widget_type: widget.widget_type,
-              config: widget.config || {},
-              data_sources: widget.data_sources || [],
-            })),
-          }),
-        },
-        'Failed to load dashboard widget data.',
-      );
-
-      setWidgetPayloads(data.items || {});
-    } catch (err: any) {
-      console.error('Error loading widget payloads:', err);
-      const message = err instanceof Error ? err.message : 'Failed to load widget data';
-      const fallbackPayloads = Object.fromEntries(
-        targetWidgets.map((widget) => [
-          widget.id,
-          {
-            status: 'error' as const,
-            error: message,
-          },
-        ]),
-      );
-      setWidgetPayloads(fallbackPayloads);
-    } finally {
-      setWidgetPayloadLoading(false);
     }
   }
 
@@ -129,9 +60,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
         .update({ position_x: x, position_y: y })
         .eq('id', widgetId);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
     } catch (err: any) {
       console.error('Error updating widget position:', err);
     }
@@ -144,18 +73,14 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
         .update({ width, height })
         .eq('id', widgetId);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
     } catch (err: any) {
       console.error('Error updating widget size:', err);
     }
   }
 
   async function deleteWidget(widgetId: string) {
-    if (!confirm('Delete this widget?')) {
-      return;
-    }
+    if (!confirm('Delete this widget?')) return;
 
     try {
       const { error: deleteError } = await supabase
@@ -163,22 +88,11 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
         .delete()
         .eq('id', widgetId);
 
-      if (deleteError) {
-        throw deleteError;
-      }
-      setWidgets((current) => current.filter((widget) => widget.id !== widgetId));
-      setWidgetPayloads((current) => {
-        const next = { ...current };
-        delete next[widgetId];
-        return next;
-      });
+      if (deleteError) throw deleteError;
+      setWidgets(widgets.filter(w => w.id !== widgetId));
     } catch (err: any) {
       console.error('Error deleting widget:', err);
     }
-  }
-
-  function refreshAll() {
-    setRefreshTrigger((current) => current + 1);
   }
 
   if (loading) {
@@ -222,7 +136,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
     );
   }
 
-  const maxY = Math.max(...widgets.map((widget) => widget.position_y + widget.height));
+  const maxY = Math.max(...widgets.map(w => w.position_y + w.height));
   const gridRows = Math.max(maxY, 8);
 
   return (
@@ -232,7 +146,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
           {widgets.length} widget{widgets.length !== 1 ? 's' : ''}
         </div>
         <button
-          onClick={refreshAll}
+          onClick={() => setRefreshTrigger(prev => prev + 1)}
           className="px-3 py-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-2 text-sm"
         >
           <RefreshCw className="w-4 h-4" />
@@ -258,13 +172,10 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
           >
             <WidgetRenderer
               widget={widget}
-              payload={widgetPayloads[widget.id] || null}
-              loading={widgetPayloadLoading && !widgetPayloads[widget.id]}
               editMode={editMode}
               onDelete={() => deleteWidget(widget.id)}
-              onRefresh={refreshAll}
               onPositionChange={(x, y) => updateWidgetPosition(widget.id, x, y)}
-              onSizeChange={(width, height) => updateWidgetSize(widget.id, width, height)}
+              onSizeChange={(w, h) => updateWidgetSize(widget.id, w, h)}
             />
           </div>
         ))}

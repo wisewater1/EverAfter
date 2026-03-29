@@ -4,7 +4,6 @@ from pydantic import BaseModel
 import os
 import json
 from app.auth.dependencies import get_current_user
-from app.api.auth_utils import get_current_user_id
 
 router = APIRouter(prefix="/api/v1/sacred", tags=["sacred"])
 
@@ -41,7 +40,7 @@ def save_state(state: Dict[str, Any]):
 async def get_sacred_state(current_user: dict = Depends(get_current_user)):
     """Retrieve the current persistent sacred state for the user."""
     state = load_state()
-    user_id = await get_current_user_id(current_user)
+    user_id = current_user.get("id") or current_user.get("sub", "anonymous")
     user_state = state.get(user_id, {
         "is_candle_lit": False,
         "atmosphere": "tranquil",
@@ -62,7 +61,7 @@ async def update_sacred_state(
 ):
     """Update the persistent sacred state."""
     state = load_state()
-    user_id = await get_current_user_id(current_user)
+    user_id = current_user.get("id") or current_user.get("sub", "anonymous")
     
     if user_id not in state:
         state[user_id] = {
@@ -103,6 +102,6 @@ async def update_sacred_state(
 async def get_sacred_shroud(current_user: dict = Depends(get_current_user)):
     """Convenience endpoint specifically for the active shroud style."""
     state = load_state()
-    user_id = await get_current_user_id(current_user)
+    user_id = current_user.get("id") or current_user.get("sub", "anonymous")
     user_state = state.get(user_id, {"active_shroud": "none"})
     return {"active_shroud": user_state.get("active_shroud", "none")}

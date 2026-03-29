@@ -1,55 +1,50 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Activity, ArrowRight, Check, Heart, Smartphone, Watch } from 'lucide-react';
+import { Heart, Activity, Watch, Smartphone, ArrowRight, Check } from 'lucide-react';
 
 interface ServiceOption {
   id: string;
   name: string;
-  providerKey: string;
+  type: string;
   icon: React.ReactNode;
   description: string;
   requiresOAuth: boolean;
-  status: 'live' | 'planned';
 }
 
 const serviceOptions: ServiceOption[] = [
   {
     id: 'apple-health',
     name: 'Apple Health',
-    providerKey: 'apple_health',
-    icon: <Heart className="h-8 w-8" />,
-    description: 'Sync data from Apple Health on iPhone and Apple Watch.',
-    requiresOAuth: true,
-    status: 'live',
+    type: 'apple_health',
+    icon: <Heart className="w-8 h-8" />,
+    description: 'Sync data from Apple Health app on iOS devices',
+    requiresOAuth: true
   },
   {
-    id: 'android-health-connect',
-    name: 'Android Health Connect',
-    providerKey: 'android_health_connect',
-    icon: <Activity className="h-8 w-8" />,
-    description: 'Connect Android Health Connect for supported wearable and wellness data.',
-    requiresOAuth: true,
-    status: 'live',
+    id: 'google-fit',
+    name: 'Google Fit',
+    type: 'google_fit',
+    icon: <Activity className="w-8 h-8" />,
+    description: 'Connect to Google Fit for Android health data',
+    requiresOAuth: true
   },
   {
     id: 'fitbit',
     name: 'Fitbit',
-    providerKey: 'fitbit',
-    icon: <Watch className="h-8 w-8" />,
-    description: 'Import activity, cardio, and sleep data from Fitbit devices.',
-    requiresOAuth: true,
-    status: 'live',
+    type: 'fitbit',
+    icon: <Watch className="w-8 h-8" />,
+    description: 'Import activity and health data from Fitbit devices',
+    requiresOAuth: true
   },
   {
     id: 'manual',
     name: 'Manual Entry',
-    providerKey: 'manual',
-    icon: <Smartphone className="h-8 w-8" />,
-    description: 'Track health metrics manually when no live connector is required.',
-    requiresOAuth: false,
-    status: 'live',
-  },
+    type: 'manual',
+    icon: <Smartphone className="w-8 h-8" />,
+    description: 'Manually track your health metrics',
+    requiresOAuth: false
+  }
 ];
 
 interface ConnectionSetupWizardProps {
@@ -58,96 +53,79 @@ interface ConnectionSetupWizardProps {
 }
 
 export default function ConnectionSetupWizard({ onComplete, onCancel }: ConnectionSetupWizardProps) {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleServiceSelect(service: ServiceOption) {
+  const handleServiceSelect = (service: ServiceOption) => {
     setSelectedService(service);
     setStep(2);
-  }
+  };
 
-  async function handleConnect() {
-    if (!selectedService) return;
+  const handleConnect = async () => {
+    if (!selectedService || !user) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      if (!supabase) {
-        throw new Error('Supabase is not configured for health connections.');
-      }
-      if (!user || isDemoMode) {
-        throw new Error('A real signed-in account is required to connect live health services.');
-      }
-
-      if (selectedService.status !== 'live') {
-        throw new Error(`${selectedService.name} is still planned and cannot be connected yet.`);
-      }
-
       if (selectedService.requiresOAuth) {
-        const { data, error: invokeError } = await supabase.functions.invoke('health-oauth-initiate', {
-          body: { provider_key: selectedService.providerKey },
-        });
+        const state = btoa(JSON.stringify({
+          userId: user.id,
+          serviceType: selectedService.type
+        }));
 
-        if (invokeError) {
-          throw invokeError;
-        }
+        const redirectUri = `${window.location.origin}/oauth/callback`;
+        const oauthUrl = `https://oauth-provider.example.com/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=${redirectUri}&state=${state}&service=${selectedService.name}`;
 
-        if (!data?.authorization_url) {
-          throw new Error('The health connector did not return an authorization URL.');
-        }
+        window.location.href = oauthUrl;
+      } else {
+        const { error: insertError } = await supabase
+          .from('health_connections')
+          .insert({
+            user_id: user.id,
+            service_name: selectedService.name,
+            service_type: selectedService.type,
+            status: 'connected'
+          });
 
-        window.location.href = data.authorization_url;
-        return;
+        if (insertError) throw insertError;
+
+        setStep(3);
+        setTimeout(() => {
+          onComplete?.();
+        }, 1500);
       }
-
-      const { error: insertError } = await supabase
-        .from('health_connections')
-        .insert({
-          user_id: user.id,
-          provider: selectedService.providerKey,
-          service_name: selectedService.name,
-          service_type: selectedService.providerKey,
-          status: 'connected',
-        });
-
-      if (insertError) throw insertError;
-
-      setStep(3);
-      window.setTimeout(() => {
-        onComplete?.();
-      }, 1500);
     } catch (err) {
       console.error('Connection error:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect service');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-lg">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
       <div className="mb-6">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-white">Connect Health Service</h2>
           {onCancel && (
             <button
               onClick={onCancel}
-              className="text-purple-300 transition-colors hover:text-white"
+              className="text-purple-300 hover:text-white transition-colors"
             >
               Cancel
             </button>
           )}
         </div>
         <div className="flex items-center space-x-2">
-          {[1, 2, 3].map((value) => (
+          {[1, 2, 3].map((s) => (
             <div
-              key={value}
+              key={s}
               className={`h-2 flex-1 rounded-full transition-colors ${
-                value <= step ? 'bg-purple-500' : 'bg-white/20'
+                s <= step ? 'bg-purple-500' : 'bg-white/20'
               }`}
             />
           ))}
@@ -156,30 +134,25 @@ export default function ConnectionSetupWizard({ onComplete, onCancel }: Connecti
 
       {step === 1 && (
         <div>
-          <p className="mb-6 text-purple-200">
-            Choose a health service to connect. Only live connectors below can start a real authorization flow.
+          <p className="text-purple-200 mb-6">
+            Choose a health service to connect and start tracking your health data automatically.
           </p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {serviceOptions.map((service) => (
               <button
                 key={service.id}
                 onClick={() => handleServiceSelect(service)}
-                className="group rounded-xl border border-white/10 bg-white/5 p-6 text-left transition-all hover:border-purple-500/50 hover:bg-white/10"
+                className="p-6 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all text-left group"
               >
                 <div className="flex items-start space-x-4">
-                  <div className="text-purple-400 transition-colors group-hover:text-purple-300">
+                  <div className="text-purple-400 group-hover:text-purple-300 transition-colors">
                     {service.icon}
                   </div>
                   <div className="flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <h3 className="font-semibold text-white">{service.name}</h3>
-                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
-                        {service.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-purple-300">{service.description}</p>
+                    <h3 className="text-white font-semibold mb-1">{service.name}</h3>
+                    <p className="text-purple-300 text-sm">{service.description}</p>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-purple-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                  <ArrowRight className="w-5 h-5 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </button>
             ))}
@@ -189,35 +162,36 @@ export default function ConnectionSetupWizard({ onComplete, onCancel }: Connecti
 
       {step === 2 && selectedService && (
         <div>
-          <div className="mb-8 text-center">
-            <div className="mb-4 inline-block rounded-full bg-purple-500/20 p-4">
+          <div className="text-center mb-8">
+            <div className="inline-block p-4 bg-purple-500/20 rounded-full mb-4">
               <div className="text-purple-300">{selectedService.icon}</div>
             </div>
-            <h3 className="mb-2 text-xl font-semibold text-white">{selectedService.name}</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">{selectedService.name}</h3>
             <p className="text-purple-200">{selectedService.description}</p>
           </div>
 
           {error && (
-            <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4">
-              <p className="text-sm text-red-300">{error}</p>
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-red-300 text-sm">{error}</p>
             </div>
           )}
 
-          <div className="mb-8 space-y-4">
-            <div className="rounded-lg bg-white/5 p-4">
-              <h4 className="mb-2 font-medium text-white">What data will be synced?</h4>
-              <ul className="space-y-1 text-sm text-purple-200">
-                <li>- Activity metrics such as steps, calories, and movement.</li>
-                <li>- Heart rate and recovery signals when the connector supports them.</li>
-                <li>- Sleep and readiness metrics from supported devices.</li>
-                <li>- Manual entry remains available when no device connector is required.</li>
+          <div className="space-y-4 mb-8">
+            <div className="p-4 bg-white/5 rounded-lg">
+              <h4 className="text-white font-medium mb-2">What data will be synced?</h4>
+              <ul className="space-y-1 text-purple-200 text-sm">
+                <li>• Activity metrics (steps, distance, calories)</li>
+                <li>• Heart rate and cardiovascular data</li>
+                <li>• Sleep patterns and quality</li>
+                <li>• Weight and body measurements</li>
               </ul>
             </div>
 
-            <div className="rounded-lg bg-white/5 p-4">
-              <h4 className="mb-2 font-medium text-white">Privacy and Security</h4>
-              <p className="text-sm text-purple-200">
-                Live connections use the canonical Supabase OAuth initiation flow. No placeholder OAuth URLs or localhost-only backends are used here.
+            <div className="p-4 bg-white/5 rounded-lg">
+              <h4 className="text-white font-medium mb-2">Privacy & Security</h4>
+              <p className="text-purple-200 text-sm">
+                Your health data is encrypted and only accessible by you. We never share your
+                personal health information with third parties.
               </p>
             </div>
           </div>
@@ -225,14 +199,14 @@ export default function ConnectionSetupWizard({ onComplete, onCancel }: Connecti
           <div className="flex space-x-4">
             <button
               onClick={() => setStep(1)}
-              className="flex-1 rounded-lg bg-white/10 py-3 text-white transition-colors hover:bg-white/20"
+              className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
             >
               Back
             </button>
             <button
-              onClick={() => void handleConnect()}
+              onClick={handleConnect}
               disabled={loading}
-              className="flex-1 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 py-3 font-medium text-white transition-all hover:from-purple-600 hover:to-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Connecting...' : selectedService.requiresOAuth ? 'Authorize Connection' : 'Connect'}
             </button>
@@ -241,13 +215,13 @@ export default function ConnectionSetupWizard({ onComplete, onCancel }: Connecti
       )}
 
       {step === 3 && (
-        <div className="py-8 text-center">
-          <div className="mb-4 inline-block rounded-full bg-green-500/20 p-4">
-            <Check className="h-12 w-12 text-green-400" />
+        <div className="text-center py-8">
+          <div className="inline-block p-4 bg-green-500/20 rounded-full mb-4">
+            <Check className="w-12 h-12 text-green-400" />
           </div>
-          <h3 className="mb-2 text-2xl font-bold text-white">Successfully Connected</h3>
+          <h3 className="text-2xl font-bold text-white mb-2">Successfully Connected!</h3>
           <p className="text-purple-200">
-            Your {selectedService?.name} account is now connected and ready to sync.
+            Your {selectedService?.name} account is now connected and syncing.
           </p>
         </div>
       )}
