@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('AuthContext: Session retrieved', { hasSession: !!session });
         setSession(session);
         setUser(session?.user ?? null);
+        setIsDemoMode(false);
         persistSnapshot(session);
       } catch (err) {
         console.error('AuthContext: Session retrieval crash', err);
@@ -143,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('AuthContext: Auth state changed', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
+      setIsDemoMode(false);
       persistSnapshot(session);
       setLoading(false);
     });
