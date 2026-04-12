@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import { withTimeout } from '../lib/withTimeout';
 import { attemptAuthConfigRecovery, isInvalidApiKeyError } from '../lib/auth-config-recovery';
 import { clearDemoAuth, enableDemoAuth, isDemoAuthEnabled, readDemoAuthState } from '../lib/demo-auth';
+import { initDemoInterceptor, removeDemoInterceptor } from '../lib/demo/demo-data-provider';
 
 export interface ErrorNotificationHook {
   showError: (message: string, severity?: 'critical' | 'warning' | 'info') => void;
@@ -125,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setIsDemoMode(false);
+      removeDemoInterceptor();
         persistSnapshot(session);
       } catch (err) {
         console.error('AuthContext: Session retrieval crash', err);
@@ -290,6 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const startDemoMode = () => {
     const demoState = enableDemoAuth();
+      initDemoInterceptor();
     setSession(demoState.session);
     setUser(demoState.user);
     setIsDemoMode(true);
