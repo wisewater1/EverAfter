@@ -281,16 +281,16 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
             key={message.id}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`flex space-x-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
+            <div className={`flex space-x-2 sm:space-x-3 max-w-[90%] sm:max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+              <div className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-blue-500/20' : 'bg-emerald-500/20'
                 }`}>
                 {message.role === 'user' ? (
-                  <User className="w-4 h-4 text-blue-300" />
+                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-300" />
                 ) : (
-                  <Bot className="w-4 h-4 text-emerald-300" />
+                  <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
                 )}
               </div>
-              <div className={`rounded-2xl p-4 ${message.role === 'user'
+              <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 ${message.role === 'user'
                 ? 'bg-blue-500/20 border border-blue-500/30'
                 : 'bg-emerald-500/20 border border-emerald-500/30'
                 }`}>

@@ -6,10 +6,33 @@
   <link rel="icon" type="image/svg+xml" href="/everafter.svg" />
   <meta name="viewport"
     content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
-  <meta name="theme-color" content="#0a0f15" />
+  <meta name="theme-color" content="#06080c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="EverAfter AI - Your digital legacy, managed by autonomous AI Saints. Health management, family preservation, and more." />
+  <meta name="color-scheme" content="dark" />
   <title>EverAfter AI - Digital Legacy Platform</title>
+  <!-- Inline critical styles for instant first paint -->
+  <style>
+    html, body { margin: 0; padding: 0; background: #06080c; color: #e0e0e0; }
+    #root:empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      min-height: 100vh;
+    }
+    #root:empty::after {
+      content: '';
+      width: 36px;
+      height: 36px;
+      border: 3px solid #1e293b;
+      border-top-color: #34d399;
+      border-radius: 50%;
+      animation: _spin 0.7s linear infinite;
+    }
+    @keyframes _spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 
 <body>

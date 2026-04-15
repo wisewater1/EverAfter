@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
@@ -64,13 +64,32 @@ const protectedReleaseRedirect = (
 
 function RouteFallback() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 flex items-center justify-center">
-      <div className="text-center">
-        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-cyan-500/20 border-t-cyan-400" />
-        <p className="text-sm tracking-wide text-slate-400">Loading...</p>
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center px-4">
+      <div className="text-center animate-fadeIn">
+        <div className="relative mx-auto mb-6 w-14 h-14">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-sky-500/20 animate-pulse" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-slate-700 border-t-emerald-400" />
+          </div>
+        </div>
+        <p className="text-sm font-medium text-slate-400 tracking-wide">Loading</p>
+        <div className="mt-3 flex justify-center gap-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
       </div>
     </div>
   );
+}
+
+/** Scrolls to top on route change */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
 }
 
 function ErrorNotifierConnector() {
@@ -110,6 +129,7 @@ function App() {
           <ConnectionsProvider>
             <ErrorNotifierConnector />
             <Router>
+              <ScrollToTop />
               <Suspense fallback={<RouteFallback />}>
                 <Routes>
                   <Route path="/" element={<Landing />} />

@@ -42,22 +42,22 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 animate-page-enter">
       {/* Header */}
-      <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
+                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h1 className="text-xl font-medium text-white">EverAfter AI</h1>
+              <h1 className="text-lg sm:text-xl font-medium text-white">EverAfter AI</h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {user ? (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-lg hover:from-blue-700 hover:to-teal-700 transition-all shadow-lg font-medium flex items-center gap-2"
+                  className="px-4 sm:px-6 py-2 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-lg hover:from-blue-700 hover:to-teal-700 transition-all shadow-lg font-medium flex items-center gap-2 text-sm sm:text-base"
                 >
                   Dashboard
                   <ArrowRight className="w-4 h-4" />
@@ -65,7 +65,7 @@ export default function Landing() {
               ) : (
                 <button
                   onClick={() => navigate('/login')}
-                  className="px-6 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2"
+                  className="px-4 sm:px-6 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2 text-sm sm:text-base"
                 >
                   <LogIn className="w-4 h-4" />
                   Sign In
@@ -77,26 +77,26 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm mb-6">
-            <Sparkles className="w-4 h-4" />
+      <section className="max-w-7xl mx-auto px-4 py-12 sm:py-16 md:py-20">
+        <div className="text-center mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-400 text-xs sm:text-sm mb-4 sm:mb-6">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Autonomous AI Agents for Your Life
           </div>
-          <h2 className="text-6xl font-light text-white mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-white mb-4 sm:mb-6 leading-tight">
             Your Digital Legacy,<br />
             <span className="bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
               Managed by Saints
             </span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
+          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6 sm:mb-8 px-2">
             EverAfter AI creates autonomous AI agents that work in the background to manage your health,
             protect your legacy, and support your loved ones — today and after you're gone.
           </p>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={() => navigate(user ? '/dashboard' : '/signup')}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-base sm:text-lg flex items-center justify-center gap-2"
             >
               {user ? 'Go to Dashboard' : 'Start Free'}
               <ArrowRight className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function Landing() {
                 startDemoMode();
                 navigate('/dashboard');
               }}
-              className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-base sm:text-lg flex items-center justify-center gap-2"
             >
               Demo for Show
               <ArrowRight className="w-5 h-5" />
@@ -115,28 +115,28 @@ export default function Landing() {
         </div>
 
         {/* Saints Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-12 sm:mt-20 stagger-children">
           {saints.map((saint) => {
             const Icon = saint.icon;
             return (
               <div
                 key={saint.name}
-                className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-6 backdrop-blur-sm hover:scale-105 transition-all"
+                className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl sm:rounded-2xl shadow-2xl border border-gray-700/50 p-4 sm:p-6 backdrop-blur-sm hover:scale-[1.03] transition-all"
               >
-                <div className={`w-16 h-16 bg-gradient-to-br ${saint.color} rounded-xl flex items-center justify-center mb-4 shadow-lg`}>
-                  <Icon className="w-8 h-8 text-white" />
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${saint.color} rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg`}>
+                  <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div className="mb-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${saint.tier === 'Free'
+                  <span className={`inline-block px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${saint.tier === 'Free'
                     ? 'bg-green-600/20 text-green-400 border border-green-500/30'
                     : 'bg-purple-600/20 text-purple-400 border border-purple-500/30'
                     }`}>
                     {saint.tier}
                   </span>
                 </div>
-                <h3 className="text-xl font-medium text-white mb-1">{saint.name}</h3>
-                <p className="text-sm text-gray-400 mb-3">{saint.title}</p>
-                <p className="text-sm text-gray-300 leading-relaxed">{saint.description}</p>
+                <h3 className="text-base sm:text-xl font-medium text-white mb-0.5 sm:mb-1">{saint.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-3">{saint.title}</p>
+                <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">{saint.description}</p>
               </div>
             );
           })}
@@ -144,56 +144,42 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h3 className="text-4xl font-light text-white mb-4">How It Works</h3>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+      <section className="max-w-7xl mx-auto px-4 py-12 sm:py-16 md:py-20">
+        <div className="text-center mb-10 sm:mb-16">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-light text-white mb-3 sm:mb-4">How It Works</h3>
+          <p className="text-sm sm:text-base md:text-lg text-gray-400 max-w-2xl mx-auto px-2">
             Build AI personalities through daily questions, then let them work autonomously
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-gray-800/50 rounded-2xl border border-gray-700/50 p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
-              1
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 md:gap-8 stagger-children">
+          {[
+            { step: 1, title: 'Answer Daily Questions', desc: 'Build rich AI personalities by answering thoughtful questions about yourself and your loved ones', gradient: 'from-blue-600 to-teal-600' },
+            { step: 2, title: 'Train Your Saints', desc: 'Each Saint learns your preferences, habits, and needs to serve you better', gradient: 'from-purple-600 to-pink-600' },
+            { step: 3, title: 'Let Them Work', desc: 'Your Saints operate autonomously in the background, handling tasks and preserving your legacy', gradient: 'from-green-600 to-emerald-600' },
+          ].map((item) => (
+            <div key={item.step} className="bg-gray-800/50 rounded-xl sm:rounded-2xl border border-gray-700/50 p-6 sm:p-8 text-center">
+              <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${item.gradient} rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-white`}>
+                {item.step}
+              </div>
+              <h4 className="text-base sm:text-xl font-medium text-white mb-2 sm:mb-3">{item.title}</h4>
+              <p className="text-sm text-gray-400">{item.desc}</p>
             </div>
-            <h4 className="text-xl font-medium text-white mb-3">Answer Daily Questions</h4>
-            <p className="text-gray-400">
-              Build rich AI personalities by answering thoughtful questions about yourself and your loved ones
-            </p>
-          </div>
-          <div className="bg-gray-800/50 rounded-2xl border border-gray-700/50 p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
-              2
-            </div>
-            <h4 className="text-xl font-medium text-white mb-3">Train Your Saints</h4>
-            <p className="text-gray-400">
-              Each Saint learns your preferences, habits, and needs to serve you better
-            </p>
-          </div>
-          <div className="bg-gray-800/50 rounded-2xl border border-gray-700/50 p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white">
-              3
-            </div>
-            <h4 className="text-xl font-medium text-white mb-3">Let Them Work</h4>
-            <p className="text-gray-400">
-              Your Saints operate autonomously in the background, handling tasks and preserving your legacy
-            </p>
-          </div>
+          ))}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-4xl mx-auto px-4 py-20">
-        <div className="bg-gradient-to-br from-blue-600 to-teal-600 rounded-3xl shadow-2xl p-12 text-center">
-          <h3 className="text-4xl font-light text-white mb-4">
+      <section className="max-w-4xl mx-auto px-4 py-12 sm:py-16 md:py-20">
+        <div className="bg-gradient-to-br from-blue-600 to-teal-600 rounded-2xl sm:rounded-3xl shadow-2xl p-8 sm:p-12 text-center">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-light text-white mb-3 sm:mb-4">
             Start Building Your Digital Legacy Today
           </h3>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 sm:mb-8">
             St. Raphael is completely free. Try health management automation now.
           </p>
           <button
             onClick={() => navigate(user ? '/dashboard' : '/signup')}
-            className="px-8 py-4 bg-white text-blue-600 rounded-xl hover:bg-gray-100 transition-all shadow-lg font-medium text-lg inline-flex items-center gap-2"
+            className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-blue-600 rounded-xl hover:bg-gray-100 transition-all shadow-lg font-medium text-base sm:text-lg inline-flex items-center justify-center gap-2"
           >
             {user ? 'Go to Dashboard' : 'Get Started Free'}
             <ArrowRight className="w-5 h-5" />
@@ -202,16 +188,16 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 mt-20">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
-                <Brain className="w-5 h-5 text-white" />
+      <footer className="border-t border-gray-800 mt-8 sm:mt-20">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
+                <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <span className="text-gray-400 text-sm">EverAfter AI</span>
             </div>
-            <p className="text-gray-500 text-sm">Building digital legacies that last forever</p>
+            <p className="text-gray-500 text-xs sm:text-sm text-center">Building digital legacies that last forever</p>
           </div>
         </div>
       </footer>

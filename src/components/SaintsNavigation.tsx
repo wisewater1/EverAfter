@@ -6,9 +6,9 @@ import { getRouteGate, getRuntimeReadiness } from '../lib/runtime-readiness';
 interface Saint {
   id: string;
   name: string;
+  shortName: string;
   role: string;
   icon: React.ComponentType<{ className?: string }>;
-  color: string;
   gradient: string;
   available: boolean;
   route?: string;
@@ -22,9 +22,9 @@ export default function SaintsNavigation() {
     {
       id: 'michael',
       name: 'St. Michael',
-      role: 'Protection & Security',
+      shortName: 'Michael',
+      role: 'Security',
       icon: Shield,
-      color: 'blue',
       gradient: 'from-blue-500 to-sky-600',
       available: true,
       route: '/security-dashboard',
@@ -32,9 +32,9 @@ export default function SaintsNavigation() {
     {
       id: 'joseph',
       name: 'St. Joseph',
-      role: 'Family coordination',
+      shortName: 'Joseph',
+      role: 'Family',
       icon: Users,
-      color: 'amber',
       gradient: 'from-amber-500 to-orange-600',
       available: true,
       route: '/family-dashboard',
@@ -42,9 +42,9 @@ export default function SaintsNavigation() {
     {
       id: 'raphael',
       name: 'St. Raphael',
-      role: 'Health & Healing',
+      shortName: 'Raphael',
+      role: 'Health',
       icon: Heart,
-      color: 'emerald',
       gradient: 'from-emerald-500 to-teal-600',
       available: true,
       route: '/health-dashboard',
@@ -52,9 +52,9 @@ export default function SaintsNavigation() {
     {
       id: 'gabriel',
       name: 'St. Gabriel',
-      role: 'Finance & Trusteeship',
+      shortName: 'Gabriel',
+      role: 'Finance',
       icon: Wallet,
-      color: 'purple',
       gradient: 'from-purple-500 to-violet-600',
       available: true,
       route: '/finance-dashboard',
@@ -62,9 +62,9 @@ export default function SaintsNavigation() {
     {
       id: 'anthony',
       name: 'St. Anthony',
+      shortName: 'Anthony',
       role: 'Guidance',
       icon: Search,
-      color: 'rose',
       gradient: 'from-rose-500 to-pink-600',
       available: true,
       route: '/anthony-dashboard',
@@ -115,112 +115,56 @@ export default function SaintsNavigation() {
   });
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
-      {/* Backdrop */}
-      <div className="absolute inset-0 glass-strong" style={{ background: 'linear-gradient(180deg, transparent 0%, var(--glass-strong) 40%)' }} />
+    <div className="fixed bottom-0 left-0 right-0 z-40 safe-bottom">
+      {/* Glass backdrop */}
+      <div
+        className="absolute inset-0 bg-slate-950/85 backdrop-blur-xl border-t border-slate-800/50"
+      />
 
-      <div className="relative px-3 pb-6 pt-6 sm:px-4 sm:pt-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Title */}
-          <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">
-              Your Saints
-            </h2>
-            <p className="text-[10px] sm:text-xs text-slate-500">
-              AI-powered companions for your journey
-            </p>
-          </div>
-
-          {/* Saints Grid — each button is a flex-col card+name */}
-          <div className="grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4">
+      <div className="relative px-2 sm:px-4 pb-2 pt-2 sm:pb-3 sm:pt-3">
+        <div className="max-w-lg mx-auto">
+          {/* Saints icon row */}
+          <div className="grid grid-cols-5 gap-1 sm:gap-2">
             {renderedSaints.map((saint, index) => {
               const Icon = saint.icon;
-              const isCenter = index === 2; // St. Raphael
+              const isCenter = index === 2;
 
               return (
                 <button
                   key={saint.id}
                   onClick={() => handleSaintClick(saint)}
                   disabled={!saint.available}
-                  title={saint.route ? blockedRoutes[saint.route] || undefined : undefined}
-                  className={`group flex flex-col items-center gap-1.5 transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
-                    } ${saint.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                  style={{ transform: isCenter ? 'translateY(-8px)' : 'translateY(0)' }}
+                  title={saint.route ? blockedRoutes[saint.route] || saint.name : undefined}
+                  className={`group flex flex-col items-center gap-1 py-1.5 rounded-xl transition-all duration-200 active:scale-95 ${
+                    saint.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'
+                  }`}
                 >
-                  {/* Card Square */}
-                  <div className={`relative w-full aspect-square rounded-2xl transition-all duration-500 ease-out ${saint.available ? 'hover:scale-105 active:scale-95' : ''}`}>
-                    {/* Glow */}
-                    {saint.available && (
-                      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${saint.gradient} opacity-0 group-hover:opacity-30 blur-xl transition-all duration-500 -z-10`} />
+                  {/* Icon circle */}
+                  <div className={`relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                    saint.available
+                      ? `bg-gradient-to-br ${saint.gradient} shadow-md group-hover:scale-105 group-active:scale-95`
+                      : 'bg-slate-800'
+                  } ${isCenter ? 'ring-2 ring-emerald-400/30 ring-offset-1 ring-offset-slate-950' : ''}`}>
+                    {saint.available ? (
+                      <Icon className={`${isCenter ? 'w-5 h-5 sm:w-6 sm:h-6' : 'w-4.5 h-4.5 sm:w-5 sm:h-5'} text-white drop-shadow`} />
+                    ) : (
+                      <Lock className="w-4 h-4 text-slate-500" />
                     )}
-
-                    {/* Face */}
-                    <div className={`glass-card relative w-full h-full rounded-2xl overflow-hidden transition-all duration-500 ${saint.available ? `bg-gradient-to-br ${saint.gradient} opacity-90` : 'opacity-50'}`}>
-                      {saint.available && (
-                        <div className="absolute inset-0 opacity-10">
-                          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 group-hover:animate-pulse" />
-                        </div>
-                      )}
-
-                      {/* Icon */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Icon className={`transition-all duration-500 ${isCenter ? 'w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12' : 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9'
-                          } ${saint.available ? 'text-white drop-shadow-lg group-hover:scale-110' : 'text-slate-600'}`} />
-                      </div>
-
-                      {/* Lock */}
-                      {!saint.available && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-                          <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500" />
-                        </div>
-                      )}
-
-                      {/* Active dot */}
-                      {saint.available && isCenter && (
-                        <div className="absolute top-2 right-2">
-                          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50" />
-                        </div>
-                      )}
-
-                      {/* Coming soon */}
-                      {!saint.available && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-sm py-1">
-                          <p className="text-[8px] sm:text-[9px] font-semibold text-slate-400 text-center uppercase tracking-wider">
-                            Coming Soon
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Ripple */}
-                      {saint.available && (
-                        <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                          <div className="absolute inset-0 bg-white/0 group-active:bg-white/20 transition-colors duration-150" />
-                        </div>
-                      )}
-                    </div>
+                    {/* Active pulse for Raphael */}
+                    {saint.available && isCenter && (
+                      <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-sm shadow-emerald-400/50" />
+                    )}
                   </div>
 
-                  {/* Name + Role — normal flow, always visible at every screen size */}
-                  <div className="text-center w-full px-0.5">
-                    <p className={`font-semibold leading-tight truncate ${isCenter ? 'text-[10px] sm:text-xs' : 'text-[9px] sm:text-[10px]'
-                      } ${saint.available ? 'text-white' : 'text-slate-400'}`}>
-                      {saint.name}
-                    </p>
-                    <p className={`leading-tight mt-0.5 truncate ${isCenter ? 'text-[8px] sm:text-[9px]' : 'text-[7px] sm:text-[8px]'
-                      } ${saint.available ? 'text-emerald-400 font-medium' : 'text-slate-600'}`}>
-                      {saint.role}
-                    </p>
-                  </div>
+                  {/* Label */}
+                  <span className={`text-[10px] sm:text-[11px] font-medium leading-tight truncate w-full text-center ${
+                    saint.available ? 'text-slate-300' : 'text-slate-600'
+                  }`}>
+                    {saint.shortName}
+                  </span>
                 </button>
               );
             })}
-          </div>
-
-          {/* Footer hint */}
-          <div className="text-center mt-2 sm:mt-4">
-            <p className="text-[10px] sm:text-xs text-slate-500">
-              Tap <span className="text-emerald-400 font-medium">St. Raphael Hub</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features
-            </p>
           </div>
         </div>
       </div>

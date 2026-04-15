@@ -46,13 +46,18 @@ interface PersonalityResumeState {
 
 function DashboardSectionFallback({ label }: { label: string }) {
   return (
-    <div className="rounded-3xl border border-slate-800/70 bg-slate-950/55 px-6 py-8 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
+    <div className="rounded-2xl sm:rounded-3xl border border-slate-800/70 bg-slate-950/55 px-4 sm:px-6 py-5 sm:py-8 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
       <div className="flex items-center gap-3">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-400" />
         <div>
           <p className="text-sm font-medium text-slate-200">{label}</p>
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Loading in background</p>
+          <p className="text-[10px] sm:text-xs uppercase tracking-[0.24em] text-slate-500">Loading</p>
         </div>
+      </div>
+      <div className="mt-4 space-y-2.5">
+        <div className="skeleton h-4 w-3/4" />
+        <div className="skeleton h-4 w-1/2" />
+        <div className="skeleton h-4 w-5/6" />
       </div>
     </div>
   );
@@ -188,10 +193,20 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Loading...</p>
+      <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center px-4">
+        <div className="text-center animate-fadeIn">
+          <div className="relative mx-auto mb-5 w-14 h-14">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-sky-500/20 animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-slate-700 border-t-emerald-400" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-slate-400">Loading dashboard</p>
+          <div className="mt-3 flex justify-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
         </div>
       </div>
     );
@@ -212,7 +227,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col animate-page-enter">
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
@@ -223,26 +238,25 @@ export default function Dashboard() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2.5 sm:gap-4">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-white rounded-lg active:bg-slate-800/50"
+                aria-label="Open menu"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
               <div className="relative">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Brain className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950" />
               </div>
-              <div>
-                <h1 className="text-base sm:text-lg font-medium text-white tracking-tight">EverAfter AI</h1>
-              </div>
+              <h1 className="text-sm sm:text-lg font-medium text-white tracking-tight">EverAfter AI</h1>
             </div>
 
             {/* Desktop Actions */}
@@ -251,28 +265,27 @@ export default function Dashboard() {
                 onClick={() => navigate('/legacy-vault')}
                 className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-purple-500/30 hover:border-purple-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-purple-500/10 hover:shadow-purple-500/30 hover:bg-slate-900/60 group overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Heart className="w-4 h-4 relative z-10 text-purple-400 group-hover:text-purple-300" />
-                <span className="hidden sm:inline relative z-10">Legacy Vault</span>
+                <span className="relative z-10">Legacy Vault</span>
               </button>
               <button
                 onClick={handleSignOut}
                 className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-slate-600/30 hover:border-slate-500/50 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-slate-900/20 hover:shadow-slate-700/30 hover:bg-slate-900/60 group overflow-hidden"
               >
-                <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <LogOut className="w-4 h-4 relative z-10" />
-                <span className="hidden sm:inline relative z-10">{isDemoMode ? 'Exit Demo' : 'Sign Out'}</span>
+                <span className="relative z-10">{isDemoMode ? 'Exit Demo' : 'Sign Out'}</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation - Minimalistic & Responsive */}
-      <nav className="sticky top-[73px] z-40 bg-black/40 backdrop-blur-xl border-b border-slate-800/30 shadow-lg shadow-black/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Mobile & Tablet: Horizontal Scroll */}
-          <div className="lg:hidden flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-4 px-4 snap-x snap-mandatory">
+      {/* Navigation Tabs */}
+      <nav className="sticky top-[49px] sm:top-[57px] z-40 bg-black/40 backdrop-blur-xl border-b border-slate-800/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = selectedView === item.id;
@@ -289,101 +302,33 @@ export default function Dashboard() {
                   }}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`group relative flex-shrink-0 snap-start px-4 sm:px-5 py-4 transition-all duration-200 ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300 active:text-slate-200'
-                    }`}
-                  style={{ minWidth: '80px', touchAction: 'manipulation' }}
-                >
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div className={`relative transition-all duration-200 ${isActive ? 'scale-110' : 'scale-100 group-hover:scale-105 group-active:scale-95'}`}>
-                      <Icon
-                        className={`w-5 h-5 transition-colors duration-200 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'
-                          }`}
-                        strokeWidth={isActive ? 2.5 : 2}
-                      />
-                      {isActive && (
-                        <div className="absolute -inset-1 bg-emerald-400/10 rounded-lg blur-sm"></div>
-                      )}
-                    </div>
-                    <span className={`text-xs font-medium transition-all duration-200 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-400'
-                      }`}>
-                      {item.label}
-                    </span>
-                  </div>
-                  {isActive && (
-                    <div
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent transition-all duration-300"
-                      style={{ width: '60%' }}
-                    ></div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Desktop: Full Width Navigation */}
-          <div className="hidden lg:flex items-center justify-center gap-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = selectedView === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.id === 'trinity') {
-                      navigate('/trinity');
-                    } else {
-                      setSelectedView(item.id as any);
-                    }
-                  }}
-                  aria-label={item.label}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`group relative px-6 py-3.5 rounded-lg transition-all duration-200 ${isActive
+                  className={`group relative flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg transition-all duration-200 ${isActive
                     ? 'text-white bg-slate-800/40'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/20 active:bg-slate-800/30'
                     }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Icon
-                      className={`w-4.5 h-4.5 transition-all duration-200 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'
-                        }`}
-                      strokeWidth={isActive ? 2.5 : 2}
-                    />
-                    <span className={`text-sm font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
-                      }`}>
-                      {item.label}
-                    </span>
-                  </div>
+                  <Icon
+                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-all duration-200 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'
+                      }`}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  <span className={`text-xs sm:text-sm font-medium transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                    }`}>
+                    {item.label}
+                  </span>
                   {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-500 rounded-t-full"></div>
+                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-500 rounded-t-full" />
                   )}
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Mobile Scroll Indicator */}
-        <div className="lg:hidden">
-          <div className="flex justify-center py-1">
-            <div className="flex gap-1">
-              {navItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`h-0.5 rounded-full transition-all duration-300 ${selectedView === item.id
-                    ? 'w-4 bg-emerald-400'
-                    : 'w-1 bg-slate-700'
-                    }`}
-                ></div>
-              ))}
-            </div>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[250px] safe-bottom w-full">
-        <div className="space-y-8">
+      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-28 sm:pb-32 safe-bottom w-full">
+        <div className="space-y-4 sm:space-y-8">
           {!loadingOnboardingResume && onboardingResume.visible && (
             <section className="relative overflow-hidden rounded-3xl border border-cyan-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.14),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(129,140,248,0.12),_transparent_28%)]" />
@@ -499,7 +444,7 @@ export default function Dashboard() {
           )}
 
           {selectedView === 'activities' && (
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-8">
               <Suspense fallback={<DashboardSectionFallback label="Holistic Timeline" />}>
                 <HolisticTimeline />
               </Suspense>

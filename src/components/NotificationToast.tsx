@@ -49,7 +49,7 @@ function Toast({ notification, onDismiss }: { notification: Notification; onDism
 
     return (
         <div
-            className={`${config.bgClass} backdrop-blur-xl border rounded-xl shadow-lg p-4 pointer-events-auto transform transition-all duration-300 animate-slide-in-right flex items-start gap-3`}
+            className={`${config.bgClass} backdrop-blur-xl border rounded-xl shadow-lg p-3 sm:p-4 pointer-events-auto transform transition-all duration-300 animate-toast-in flex items-start gap-2.5 sm:gap-3`}
             role="alert"
         >
             <div className={`flex-shrink-0 mt-0.5 ${config.iconClass}`}>

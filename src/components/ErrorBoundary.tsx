@@ -51,8 +51,8 @@ export default class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-slate-900/50 backdrop-blur-xl border border-red-800/50 rounded-2xl shadow-2xl p-8">
+        <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-3 sm:p-4">
+          <div className="max-w-md w-full bg-slate-900/50 backdrop-blur-xl border border-red-800/50 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-8">
             <div className="flex flex-col items-center text-center space-y-6">
               <div className="w-16 h-16 bg-red-950/50 rounded-full flex items-center justify-center">
                 <AlertCircle className="w-8 h-8 text-red-400" />
