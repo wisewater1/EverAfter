@@ -52,7 +52,7 @@ export default function BudgetEnvelopes() {
                     setEnvelopes(recovered);
                     setError(null);
                     setDegradedMode(false);
-                } catch (err: any) {
+                } catch (err) {
                     console.error('Budget recovery fetch failed:', err);
                     setEnvelopes(financeApi.getCachedBudget());
                     setDegradedMode(true);
@@ -64,7 +64,7 @@ export default function BudgetEnvelopes() {
 
             setEnvelopes(timeoutResult.data);
             setError(null);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Failed to load budget:', err);
             setEnvelopes(financeApi.getCachedBudget());
             setDegradedMode(true);

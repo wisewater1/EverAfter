@@ -33,7 +33,7 @@ function formatSliderValue(key: string, value: number, unit: string) {
 
 export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
     const [values, setValues] = useState<Record<string, number>>(Object.fromEntries(BEHAVIOR_SLIDERS.map((slider) => [slider.key, slider.default])));
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<unknown>(null);
     const [loading, setLoading] = useState(false);
     const [selectedHorizon, setSelectedHorizon] = useState('14d');
 
@@ -165,7 +165,7 @@ export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {Object.entries(result.projections || {}).map(([metric, horizonData]: [string, any]) => {
+                            {Object.entries(result.projections || {}).map(([metric, horizonData]: [string, unknown]) => {
                                 const data = horizonData[selectedHorizon] || {};
                                 return (
                                     <div key={metric} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/20 transition-colors">
@@ -197,7 +197,7 @@ export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                        {Object.entries(selectedComposite).map(([key, value]: [string, any]) => (
+                        {Object.entries(selectedComposite).map(([key, value]: [string, unknown]) => (
                             <div key={key} className="rounded-2xl border border-white/5 bg-gradient-to-br from-[#171721] to-[#12121a] p-4">
                                 <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{prettyMetric(key)}</div>
                                 <div className="mt-3 flex items-end gap-2">
@@ -217,7 +217,7 @@ export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
                             <h3 className="text-lg font-semibold text-white">Downstream Equations</h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                            {Object.entries(downstreamEquations).map(([key, entry]: [string, any]) => (
+                            {Object.entries(downstreamEquations).map(([key, entry]: [string, unknown]) => (
                                 <div key={key} className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>

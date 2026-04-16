@@ -36,7 +36,7 @@ export default function RaphaelHealthInterface() {
       try {
         const engrams = await apiClient.getEngrams();
         if (engrams && Array.isArray(engrams)) {
-          const raphael = engrams.find((e: any) => e.name === 'St. Raphael');
+          const raphael = engrams.find((e: unknown) => e.name === 'St. Raphael');
           if (raphael) {
             setRaphaelEngramId(raphael.id);
           }

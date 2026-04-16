@@ -13,7 +13,7 @@ interface Connection {
   last_sync_at?: string;
   last_webhook_at?: string;
   firmware?: string;
-  permissions?: any;
+  permissions?: unknown;
   created_at: string;
 }
 
@@ -23,7 +23,7 @@ interface DeviceHealth {
   avg_latency_ms_24h: number;
   data_freshness_s: number;
   completeness_pct_24h: number;
-  gaps?: any[];
+  gaps?: unknown[];
   last_eval_at: string;
 }
 
@@ -91,9 +91,9 @@ export default function DevicesDashboard() {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  const connectedCount = connections.filter(c => c.status === 'connected').length;
-  const degradedCount = connections.filter(c => c.status === 'degraded').length;
-  const criticalAlerts = alerts.filter(a => a.severity === 'critical').length;
+  const _connectedCount = connections.filter(c => c.status === 'connected').length;
+  const _degradedCount = connections.filter(c => c.status === 'degraded').length;
+  const _criticalAlerts = alerts.filter(a => a.severity === 'critical').length;
 
   if (loading) {
     return (
@@ -363,8 +363,8 @@ function RealTimeMonitoringCard({ connections }: { connections: Connection[] }) 
 }
 
 function SyncWebhookHealthCard({ webhookLogs }: { webhookLogs: WebhookLog[] }) {
-  const recentErrors = webhookLogs.filter(log => log.error).length;
-  const avgParseTime = webhookLogs.reduce((acc, log) => acc + log.parse_ms, 0) / (webhookLogs.length || 1);
+  const _recentErrors = webhookLogs.filter(log => log.error).length;
+  const _avgParseTime = webhookLogs.reduce((acc, log) => acc + log.parse_ms, 0) / (webhookLogs.length || 1);
 
   return (
     <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
@@ -416,7 +416,7 @@ function SyncWebhookHealthCard({ webhookLogs }: { webhookLogs: WebhookLog[] }) {
   );
 }
 
-function AlertsCard({ alerts, onResolve }: { alerts: Alert[]; onResolve: () => void }) {
+function AlertsCard({ alerts, _onResolve }: { alerts: Alert[]; onResolve: () => void }) {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'from-rose-500/20 to-red-500/20 border-rose-500/50 text-rose-400';
@@ -528,7 +528,7 @@ function ActionsCard({ onConnect, onExport, hasDevices }: { onConnect: () => voi
   );
 }
 
-function DeviceDetailDrawer({ device, onClose, onRefresh }: { device: Connection; onClose: () => void; onRefresh: () => void }) {
+function DeviceDetailDrawer({ device, onClose, _onRefresh }: { device: Connection; onClose: () => void; onRefresh: () => void }) {
   const [activeTab, setActiveTab] = useState<'status' | 'metrics' | 'permissions' | 'diagnostics' | 'history'>('status');
 
   return (
@@ -609,7 +609,7 @@ function StatusTab({ device }: { device: Connection }) {
   );
 }
 
-function MetricsTab({ device }: { device: Connection }) {
+function MetricsTab({ _device }: { device: Connection }) {
   return (
     <div className="space-y-4">
       <p className="text-slate-400 text-sm">Metrics data will appear here</p>
@@ -644,7 +644,7 @@ function HistoryTab({ device }: { device: Connection }) {
   );
 }
 
-function ConnectDeviceWizard({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function ConnectDeviceWizard({ onClose, _onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-gradient-to-br from-[#1a1a24] to-[#13131a] rounded-3xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -673,7 +673,7 @@ function ConnectDeviceWizard({ onClose, onSuccess }: { onClose: () => void; onSu
   );
 }
 
-function ExportDataModal({ onClose, connections }: { onClose: () => void; connections: Connection[] }) {
+function ExportDataModal({ onClose, _connections }: { onClose: () => void; connections: Connection[] }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-gradient-to-br from-[#1a1a24] to-[#13131a] rounded-3xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/10 max-w-lg w-full p-6">

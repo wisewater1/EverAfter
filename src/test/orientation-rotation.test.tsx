@@ -98,7 +98,7 @@ describe('Connection Rotation Auto-Rotation Tests', () => {
       }),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
-    })) as any;
+    })) as unknown;
   };
 
   const triggerOrientationChange = () => {
@@ -311,7 +311,7 @@ describe('Responsive Grid Layout Tests', () => {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    })) as any;
+    })) as unknown;
 
     render(
       <BrowserRouter>
@@ -335,7 +335,7 @@ describe('Responsive Grid Layout Tests', () => {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    })) as any;
+    })) as unknown;
 
     render(
       <BrowserRouter>

@@ -176,7 +176,7 @@ export default function FileManager() {
         {/* Category Stats */}
         {storageStats?.by_category && Object.keys(storageStats.by_category).length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(storageStats.by_category).map(([category, stats]: [string, any]) => (
+            {Object.entries(storageStats.by_category).map(([category, stats]: [string, unknown]) => (
               <div key={category} className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
                 <div className="text-xs text-gray-400 mb-1 capitalize">
                   {category.replace('_', ' ')}

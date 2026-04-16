@@ -42,7 +42,7 @@ function loadPlaidScript(): Promise<void> {
 
 export async function openPlaidLink(options: {
   linkToken: string;
-  onSuccess: (publicToken: string, metadata: any) => Promise<void> | void;
+  onSuccess: (publicToken: string, metadata: unknown) => Promise<void> | void;
   onExit?: (error: Error | null) => void;
 }) {
   await loadPlaidScript();
@@ -54,7 +54,7 @@ export async function openPlaidLink(options: {
   return new Promise<void>((resolve, reject) => {
     const handler = window.Plaid!.create({
       token: options.linkToken,
-      onSuccess: async (publicToken: string, metadata: any) => {
+      onSuccess: async (publicToken: string, metadata: unknown) => {
         try {
           await options.onSuccess(publicToken, metadata);
           resolve();
@@ -64,7 +64,7 @@ export async function openPlaidLink(options: {
           handler.destroy?.();
         }
       },
-      onExit: (error: any) => {
+      onExit: (error: unknown) => {
         options.onExit?.(error ? new Error(error.display_message || error.error_message || 'Plaid Link exited') : null);
         if (error) {
           reject(new Error(error.display_message || error.error_message || 'Plaid Link exited'));

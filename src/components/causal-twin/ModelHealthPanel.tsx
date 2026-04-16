@@ -3,7 +3,7 @@ import { Radio, TrendingUp, AlertTriangle, RefreshCw, CheckCircle, Activity } fr
 import { buildApiUrl } from '../../lib/env';
 
 export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
-    const [health, setHealth] = useState<any>(null);
+    const [health, setHealth] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => { loadHealth(); }, []);
@@ -43,8 +43,8 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     const sc = statusConfig[ms.status] || statusConfig.stable;
 
     // Compute simple sparkline from accuracy trend
-    const maxAcc = Math.max(...trend.map((t: any) => t.accuracy), 0.5);
-    const minAcc = Math.min(...trend.map((t: any) => t.accuracy), 0);
+    const maxAcc = Math.max(...trend.map((t: unknown) => t.accuracy), 0.5);
+    const minAcc = Math.min(...trend.map((t: unknown) => t.accuracy), 0);
     const range = maxAcc - minAcc || 0.1;
 
     return (
@@ -80,7 +80,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
 
                 {/* Sparkline */}
                 <div className="h-32 flex items-end gap-[2px]">
-                    {trend.slice(-60).map((point: any, i: number) => {
+                    {trend.slice(-60).map((point: unknown, i: number) => {
                         const height = ((point.accuracy - minAcc) / range) * 100;
                         const isRecent = i >= trend.length - 5;
                         return (
@@ -116,7 +116,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        {driftHistory.map((event: any) => (
+                        {driftHistory.map((event: unknown) => (
                             <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                                 <div className={`w-2 h-2 rounded-full ${event.status === 'resolved' ? 'bg-emerald-400' :
                                     event.status === 'recalibrating' ? 'bg-amber-400 animate-pulse' :

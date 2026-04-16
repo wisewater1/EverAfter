@@ -62,7 +62,7 @@ export default function TransactionLedger() {
       setTransactions(data);
       setError(null);
       setOfflineMode(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load transactions:', err);
       const message = err?.message || 'Failed to load transactions';
       setError(isAuthFailureMessage(message) ? null : message);
@@ -89,7 +89,7 @@ export default function TransactionLedger() {
           await bootstrap();
         },
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to connect bank:', err);
       const message = err?.message || 'Failed to connect bank';
       setError(isAuthFailureMessage(message) ? null : message);
@@ -103,7 +103,7 @@ export default function TransactionLedger() {
       setBankLoading(true);
       await financeApi.syncBankTransactions();
       await bootstrap();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to sync bank:', err);
       const message = err?.message || 'Failed to sync transactions';
       setError(isAuthFailureMessage(message) ? null : message);

@@ -88,7 +88,7 @@ export const METRIC_STANDARDS = {
  * Apple Health Mapper
  */
 export class AppleHealthMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     if (data.steps) {
@@ -135,7 +135,7 @@ export class AppleHealthMapper {
  * Garmin Mapper
  */
 export class GarminMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     // Daily summaries
@@ -200,7 +200,7 @@ export class GarminMapper {
  * Fitbit Mapper
  */
 export class FitbitMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     if (data['activities-steps']) {
@@ -254,7 +254,7 @@ export class FitbitMapper {
  * Oura Mapper
  */
 export class OuraMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     if (data.sleep) {
@@ -330,7 +330,7 @@ export class OuraMapper {
  * WHOOP Mapper
  */
 export class WhoopMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     if (data.recovery) {
@@ -391,7 +391,7 @@ export class WhoopMapper {
  * Dexcom CGM Mapper
  */
 export class DexcomMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     if (data.egvs) {
@@ -417,7 +417,7 @@ export class DexcomMapper {
  * Withings Mapper
  */
 export class WithingsMapper {
-  static map(data: any): UnifiedHealthMetric[] {
+  static map(data: unknown): UnifiedHealthMetric[] {
     const metrics: UnifiedHealthMetric[] = [];
 
     if (data.measuregrps) {
@@ -497,7 +497,7 @@ export class WithingsMapper {
 export class HealthDataMapper {
   static mapProviderData(
     provider: string,
-    data: any
+    data: unknown
   ): UnifiedHealthMetric[] {
     switch (provider) {
       case 'apple_health':
@@ -525,7 +525,7 @@ export class HealthDataMapper {
    */
   static normalizeTimezone(
     timestamp: string,
-    timezone?: string
+    _timezone?: string
   ): string {
     const date = new Date(timestamp);
     return date.toISOString();

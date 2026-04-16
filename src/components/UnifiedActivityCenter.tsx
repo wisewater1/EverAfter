@@ -229,7 +229,7 @@ export default function UnifiedActivityCenter() {
     return categories[index];
   };
 
-  const currentCategory = getCurrentCategory();
+  const _currentCategory = getCurrentCategory();
 
   if (loading) {
     return (

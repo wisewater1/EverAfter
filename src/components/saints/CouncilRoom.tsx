@@ -9,7 +9,7 @@ interface CouncilMember {
     id: string;
     name: string;
     role: string;
-    icon: any;
+    icon: unknown;
     color: string;           // Text color
     glowColor: string;       // Shadow/Glow color
     gradient: string;        // Background gradient

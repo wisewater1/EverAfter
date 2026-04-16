@@ -61,7 +61,7 @@ export default function SacredOverlay() {
                     table: 'agent_notifications',
                     filter: `user_id=eq.${user.id}`,
                 },
-                (payload: any) => {
+                (payload: unknown) => {
                     const n = payload.new;
                     // Detect high-stress health alerts
                     if (n.notification_type === 'health_alert' && n.priority === 'critical') {

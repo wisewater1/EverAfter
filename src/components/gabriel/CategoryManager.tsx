@@ -46,7 +46,7 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
             // Note: getCategories implementation in finance.ts currently extracts from budget.
             // This means we won't see hidden categories to unhide them.
             // Improvement: Add a proper getAllCategories endpoint later.
-            setCategories(cats as any);
+            setCategories(cats as unknown);
         } catch (error) {
             console.error('Failed to load categories', error);
             setCategories([]);

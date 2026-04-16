@@ -7,7 +7,7 @@ interface PendingIntercession {
     saint_id: string;
     description: string;
     tool_name: string;
-    tool_kwargs: any;
+    tool_kwargs: unknown;
     status: string;
     created_at: string;
 }

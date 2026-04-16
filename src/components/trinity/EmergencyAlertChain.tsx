@@ -43,7 +43,7 @@ interface SourceSummary {
 
 interface ChainResponse {
   alert_level: AlertLevel;
-  cascade?: Record<string, any>;
+  cascade?: Record<string, unknown>;
   recommended_action?: string;
   generated_at?: string;
 }
@@ -452,7 +452,7 @@ export default function EmergencyAlertChain() {
               <p className="text-xs text-slate-400">{stepData?.message || 'Waiting...'}</p>
               {key === 'joseph' && stepData?.next_of_kin?.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {stepData.next_of_kin.map((kin: any, index: number) => (
+                  {stepData.next_of_kin.map((kin: unknown, index: number) => (
                     <span
                       key={`${kin.name}-${kin.relationship}-${index}`}
                       className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400/80 border border-amber-500/10"

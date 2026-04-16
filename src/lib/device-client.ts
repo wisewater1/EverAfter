@@ -10,7 +10,7 @@ export interface Connection {
   last_sync_at?: string;
   last_webhook_at?: string;
   firmware?: string;
-  permissions?: any;
+  permissions?: unknown;
   created_at: string;
 }
 
@@ -20,7 +20,7 @@ export interface DeviceHealth {
   avg_latency_ms_24h: number;
   data_freshness_s: number;
   completeness_pct_24h: number;
-  gaps?: any[];
+  gaps?: unknown[];
   last_eval_at: string;
 }
 
@@ -198,9 +198,9 @@ export const deviceClient = {
   },
 
   subscribeToUpdates(userId: string, callbacks: {
-    onConnection?: (data: any) => void;
-    onAlert?: (data: any) => void;
-    onWebhook?: (data: any) => void;
+    onConnection?: (data: unknown) => void;
+    onAlert?: (data: unknown) => void;
+    onWebhook?: (data: unknown) => void;
   }) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const eventSource = new EventSource(`${supabaseUrl}/functions/v1/device-stream?user_id=${userId}`);

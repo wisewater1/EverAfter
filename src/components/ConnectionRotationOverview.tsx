@@ -37,7 +37,7 @@ export default function ConnectionRotationOverview() {
   useEffect(() => {
     const checkOrientation = () => {
       const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-      const angle = (window.screen as any).orientation?.angle || 0;
+      const angle = (window.screen as unknown).orientation?.angle || 0;
 
       setOrientation({
         type: isLandscape ? 'landscape' : 'portrait',
@@ -52,7 +52,7 @@ export default function ConnectionRotationOverview() {
       checkOrientation();
       console.log('Orientation changed:', {
         type: window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait',
-        angle: (window.screen as any).orientation?.angle || 0,
+        angle: (window.screen as unknown).orientation?.angle || 0,
         width: window.innerWidth,
         height: window.innerHeight,
       });

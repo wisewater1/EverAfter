@@ -67,9 +67,9 @@ interface SharedPredictionPanelProps {
     /** Which saint is embedding this panel */
     saint: 'raphael' | 'joseph';
     /** Optional: metrics history for individual prediction */
-    metricsHistory?: any[];
+    metricsHistory?: unknown[];
     /** Optional: user profile context */
-    profile?: Record<string, any>;
+    profile?: Record<string, unknown>;
     /** Compact mode for embedding in smaller spaces */
     compact?: boolean;
 }

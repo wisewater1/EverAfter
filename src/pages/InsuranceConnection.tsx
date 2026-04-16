@@ -96,7 +96,7 @@ export default function InsuranceConnection() {
     }
   ];
 
-  const handleConnect = () => {
+  const _handleConnect = () => {
     if (selectedPlan) {
       window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host';
     }

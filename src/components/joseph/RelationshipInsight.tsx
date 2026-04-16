@@ -12,7 +12,7 @@ export default function RelationshipInsight({ member }: RelationshipInsightProps
         const children = getChildren(member.id);
         const parents = getParents(member.id);
 
-        const rels: { relative: FamilyMember, label: string, synergy: any }[] = [];
+        const rels: { relative: FamilyMember, label: string, synergy: unknown }[] = [];
         if (spouse) {
             const syn = calculateSynergy(member, spouse);
             if (syn) rels.push({ relative: spouse, label: 'Spouse', synergy: syn });

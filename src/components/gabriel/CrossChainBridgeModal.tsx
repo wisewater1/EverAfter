@@ -61,7 +61,7 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
                 throw new Error(data.detail || "Bridge request failed");
             }
 
-        } catch (err: any) {
+        } catch (err) {
             console.error("Bridging error:", err);
             setErrorMessage(err.message || "An unexpected error occurred.");
             setStatus('error');
@@ -112,7 +112,7 @@ export default function CrossChainBridgeModal({ isOpen, onClose, currentBalance,
                                 <select
                                     className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-indigo-500"
                                     value={destinationChain}
-                                    onChange={(e) => setDestinationChain(e.target.value as any)}
+                                    onChange={(e) => setDestinationChain(e.target.value as unknown)}
                                     disabled={status === 'bridging'}
                                 >
                                     <option value="Arbitrum">Arbitrum (EVM)</option>

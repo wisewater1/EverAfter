@@ -20,7 +20,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [_selectedPartner, _setSelectedPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
     try {
       const data = selectedCategory === 'all'
         ? await api.getAvailablePartners()
-        : await api.getAvailablePartners(selectedCategory as any);
+        : await api.getAvailablePartners(selectedCategory as unknown);
       setPartners(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load partners');

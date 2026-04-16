@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, AlertTriangle } from 'lucide-react';
+import { Shield, _AlertTriangle } from 'lucide-react';
 
 export default function SafetyDisclaimer({ compact = false }: { compact?: boolean }) {
     if (compact) {

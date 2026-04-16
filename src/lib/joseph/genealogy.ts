@@ -61,7 +61,7 @@ export interface FamilyMember {
     // Agency & Integration
     engramId?: string; // Links to backend persistence
     githubUsername?: string;
-    githubTraits?: any[];
+    githubTraits?: unknown[];
     // Media Intelligence
     infoStack?: InfoStackEntry[];
     mediaPermissions?: MediaPermissions;
@@ -196,7 +196,7 @@ const DEFAULT_EVENTS: FamilyEvent[] = [
 
 // ── Persistence Layer ──────────────────────────────────────
 
-function loadFromStorage<T>(key: string, defaults: T[]): T[] {
+function _loadFromStorage<T>(key: string, defaults: T[]): T[] {
     try {
         const stored = localStorage.getItem(key);
         if (stored) return JSON.parse(stored);
@@ -278,7 +278,7 @@ function localMemberMatch(left: Partial<FamilyMember>, right: Partial<FamilyMemb
     return false;
 }
 
-function backendBirthDate(node: any): string {
+function backendBirthDate(node: unknown): string {
     return String(node?.birthDate || '').slice(0, 10);
 }
 
@@ -369,8 +369,8 @@ function mergeStoredGenealogy(
 }
 
 function mergeCanonicalGenealogy(
-    backendNodes: any[],
-    backendRelationships: any[],
+    backendNodes: unknown[],
+    backendRelationships: unknown[],
     baseMembers: FamilyMember[],
     baseRelationships: Relationship[],
     baseEvents: FamilyEvent[],
@@ -378,7 +378,7 @@ function mergeCanonicalGenealogy(
     const mergedMembers = [...baseMembers];
     const oldToCanonicalIds = new Map<string, string>();
 
-    const findMemberMatch = (node: any) => {
+    const findMemberMatch = (node: unknown) => {
         const nodeName = normalizeName(node?.name);
         const nodeBirth = backendBirthDate(node);
 
@@ -485,7 +485,7 @@ async function loadGenealogyFromBackend() {
     try {
         const sessionResult = supabase ? await supabase.auth.getSession() : { data: { session: null } };
         const token = sessionResult.data.session?.access_token;
-        const data = await requestBackendJson<{ nodes?: any[]; relationships?: any[] }>(
+        const data = await requestBackendJson<{ nodes?: unknown[]; relationships?: unknown[] }>(
             '/api/v1/genealogy/tree',
             {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},

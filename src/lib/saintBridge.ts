@@ -30,7 +30,7 @@ const CHANNEL_NAME = 'everafter_divine_protocol';
 
 const _handlers: Map<string, EventHandler[]> = new Map();
 let _channel: BroadcastChannel | null = null;
-let _heartbeatInterval: any = null;
+let _heartbeatInterval: unknown = null;
 
 // Initialize BroadcastChannel for cross-tab sync
 if (typeof window !== 'undefined' && window.BroadcastChannel) {
@@ -191,7 +191,7 @@ export function getSaintStatuses(): SaintStatus[] {
         if (members) {
             const parsed = JSON.parse(members);
             if (Array.isArray(parsed)) {
-                josephAgents = parsed.filter((m: any) => m.aiPersonality?.isActive).length;
+                josephAgents = parsed.filter((m: unknown) => m.aiPersonality?.isActive).length;
             }
         }
     } catch { /* */ }

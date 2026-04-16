@@ -69,8 +69,8 @@ export async function searchFood(query: string, limit = 10): Promise<FoodItem[]>
         if (!data.products) return [];
 
         return data.products
-            .filter((p: any) => p.product_name)
-            .map((product: any) => parseOpenFoodFactsProduct(product));
+            .filter((p: unknown) => p.product_name)
+            .map((product: unknown) => parseOpenFoodFactsProduct(product));
     } catch (error) {
         console.error('Food search error:', error);
         return [];
@@ -171,8 +171,8 @@ export async function searchByNutrient(
         if (!data.products) return [];
 
         return data.products
-            .filter((p: any) => p.product_name)
-            .map((product: any) => parseOpenFoodFactsProduct(product));
+            .filter((p: unknown) => p.product_name)
+            .map((product: unknown) => parseOpenFoodFactsProduct(product));
     } catch (error) {
         console.error('Nutrient search error:', error);
         return [];
@@ -197,10 +197,10 @@ export async function searchUSDA(query: string, limit = 5): Promise<FoodItem[]> 
         const data = await response.json();
         if (!data.foods) return [];
 
-        return data.foods.map((food: any) => {
+        return data.foods.map((food: unknown) => {
             const nutrients = food.foodNutrients || [];
             const getNutrient = (id: number) => {
-                const n = nutrients.find((n: any) => n.nutrientId === id);
+                const n = nutrients.find((n: unknown) => n.nutrientId === id);
                 return n?.value || 0;
             };
 
@@ -236,7 +236,7 @@ export async function searchUSDA(query: string, limit = 5): Promise<FoodItem[]> 
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function parseOpenFoodFactsProduct(product: any): FoodItem {
+function parseOpenFoodFactsProduct(product: unknown): FoodItem {
     const n = product.nutriments || {};
 
     return {

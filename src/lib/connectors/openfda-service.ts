@@ -26,7 +26,7 @@ export interface DrugInfo {
     active_ingredients: string[];
     indications: string;
     dosage: string;
-    openfda: Record<string, any>;
+    openfda: Record<string, unknown>;
 }
 
 export interface DrugEvent {
@@ -77,7 +77,7 @@ export async function searchDrugs(query: string, limit = 5): Promise<DrugInfo[]>
         const data = await response.json();
         if (!data.results) return [];
 
-        return data.results.map((result: any) => ({
+        return data.results.map((result: unknown) => ({
             brand_name: result.openfda?.brand_name?.[0] || 'Unknown',
             generic_name: result.openfda?.generic_name?.[0] || 'Unknown',
             manufacturer: result.openfda?.manufacturer_name?.[0] || 'Unknown',
@@ -115,10 +115,10 @@ export async function getDrugEvents(drugName: string, limit = 10): Promise<DrugE
         const data = await response.json();
         if (!data.results) return [];
 
-        return data.results.map((result: any) => ({
+        return data.results.map((result: unknown) => ({
             receivedate: result.receivedate || '',
             serious: result.serious === '1',
-            reactions: (result.patient?.reaction || []).map((r: any) => r.reactionmeddrapt).filter(Boolean),
+            reactions: (result.patient?.reaction || []).map((r: unknown) => r.reactionmeddrapt).filter(Boolean),
             patient_age: result.patient?.patientonsetage ? Number(result.patient.patientonsetage) : undefined,
             patient_sex: result.patient?.patientsex === '1' ? 'Male' : result.patient?.patientsex === '2' ? 'Female' : undefined,
             outcome: result.patient?.patientdeath ? 'Death' : result.serious === '1' ? 'Serious' : 'Non-serious',
@@ -147,7 +147,7 @@ export async function getDrugRecalls(drugName: string, limit = 5): Promise<DrugR
         const data = await response.json();
         if (!data.results) return [];
 
-        return data.results.map((result: any) => ({
+        return data.results.map((result: unknown) => ({
             recall_number: result.recall_number || '',
             reason_for_recall: result.reason_for_recall || '',
             status: result.status || '',
@@ -222,7 +222,7 @@ export async function getTopAdverseReactions(drugName: string, limit = 10): Prom
         const data = await response.json();
         if (!data.results) return [];
 
-        return data.results.map((r: any) => ({
+        return data.results.map((r: unknown) => ({
             reaction: r.term || '',
             count: r.count || 0,
         }));

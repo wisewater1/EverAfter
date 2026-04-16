@@ -17,7 +17,7 @@ interface EngramListing {
     description: string;
     ai_readiness_score: number;
     is_family: boolean;
-    engram: any;
+    engram: unknown;
 }
 
 interface PersonalityTrainingCenterProps {
@@ -69,11 +69,11 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
             // 2. Try to fetch backend engrams
             try {
                 const backendEngrams = await apiClient.getEngrams();
-                const engramMap = new Map((backendEngrams || []).map((e: any) => [e.name, e]));
+                const engramMap = new Map((backendEngrams || []).map((e: unknown) => [e.name, e]));
 
                 const combined: EngramListing[] = localFamily.map(member => {
                     const fullName = `${member.firstName} ${member.lastName}`;
-                    const engram = engramMap.get(fullName) as any;
+                    const engram = engramMap.get(fullName) as unknown;
                     return {
                         id: engram?.id || member.id,
                         name: fullName,
@@ -85,13 +85,13 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                 });
 
                 // Add non-family engrams
-                (backendEngrams || []).forEach((e: any) => {
+                (backendEngrams || []).forEach((e: unknown) => {
                     if (!combined.find(c => c.name === e.name)) {
                         combined.push({
                             id: e.id,
                             name: e.name,
                             description: e.description,
-                            ai_readiness_score: (e as any).total_questions_answered || 50,
+                            ai_readiness_score: (e as unknown).total_questions_answered || 50,
                             is_family: false,
                             engram: e
                         });
@@ -121,7 +121,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                     // Optional: one more refresh to get full engram objects (scores etc)
                     const refreshed = await apiClient.getEngrams();
                     setEngrams((prev: EngramListing[]) => prev.map((p: EngramListing) => {
-                        const match = refreshed.find((r: any) => r.name === p.name);
+                        const match = refreshed.find((r: unknown) => r.name === p.name);
                         return match ? { ...p, id: match.id, engram: match, ai_readiness_score: match.total_questions_answered || 0 } : p;
                     }));
                 }
@@ -171,7 +171,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                 return;
             }
             const data = await apiClient.analyzePersonality(backendId);
-            const chartData = (data.traits || []).map((t: any) => ({
+            const chartData = (data.traits || []).map((t: unknown) => ({
                 subject: t.name,
                 A: (t.value || 0) * 100,
                 fullMark: 100

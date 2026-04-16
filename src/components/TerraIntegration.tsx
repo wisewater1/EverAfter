@@ -70,7 +70,7 @@ export default function TerraIntegration() {
       const response = await terraClient.generateWidgetSession(user.id, providers);
 
       // Check if mock mode
-      if ((response as any).mock) {
+      if ((response as unknown).mock) {
         console.log('🔧 Dev Mode: Mock connection successful');
         await loadData();
         alert('✅ Mock Terra connection successful!\n\n🔧 Dev Mode Active\n\nRealistic health data has been loaded for testing.');

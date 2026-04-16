@@ -50,12 +50,12 @@ interface TimelineData {
 }
 
 interface Props {
-    familyMembers?: any[];
-    liveHeatmap?: any[];
-    netWorthHistory?: any[];
+    familyMembers?: unknown[];
+    liveHeatmap?: unknown[];
+    netWorthHistory?: unknown[];
 }
 
-const RISK_COLORS: Record<string, string> = {
+const _RISK_COLORS: Record<string, string> = {
     low: '#10b981',
     moderate: '#f59e0b',
     high: '#ef4444',
@@ -105,7 +105,7 @@ export default function GenerationalTimeline({ familyMembers = [], liveHeatmap, 
                 'Failed to load generational timeline.',
             );
             setData(result);
-        } catch (err: any) {
+        } catch (_err) {
             setError('Generational timeline unavailable');
         }
         setLoading(false);

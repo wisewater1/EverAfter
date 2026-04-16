@@ -12,7 +12,7 @@ interface AkashicRecord {
         saint_id?: string;
         importance?: number;
         score?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     timestamp: string;
 }

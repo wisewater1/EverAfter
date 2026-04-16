@@ -61,7 +61,7 @@ export default function FamilyHealthHeatmap({ onSelectMember }: Props) {
             let usedPrediction = false;
 
             try {
-                const predData = await requestBackendJson<any>(
+                const predData = await requestBackendJson<unknown>(
                     '/api/v1/health-predictions/predict-family',
                     {
                         method: 'POST',
@@ -72,8 +72,8 @@ export default function FamilyHealthHeatmap({ onSelectMember }: Props) {
                 );
 
                 const dots: HealthDot[] = (predData.member_predictions || [])
-                    .filter((memberPrediction: any) => memberPrediction.consent_granted && memberPrediction.prediction)
-                    .map((memberPrediction: any) => {
+                    .filter((memberPrediction: unknown) => memberPrediction.consent_granted && memberPrediction.prediction)
+                    .map((memberPrediction: unknown) => {
                         const prediction = memberPrediction.prediction;
                         const riskColors: Record<string, string> = {
                             low: '#10b981',
@@ -101,7 +101,7 @@ export default function FamilyHealthHeatmap({ onSelectMember }: Props) {
             }
 
             if (!usedPrediction) {
-                const data = await requestBackendJson<any>(
+                const data = await requestBackendJson<unknown>(
                     '/api/v1/causal-twin/ancestry/family-map',
                     { headers: authHeaders },
                     'Unable to load Joseph family risk map',

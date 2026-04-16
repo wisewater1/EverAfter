@@ -172,7 +172,7 @@ export default function Dashboard() {
 
     const starterDraft = loadStarterEngramDraft(user.id);
     const primaryMemberId = starterDraft?.primaryMemberId || null;
-    const storedProfile = primaryMemberId ? readStoredPersonalityProfile<any>(primaryMemberId) : null;
+    const storedProfile = primaryMemberId ? readStoredPersonalityProfile<unknown>(primaryMemberId) : null;
     const answered = Number.isFinite(storedProfile?.answered) ? storedProfile.answered : Object.keys(starterDraft?.personalityQuiz?.answers || {}).length;
     const total = Number.isFinite(storedProfile?.total_questions) ? storedProfile.total_questions : 50;
     const hasDetailedProfile = answered >= total && total >= 50;
@@ -284,7 +284,7 @@ export default function Dashboard() {
                     if (item.id === 'trinity') {
                       navigate('/trinity');
                     } else {
-                      setSelectedView(item.id as any);
+                      setSelectedView(item.id as unknown);
                     }
                   }}
                   aria-label={item.label}
@@ -333,7 +333,7 @@ export default function Dashboard() {
                     if (item.id === 'trinity') {
                       navigate('/trinity');
                     } else {
-                      setSelectedView(item.id as any);
+                      setSelectedView(item.id as unknown);
                     }
                   }}
                   aria-label={item.label}

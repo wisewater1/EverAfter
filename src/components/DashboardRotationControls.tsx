@@ -77,7 +77,7 @@ export default function DashboardRotationControls({
 
       setShowSettings(false);
       onConfigUpdate();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error saving rotation settings:', err);
     } finally {
       setSaving(false);

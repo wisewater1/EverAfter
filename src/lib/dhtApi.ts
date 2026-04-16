@@ -82,7 +82,7 @@ export interface DHTResponse {
     last_observation_at?: string | null;
 }
 
-async function dhtFetch<T = any>(path: string, options?: RequestInit): Promise<T | null> {
+async function dhtFetch<T = unknown>(path: string, options?: RequestInit): Promise<T | null> {
     try {
         const res = await fetch(`${BASE}/api/v1/dht${path}`, {
             headers: { 'Content-Type': 'application/json' },
@@ -102,7 +102,7 @@ function normalizeDirection(value?: string | null): 'up' | 'down' | 'stable' {
     return 'stable';
 }
 
-function normalizeRiskCard(card: any): RiskCard {
+function normalizeRiskCard(card: unknown): RiskCard {
     return {
         id: card?.id || `${card?.domain || 'domain'}-${card?.current_level || 'unknown'}`,
         condition: card?.condition || card?.domain,
@@ -117,7 +117,7 @@ function normalizeRiskCard(card: any): RiskCard {
     };
 }
 
-function normalizeImpact(value: any, trend: 'up' | 'down' | 'stable'): 'positive' | 'negative' | 'neutral' {
+function normalizeImpact(value: unknown, trend: 'up' | 'down' | 'stable'): 'positive' | 'negative' | 'neutral' {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'positive' || normalized === 'negative' || normalized === 'neutral') {
         return normalized as 'positive' | 'negative' | 'neutral';
@@ -129,7 +129,7 @@ function normalizeImpact(value: any, trend: 'up' | 'down' | 'stable'): 'positive
     return 'neutral';
 }
 
-function normalizeLeadingIndicator(indicator: any, index: number): LeadingIndicator {
+function normalizeLeadingIndicator(indicator: unknown, index: number): LeadingIndicator {
     const trend = normalizeDirection(indicator?.trend);
     return {
         id: indicator?.id || indicator?.metric || `indicator-${index}`,
@@ -152,7 +152,7 @@ export async function getDHT(personId: string): Promise<DHTResponse | null> {
 }
 
 export async function getRiskCards(personId: string): Promise<{ risk_cards: RiskCard[] } | null> {
-    const response = await dhtFetch<{ risk_cards: any[] }>(`/${personId}/risk-cards`);
+    const response = await dhtFetch<{ risk_cards: unknown[] }>(`/${personId}/risk-cards`);
     if (!response) return null;
     return {
         ...response,
@@ -161,7 +161,7 @@ export async function getRiskCards(personId: string): Promise<{ risk_cards: Risk
 }
 
 export async function getLeadingIndicators(personId: string): Promise<{ indicators: LeadingIndicator[] } | null> {
-    const response = await dhtFetch<{ indicators: any[] }>(`/${personId}/leading-indicators`);
+    const response = await dhtFetch<{ indicators: unknown[] }>(`/${personId}/leading-indicators`);
     if (!response) return null;
     return {
         ...response,
@@ -180,7 +180,7 @@ export async function getOcean(personId: string): Promise<{ latest: OceanMetrics
 }
 
 export async function getBehavioralModifiers(personId: string): Promise<BehavioralModifiersResponse | null> {
-    const response = await dhtFetch<any>(`/ocean/${personId}/behavioral-modifiers`);
+    const response = await dhtFetch<unknown>(`/ocean/${personId}/behavioral-modifiers`);
     if (!response) return null;
     return {
         ...response,
@@ -206,11 +206,11 @@ export async function logUserEvent(personId: string, type: string, severity: str
     });
 }
 
-export function subscribeToDHTStream(personId: string, onUpdate: (payload: any) => void): () => void {
+export function subscribeToDHTStream(personId: string, onUpdate: (payload: unknown) => void): () => void {
     const wsBase = BASE.replace(/^http/, 'ws');
     const ws = new WebSocket(`${wsBase}/api/v1/dht/stream/${personId}`);
     ws.onmessage = (e) => {
-        try { onUpdate(JSON.parse(e.data)); } catch { }
+        try { onUpdate(JSON.parse(e.data)); } catch { /* intentional */ }
     };
     return () => ws.close();
 }

@@ -45,7 +45,7 @@ export default function Marketplace() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<MarketplaceTemplate | null>(null);
-  const [demoTemplate, setDemoTemplate] = useState<MarketplaceTemplate | null>(null);
+  const [_demoTemplate, _setDemoTemplate] = useState<MarketplaceTemplate | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const { isAuthModalOpen, authTab, contextMessage, openAuthModal, closeAuthModal, authIntent, clearAuthIntent } = useAuthModal();
 

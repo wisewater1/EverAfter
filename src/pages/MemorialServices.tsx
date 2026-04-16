@@ -5,7 +5,7 @@ import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-sto
 import {
   Heart,
   MapPin,
-  Calendar,
+  _Calendar,
   Users,
   Camera,
   Music,
@@ -13,7 +13,7 @@ import {
   BookOpen,
   Phone,
   Mail,
-  Clock,
+  _Clock,
   DollarSign,
   CheckCircle2,
   Star,
@@ -53,7 +53,7 @@ interface MemorialPlan {
   user_id: string;
   service_type: string;
   provider_id?: string;
-  preferences: any;
+  preferences: unknown;
   budget: number;
   status: 'planning' | 'confirmed' | 'completed';
   created_at: string;
@@ -311,7 +311,7 @@ export default function MemorialServices() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as unknown)}
                 className={`flex items-center gap-2 px-4 py-3 font-medium transition-all ${
                   activeTab === tab.id
                     ? 'text-teal-400 border-b-2 border-teal-400'

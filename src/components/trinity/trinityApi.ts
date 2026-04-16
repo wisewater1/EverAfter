@@ -14,7 +14,7 @@ import {
 const TRINITY_GOALS_KEY = 'everafter_trinity_goals';
 const TRINITY_WHATIF_HISTORY_KEY = 'everafter_trinity_whatif_history';
 
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 
 export interface TrinityGoal {
     id?: string;
@@ -1323,11 +1323,11 @@ function buildFallbackPayload(action: string, body: AnyRecord) {
     }
 }
 
-export async function trinitySynapse<T = any>(action: string, body: AnyRecord = {}): Promise<T | null> {
+export async function trinitySynapse<T = unknown>(action: string, body: AnyRecord = {}): Promise<T | null> {
     const payload = { action, ...body };
 
     try {
-        const data = await requestBackendJson<any>(
+        const data = await requestBackendJson<unknown>(
             '/api/v1/trinity/synapse',
             {
                 method: 'POST',

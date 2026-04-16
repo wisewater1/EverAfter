@@ -396,8 +396,8 @@ export default function PersonalityQuiz({
                 'Failed to submit personality quiz.',
             );
 
-                if ((data as any)?.error) {
-                    throw new Error((data as any).error);
+                if ((data as unknown)?.error) {
+                    throw new Error((data as unknown).error);
                 }
 
                 setProfile(data);
@@ -771,7 +771,7 @@ export default function PersonalityQuiz({
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
+                                    onClick={() => setActiveTab(tab.id as unknown)}
                                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeTab === tab.id
                                         ? 'bg-indigo-500/20 text-indigo-300'
                                         : 'text-slate-400 hover:text-white hover:bg-white/5'

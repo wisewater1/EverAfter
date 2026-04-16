@@ -17,8 +17,8 @@ interface Message {
   toolsUsed?: boolean;
   toolExecutionLog?: Array<{
     tool: string;
-    args: any;
-    result: any;
+    args: unknown;
+    result: unknown;
   }>;
   storedHealthData?: ExtractedHealthData[];
 }

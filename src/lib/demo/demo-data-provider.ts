@@ -34,7 +34,7 @@ const MOCK_READINESS = {
     { id: 'gabriel.finance', status: 'healthy', blocking: false, reason: null, deps: [] },
     { id: 'anthony.audit', status: 'healthy', blocking: false, reason: null, deps: [] },
   ],
-  capability_map: {} as Record<string, any>,
+  capability_map: {} as Record<string, unknown>,
   routes: [
     { path: '/raphael', capability_id: 'raphael.hub', blocking: false },
     { path: '/health-dashboard', capability_id: 'raphael.hub', blocking: false },
@@ -316,7 +316,7 @@ const SAINT_CHAT_RESPONSES: Record<string, string[]> = {
 const originalFetch = window.fetch;
 let interceptorActive = false;
 
-function mockResponse(data: any, status = 200): Response {
+function mockResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' },
@@ -470,7 +470,7 @@ export function removeDemoInterceptor(): void {
 /**
  * Get chat response for a specific saint (for direct integration).
  */
-export function getDemoChatResponse(saint: string, userMessage?: string): string {
+export function getDemoChatResponse(saint: string, _userMessage?: string): string {
   const responses = SAINT_CHAT_RESPONSES[saint] || SAINT_CHAT_RESPONSES.trinity;
   return responses[Math.floor(Math.random() * responses.length)];
 }

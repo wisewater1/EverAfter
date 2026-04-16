@@ -4,7 +4,7 @@ export interface GlucosePoint {
   unit?: 'mg/dL' | 'mmol/L';
   trend?: string;
   quality?: string;
-  raw?: any;
+  raw?: unknown;
 }
 
 export interface LabResult {
@@ -13,7 +13,7 @@ export interface LabResult {
   name: string;
   value: number;
   unit: string;
-  raw?: any;
+  raw?: unknown;
 }
 
 export interface MetabolicEvent {
@@ -23,7 +23,7 @@ export interface MetabolicEvent {
   insulin_units?: number;
   intensity?: string;
   text?: string;
-  raw?: any;
+  raw?: unknown;
 }
 
 export interface OAuthConfig {
@@ -50,7 +50,7 @@ export interface GlucoseConnector {
     expiresAt?: string;
   }>;
 
-  handleWebhook?(headers: Headers, body: any): Promise<{
+  handleWebhook?(headers: Headers, body: unknown): Promise<{
     ok: boolean;
     userId?: string;
     points?: GlucosePoint[];

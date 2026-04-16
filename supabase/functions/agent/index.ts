@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -146,11 +146,11 @@ async function generateEmbedding(text: string, openaiKey: string): Promise<numbe
 // Execute tool calls
 async function executeTool(
   toolName: string,
-  args: any,
-  supabase: any,
+  args: Record<string, unknown>,
+  supabase: SupabaseClient,
   userId: string,
   openaiKey: string
-): Promise<any> {
+): Promise<unknown> {
   try {
     switch (toolName) {
       case "retrieve_memory": {
@@ -210,7 +210,7 @@ async function executeTool(
         const { task_type, title, description, priority = "medium", scheduled_for } = args;
         
         // Get the engram_id for Raphael (default health agent)
-        const { data: engram, error: engramError } = await supabase
+        const { data: engram, error: _engramError } = await supabase
           .from('engrams')
           .select('id')
           .eq('user_id', userId)
@@ -268,11 +268,11 @@ async function executeTool(
           error: `Unknown tool: ${toolName}`
         };
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error(`Tool execution error [${toolName}]:`, error);
     return {
       success: false,
-      error: error.message || String(error)
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
@@ -521,7 +521,7 @@ When appropriate:
       tool_execution_log: toolExecutionLog
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Unhandled error in agent:", error);
     const message = error instanceof Error ? error.message : String(error);
     return errorResponse("SERVER_ERROR", message, "Check function logs for details");

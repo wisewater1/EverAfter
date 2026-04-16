@@ -78,7 +78,7 @@ export default function RaphaelInsights() {
     }
   };
 
-  const fetchDeepDiveInsights = async (metrics: any[]) => {
+  const fetchDeepDiveInsights = async (metrics: unknown[]) => {
     if (!user) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -122,7 +122,7 @@ export default function RaphaelInsights() {
     }
   };
 
-  const generateInsights = (metrics: any[]) => {
+  const generateInsights = (metrics: unknown[]) => {
     const newInsights: HealthInsight[] = [];
 
     const steps = metrics.filter(m => m.metric_type === 'steps');

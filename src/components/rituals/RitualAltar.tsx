@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
-import { Sparkles, Users, BookOpen, ChevronRight, Play, CheckCircle, Brain, X, Clock } from 'lucide-react';
+import { Sparkles, _Users, _BookOpen, ChevronRight, Play, CheckCircle, Brain, X, Clock } from 'lucide-react';
 import AkashicStream from './AkashicStream';
 import { supabase } from '../../lib/supabase';
 import { getFamilyMembers, type FamilyMember } from '../../lib/joseph/genealogy';
@@ -24,7 +24,7 @@ export default function RitualAltar() {
     const [context, setContext] = useState('');
     const [participants, setParticipants] = useState<string[]>(['joseph']);
     const [ancestorId, setAncestorId] = useState<string | null>(null);
-    const [ancestors, setAncestors] = useState<any[]>([]);
+    const [ancestors, setAncestors] = useState<unknown[]>([]);
     const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
     const [script, setScript] = useState<RitualScript | null>(null);
     const [currentStepIndex, setCurrentStepIndex] = useState(-1);
@@ -32,9 +32,9 @@ export default function RitualAltar() {
     const [isCandleLit, setIsCandleLit] = useState(false);
     const [showAkashic, setShowAkashic] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
-    const [ritualHistory, setRitualHistory] = useState<any[]>([]);
+    const [ritualHistory, setRitualHistory] = useState<unknown[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [sacredState, setSacredState] = useState<any>({
+    const [sacredState, setSacredState] = useState<unknown>({
         active_guardian_id: null,
         glow_intensity: 0.5,
         transition_speed: 10
@@ -192,7 +192,7 @@ export default function RitualAltar() {
 
     const getAvatar = (actor: string) => {
         if (actor === 'system') return '🔮';
-        const saintMap: any = { joseph: '🔨', michael: '⚔️', raphael: '🌿', gabriel: '📣', user: '👤' };
+        const saintMap: unknown = { joseph: '🔨', michael: '⚔️', raphael: '🌿', gabriel: '📣', user: '👤' };
         if (saintMap[actor]) return saintMap[actor];
         // Family member names — show initials
         const parts = actor.split(' ');
@@ -210,7 +210,7 @@ export default function RitualAltar() {
     ];
 
     // Minimalistic HSL Drift for Ancestral Presence
-    const guardianColors: any = {
+    const guardianColors: unknown = {
         'raphael': '142, 70%, 50%', // Healing Green
         'michael': '217, 91%, 60%', // Protection Blue
         'joseph': '35, 92%, 50%',   // Legacy Amber

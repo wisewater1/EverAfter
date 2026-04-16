@@ -236,7 +236,7 @@ export default function MediaIntelligencePanel() {
                     addFamilyEvent({
                         memberId: selectedMember.id,
                         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
-                        type: (insight.category === 'milestone' ? 'milestone' : 'other') as any,
+                        type: (insight.category === 'milestone' ? 'milestone' : 'other') as unknown,
                         date: extractedDate,
                         title: insight.label || 'Extracted Memory',
                         description: insight.value + (insight.source_snippet ? ` ("${insight.source_snippet}")` : ''),
@@ -340,7 +340,7 @@ export default function MediaIntelligencePanel() {
             );
             await loadInfoStack(selectedMember.id);
         } catch {
-            setInfoStack(prev => [...prev, newEntry as any]);
+            setInfoStack(prev => [...prev, newEntry as unknown]);
         }
 
         setAddingManual(false);

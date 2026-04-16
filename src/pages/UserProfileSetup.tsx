@@ -26,7 +26,7 @@ interface UserProfile {
 
 const DEMO_PROFILE_KEY = 'everafter_demo_user_profile';
 
-const buildDefaultProfile = (user: { id?: string; email?: string; user_metadata?: Record<string, any> } | null): Partial<UserProfile> => ({
+const buildDefaultProfile = (user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null): Partial<UserProfile> => ({
   user_id: user?.id ?? '',
   full_name: user?.user_metadata?.full_name ?? '',
   display_name: user?.email?.split('@')[0] ?? '',
@@ -144,7 +144,7 @@ export default function UserProfileSetup() {
 
       alert('Profile saved successfully!');
       navigate('/portal');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving profile:', error);
       alert(error.message || 'Failed to save profile');
     } finally {
@@ -388,7 +388,7 @@ export default function UserProfileSetup() {
                         name="visibility"
                         value={option.value}
                         checked={profile.profile_visibility === option.value}
-                        onChange={(e) => setProfile({ ...profile, profile_visibility: e.target.value as any })}
+                        onChange={(e) => setProfile({ ...profile, profile_visibility: e.target.value as unknown })}
                         className="mt-1"
                       />
                       <div>

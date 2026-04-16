@@ -46,7 +46,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                 if (m.engramId) return m;
 
                 // Try to find matching engram by name
-                const match = backendEngrams.find((e: any) =>
+                const match = backendEngrams.find((e: unknown) =>
                     e.name.toLowerCase() === `${m.firstName} ${m.lastName}`.toLowerCase()
                 );
 

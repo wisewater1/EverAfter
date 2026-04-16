@@ -6,7 +6,7 @@ interface Node {
     x: number;
     y: number;
     label: string;
-    icon: any;
+    icon: unknown;
     color: string;
     role: string;
 }
@@ -23,7 +23,7 @@ interface MonitoringStatus {
     status: 'active' | 'warning' | 'error';
     role: string;
     message?: string;
-    metrics?: Record<string, any>;
+    metrics?: Record<string, unknown>;
 }
 
 interface SystemStatus {
@@ -64,7 +64,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
     const getStatusColor = (id: string, defaultColor: string) => {
         if (isolatingId === id) return '#f43f5e'; // Pulse red during isolation
         if (!displayData) return defaultColor;
-        const saint = (displayData as any)[id];
+        const saint = (displayData as unknown)[id];
         if (!saint) return defaultColor;
 
         switch (saint.status) {
@@ -101,7 +101,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
 
     const activeDetailId = selectedNode || hoveredNode;
     const activeDisplayNode = nodes.find(n => n.id === activeDetailId);
-    const activeStatusData = activeDetailId ? (displayData as any)[activeDetailId] : null;
+    const activeStatusData = activeDetailId ? (displayData as unknown)[activeDetailId] : null;
 
     return (
         <div className="w-full h-[500px] bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden relative group/graph">
@@ -248,7 +248,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                     </div>
 
                     <div className="space-y-2 mb-6">
-                        {activeStatusData.metrics && Object.entries(activeStatusData.metrics as Record<string, any>).map(([key, value]) => (
+                        {activeStatusData.metrics && Object.entries(activeStatusData.metrics as Record<string, unknown>).map(([key, value]) => (
                             <div key={key} className="flex justify-between items-center text-xs border-b border-white/5 pb-1 last:border-0 hover:bg-white/[0.02] px-1 rounded transition-colors">
                                 <span className="text-slate-500 capitalize">{key.replace(/_/g, ' ')}</span>
                                 <span className="text-sky-400 font-mono font-bold">{String(value)}</span>

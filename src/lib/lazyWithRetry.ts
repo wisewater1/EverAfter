@@ -48,7 +48,7 @@ function reloadOnce(target?: string): boolean {
   return true;
 }
 
-async function retryableImport<T extends ComponentType<any>>(
+async function retryableImport<T extends ComponentType<unknown>>(
   importer: () => Promise<{ default: T }>,
   target?: string,
 ): Promise<{ default: T }> {
@@ -69,7 +69,7 @@ async function retryableImport<T extends ComponentType<any>>(
   }
 }
 
-export function lazyWithRetry<T extends ComponentType<any>>(
+export function lazyWithRetry<T extends ComponentType<unknown>>(
   importer: () => Promise<{ default: T }>,
   target?: string,
 ): LazyExoticComponent<T> {

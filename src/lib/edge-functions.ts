@@ -36,9 +36,9 @@ export class EdgeFunctionException extends Error {
  * @returns Response data from the Edge Function
  * @throws EdgeFunctionException with structured error details
  */
-export async function callEdgeFunction<T = any>(
+export async function callEdgeFunction<T = unknown>(
   functionName: string,
-  body: Record<string, any>
+  body: Record<string, unknown>
 ): Promise<T> {
   try {
     // Get current session and JWT
@@ -105,8 +105,8 @@ export interface AgentChatResponse {
   tools_used: boolean;
   tool_execution_log?: Array<{
     tool: string;
-    args: any;
-    result: any;
+    args: unknown;
+    result: unknown;
   }>;
 }
 
@@ -139,7 +139,7 @@ export interface CreateTaskRequest {
   engramId: string;
   title: string;
   task_description?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface CreateTaskResponse {
@@ -150,8 +150,8 @@ export interface CreateTaskResponse {
     title: string;
     task_description: string | null;
     status: string;
-    details: Record<string, any>;
-    execution_log: any[];
+    details: Record<string, unknown>;
+    execution_log: unknown[];
     created_at: string;
     updated_at: string;
   };
@@ -187,8 +187,8 @@ export interface CareerChatResponse {
   tools_used: boolean;
   tool_execution_log?: Array<{
     tool: string;
-    args: any;
-    result: any;
+    args: unknown;
+    result: unknown;
   }>;
   visitor_token?: string;
 }

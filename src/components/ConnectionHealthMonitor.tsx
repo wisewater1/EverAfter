@@ -116,7 +116,7 @@ export default function ConnectionHealthMonitor() {
   }
 
   function getStatusBadge(status: string) {
-    const styles: Record<string, { bg: string; text: string; icon: any }> = {
+    const styles: Record<string, { bg: string; text: string; icon: unknown }> = {
       active: { bg: 'bg-green-600/20', text: 'text-green-300', icon: CheckCircle },
       error: { bg: 'bg-red-600/20', text: 'text-red-300', icon: XCircle },
       token_expired: { bg: 'bg-orange-600/20', text: 'text-orange-300', icon: Clock },
@@ -246,7 +246,7 @@ export default function ConnectionHealthMonitor() {
       {/* Individual Connection Health Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {connections.map((conn) => {
-          const HealthIcon = getHealthScoreIcon(conn.healthScore);
+          const _HealthIcon = getHealthScoreIcon(conn.healthScore);
           const successRate = conn.totalSyncs > 0
             ? Math.round((conn.successfulSyncs / conn.totalSyncs) * 100)
             : 100;

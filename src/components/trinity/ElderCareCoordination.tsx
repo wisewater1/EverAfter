@@ -148,7 +148,7 @@ function canonicalRelationship(raw: string | null | undefined): string {
   return value || 'contact';
 }
 
-function splitName(fullName: string) {
+function _splitName(fullName: string) {
   const trimmed = fullName.trim();
   const parts = trimmed.split(/\s+/);
   if (parts.length <= 1) return { firstName: trimmed, lastName: '' };

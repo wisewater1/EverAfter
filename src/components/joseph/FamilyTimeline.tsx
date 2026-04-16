@@ -174,7 +174,7 @@ export default function FamilyTimeline() {
         async function loadCapsules() {
             try {
                 const headers = await getBackendHeaders();
-                const capsules = await requestBackendJson<any[]>(
+                const capsules = await requestBackendJson<unknown[]>(
                     '/api/v1/time-capsules',
                     {
                         headers,
@@ -262,7 +262,7 @@ export default function FamilyTimeline() {
             try {
                 const headers = await getBackendHeaders();
 
-                const walletData = await requestBackendJson<any>(
+                const walletData = await requestBackendJson<unknown>(
                     '/api/v1/finance/wisegold/wallet',
                     {
                         headers,
@@ -283,7 +283,7 @@ export default function FamilyTimeline() {
                     });
                 }
 
-                const covenants = await requestBackendJson<any[]>(
+                const covenants = await requestBackendJson<unknown[]>(
                     '/api/v1/finance/wisegold/covenants',
                     {
                         headers,
@@ -368,7 +368,7 @@ export default function FamilyTimeline() {
                 // 1. Fetch WiseGold Wallet
                 try {
                     let balance = 1450.50; // Mock base
-                    const data = await requestBackendJson<any>(
+                    const data = await requestBackendJson<unknown>(
                         '/api/v1/finance/wisegold/wallet',
                         {
                             headers,
@@ -391,14 +391,14 @@ export default function FamilyTimeline() {
                             description: `Projected Sovereign Vault holdings at 5% compounding yield: ${(balance * Math.pow(1.05, 20)).toFixed(2)} WGOLD`,
                         });
                     }
-                } catch (e) { }
+                } catch (_e) { /* intentional */ }
 
                 // 2. Fetch CausalTwin Health Projections for the primary oldest member
                 try {
                     const aliveMembers = members.filter(m => !m.deathDate).sort((a, b) => a.generation - b.generation);
                     if (aliveMembers.length > 0) {
                         const primary = aliveMembers[0];
-                        const data = await requestBackendJson<any>(
+                        const data = await requestBackendJson<unknown>(
                             '/api/v1/causal-twin/ancestry/predict',
                             {
                                 method: 'POST',
@@ -434,7 +434,7 @@ export default function FamilyTimeline() {
                             });
                         }
                     }
-                } catch (e) { }
+                } catch (_e) { /* intentional */ }
 
                 setProjectionEvents(futureEvents);
             } catch (e) {

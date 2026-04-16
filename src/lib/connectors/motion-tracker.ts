@@ -58,9 +58,9 @@ export class MotionTracker {
         }
 
         // iOS 13+ requires permission
-        if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        if (typeof (DeviceMotionEvent as unknown).requestPermission === 'function') {
             try {
-                const permission = await (DeviceMotionEvent as any).requestPermission();
+                const permission = await (DeviceMotionEvent as unknown).requestPermission();
                 if (permission !== 'granted') {
                     console.warn('Motion permission denied');
                     return false;

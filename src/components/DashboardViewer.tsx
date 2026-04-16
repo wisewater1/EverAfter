@@ -11,7 +11,7 @@ interface Widget {
   position_y: number;
   width: number;
   height: number;
-  config: any;
+  config: unknown;
   data_sources: string[];
   refresh_interval: number;
 }
@@ -45,7 +45,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
 
       if (fetchError) throw fetchError;
       setWidgets(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading widgets:', err);
       setError('Failed to load dashboard widgets');
     } finally {
@@ -61,7 +61,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
         .eq('id', widgetId);
 
       if (updateError) throw updateError;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating widget position:', err);
     }
   }
@@ -74,7 +74,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
         .eq('id', widgetId);
 
       if (updateError) throw updateError;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating widget size:', err);
     }
   }
@@ -90,7 +90,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
 
       if (deleteError) throw deleteError;
       setWidgets(widgets.filter(w => w.id !== widgetId));
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting widget:', err);
     }
   }

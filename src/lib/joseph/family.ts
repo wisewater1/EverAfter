@@ -50,7 +50,7 @@ export interface HouseholdSummary {
     familyStatus: { name: string; status: 'home' | 'away' | 'busy' }[];
 }
 
-export async function getHouseholdSummary(userId: string): Promise<HouseholdSummary> {
+export async function getHouseholdSummary(_userId: string): Promise<HouseholdSummary> {
     try {
         // This would normally fetch from specialized tables
         // For now, we mock it based on established patterns in EverAfter
@@ -75,7 +75,7 @@ export async function getHouseholdSummary(userId: string): Promise<HouseholdSumm
     }
 }
 
-export async function getFamilyTasks(userId: string): Promise<FamilyTask[]> {
+export async function getFamilyTasks(_userId: string): Promise<FamilyTask[]> {
     // Mocking family tasks
     return [
         { id: '1', action: 'Mow Lawn', description: 'Front and back yard', status: 'pending', category: 'chore' },
@@ -84,7 +84,7 @@ export async function getFamilyTasks(userId: string): Promise<FamilyTask[]> {
     ];
 }
 
-export async function getShoppingList(userId: string): Promise<ShoppingItem[]> {
+export async function getShoppingList(_userId: string): Promise<ShoppingItem[]> {
     return [
         { id: 's1', name: 'Milk', quantity: '2 gallons', addedBy: 'Alice', status: 'needed' },
         { id: 's2', name: 'Eggs', quantity: '1 dozen', addedBy: 'Bob', status: 'needed' },
@@ -92,7 +92,7 @@ export async function getShoppingList(userId: string): Promise<ShoppingItem[]> {
     ];
 }
 
-export async function getFamilyCalendar(userId: string): Promise<FamilyEvent[]> {
+export async function getFamilyCalendar(_userId: string): Promise<FamilyEvent[]> {
     const now = new Date();
     const currentYear = now.getFullYear();
     const genealogyEvents = getGenealogyEvents();

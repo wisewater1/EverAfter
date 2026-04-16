@@ -29,7 +29,7 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, onSelect }: TemplateCardProps) {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     droplet: Droplet,
     heart: Heart,
     moon: Moon,
@@ -129,7 +129,7 @@ export default function DashboardTemplateSelector({
 
       if (fetchError) throw fetchError;
       setTemplates(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading templates:', err);
       setError('Failed to load templates');
     } finally {

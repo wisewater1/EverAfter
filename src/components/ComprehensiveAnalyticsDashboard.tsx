@@ -6,7 +6,7 @@ import {
   SkipForward,
   SkipBack,
   RefreshCw,
-  Settings,
+  _Settings,
   Activity,
   Heart,
   Moon,
@@ -60,7 +60,7 @@ interface RotationState {
   totalRotations: number;
 }
 
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, unknown> = {
   Activity,
   Heart,
   Moon,
@@ -75,7 +75,7 @@ const iconMap: Record<string, any> = {
   Zap: Activity,
 };
 
-const metricIconMap: Record<string, any> = {
+const metricIconMap: Record<string, unknown> = {
   steps: Footprints,
   heart_rate: Heart,
   sleep: Moon,

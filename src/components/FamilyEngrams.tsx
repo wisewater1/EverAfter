@@ -24,7 +24,7 @@ interface FamilyMember {
   last_interaction?: string;
 }
 
-interface Moment {
+interface _Moment {
   id: string;
   title: string;
   description: string;
@@ -780,7 +780,7 @@ interface EngramDetailViewProps {
   onRefresh: () => void;
 }
 
-function EngramDetailView({ member, onBack, onRefresh }: EngramDetailViewProps) {
+function EngramDetailView({ member, onBack, _onRefresh }: EngramDetailViewProps) {
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-y-auto">
       <div className="max-w-6xl mx-auto p-4">

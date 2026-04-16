@@ -5,9 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function RemoveConnectionExample() {
   const { user } = useAuth();
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<unknown[]>([]);
 
-  const handleRemoveConnection = async (connectionId: string, providerName: string) => {
+  const handleRemoveConnection = async (connectionId: string, _providerName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -45,9 +45,9 @@ export function RemoveConnectionExample() {
 
 export function RemoveFamilyMemberExample() {
   const { user } = useAuth();
-  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [familyMembers, setFamilyMembers] = useState<unknown[]>([]);
 
-  const handleRemoveFamilyMember = async (memberId: string, memberName: string) => {
+  const handleRemoveFamilyMember = async (memberId: string, _memberName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -90,9 +90,9 @@ export function RemoveFamilyMemberExample() {
 
 export function RemoveHealthGoalExample() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<any[]>([]);
+  const [goals, setGoals] = useState<unknown[]>([]);
 
-  const handleRemoveGoal = async (goalId: string, goalTitle: string) => {
+  const handleRemoveGoal = async (goalId: string, _goalTitle: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -133,9 +133,9 @@ export function RemoveHealthGoalExample() {
 
 export function RemoveEmergencyContactExample() {
   const { user } = useAuth();
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<unknown[]>([]);
 
-  const handleRemoveContact = async (contactId: string, contactName: string) => {
+  const handleRemoveContact = async (contactId: string, _contactName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -198,9 +198,9 @@ export function RemoveWithoutConfirmationExample() {
 
 export function RemoveArchetypalAIExample() {
   const { user } = useAuth();
-  const [archetypalAIs, setArchetypalAIs] = useState<any[]>([]);
+  const [archetypalAIs, setArchetypalAIs] = useState<unknown[]>([]);
 
-  const handleRemoveAI = async (aiId: string, aiName: string) => {
+  const handleRemoveAI = async (aiId: string, _aiName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error: conversationsError } = await supabase

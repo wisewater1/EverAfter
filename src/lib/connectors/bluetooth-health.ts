@@ -136,7 +136,7 @@ export class BluetoothHealthConnector {
             await this.startNotifications(bleDevice);
 
             return bleDevice;
-        } catch (error: any) {
+        } catch (error) {
             if (error.name === 'NotFoundError') {
                 // User cancelled the device picker
                 return null;

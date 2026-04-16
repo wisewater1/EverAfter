@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, signOut, loading } = useAuth();
+  const { user, _signOut, loading } = useAuth();
 
   console.log('EVERAFTER: Landing (Diagnostic) rendering...', { user: !!user, loading });
 

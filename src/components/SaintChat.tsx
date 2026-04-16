@@ -215,7 +215,7 @@ export default function SaintChat({
                 }
 
                 if (historyResult.status === 'fulfilled' && historyResult.value.length > 0) {
-                    const historyMessages: Message[] = historyResult.value.map((msg: any) => ({
+                    const historyMessages: Message[] = historyResult.value.map((msg: unknown) => ({
                         id: msg.id,
                         role: msg.role,
                         content: msg.content,
@@ -274,7 +274,7 @@ export default function SaintChat({
                 return;
             }
             // specific cast to handle extra properties
-            const responseData = response as any;
+            const responseData = response as unknown;
 
             const aiMsg: Message = {
                 id: responseData.id || Date.now().toString(),

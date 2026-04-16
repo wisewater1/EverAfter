@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield } from 'lucide-react';
+import { _Shield } from 'lucide-react';
 
 interface ConfidenceBadgeProps {
     score: number;

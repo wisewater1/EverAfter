@@ -22,8 +22,8 @@ interface DHTAnomalyAlertChainProps {
 }
 
 export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainProps) {
-    const [anomalies, setAnomalies] = useState<any[]>([]);
-    const [riskCards, setRiskCards] = useState<any[]>([]);
+    const [anomalies, setAnomalies] = useState<unknown[]>([]);
+    const [riskCards, setRiskCards] = useState<unknown[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [lastScan, setLastScan] = useState<Date>(new Date());
@@ -36,7 +36,7 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
             getRiskCards(personId),
         ]);
         setAnomalies(dht?.dht?.anomalies || []);
-        setRiskCards((cards?.risk_cards || []).filter((c: any) => c.current_level === 'high' || c.current_level === 'critical'));
+        setRiskCards((cards?.risk_cards || []).filter((c: unknown) => c.current_level === 'high' || c.current_level === 'critical'));
         setLastScan(new Date());
         setLoading(false);
         setRefreshing(false);

@@ -20,7 +20,7 @@ interface DHTScorePanelProps {
     memberName?: string;
 }
 
-const DIRECTION_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
+const DIRECTION_CONFIG: Record<string, { icon: unknown; color: string; label: string }> = {
     improving: { icon: TrendingUp, color: '#10b981', label: 'Improving' },
     stable: { icon: Minus, color: '#f59e0b', label: 'Stable' },
     declining: { icon: TrendingDown, color: '#ef4444', label: 'Declining' },
@@ -28,7 +28,7 @@ const DIRECTION_CONFIG: Record<string, { icon: any; color: string; label: string
     unknown: { icon: Activity, color: '#6b7280', label: 'No Data' },
 };
 
-function CategoryRow({ label, window }: { label: string; window: any }) {
+function CategoryRow({ label, window }: { label: string; window: unknown }) {
     if (!window) return null;
     const dir = window.direction || 'unknown';
     const cfg = DIRECTION_CONFIG[dir] || DIRECTION_CONFIG.unknown;
@@ -52,7 +52,7 @@ function CategoryRow({ label, window }: { label: string; window: any }) {
 }
 
 export default function DHTScorePanel({ personId, memberName }: DHTScorePanelProps) {
-    const [dht, setDht] = useState<any>(null);
+    const [dht, setDht] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

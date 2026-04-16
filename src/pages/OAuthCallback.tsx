@@ -55,7 +55,7 @@ export default function OAuthCallback() {
       const stateData = state ? JSON.parse(atob(state)) : {};
       const serviceType = stateData.serviceType || 'manual';
 
-      const { data: connectionData, error: connectionError } = await supabase
+      const { data: _connectionData, error: connectionError } = await supabase
         .from('health_connections')
         .insert({
           user_id: user?.id,

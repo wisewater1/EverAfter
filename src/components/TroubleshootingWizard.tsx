@@ -61,11 +61,11 @@ export default function TroubleshootingWizard({
   const [guides, setGuides] = useState<TroubleshootingGuide[]>([]);
   const [selectedGuide, setSelectedGuide] = useState<TroubleshootingGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [stepResults, setStepResults] = useState<Record<number, 'success' | 'failure' | 'skipped'>>({});
+  const [_stepResults, setStepResults] = useState<Record<number, 'success' | 'failure' | 'skipped'>>({});
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);
-  const [diagnosticResults, setDiagnosticResults] = useState<any>(null);
+  const [diagnosticResults, setDiagnosticResults] = useState<unknown>(null);
   const [view, setView] = useState<'guides' | 'wizard' | 'diagnostics'>('guides');
 
   useEffect(() => {
@@ -444,7 +444,7 @@ export default function TroubleshootingWizard({
         </div>
 
         <div className="space-y-3">
-          {diagnosticResults.tests?.map((test: any, index: number) => (
+          {diagnosticResults.tests?.map((test: unknown, index: number) => (
             <div
               key={index}
               className="bg-gray-800/50 border border-gray-700 rounded-lg p-4"

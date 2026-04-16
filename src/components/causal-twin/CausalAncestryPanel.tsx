@@ -8,7 +8,7 @@ import { buildApiUrl } from '../../lib/env';
 interface AncestryResult {
     member_name: string;
     age: number;
-    projections: Record<string, any>;
+    projections: Record<string, unknown>;
     confidence: { score: number; level: string };
     risk_factors: Array<{ factor: string; impact: string; modifiable: boolean }>;
     interventions: Array<{ action: string; expected_gain: string; difficulty: string }>;
@@ -73,7 +73,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
             if (!res.ok) throw new Error('Prediction failed');
             const data = await res.json();
             setResult(data);
-        } catch (e) {
+        } catch (_e) {
             setError('Could not load prediction. Backend may be offline.');
         }
         setLoading(false);
@@ -186,7 +186,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
 
                             {/* Metric projections */}
                             <div className="grid grid-cols-2 gap-3">
-                                {Object.entries(result.projections || {}).map(([metric, horizons]: [string, any]) => {
+                                {Object.entries(result.projections || {}).map(([metric, horizons]: [string, unknown]) => {
                                     const data = horizons[selectedHorizon] || Object.values(horizons)[0] || {};
                                     return (
                                         <div key={metric} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/15 transition-colors">

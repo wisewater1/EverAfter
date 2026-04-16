@@ -16,7 +16,7 @@ const HORIZON_LABELS: Record<string, string> = {
     long: '1-5 years',
 };
 
-function TrajectoryWindowCard({ window: trajectoryWindow, compact = false }: { window: any; compact?: boolean }) {
+function TrajectoryWindowCard({ window: trajectoryWindow, compact = false }: { window: unknown; compact?: boolean }) {
     const config = DIRECTION_CONFIG[trajectoryWindow.direction] || DIRECTION_CONFIG.unknown;
     const Icon = config.icon;
 
@@ -80,7 +80,7 @@ interface DHTProps {
 }
 
 export default function DHTPanel({ personId, compact = false, showRefresh = true }: DHTProps) {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 

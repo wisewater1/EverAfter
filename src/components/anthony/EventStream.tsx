@@ -39,7 +39,7 @@ export default function EventStream() {
     const [events, setEvents] = useState<SaintEventEnvelope[]>(seededEvents);
     const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(seededEvents[0]);
     // Redact sensitive data before displaying
-    const redactSensitiveData = (obj: any): any => {
+    const redactSensitiveData = (obj: unknown): unknown => {
         if (!obj) return obj;
         if (typeof obj !== 'object') return obj;
 

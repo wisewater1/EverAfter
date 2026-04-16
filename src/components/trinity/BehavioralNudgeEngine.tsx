@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Zap, Check, Clock, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
-const PRIORITY_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
+const PRIORITY_CONFIG: Record<string, { color: string; icon: unknown; label: string }> = {
     immediate: { color: '#ef4444', icon: Zap, label: 'Now' },
     today: { color: '#f59e0b', icon: Clock, label: 'Today' },
     weekly: { color: '#10b981', icon: Check, label: 'This Week' },
@@ -14,7 +14,7 @@ const PRIORITY_CONFIG: Record<string, { color: string; icon: any; label: string 
 const SAINT_COLORS: Record<string, string> = { joseph: '#f59e0b', raphael: '#14b8a6', gabriel: '#10b981' };
 
 export default function BehavioralNudgeEngine() {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [dismissed, setDismissed] = useState<Set<number>>(new Set());
     const [loading, setLoading] = useState(true);
 
@@ -23,7 +23,7 @@ export default function BehavioralNudgeEngine() {
     if (loading) return <div className="flex items-center gap-2 text-xs text-slate-500 p-4"><Loader2 className="w-4 h-4 animate-spin" />Generating nudges…</div>;
     if (!data) return null;
 
-    const nudges = (data.nudges || []).filter((_: any, i: number) => !dismissed.has(i));
+    const nudges = (data.nudges || []).filter((_: unknown, i: number) => !dismissed.has(i));
 
     return (
         <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-5">
@@ -36,7 +36,7 @@ export default function BehavioralNudgeEngine() {
             </div>
 
             <div className="space-y-2">
-                {nudges.map((n: any, i: number) => {
+                {nudges.map((n: unknown, i: number) => {
                     const cfg = PRIORITY_CONFIG[n.priority] || PRIORITY_CONFIG.weekly;
                     const PIcon = cfg.icon;
                     return (

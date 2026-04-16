@@ -12,7 +12,7 @@ export interface RawHealthMetric {
   timestamp?: string | Date;
   source: string;
   metricType: string;
-  raw?: any;
+  raw?: unknown;
 }
 
 export interface NormalizedHealthMetric {
@@ -24,7 +24,7 @@ export interface NormalizedHealthMetric {
   qualityScore: number;
   isAnomaly: boolean;
   anomalyReason?: string;
-  raw: any;
+  raw: unknown;
 }
 
 export interface MetricMetadata {

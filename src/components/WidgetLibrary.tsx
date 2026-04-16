@@ -6,7 +6,7 @@ interface WidgetType {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: unknown;
   category: string;
   defaultSize: { width: number; height: number };
   requiredSources: string[];
@@ -208,7 +208,7 @@ export default function WidgetLibrary({ dashboardId, onClose, onWidgetAdded }: W
 
       if (insertError) throw insertError;
       onWidgetAdded();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error adding widget:', err);
       setError('Failed to add widget');
     } finally {

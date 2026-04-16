@@ -82,7 +82,7 @@ export default function SaintsGuardian() {
         }
     };
 
-    const getStatusColor = (status: string) => {
+    const _getStatusColor = (status: string) => {
         switch (status) {
             case 'active': return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
             case 'warning': return 'bg-amber-500/10 border-amber-500/20 text-amber-400';

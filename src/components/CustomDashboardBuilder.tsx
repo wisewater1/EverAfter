@@ -4,24 +4,24 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard,
   Plus,
-  Save,
+  _Save,
   X,
   Grid,
   Eye,
   Settings,
   Trash2,
   Copy,
-  Share2,
+  _Share2,
   Star,
   StarOff,
-  RefreshCw,
+  _RefreshCw,
   Sparkles,
-  ChevronDown,
+  _ChevronDown,
   Play,
   Pause,
   SkipForward,
   Loader,
-  TrendingUp,
+  _TrendingUp,
   AlertCircle,
 } from 'lucide-react';
 import DashboardViewer from './DashboardViewer';
@@ -112,7 +112,7 @@ export default function CustomDashboardBuilder() {
 
       if (fetchError) throw fetchError;
       setDashboards(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading dashboards:', err);
       setError('Failed to load dashboards');
     } finally {
@@ -134,7 +134,7 @@ export default function CustomDashboardBuilder() {
         setIsRotating(true);
         setCurrentRotationIndex(data.current_index || 0);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading rotation config:', err);
     }
   }
@@ -173,7 +173,7 @@ export default function CustomDashboardBuilder() {
       setShowCreateModal(false);
       setSelectedDashboard(data);
       setViewMode('edit');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating dashboard:', err);
       setError('Failed to create dashboard');
     } finally {
@@ -191,8 +191,8 @@ export default function CustomDashboardBuilder() {
 
       if (templateError) throw templateError;
 
-      const widgets = (template.default_widgets as any[]) || [];
-      const widgetInserts = widgets.map((widget: any) => ({
+      const widgets = (template.default_widgets as unknown[]) || [];
+      const widgetInserts = widgets.map((widget: unknown) => ({
         dashboard_id: dashboardId,
         widget_type: widget.type,
         title: widget.title,
@@ -209,7 +209,7 @@ export default function CustomDashboardBuilder() {
         .insert(widgetInserts);
 
       if (widgetsError) throw widgetsError;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating widgets from template:', err);
     }
   }
@@ -230,7 +230,7 @@ export default function CustomDashboardBuilder() {
         setSelectedDashboard(null);
         setViewMode('list');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting dashboard:', err);
       setError('Failed to delete dashboard');
     }
@@ -276,7 +276,7 @@ export default function CustomDashboardBuilder() {
       }
 
       await loadDashboards();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error duplicating dashboard:', err);
       setError('Failed to duplicate dashboard');
     }
@@ -292,7 +292,7 @@ export default function CustomDashboardBuilder() {
 
       if (updateError) throw updateError;
       await loadDashboards();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error toggling favorite:', err);
       setError('Failed to update favorite status');
     }
@@ -307,7 +307,7 @@ export default function CustomDashboardBuilder() {
           view_count: supabase.sql`view_count + 1`,
         })
         .eq('id', dashboardId);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating view count:', err);
     }
   }
@@ -350,7 +350,7 @@ export default function CustomDashboardBuilder() {
         .from('dashboard_auto_rotation')
         .update({ enabled: newRotatingState, current_index: currentRotationIndex })
         .eq('user_id', user?.id);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating rotation state:', err);
     }
   }
@@ -657,7 +657,7 @@ export default function CustomDashboardBuilder() {
 
       {showTemplateSelector && (
         <DashboardTemplateSelector
-          onSelectTemplate={(templateId) => {
+          onSelectTemplate={(_templateId) => {
             setShowTemplateSelector(false);
             setShowCreateModal(true);
           }}

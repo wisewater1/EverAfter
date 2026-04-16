@@ -54,7 +54,7 @@ export async function getOnboardingStatus() {
     'Bypass-Tunnel-Reminder': 'true',
   });
 
-  return requestBackendJson<any>('/api/v1/onboarding/status', { headers }, 'Failed to load onboarding status');
+  return requestBackendJson<unknown>('/api/v1/onboarding/status', { headers }, 'Failed to load onboarding status');
 }
 
 export async function reconcileOnboarding(payload: OnboardingReconcilePayload) {
@@ -63,7 +63,7 @@ export async function reconcileOnboarding(payload: OnboardingReconcilePayload) {
     'Bypass-Tunnel-Reminder': 'true',
   });
 
-  return requestBackendJson<any>(
+  return requestBackendJson<unknown>(
     '/api/v1/onboarding/reconcile',
     {
       method: 'POST',
@@ -80,7 +80,7 @@ export async function importLocalOnboarding(payload: OnboardingReconcilePayload)
     'Bypass-Tunnel-Reminder': 'true',
   });
 
-  return requestBackendJson<any>(
+  return requestBackendJson<unknown>(
     '/api/v1/onboarding/import-local',
     {
       method: 'POST',

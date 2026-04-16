@@ -7,7 +7,7 @@ import { requestBackendJson } from '../../lib/backend-request';
 interface AddEventModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (eventData: any) => void;
+    onSuccess: (eventData: unknown) => void;
     members: FamilyMember[];
 }
 
@@ -37,7 +37,7 @@ export default function AddEventModal({ isOpen, onClose, onSuccess, members }: A
                     'Content-Type': 'application/json',
                     'Bypass-Tunnel-Reminder': 'true',
                 });
-                const data = await requestBackendJson<{ event?: any }>(
+                const data = await requestBackendJson<{ event?: unknown }>(
                     '/api/v1/genealogy/events',
                     {
                         method: 'POST',

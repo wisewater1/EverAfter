@@ -121,7 +121,7 @@ export default function TimeCapsuleVault() {
                 'Failed to unlock the time capsule.',
             );
             await fetchCapsules();
-        } catch (error) {
+        } catch (_error) {
             alert("This capsule cannot be unlocked yet.");
         }
     };

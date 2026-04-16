@@ -42,12 +42,12 @@ export const withingsProvider: ProviderDriver = {
             throw new Error(`Failed to exchange token for WITHINGS: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as Record<string, unknown>;
         return {
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token,
-            expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
-            scopes: data.scope ? data.scope.split(' ') : undefined,
+            accessToken: data.access_token as string,
+            refreshToken: data.refresh_token as string | undefined,
+            expiresAt: data.expires_in ? new Date(Date.now() + (data.expires_in as number) * 1000) : undefined,
+            scopes: data.scope ? (data.scope as string).split(' ') : undefined,
         };
     },
 

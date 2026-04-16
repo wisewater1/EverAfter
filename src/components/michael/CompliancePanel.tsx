@@ -67,7 +67,7 @@ export default function CompliancePanel() {
     const [loading, setLoading] = useState(true);
     const [readinessScore, setReadinessScore] = useState<number | null>(null);
     const [hipaaScore, setHipaaScore] = useState<number | null>(null);
-    const [liveSnapshot, setLiveSnapshot] = useState<{ readiness: any; hipaa: any } | null>(null);
+    const [liveSnapshot, setLiveSnapshot] = useState<{ readiness: unknown; hipaa: unknown } | null>(null);
 
     const loadChecks = async () => {
         setLoading(true);

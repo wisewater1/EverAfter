@@ -7,7 +7,7 @@ import { Shield, GitBranch, Heart, Wallet, RefreshCw, Loader2 } from 'lucide-rea
 import { trinitySynapse } from './trinityApi';
 
 export default function FamilyVitalityScore() {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
 
     async function load() {

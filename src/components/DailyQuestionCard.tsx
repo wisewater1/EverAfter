@@ -135,7 +135,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
     }
   }, [selectedAI, loadQuestion]);
 
-  const handleAISelect = (ai: ArchetypalAI) => {
+  const _handleAISelect = (ai: ArchetypalAI) => {
     setSelectedAI(ai);
     setResponse('');
     setAttachedFiles([]);

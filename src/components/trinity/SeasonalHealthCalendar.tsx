@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Bell, Calendar, Clock, Link as LinkIcon, Loader2, MapPin, Users } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
-function getRiskLevel(month: any) {
+function getRiskLevel(month: unknown) {
     if ((month?.combined_risk || 0) >= 2) return 'high';
     if ((month?.combined_risk || 0) === 1) return 'moderate';
     return 'low';
@@ -39,7 +39,7 @@ function getRiskClasses(riskLevel: string) {
     };
 }
 
-function formatEventTime(event: any) {
+function formatEventTime(event: unknown) {
     if (event?.allDay) return 'All day';
     const start = event?.startTime ? new Date(event.startTime) : null;
     const end = event?.endTime ? new Date(event.endTime) : null;
@@ -52,7 +52,7 @@ function formatEventTime(event: any) {
 }
 
 export default function SeasonalHealthCalendar() {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
     const [selectedMonthIndex, setSelectedMonthIndex] = useState<number | null>(null);
 
@@ -79,7 +79,7 @@ export default function SeasonalHealthCalendar() {
         if (selectedMonthIndex !== null && calendar[selectedMonthIndex]) return;
 
         const currentMonth = new Date().getMonth();
-        const currentIndex = calendar.findIndex((month: any) => month.month === currentMonth);
+        const currentIndex = calendar.findIndex((month: unknown) => month.month === currentMonth);
         setSelectedMonthIndex(currentIndex >= 0 ? currentIndex : 0);
     }, [calendar, selectedMonthIndex]);
 
@@ -120,7 +120,7 @@ export default function SeasonalHealthCalendar() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {calendar.map((month: any, index: number) => {
+                {calendar.map((month: unknown, index: number) => {
                     const riskLevel = getRiskLevel(month);
                     const classes = getRiskClasses(riskLevel);
                     const selected = selectedMonth?.month === month.month;
@@ -211,7 +211,7 @@ export default function SeasonalHealthCalendar() {
                     <div className="space-y-3">
                         <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Event details</div>
                         {selectedEvents.length > 0 ? (
-                            selectedEvents.map((event: any) => (
+                            selectedEvents.map((event: unknown) => (
                                 <div key={event.id} className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-3">
                                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                                         <div>
@@ -252,7 +252,7 @@ export default function SeasonalHealthCalendar() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Bell className="w-3.5 h-3.5 text-slate-500" />
-                                            <span>{event.alarms?.map((alarm: any) => alarm.label || alarm.date).filter(Boolean).join(', ') || 'No reminders'}</span>
+                                            <span>{event.alarms?.map((alarm: unknown) => alarm.label || alarm.date).filter(Boolean).join(', ') || 'No reminders'}</span>
                                         </div>
                                     </div>
 

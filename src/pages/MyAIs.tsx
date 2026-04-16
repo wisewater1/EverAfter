@@ -70,7 +70,7 @@ export default function MyAIs() {
       if (error) throw error;
 
       const purchasesWithInstances = await Promise.all(
-        (data || []).map(async (purchase: any) => {
+        (data || []).map(async (purchase: unknown) => {
           const { data: instance } = await supabase
             .from('marketplace_purchased_instances')
             .select('*')
@@ -99,7 +99,7 @@ export default function MyAIs() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { _data, error } = await supabase
         .from('marketplace_purchased_instances')
         .insert({
           purchase_id: purchase.id,

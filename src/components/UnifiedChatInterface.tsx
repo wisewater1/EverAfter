@@ -6,7 +6,7 @@ import ArchetypalAIChat from './ArchetypalAIChat';
 import EngramChat from './EngramChat';
 import RaphaelChat from './RaphaelChat';
 import EngramTaskManager from './EngramTaskManager';
-import GlassCard from './GlassCard';
+import _GlassCard from './GlassCard';
 import ReactiveButton from './ReactiveButton';
 
 interface ChatSession {

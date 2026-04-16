@@ -21,7 +21,7 @@ import {
 // Mock Supabase
 vi.mock('../supabase', () => ({
   supabase: {
-    from: vi.fn((table: string) => ({
+    from: vi.fn((_table: string) => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
@@ -155,7 +155,7 @@ describe('VaultConnectAPI - Connection Request Validation', () => {
   it('should reject invalid data_sharing_level', async () => {
     const invalidRequest = {
       partner_id: '550e8400-e29b-41d4-a716-446655440000',
-      data_sharing_level: 'invalid' as any,
+      data_sharing_level: 'invalid' as unknown,
       permissions: [],
     };
 
@@ -264,7 +264,7 @@ describe('VaultConnectAPI - Type Safety', () => {
 });
 
 describe('VaultConnectAPI - Data Sharing Config Validation', () => {
-  let api: VaultConnectAPI;
+  let _api: VaultConnectAPI;
 
   beforeEach(() => {
     api = new VaultConnectAPI('test-user');
@@ -303,7 +303,7 @@ describe('VaultConnectAPI - Encryption Key Generation', () => {
     const api = new VaultConnectAPI('user-123');
 
     // Access private method via any cast for testing
-    const generateKey = (api as any).generateEncryptionKeyHash.bind(api);
+    const generateKey = (api as unknown).generateEncryptionKeyHash.bind(api);
 
     const hash1 = await generateKey('user-1', 'partner-1');
     const hash2 = await generateKey('user-1', 'partner-2');
@@ -324,7 +324,7 @@ describe('VaultConnectAPI - Encryption Key Generation', () => {
 describe('VaultConnectAPI - Data Hash Generation', () => {
   it('should generate consistent hashes for same data', async () => {
     const api = new VaultConnectAPI('user-123');
-    const generateHash = (api as any).generateDataHash.bind(api);
+    const generateHash = (api as unknown).generateDataHash.bind(api);
 
     const testData = 'test data';
     const hash1 = await generateHash(testData);
@@ -336,7 +336,7 @@ describe('VaultConnectAPI - Data Hash Generation', () => {
 
   it('should generate different hashes for different data', async () => {
     const api = new VaultConnectAPI('user-123');
-    const generateHash = (api as any).generateDataHash.bind(api);
+    const generateHash = (api as unknown).generateDataHash.bind(api);
 
     const hash1 = await generateHash('data1');
     const hash2 = await generateHash('data2');
@@ -346,7 +346,7 @@ describe('VaultConnectAPI - Data Hash Generation', () => {
 });
 
 describe('VaultConnectAPI - Edge Cases', () => {
-  let api: VaultConnectAPI;
+  let _api: VaultConnectAPI;
 
   beforeEach(() => {
     api = new VaultConnectAPI('test-user');

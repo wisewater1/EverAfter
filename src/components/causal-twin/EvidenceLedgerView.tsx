@@ -12,9 +12,9 @@ const EVIDENCE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function EvidenceLedgerView({ memberId }: { memberId?: string }) {
-    const [entries, setEntries] = useState<any[]>([]);
-    const [quality, setQuality] = useState<any>(null);
-    const [selectedEntry, setSelectedEntry] = useState<any>(null);
+    const [entries, setEntries] = useState<unknown[]>([]);
+    const [quality, setQuality] = useState<unknown>(null);
+    const [selectedEntry, setSelectedEntry] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => { loadEvidence(); }, []);

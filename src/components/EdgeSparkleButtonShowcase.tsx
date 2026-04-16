@@ -161,21 +161,21 @@ export default function EdgeSparkleButtonShowcase() {
                 <h3 className="text-lg font-semibold text-white capitalize">{variant}</h3>
                 <div className="space-y-3">
                   <EdgeSparkleButton
-                    variant={variant as any}
+                    variant={variant as unknown}
                     size="sm"
                     fullWidth
                   >
                     Small
                   </EdgeSparkleButton>
                   <EdgeSparkleButton
-                    variant={variant as any}
+                    variant={variant as unknown}
                     size="md"
                     fullWidth
                   >
                     Medium
                   </EdgeSparkleButton>
                   <EdgeSparkleButton
-                    variant={variant as any}
+                    variant={variant as unknown}
                     size="lg"
                     fullWidth
                   >

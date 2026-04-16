@@ -9,7 +9,7 @@ interface Report {
   start_at: string;
   end_at: string;
   period: string;
-  kpis: Record<string, any>;
+  kpis: Record<string, unknown>;
   findings: Array<{ type: string; text: string }>;
   narrative?: string;
   created_at: string;
@@ -44,7 +44,7 @@ export default function RaphaelInsightsPanel({ engramId: initialEngramId }: Raph
 
         // Auto-select St. Raphael if not already selected
         if (!selectedEngramId) {
-          const raphael = data.find((e: any) => e.name === 'St. Raphael');
+          const raphael = data.find((e: unknown) => e.name === 'St. Raphael');
           if (raphael) {
             setSelectedEngramId(raphael.id);
           } else if (data.length > 0) {
@@ -52,7 +52,7 @@ export default function RaphaelInsightsPanel({ engramId: initialEngramId }: Raph
           }
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading engrams:', err);
     } finally {
       setEngramsLoading(false);
@@ -75,7 +75,7 @@ export default function RaphaelInsightsPanel({ engramId: initialEngramId }: Raph
 
       if (fetchError) throw fetchError;
       if (data) setReports(data as Report[]);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading reports:', err);
       setError(err.message || 'Failed to load reports');
     } finally {
@@ -101,7 +101,7 @@ export default function RaphaelInsightsPanel({ engramId: initialEngramId }: Raph
       if (response?.report) {
         setReports(prev => [response.report, ...prev]);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error generating report:', err);
       setError(err.message || 'Failed to generate report');
     } finally {
@@ -149,7 +149,7 @@ export default function RaphaelInsightsPanel({ engramId: initialEngramId }: Raph
       .join(' ');
   };
 
-  const formatKpiValue = (value: any) => {
+  const formatKpiValue = (value: unknown) => {
     if (typeof value === 'number') {
       return value.toLocaleString();
     }

@@ -12,7 +12,7 @@ interface PersonalityProfile {
     communication_style: Record<string, TraitData>;
     social_tendencies: Record<string, TraitData>;
     interests: Record<string, TraitData>;
-    behavioral_patterns: Record<string, any>;
+    behavioral_patterns: Record<string, unknown>;
     relationship_dynamics: Record<string, TraitData>;
   };
   completeness_score: number;
@@ -31,7 +31,7 @@ interface TraitData {
   evidence: string[];
 }
 
-interface FamilyMember {
+interface _FamilyMember {
   id: string;
   name: string;
   relationship: string;
@@ -86,7 +86,7 @@ export default function PersonalityProfileViewer({
       }
 
       setProfile(data || null);
-    } catch (err: any) {
+    } catch (err) {
       console.warn('Error loading profile:', err);
       setError(err.message);
     } finally {
@@ -194,7 +194,7 @@ export default function PersonalityProfileViewer({
       }
 
       await loadProfile();
-    } catch (err: any) {
+    } catch (err) {
       console.warn('Error generating profile:', err);
       setError(err.message);
     } finally {
@@ -434,7 +434,7 @@ export default function PersonalityProfileViewer({
 
             {selectedData && typeof selectedData === 'object' && Object.keys(selectedData).length > 0 ? (
               <div className="space-y-4">
-                {Object.entries(selectedData).map(([traitName, traitData]: [string, any]) => (
+                {Object.entries(selectedData).map(([traitName, traitData]: [string, unknown]) => (
                   <div
                     key={traitName}
                     className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 hover:border-slate-600/50 transition-all"

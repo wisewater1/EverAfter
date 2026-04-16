@@ -31,7 +31,7 @@ export default function SystemMonitorDashboard() {
     const navigate = useNavigate();
     const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
     const [loading, setLoading] = useState(true);
-    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [_lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const fetchMetrics = async () => {
         try {
@@ -45,11 +45,11 @@ export default function SystemMonitorDashboard() {
                 const data = await response.json();
                 // Process history to friendly time format
                 if (data.history) {
-                    data.history.cpu = data.history.cpu.map((p: any) => ({
+                    data.history.cpu = data.history.cpu.map((p: unknown) => ({
                         ...p,
                         time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
                     }));
-                    data.history.memory = data.history.memory.map((p: any) => ({
+                    data.history.memory = data.history.memory.map((p: unknown) => ({
                         ...p,
                         time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
                     }));

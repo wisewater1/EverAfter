@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import _React, { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification, NotificationType } from '../contexts/NotificationContext';
@@ -80,7 +80,7 @@ export default function HealthAlertListener() {
                         try {
                             const audio = new Audio('/sounds/alert.mp3'); // We haven't added this file, so this might fail silently
                             audio.play().catch(() => { /* autoplay blocked by browser policy — safe to ignore */ });
-                        } catch (e) {
+                        } catch (_e) {
                             // Ignore audio errors
                         }
                     }

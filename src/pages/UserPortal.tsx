@@ -100,7 +100,7 @@ export default function UserPortal() {
           .or(`requester_id.eq.${user?.id},addressee_id.eq.${user?.id}`);
 
         const statuses: Record<string, string> = {};
-        allConnections?.forEach((conn: any) => {
+        allConnections?.forEach((conn: unknown) => {
           const otherUserId = conn.requester_id === user?.id ? conn.addressee_id : conn.requester_id;
           statuses[otherUserId] = conn.status;
         });
@@ -186,7 +186,7 @@ export default function UserPortal() {
 
       // Reload data
       await loadData();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error sending connection request:', error);
 
       let errorMessage = 'Failed to send connection request';

@@ -33,7 +33,7 @@ interface Provider {
   id: string;
   name: string;
   category: 'aggregator' | 'wearable' | 'cgm' | 'ehr' | 'wellness';
-  icon: any;
+  icon: unknown;
   color: string;
   description: string;
   features: string[];
@@ -294,7 +294,7 @@ export default function RaphaelConnectors() {
 
       if (fetchError) throw fetchError;
       setAccounts(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading connections:', err);
       setError(err.message);
     } finally {
@@ -339,7 +339,7 @@ export default function RaphaelConnectors() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv,.json';
-    input.onchange = async (e: any) => {
+    input.onchange = async (e: unknown) => {
       const file = e.target?.files?.[0];
       if (!file) return;
 
@@ -373,7 +373,7 @@ export default function RaphaelConnectors() {
         alert(`Successfully uploaded ${result.readings_inserted} glucose readings from ${file.name}`);
 
         await loadConnections();
-      } catch (err: any) {
+      } catch (err) {
         console.error('Upload error:', err);
         setError(err.message);
       } finally {
@@ -398,7 +398,7 @@ export default function RaphaelConnectors() {
       if (deleteError) throw deleteError;
 
       setAccounts((prev) => prev.filter((acc) => acc.provider !== providerId));
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error disconnecting:', err);
       setError(err.message);
     }
@@ -433,7 +433,7 @@ export default function RaphaelConnectors() {
       alert(`Synced ${result.metrics_ingested} metrics from ${providerId}`);
 
       await loadConnections();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Sync error:', err);
       setError(err.message);
     } finally {

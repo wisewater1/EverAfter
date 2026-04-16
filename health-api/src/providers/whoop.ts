@@ -1,4 +1,4 @@
-import { Provider } from '../generated/prisma/client.js';
+import { Provider, MetricType } from '../generated/prisma/client.js';
 import { ProviderDriver, OAuthTokens, ProviderProfile, NormalizedMetric } from '../types/index.js';
 import { getProviderConfig } from '../config/providers.js';
 
@@ -106,27 +106,28 @@ export const whoopProvider: ProviderDriver = {
             });
 
             if (recRes.ok) {
-                const data = (await recRes.json()) as any;
+                const data = (await recRes.json()) as { records?: Record<string, unknown>[] };
                 const records = data.records || [];
-                records.forEach((r: any) => {
-                    if (r.score) {
+                records.forEach((r) => {
+                    const score = r.score as Record<string, unknown> | undefined;
+                    if (score) {
                         metrics.push({
-                            metric: 'RECOVERY' as any,
-                            value: r.score.recovery_score,
+                            metric: MetricType.RECOVERY,
+                            value: score.recovery_score as number,
                             unit: '%',
-                            timestamp: new Date(r.created_at),
+                            timestamp: new Date(r.created_at as string),
                         });
                         metrics.push({
-                            metric: 'HEART_RATE' as any,
-                            value: r.score.resting_heart_rate,
+                            metric: MetricType.HEART_RATE,
+                            value: score.resting_heart_rate as number,
                             unit: 'bpm',
-                            timestamp: new Date(r.created_at),
+                            timestamp: new Date(r.created_at as string),
                         });
                         metrics.push({
-                            metric: 'HRV' as any,
-                            value: r.score.hrv_rmssd_milli,
+                            metric: MetricType.HRV,
+                            value: score.hrv_rmssd_milli as number,
                             unit: 'ms',
-                            timestamp: new Date(r.created_at),
+                            timestamp: new Date(r.created_at as string),
                         });
                     }
                 });
@@ -140,15 +141,16 @@ export const whoopProvider: ProviderDriver = {
             });
 
             if (sleepRes.ok) {
-                const data = (await sleepRes.json()) as any;
+                const data = (await sleepRes.json()) as { records?: Record<string, unknown>[] };
                 const records = data.records || [];
-                records.forEach((r: any) => {
-                    if (r.score && r.score.sleep_performance_percentage) {
+                records.forEach((r) => {
+                    const score = r.score as Record<string, unknown> | undefined;
+                    if (score && score.sleep_performance_percentage) {
                         metrics.push({
-                            metric: 'SLEEP_DURATION' as any,
-                            value: r.score.sleep_performance_percentage,
+                            metric: MetricType.SLEEP_DURATION,
+                            value: score.sleep_performance_percentage as number,
                             unit: '%',
-                            timestamp: new Date(r.created_at),
+                            timestamp: new Date(r.created_at as string),
                         });
                     }
                 });

@@ -6,14 +6,14 @@ import { useState, useEffect } from 'react';
 import { BookOpen, GitBranch, Heart, Wallet, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
-const SAINT_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
+const SAINT_CONFIG: Record<string, { icon: unknown; color: string; label: string }> = {
     joseph: { icon: GitBranch, color: '#f59e0b', label: 'Joseph' },
     raphael: { icon: Heart, color: '#14b8a6', label: 'Raphael' },
     gabriel: { icon: Wallet, color: '#10b981', label: 'Gabriel' },
 };
 
 export default function FamilyChronicle() {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>('all');
 
@@ -22,7 +22,7 @@ export default function FamilyChronicle() {
     if (loading) return <div className="flex items-center gap-2 text-xs text-slate-500 p-4"><Loader2 className="w-4 h-4 animate-spin" />Building chronicle…</div>;
     if (!data) return null;
 
-    const entries = (data.entries || []).filter((e: any) => filter === 'all' || e.saint === filter);
+    const entries = (data.entries || []).filter((e: unknown) => filter === 'all' || e.saint === filter);
 
     return (
         <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-5">
@@ -43,7 +43,7 @@ export default function FamilyChronicle() {
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                 {entries.length === 0 && <p className="text-xs text-slate-500 text-center py-4">No chronicle entries yet.</p>}
-                {entries.map((e: any, i: number) => {
+                {entries.map((e: unknown, i: number) => {
                     const cfg = SAINT_CONFIG[e.saint] || SAINT_CONFIG.joseph;
                     const Icon = cfg.icon;
                     return (

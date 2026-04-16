@@ -216,13 +216,13 @@ export default function StJosephFamilyDashboard() {
         }
     };
 
-    const handleCompleteTask = async (taskId: string) => {
+    const _handleCompleteTask = async (taskId: string) => {
         await apiClient.completeTask(taskId);
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
         setSummary(prev => prev ? { ...prev, activeTasks: Math.max(0, prev.activeTasks - 1) } : prev);
     };
 
-    const handleMarkBought = async (itemId: string) => {
+    const _handleMarkBought = async (itemId: string) => {
         await apiClient.markItemBought(itemId);
         setShopping(prev => prev.map(s => s.id === itemId ? { ...s, status: 'bought' } : s));
         setSummary(prev => prev ? { ...prev, shoppingListCount: Math.max(0, prev.shoppingListCount - 1) } : prev);

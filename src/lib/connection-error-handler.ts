@@ -159,7 +159,7 @@ const ERROR_DEFINITIONS: Record<
 /**
  * Parse and classify error from various sources
  */
-export function parseError(error: any, provider?: string): ConnectionError {
+export function parseError(error: unknown, provider?: string): ConnectionError {
   let errorCode = 'UNKNOWN_ERROR';
   let technicalDetails = '';
 
@@ -317,10 +317,10 @@ export async function retryWithBackoff<T>(
   options: {
     maxRetries: number;
     baseDelay: number;
-    onRetry?: (attempt: number, error: any) => void;
+    onRetry?: (attempt: number, error: unknown) => void;
   }
 ): Promise<T> {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= options.maxRetries; attempt++) {
     try {

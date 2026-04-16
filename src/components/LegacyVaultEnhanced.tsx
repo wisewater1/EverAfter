@@ -18,7 +18,7 @@ interface VaultItem {
   title: string;
   slug?: string;
   status: 'DRAFT' | 'SCHEDULED' | 'LOCKED' | 'PUBLISHED' | 'PAUSED' | 'SENT' | 'ARCHIVED';
-  payload: any;
+  payload: unknown;
   is_encrypted: boolean;
   encryption_key_id?: string;
   unlock_at?: string;
@@ -53,7 +53,7 @@ type ItemStatusFilter = 'ALL' | VaultItem['status'];
 interface LegacyConceptPreset {
   type: VaultItem['type'];
   title: string;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   unlock_rule: NonNullable<VaultItem['unlock_rule']>;
   heartbeat_timeout_days?: number;
   is_encrypted?: boolean;
@@ -499,7 +499,7 @@ function ContinuityPlansSection({
   onCreateWithPreset
 }: {
   activeTab: string;
-  onTabChange: (tab: any) => void;
+  onTabChange: (tab: unknown) => void;
   items: VaultItem[];
   allItems: VaultItem[];
   loading: boolean;
@@ -927,7 +927,7 @@ function LegacyAssuranceSection({
   beneficiaries: Beneficiary[];
   receipts: Receipt[];
   loading: boolean;
-  navigate: any;
+  navigate: unknown;
   onIntegrityCheck: () => void;
   onExport: () => void;
   onCreateBeneficiary: (payload: { name?: string; email: string; phone?: string; relationship?: string }) => Promise<void>;
@@ -1263,7 +1263,7 @@ function StatusCard({
 }: {
   title: string;
   value: string;
-  icon: any;
+  icon: unknown;
   color: string;
 }) {
   return (
@@ -1302,7 +1302,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
       attachments: [],
       ...(preset?.payload || {}),
       ...item?.payload
-    } as any,
+    } as unknown,
     unlock_at: item?.unlock_at ? new Date(item.unlock_at).toISOString().slice(0, 16) : '',
     unlock_rule: item?.unlock_rule || preset?.unlock_rule || 'DATE' as const,
     heartbeat_timeout_days: item?.heartbeat_timeout_days || preset?.heartbeat_timeout_days || 30,
@@ -1350,8 +1350,8 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
         .select('beneficiary_id, role')
         .eq('vault_item_id', item.id);
       if (error) throw error;
-      setSelectedBeneficiaries(data.map((d: any) => ({ id: d.beneficiary_id, role: d.role })));
-    } catch (err) {
+      setSelectedBeneficiaries(data.map((d: unknown) => ({ id: d.beneficiary_id, role: d.role })));
+    } catch (_err) {
     }
   };
 
@@ -1365,7 +1365,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
 
       if (error) throw error;
       setAvailableBeneficiaries(data || []);
-    } catch (err) {
+    } catch (_err) {
     }
   };
 
@@ -1377,7 +1377,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
     }
   };
 
-  const updateBeneficiaryRole = (id: string, role: any) => {
+  const updateBeneficiaryRole = (id: string, role: unknown) => {
     setSelectedBeneficiaries(selectedBeneficiaries.map(b => b.id === id ? { ...b, role } : b));
   };
 
@@ -1487,7 +1487,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
       }
 
       onSave();
-    } catch (err: any) {
+    } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save item');
     } finally {
       setLoading(false);
@@ -1653,7 +1653,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
               <button
                 key={type.id}
                 onClick={() => {
-                  setSelectedType(type.id as any);
+                  setSelectedType(type.id as unknown);
                   setStep(2);
                 }}
                 className={`p-6 rounded-xl border transition-all text-left ${selectedType === type.id
@@ -1712,7 +1712,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
                     {isSelected && (
                       <select
                         value={isSelected.role}
-                        onChange={(e) => updateBeneficiaryRole(b.id, e.target.value as any)}
+                        onChange={(e) => updateBeneficiaryRole(b.id, e.target.value as unknown)}
                         className="bg-slate-800 border border-slate-700 text-xs text-white rounded-lg px-2 py-1 focus:outline-none focus:border-teal-500/50"
                       >
                         <option value="VIEWER">Viewer</option>
@@ -1738,7 +1738,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
             <label className="block text-sm font-medium text-slate-400 mb-1">Unlock Rule</label>
             <select
               value={formData.unlock_rule}
-              onChange={(e) => setFormData({ ...formData, unlock_rule: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, unlock_rule: e.target.value as unknown })}
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-teal-500/50"
             >
               <option value="DATE">Specific Date</option>
@@ -1851,9 +1851,9 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
 
 function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem; onClose: () => void; onRemove: (id: string) => void; onEdit: (item: VaultItem) => void }) {
   const { user } = useAuth();
-  const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
+  const [beneficiaries, setBeneficiaries] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(false);
-  const [decryptedPayload, setDecryptedPayload] = useState<any>(null);
+  const [decryptedPayload, setDecryptedPayload] = useState<unknown>(null);
   const isOwner = user?.id === item.user_id;
 
   useEffect(() => {
@@ -1871,11 +1871,11 @@ function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem;
       const decrypted = await decryptVaultData(item.payload.ciphertext, item.payload.iv, key);
       try {
         setDecryptedPayload(JSON.parse(decrypted));
-      } catch (parseErr) {
+      } catch (_parseErr) {
         // Fallback: use raw decrypted string if it's not JSON
         setDecryptedPayload({ message: decrypted });
       }
-    } catch (err) {
+    } catch (_err) {
     }
   };
 
@@ -1897,7 +1897,7 @@ function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem;
 
       if (error) throw error;
       setBeneficiaries(data || []);
-    } catch (err) {
+    } catch (_err) {
     } finally {
       setLoading(false);
     }

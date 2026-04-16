@@ -21,7 +21,7 @@ interface Message {
     timestamp: Date;
 }
 
-const SAINT_ICONS: Record<string, any> = { joseph: GitBranch, raphael: Heart, gabriel: Wallet };
+const SAINT_ICONS: Record<string, unknown> = { joseph: GitBranch, raphael: Heart, gabriel: Wallet };
 const SAINT_LABELS: Record<string, string> = { joseph: 'St. Joseph', raphael: 'St. Raphael', gabriel: 'St. Gabriel' };
 
 export default function TrinityCouncilChat() {

@@ -58,9 +58,9 @@ interface Props {
     memberId?: string;
     birthYear?: number;
     oceanScores?: Record<string, number>;
-    metricsHistory?: any[];
-    familyMembers?: any[];
-    budgetEnvelopes?: any[];
+    metricsHistory?: unknown[];
+    familyMembers?: unknown[];
+    budgetEnvelopes?: unknown[];
     healthRiskScore?: number;
     saint?: 'joseph' | 'raphael' | 'gabriel';
     compact?: boolean;
@@ -73,7 +73,7 @@ const RISK_COLORS: Record<string, string> = {
     critical: '#dc2626',
 };
 
-const TrendIcon = ({ trend }: { trend: string }) => {
+const _TrendIcon = ({ trend }: { trend: string }) => {
     if (trend === 'rising' || trend === 'falling')
         return trend === 'rising'
             ? <TrendingUp className="w-3.5 h-3.5" />
@@ -194,7 +194,7 @@ export default function TrinitySynapsePanel({
 
             await Promise.all(tasks);
             setInsights(results);
-        } catch (err: any) {
+        } catch (_err) {
             setError('Trinity Synapse offline — insights unavailable');
         }
         setLoading(false);

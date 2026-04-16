@@ -370,7 +370,7 @@ function StatCard({ label, value, trend, change }: { label: string; value: strin
   );
 }
 
-function MiniChart({ data, color, unit }: { data: MetricDataPoint[]; color: string; unit: string }) {
+function MiniChart({ data, color, _unit }: { data: MetricDataPoint[]; color: string; unit: string }) {
   if (data.length === 0) return null;
 
   const values = data.map(d => d.value);

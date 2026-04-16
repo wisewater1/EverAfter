@@ -104,7 +104,7 @@ export default function CompactSaintsOverlay() {
 
       const saintsWithData = await Promise.all(
         saintDefinitions.map(async (saintDef) => {
-          const isActive = activeSaints?.some((s: any) => s.saint_id === saintDef.id) || saintDef.id === 'raphael' || saintDef.id === 'michael' || saintDef.id === 'joseph';
+          const isActive = activeSaints?.some((s: unknown) => s.saint_id === saintDef.id) || saintDef.id === 'raphael' || saintDef.id === 'michael' || saintDef.id === 'joseph';
 
           const { count: todayCount } = await supabase
             .from('saint_activities')

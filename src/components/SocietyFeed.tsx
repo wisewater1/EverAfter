@@ -6,7 +6,7 @@ import { getFamilyMembers } from '../lib/joseph/genealogy';
 // Define Personality Archetypes
 export type Archetype = 'analytical' | 'creative' | 'empathetic' | 'direct' | 'balanced';
 
-export const getAgentArchetype = (traits: any): Archetype => {
+export const getAgentArchetype = (traits: unknown): Archetype => {
     if (!traits) return 'balanced';
     const str = JSON.stringify(traits).toLowerCase();
     if (str.includes('logic') || str.includes('analy') || str.includes('data') || str.includes('engineer') || str.includes('tech')) return 'analytical';
@@ -29,7 +29,7 @@ interface AgentProfile {
     name: string;
     avatar_url?: string;
     description?: string;
-    personality_traits?: any;
+    personality_traits?: unknown;
     dimension_scores?: Record<string, number>;
     status: 'active' | 'idle';
     archetype: Archetype;
@@ -243,12 +243,12 @@ const SocietyFeed: React.FC = () => {
             const engrams = engramsResult.status === 'fulfilled' ? engramsResult.value : [];
             const feedData = feedResult.status === 'fulfilled' ? feedResult.value : [];
             const localFamily = getFamilyMembers();
-            const engramMap = new Map((engrams || []).map((e: any) => [e.name, e]));
+            const engramMap = new Map((engrams || []).map((e: unknown) => [e.name, e]));
             const localEvents = readLocalSocietyEvents();
 
             const combinedAgents: AgentProfile[] = localFamily.map(member => {
                 const fullName = `${member.firstName} ${member.lastName}`;
-                const engram = engramMap.get(fullName) as any;
+                const engram = engramMap.get(fullName) as unknown;
                 const traits = engram?.personality_traits || member.aiPersonality?.traits;
                 const isLocalActive = Boolean(member.aiPersonality?.isActive || member.aiPersonality?.scores || member.engramId);
                 return {
@@ -262,7 +262,7 @@ const SocietyFeed: React.FC = () => {
             });
 
             // Add non-family engrams
-            (engrams || []).forEach((e: any) => {
+            (engrams || []).forEach((e: unknown) => {
                 if (!combinedAgents.find(a => a.name === e.name)) {
                     combinedAgents.push({
                         id: e.id,
@@ -275,7 +275,7 @@ const SocietyFeed: React.FC = () => {
                 }
             });
 
-            setBackendAgentIds((engrams || []).map((engram: any) => String(engram.id)));
+            setBackendAgentIds((engrams || []).map((engram: unknown) => String(engram.id)));
             setAgents(combinedAgents);
             setEvents(mergeSocietyEvents(feedData || [], localEvents));
         } catch (error) {
@@ -457,7 +457,7 @@ const SocietyFeed: React.FC = () => {
                         ].map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id as unknown)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white'}`}
                             >
                                 <tab.icon className="w-4 h-4" />
@@ -597,7 +597,7 @@ const SocietyFeed: React.FC = () => {
                                             );
                                             // Map transcript to dialogue
                                             if (result.transcript && Array.isArray(result.transcript)) {
-                                                setDeliberationLog(result.transcript.map((entry: any, i: number) => ({
+                                                setDeliberationLog(result.transcript.map((entry: unknown, i: number) => ({
                                                     speaker: entry.saint_name || entry.speaker || `Saint ${i + 1}`,
                                                     role: entry.saint_id || entry.role || 'advisor',
                                                     content: entry.content || entry.message || '',
@@ -765,7 +765,7 @@ const SocietyFeed: React.FC = () => {
                                                         setErrorMsg("Need at least 2 family members to seed the society simulation.");
                                                     }
                                                 }
-                                            } catch (error: any) {
+                                            } catch (error) {
                                                 console.error("Failed to boost society:", error);
                                                 const seededEvents = runLocalSimulation(5);
                                                 if (seededEvents.length === 0) {
@@ -815,7 +815,7 @@ const SocietyFeed: React.FC = () => {
                                             setErrorMsg("Need at least 2 agents in the society to propagate legacies.");
                                         }
                                     }
-                                } catch (error: any) {
+                                } catch (error) {
                                     console.error("Propagation Error:", error);
                                     const localInitiator = agents.find((agent) => agent.status === 'active') || agents[0];
                                     const propagatedEvents = localInitiator
@@ -856,7 +856,7 @@ const SocietyFeed: React.FC = () => {
                                             setErrorMsg("Need at least 2 agents to accelerate the society simulation.");
                                         }
                                     }
-                                } catch (error: any) {
+                                } catch (error) {
                                     console.error("Event trigger error:", error);
                                     const acceleratedEvents = runLocalSimulation(1);
                                     if (acceleratedEvents.length === 0) {

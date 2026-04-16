@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, _useMemo } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, User, Activity, Brain, Heart, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { requestBackendJson } from '../lib/backend-request';
@@ -72,7 +72,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     profiles: true
   });
 
-  const mapFamilyMember = (member: any): FamilyMember => {
+  const mapFamilyMember = (member: unknown): FamilyMember => {
     const permissions =
       member?.permissions && typeof member.permissions === 'object' && !Array.isArray(member.permissions)
         ? member.permissions
@@ -117,12 +117,12 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       .limit(50);
 
     if (data) {
-      setQuestionResponses(data.map((item: any) => ({
+      setQuestionResponses(data.map((item: unknown) => ({
         id: item.id,
         question: item.question_text,
         response: item.response_text,
         timestamp: item.created_at,
-        member_name: (item.archetypal_ais as any)?.name || 'Unknown'
+        member_name: (item.archetypal_ais as unknown)?.name || 'Unknown'
       })));
     }
   }, [userId]);
@@ -365,7 +365,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   const handleExportData = async () => {
     setLoading(true);
     try {
-      const exportData: any = {
+      const exportData: unknown = {
         exported_at: new Date().toISOString(),
         user_id: userId
       };

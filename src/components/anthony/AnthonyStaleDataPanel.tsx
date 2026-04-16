@@ -37,9 +37,9 @@ interface AnthonyStaleDataPanelProps {
 }
 
 export default function AnthonyStaleDataPanel({ personId }: AnthonyStaleDataPanelProps) {
-    const [dht, setDht] = useState<any>(null);
-    const [nbm, setNbm] = useState<any>(null);
-    const [indicators, setIndicators] = useState<any[]>([]);
+    const [dht, setDht] = useState<unknown>(null);
+    const [nbm, setNbm] = useState<unknown>(null);
+    const [indicators, setIndicators] = useState<unknown[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const navigate = useNavigate();
@@ -102,9 +102,9 @@ export default function AnthonyStaleDataPanel({ personId }: AnthonyStaleDataPane
     }
 
     // Stale leading indicators (no recent delta)
-    const staleIndicators = indicators.filter((ind: any) => ind.delta_7d === undefined || ind.delta_7d === null);
+    const staleIndicators = indicators.filter((ind: unknown) => ind.delta_7d === undefined || ind.delta_7d === null);
     if (staleIndicators.length > 0) {
-        staleIndicators.forEach((ind: any) => {
+        staleIndicators.forEach((ind: unknown) => {
             lostItems.push({
                 label: `Missing: ${ind.label} trend`,
                 detail: `No 7-day delta available. Anthony cannot track momentum for this signal.`,

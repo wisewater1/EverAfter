@@ -6,7 +6,7 @@ import { buildApiUrl } from '../../lib/env';
 
 interface Prediction {
     scenario: Record<string, number>;
-    projections: Record<string, any>;
+    projections: Record<string, unknown>;
     confidence: { score: number; level: string };
     evidence: { type: string; label: string; is_causal: boolean };
     narrative: string;
@@ -127,7 +127,7 @@ export default function CausalTwinDashboard({ memberId }: { memberId?: string })
 
                             {/* Metric Projections Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-3">
-                                {Object.entries(pred.projections).map(([metric, horizons]: [string, any]) => {
+                                {Object.entries(pred.projections).map(([metric, horizons]: [string, unknown]) => {
                                     const sevenDay = horizons['7d'] || horizons['3d'] || {};
                                     return (
                                         <div key={metric} className="p-3 rounded-xl bg-white/[0.02] border border-white/5">

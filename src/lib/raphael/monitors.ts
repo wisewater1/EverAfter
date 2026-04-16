@@ -124,7 +124,7 @@ async function fetchVitalsSummary(userId: string): Promise<VitalsSummary | null>
 
     if (!metrics || metrics.length === 0) return null;
 
-    const latest: Record<string, any> = {};
+    const latest: Record<string, unknown> = {};
     metrics.forEach(m => {
       if (!latest[m.metric_type]) {
         latest[m.metric_type] = m;

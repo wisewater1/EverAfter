@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { type ExtractedHealthData } from '../lib/raphael/healthDataService';
+import { type _ExtractedHealthData } from '../lib/raphael/healthDataService';
 import { bluetoothConnector, isBluetoothSupported, type BLEDevice, type BLEDeviceType } from '../lib/connectors/bluetooth-health';
 import { cameraHeartRate, isCameraSupported } from '../lib/connectors/camera-heart-rate';
 import { motionTracker, isMotionSupported, isGeolocationSupported } from '../lib/connectors/motion-tracker';
@@ -129,7 +129,7 @@ export default function PhoneHealthConnect() {
                     }
                 }
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('BLE scan error:', error);
         } finally {
             setBleScanning(false);
@@ -152,7 +152,7 @@ export default function PhoneHealthConnect() {
                     if (stored > 0) addSync('Camera PPG', stored);
                 }
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Camera PPG error:', error);
         } finally {
             setPpgMeasuring(false);
@@ -229,7 +229,7 @@ export default function PhoneHealthConnect() {
                 const stored = await storeEnvironmentData(user.id, snapshot);
                 if (stored > 0) addSync('Environment', stored);
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Environment fetch error:', error);
         } finally {
             setEnvLoading(false);

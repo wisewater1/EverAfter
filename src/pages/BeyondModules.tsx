@@ -69,7 +69,7 @@ export default function BeyondModules() {
   const [currentView, setCurrentView] = useState(0);
   const [showFinal, setShowFinal] = useState(false);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const _audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (isPlaying && !activeModule) {

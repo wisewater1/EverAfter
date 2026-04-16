@@ -66,7 +66,7 @@ interface RaphaelHealthSummary {
     last_sync_at?: string | null;
 }
 
-function raphaelSummaryHasData(summary: any): boolean {
+function raphaelSummaryHasData(summary: unknown): boolean {
     const rawMetrics = summary?.metrics;
     if (typeof rawMetrics === 'number') {
         return rawMetrics > 0;
@@ -527,7 +527,7 @@ export default function StRaphaelHealthHub() {
 }
 
 // Sub-components for Hub
-function VitalDisplay({ icon: Icon, label, value, unit }: any) {
+function VitalDisplay({ icon: Icon, label, value, unit }: unknown) {
     return (
         <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all group">
             <div className="flex items-center gap-3 mb-3">
@@ -544,7 +544,7 @@ function VitalDisplay({ icon: Icon, label, value, unit }: any) {
     );
 }
 
-function NavButton({ active, onClick, icon: Icon, label }: any) {
+function NavButton({ active, onClick, icon: Icon, label }: unknown) {
     return (
         <button
             onClick={onClick}
@@ -562,7 +562,7 @@ function NavButton({ active, onClick, icon: Icon, label }: any) {
     );
 }
 
-function StatusLine({ label, value, color }: any) {
+function StatusLine({ label, value, color }: unknown) {
     return (
         <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-600 font-medium uppercase">{label}</span>
@@ -599,7 +599,7 @@ function HubInsightCard({ insight }: { insight: Insight }) {
 
 function SynapsePulse() {
     const [pulsing, setPulsing] = useState(false);
-    const [result, setResult] = useState<any | null>(null);
+    const [result, setResult] = useState<unknown | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const triggerPulse = async () => {
@@ -610,7 +610,7 @@ function SynapsePulse() {
             const headers = await apiClient.getAuthHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
             });
-            const data = await requestBackendJson<any>('/api/v1/causal-twin/predictions', { headers }, 'Failed to trigger synapse pulse.');
+            const data = await requestBackendJson<unknown>('/api/v1/causal-twin/predictions', { headers }, 'Failed to trigger synapse pulse.');
             const prediction = data?.predictions?.[0];
             if (!prediction) {
                 setError('No live synapse prediction is available right now.');
@@ -734,7 +734,7 @@ function FamilyHealthHeatmap() {
                 let familyMap: FamilyRiskChip[] = [];
 
                 try {
-                    const predictionData = await requestBackendJson<any>(
+                    const predictionData = await requestBackendJson<unknown>(
                         '/api/v1/health-predictions/predict-family',
                         {
                             method: 'POST',
@@ -745,8 +745,8 @@ function FamilyHealthHeatmap() {
                     );
 
                     familyMap = (predictionData.member_predictions || [])
-                        .filter((memberPrediction: any) => memberPrediction.consent_granted && memberPrediction.prediction)
-                        .map((memberPrediction: any) => {
+                        .filter((memberPrediction: unknown) => memberPrediction.consent_granted && memberPrediction.prediction)
+                        .map((memberPrediction: unknown) => {
                             const prediction = memberPrediction.prediction;
                             const colourByRisk: Record<string, string> = {
                                 low: '#10b981',
@@ -767,7 +767,7 @@ function FamilyHealthHeatmap() {
                 }
 
                 if (familyMap.length === 0) {
-                    const data = await requestBackendJson<any>(
+                    const data = await requestBackendJson<unknown>(
                         '/api/v1/causal-twin/ancestry/family-map',
                         { headers: authHeaders },
                         'Failed to load family risk map.',

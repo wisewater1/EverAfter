@@ -10,7 +10,7 @@ interface Widget {
   position_y: number;
   width: number;
   height: number;
-  config: any;
+  config: unknown;
   data_sources: string[];
   refresh_interval: number;
 }
@@ -27,11 +27,11 @@ export default function WidgetRenderer({
   widget,
   editMode = false,
   onDelete,
-  onPositionChange,
-  onSizeChange,
+  _onPositionChange,
+  _onSizeChange,
 }: WidgetRendererProps) {
-  const { user } = useAuth();
-  const [data, setData] = useState<any>(null);
+  const { _user } = useAuth();
+  const [data, setData] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ export default function WidgetRenderer({
 
       const mockData = generateMockData(widget.widget_type);
       setData(mockData);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading widget data:', err);
       setError('Failed to load data');
     } finally {
@@ -56,7 +56,7 @@ export default function WidgetRenderer({
     }
   }
 
-  function generateMockData(widgetType: string): any {
+  function generateMockData(widgetType: string): unknown {
     switch (widgetType) {
       case 'glucose_trend':
         return {
@@ -205,7 +205,7 @@ export default function WidgetRenderer({
     }
   }
 
-  function renderGlucoseTrend(data: any) {
+  function renderGlucoseTrend(data: unknown) {
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
@@ -221,7 +221,7 @@ export default function WidgetRenderer({
           </div>
         </div>
         <div className="flex-1 flex items-end gap-1">
-          {data.readings.slice(-12).map((reading: any, i: number) => (
+          {data.readings.slice(-12).map((reading: unknown, i: number) => (
             <div key={i} className="flex-1 flex flex-col items-center">
               <div
                 className={`w-full rounded-t ${reading.value < 70
@@ -242,7 +242,7 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderGlucoseStats(data: any) {
+  function renderGlucoseStats(data: unknown) {
     return (
       <div className="p-4 h-full">
         <div className="grid grid-cols-2 gap-4 h-full">
@@ -268,12 +268,12 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderHeartRateZones(data: any) {
-    const total = data.zones.reduce((sum: number, z: any) => sum + z.minutes, 0);
+  function renderHeartRateZones(data: unknown) {
+    const total = data.zones.reduce((sum: number, z: unknown) => sum + z.minutes, 0);
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="flex-1 space-y-2">
-          {data.zones.map((zone: any, i: number) => (
+          {data.zones.map((zone: unknown, i: number) => (
             <div key={i}>
               <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                 <span>{zone.name}</span>
@@ -292,17 +292,17 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderSleepStages(data: any) {
+  function renderSleepStages(data: unknown) {
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="flex items-center justify-center mb-4">
           <div className="relative w-32 h-32">
             <svg viewBox="0 0 100 100" className="transform -rotate-90">
-              {data.stages.map((stage: any, i: number) => {
+              {data.stages.map((stage: unknown, i: number) => {
                 const percentage = (stage.duration / data.totalMinutes) * 100;
                 const offset = data.stages
                   .slice(0, i)
-                  .reduce((sum: number, s: any) => sum + (s.duration / data.totalMinutes) * 100, 0);
+                  .reduce((sum: number, s: unknown) => sum + (s.duration / data.totalMinutes) * 100, 0);
                 return (
                   <circle
                     key={i}
@@ -325,7 +325,7 @@ export default function WidgetRenderer({
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          {data.stages.map((stage: any, i: number) => (
+          {data.stages.map((stage: unknown, i: number) => (
             <div key={i} className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded ${stage.color}`} />
               <span className="text-slate-400 capitalize">{stage.type}</span>
@@ -337,7 +337,7 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderSleepScore(data: any) {
+  function renderSleepScore(data: unknown) {
     return (
       <div className="p-4 h-full flex flex-col items-center justify-center">
         <div className="text-5xl font-bold text-white mb-2">{data.score}</div>
@@ -356,7 +356,7 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderActivitySummary(data: any) {
+  function renderActivitySummary(data: unknown) {
     const progress = (data.steps / data.goal) * 100;
     return (
       <div className="p-4 h-full flex flex-col">
@@ -387,10 +387,10 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderHealthSummary(data: any) {
+  function renderHealthSummary(data: unknown) {
     return (
       <div className="p-4 h-full flex items-center gap-4 overflow-x-auto">
-        {data.metrics.map((metric: any, i: number) => (
+        {data.metrics.map((metric: unknown, i: number) => (
           <div
             key={i}
             className="flex-shrink-0 bg-slate-700/30 rounded-lg p-4 min-w-[140px] text-center"
@@ -404,7 +404,7 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderMetricGauge(data: any) {
+  function renderMetricGauge(data: unknown) {
     const percentage = (data.value / data.goal) * 100;
     return (
       <div className="p-4 h-full flex flex-col items-center justify-center">
@@ -442,7 +442,7 @@ export default function WidgetRenderer({
     );
   }
 
-  function renderDeepDiveInsight(data: any) {
+  function renderDeepDiveInsight(data: unknown) {
     return (
       <div className="p-4 h-full flex flex-col bg-gradient-to-br from-violet-900/10 to-pink-900/10 rounded-xl overflow-y-auto">
         <div className="flex items-center gap-3 mb-4">

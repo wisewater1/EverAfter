@@ -31,7 +31,7 @@ export interface AuditRecord {
     status: 'safe' | 'flagged' | 'blocked';
     details: string;
     provider?: string | null;
-    metadata?: Record<string, any> | null;
+    metadata?: Record<string, unknown> | null;
 }
 
 export interface AuditLedgerEntry {
@@ -44,7 +44,7 @@ export interface AuditLedgerEntry {
     signature?: string | null;
     signerId?: string | null;
     ts?: string | null;
-    metadata?: Record<string, any> | null;
+    metadata?: Record<string, unknown> | null;
 }
 
 export interface SecurityScanResult {
@@ -93,7 +93,7 @@ export interface AnthonyFlowMapEvidence {
     timestamp?: string | null;
     provider?: string | null;
     action?: string | null;
-    metadata?: Record<string, any> | null;
+    metadata?: Record<string, unknown> | null;
 }
 
 export interface AnthonyFlowMapResponse {
@@ -113,9 +113,9 @@ export interface AnthonyFlowMapResponse {
     evidence: AnthonyFlowMapEvidence[];
 }
 
-const FALLBACK_FLOW_NODE_POSITIONS = ['mobile_app', 'api_gateway', 'saint_runtime', 'postgres', 'st_michael', 'st_anthony'] as const;
+const _FALLBACK_FLOW_NODE_POSITIONS = ['mobile_app', 'api_gateway', 'saint_runtime', 'postgres', 'st_michael', 'st_anthony'] as const;
 
-function normalizeAnthonyFlowNode(node: any): AnthonyFlowMapNode {
+function normalizeAnthonyFlowNode(node: unknown): AnthonyFlowMapNode {
     return {
         id: String(node?.id || ''),
         label: String(node?.label || 'Unnamed node'),
@@ -130,7 +130,7 @@ function normalizeAnthonyFlowNode(node: any): AnthonyFlowMapNode {
     };
 }
 
-function normalizeAnthonyFlowEdge(edge: any): AnthonyFlowMapEdge {
+function normalizeAnthonyFlowEdge(edge: unknown): AnthonyFlowMapEdge {
     return {
         id: String(edge?.id || ''),
         from: String(edge?.from || ''),
@@ -144,7 +144,7 @@ function normalizeAnthonyFlowEdge(edge: any): AnthonyFlowMapEdge {
     };
 }
 
-function normalizeAnthonyFlowEvidence(item: any): AnthonyFlowMapEvidence {
+function normalizeAnthonyFlowEvidence(item: unknown): AnthonyFlowMapEvidence {
     return {
         id: String(item?.id || ''),
         type: String(item?.type || 'ledger'),
@@ -158,7 +158,7 @@ function normalizeAnthonyFlowEvidence(item: any): AnthonyFlowMapEvidence {
     };
 }
 
-function normalizeAnthonyFlowMap(response: any): AnthonyFlowMapResponse {
+function normalizeAnthonyFlowMap(response: unknown): AnthonyFlowMapResponse {
     const summary = response?.summary && typeof response.summary === 'object' ? response.summary : {};
 
     return {
@@ -273,7 +273,7 @@ async function buildAnthonyFlowFallback(): Promise<AnthonyFlowMapResponse> {
             timestamp: vulnerability.publishedDate || currentTimestamp,
             provider: 'st_michael',
             action: 'security/vulnerability_tracked',
-            metadata: vulnerability as Record<string, any>,
+            metadata: vulnerability as Record<string, unknown>,
         });
         evidenceIdsByNode[nodeId].push(evidenceId);
         evidenceIdsByNode.st_michael.push(evidenceId);
@@ -434,10 +434,10 @@ function buildUnavailableIntegrityReport(lastScan: string, details: string): Int
     };
 }
 
-async function axiosWithAuthRetry<T = any>(
+async function axiosWithAuthRetry<T = unknown>(
     method: 'get' | 'post',
     path: string,
-    data?: any,
+    data?: unknown,
     responseType: 'json' | 'blob' = 'json',
 ): Promise<T> {
     const headers = await getAuthHeaders();
@@ -445,7 +445,7 @@ async function axiosWithAuthRetry<T = any>(
     const relativeUrl = path;
 
     const request = async (url: string, includeAuth: boolean) => {
-        const config: any = {
+        const config: unknown = {
             method,
             url,
             responseType,
@@ -494,7 +494,7 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         try {
             const monitoring = await getMonitoringStatus();
             const michael = monitoring?.michael || {};
-            const findings = (michael.recent_findings || []).map((f: any) => ({
+            const findings = (michael.recent_findings || []).map((f: unknown) => ({
                 id: f.id || Math.random().toString(36).slice(2, 11),
                 type: f.type || 'system',
                 severity: f.severity || 'medium',
@@ -556,7 +556,7 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
             const michaelFindings = michael.recent_findings || [];
 
             // Map backend findings to frontend alerts
-            const findings = michaelFindings.map((f: any) => ({
+            const findings = michaelFindings.map((f: unknown) => ({
                 id: f.id || Math.random().toString(36).substr(2, 9),
                 type: f.type || 'vulnerability',
                 severity: f.severity || 'medium',
@@ -676,7 +676,7 @@ export async function getAuditHistory(userId: string): Promise<AuditRecord[]> {
 
         if (!data) return [];
 
-        return data.map((log: any) => ({
+        return data.map((log: unknown) => ({
             id: log.id,
             action: log.action,
             timestamp: log.ts,
@@ -798,8 +798,8 @@ export interface MonitoringSaintStatus {
     role: string;
     message?: string;
     integrity?: string;
-    metrics?: Record<string, any>;
-    recent_findings?: Array<Record<string, any>>;
+    metrics?: Record<string, unknown>;
+    recent_findings?: Array<Record<string, unknown>>;
 }
 
 export interface MonitoringStatusResponse {
@@ -841,7 +841,7 @@ export interface HipaaReportResponse {
     flagged_events: number;
     denied_events: number;
     safeguards: HipaaSafeguard[];
-    recent_events: Array<Record<string, any>>;
+    recent_events: Array<Record<string, unknown>>;
     certifying_saints?: Record<string, string>;
 }
 
@@ -917,7 +917,7 @@ function componentToFilePath(component?: string | null): string {
     return '/app/security/guardian-scan';
 }
 
-function findingToThreat(finding: Record<string, any>, index: number): ThreatEvent {
+function findingToThreat(finding: Record<string, unknown>, index: number): ThreatEvent {
     const severity = mapSeverity(finding.severity);
     const title = finding.type === 'pii_leak'
         ? 'Sensitive Data Exposure Signal'
@@ -970,7 +970,7 @@ function vulnerabilityToFileEvent(vulnerability: Vulnerability): FileIntegrityEv
     };
 }
 
-function findingToFileEvent(finding: Record<string, any>, index: number): FileIntegrityEvent {
+function findingToFileEvent(finding: Record<string, unknown>, index: number): FileIntegrityEvent {
     return {
         id: `finding-file-${finding.id || index}`,
         filePath: finding.details?.includes('Memory ID:')

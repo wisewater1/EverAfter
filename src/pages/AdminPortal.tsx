@@ -29,7 +29,7 @@ interface Notification {
   notification_type: string;
   title: string;
   message: string;
-  metadata: any;
+  metadata: unknown;
   is_read: boolean;
   created_at: string;
 }

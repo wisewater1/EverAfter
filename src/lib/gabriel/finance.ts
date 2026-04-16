@@ -256,31 +256,31 @@ export const financeApi = {
     });
   },
 
-  getWiseGoldWallet: async (): Promise<any> => {
+  getWiseGoldWallet: async (): Promise<unknown> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/wallet');
   },
 
-  getWiseGoldPrice: async (): Promise<any> => {
+  getWiseGoldPrice: async (): Promise<unknown> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/price');
   },
 
-  getWiseGoldCovenants: async (): Promise<any[]> => {
+  getWiseGoldCovenants: async (): Promise<unknown[]> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/covenants');
   },
 
-  getWiseGoldLedger: async (limit: number = 12): Promise<any[]> => {
+  getWiseGoldLedger: async (limit: number = 12): Promise<unknown[]> => {
     return fetchJsonWithAuth(`/api/v1/finance/wisegold/ledger?limit=${limit}`);
   },
 
-  getWiseGoldAttestations: async (): Promise<any[]> => {
+  getWiseGoldAttestations: async (): Promise<unknown[]> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/attestations');
   },
 
-  getWiseGoldPolicySummary: async (): Promise<any> => {
+  getWiseGoldPolicySummary: async (): Promise<unknown> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/policy/summary');
   },
 
-  syncWiseGoldHeartbeat: async (): Promise<any> => {
+  syncWiseGoldHeartbeat: async (): Promise<unknown> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/heartbeat', {
       method: 'POST',
       body: JSON.stringify({}),
@@ -291,7 +291,7 @@ export const financeApi = {
     covenantId: string,
     action: 'deposit' | 'withdraw',
     amount: number,
-  ): Promise<any> => {
+  ): Promise<unknown> => {
     return fetchJsonWithAuth(`/api/v1/finance/wisegold/covenants/${covenantId}/${action}`, {
       method: 'POST',
       body: JSON.stringify({ amount }),
@@ -302,7 +302,7 @@ export const financeApi = {
     destination_chain: string;
     destination_address: string;
     amount: number;
-  }): Promise<any> => {
+  }): Promise<unknown> => {
     return fetchJsonWithAuth('/api/v1/finance/wisegold/bridge/ccip', {
       method: 'POST',
       body: JSON.stringify(payload),

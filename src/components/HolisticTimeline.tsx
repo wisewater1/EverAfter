@@ -33,7 +33,7 @@ export default function HolisticTimeline() {
 
                 // Filter and map out Neural Graph Events
                 const globalEvents: TimelineEvent[] = data
-                    .map((item: any) => ({
+                    .map((item: unknown) => ({
                         id: item.id,
                         type: item.metadata?.type || 'observation',
                         title: getEventTitle(item.metadata?.type || 'observation', item.metadata?.saint_id),
@@ -59,7 +59,7 @@ export default function HolisticTimeline() {
         fetchNeuralGraph();
     }, []);
 
-    const getEventTitle = (type: string, saintId: string) => {
+    const getEventTitle = (type: string, _saintId: string) => {
         switch (type) {
             case 'health_event': return 'Health Insight';
             case 'finance_event': return 'Financial Event';

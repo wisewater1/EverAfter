@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 
 interface AuthIntent {
   action: string;
-  data?: any;
+  data?: unknown;
   redirectUrl?: string;
 }
 

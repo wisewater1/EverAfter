@@ -34,7 +34,7 @@ const TONE_CONFIG: Record<string, { label: string; color: string; tagline: strin
     },
 };
 
-function generateSummary(dht: any, modifiers: any): string {
+function generateSummary(dht: unknown, modifiers: unknown): string {
     if (!dht) return 'No health trajectory data available yet. Complete your Delphi profile to receive personalized health guidance from Gabriel.';
 
     const dir = dht.overall_direction || 'unknown';
@@ -50,7 +50,7 @@ function generateSummary(dht: any, modifiers: any): string {
     };
     const opening = openings[alertStyle] || openings.moderate;
 
-    const riskCount = (dht.risk_cards || []).filter((c: any) => ['high', 'critical'].includes(c.current_level)).length;
+    const riskCount = (dht.risk_cards || []).filter((c: unknown) => ['high', 'critical'].includes(c.current_level)).length;
     const riskLine = riskCount > 0
         ? ` ${riskCount} health domain${riskCount > 1 ? 's' : ''} ${alertStyle === 'calm' ? 'may benefit from attention' : 'showing elevated risk'}.`
         : ` No elevated risk domains detected.`;
@@ -75,8 +75,8 @@ interface GabrielDHTSummaryProps {
 }
 
 export default function GabrielDHTSummary({ personId }: GabrielDHTSummaryProps) {
-    const [dht, setDht] = useState<any>(null);
-    const [modifiers, setModifiers] = useState<any>(null);
+    const [dht, setDht] = useState<unknown>(null);
+    const [modifiers, setModifiers] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 

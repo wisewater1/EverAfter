@@ -29,7 +29,7 @@ export default function AdminUserCreation() {
       setSuccess(`User created successfully! User ID: ${data}`);
       setEmail('');
       setPassword('');
-    } catch (err: any) {
+    } catch (err) {
       console.error('User creation error:', err);
       setError(err.message || 'Failed to create user');
     } finally {

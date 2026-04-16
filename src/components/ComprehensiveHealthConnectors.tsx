@@ -33,7 +33,7 @@ interface HealthService {
   name: string;
   category: ServiceCategory;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   color: string;
   features: string[];
   status?: 'available' | 'coming_soon';

@@ -13,12 +13,12 @@ export interface FHIRResource {
     lastUpdated?: string;
     source?: string;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ClinicalRecord {
   resource_type: string;
-  resource_data: any;
+  resource_data: unknown;
   category?: string;
   code_system?: string;
   code?: string;
@@ -55,7 +55,7 @@ export class FHIRObservationMapper {
     try {
       // Extract code and coding
       const code = observation.code?.coding?.[0];
-      const codeSystem = code?.system || '';
+      const _codeSystem = code?.system || '';
       const codeValue = code?.code || '';
 
       // Extract value
@@ -416,7 +416,7 @@ export class ClinicalDataMapper {
    * Process FHIR Bundle
    * Extracts all resources from a bundle and maps them
    */
-  static processFHIRBundle(bundle: any): {
+  static processFHIRBundle(bundle: unknown): {
     clinicalRecords: ClinicalRecord[];
     metrics: UnifiedMetric[];
   } {
@@ -452,7 +452,7 @@ export class ClinicalDataMapper {
  * Maps Particle Health API responses to clinical records
  */
 export class ParticleHealthMapper {
-  static map(data: any): ClinicalRecord[] {
+  static map(data: unknown): ClinicalRecord[] {
     const records: ClinicalRecord[] = [];
 
     // Particle returns FHIR bundles
@@ -469,7 +469,7 @@ export class ParticleHealthMapper {
  * 1upHealth Mapper
  */
 export class OneUpHealthMapper {
-  static map(data: any): ClinicalRecord[] {
+  static map(data: unknown): ClinicalRecord[] {
     const records: ClinicalRecord[] = [];
 
     // 1upHealth also returns FHIR resources
@@ -490,7 +490,7 @@ export class OneUpHealthMapper {
  * CMS Blue Button 2.0 Mapper
  */
 export class CMSBlueButtonMapper {
-  static map(data: any): ClinicalRecord[] {
+  static map(data: unknown): ClinicalRecord[] {
     const records: ClinicalRecord[] = [];
 
     // CMS Blue Button returns FHIR R4 ExplanationOfBenefit resources

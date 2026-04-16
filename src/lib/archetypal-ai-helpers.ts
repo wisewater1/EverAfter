@@ -11,7 +11,7 @@ export interface PersonalityInsights {
 
 export async function extractPersonalityFromMemories(
   archetypalAIId: string,
-  userId: string
+  _userId: string
 ): Promise<PersonalityInsights> {
   const { data: responses, error } = await supabase
     .from('daily_question_responses')
@@ -49,7 +49,7 @@ export async function extractPersonalityFromMemories(
   };
 }
 
-function analyzeTraits(text: string, responses: any[]): string[] {
+function analyzeTraits(text: string, _responses: unknown[]): string[] {
   const traits: string[] = [];
 
   const traitIndicators = {
@@ -78,7 +78,7 @@ function analyzeTraits(text: string, responses: any[]): string[] {
   return traits.slice(0, 5);
 }
 
-function analyzeValues(text: string, responses: any[]): string[] {
+function analyzeValues(text: string, _responses: unknown[]): string[] {
   const values: string[] = [];
 
   const valueIndicators = {
@@ -107,7 +107,7 @@ function analyzeValues(text: string, responses: any[]): string[] {
   return values.slice(0, 5);
 }
 
-function analyzeCommunicationPatterns(responses: any[]): string[] {
+function analyzeCommunicationPatterns(responses: unknown[]): string[] {
   const patterns: string[] = [];
 
   const avgLength = responses.reduce((sum, r) => sum + r.response_text.length, 0) / responses.length;
@@ -136,7 +136,7 @@ function analyzeCommunicationPatterns(responses: any[]): string[] {
   return patterns;
 }
 
-function analyzeKnowledgeDomains(responses: any[]): string[] {
+function analyzeKnowledgeDomains(responses: unknown[]): string[] {
   const domains: string[] = [];
 
   const domainKeywords = {
@@ -203,7 +203,7 @@ function analyzeEmotionalTone(text: string): string {
   return dominantTone;
 }
 
-function analyzeThinkingStyle(text: string, responses: any[]): string {
+function analyzeThinkingStyle(text: string, _responses: unknown[]): string {
   const styles = {
     'strategic planner': 0,
     'intuitive explorer': 0,
@@ -270,7 +270,7 @@ export async function updateAIPersonalityProfile(
 export async function capturePersonalitySnapshot(
   archetypalAIId: string
 ): Promise<void> {
-  const { data, error } = await supabase.rpc('capture_personality_snapshot', {
+  const { _data, error } = await supabase.rpc('capture_personality_snapshot', {
     p_archetypal_ai_id: archetypalAIId,
   });
 
@@ -296,6 +296,6 @@ export async function getFoundationalQuestions(
   if (!responses) return [];
 
   return responses
-    .map((r: any) => r.daily_questions?.question_text)
+    .map((r: unknown) => r.daily_questions?.question_text)
     .filter(Boolean);
 }

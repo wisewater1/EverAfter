@@ -291,15 +291,15 @@ export default function MedicationTracker() {
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('touchstart', handleTouchStart as any);
-      container.addEventListener('touchmove', handleTouchMove as any);
-      container.addEventListener('touchend', handleTouchEnd as any);
+      container.addEventListener('touchstart', handleTouchStart as unknown);
+      container.addEventListener('touchmove', handleTouchMove as unknown);
+      container.addEventListener('touchend', handleTouchEnd as unknown);
     }
     return () => {
       if (container) {
-        container.removeEventListener('touchstart', handleTouchStart as any);
-        container.removeEventListener('touchmove', handleTouchMove as any);
-        container.removeEventListener('touchend', handleTouchEnd as any);
+        container.removeEventListener('touchstart', handleTouchStart as unknown);
+        container.removeEventListener('touchmove', handleTouchMove as unknown);
+        container.removeEventListener('touchend', handleTouchEnd as unknown);
       }
     };
   }, [pullDistance]);

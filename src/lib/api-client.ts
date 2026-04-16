@@ -368,7 +368,7 @@ class APIClient {
       });
 
       try {
-        const data = await this.requestBackendJson<any>(`/api/v1/chat/${engramId}/message`, {
+        const data = await this.requestBackendJson<unknown>(`/api/v1/chat/${engramId}/message`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -435,13 +435,13 @@ class APIClient {
   /**
    * Get time capsules from local backend
    */
-  async getTimeCapsules(): Promise<any[]> {
+  async getTimeCapsules(): Promise<unknown[]> {
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
 
     try {
-      return await this.requestBackendJson<any[]>(`/api/v1/time-capsules/`, {
+      return await this.requestBackendJson<unknown[]>(`/api/v1/time-capsules/`, {
         headers
       }, 'Time Capsules API Error');
     } catch (error) {
@@ -617,7 +617,7 @@ class APIClient {
     });
 
     try {
-      const data = await this.requestBackendJson<any>(`/api/v1/saints/${saintId}/chat`, {
+      const data = await this.requestBackendJson<unknown>(`/api/v1/saints/${saintId}/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ message, coordination_mode: coordinationMode, context })
@@ -646,7 +646,7 @@ class APIClient {
     }
   }
 
-  async getSaintKnowledge(saintId: string, category?: string): Promise<any[]> {
+  async getSaintKnowledge(saintId: string, category?: string): Promise<unknown[]> {
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
@@ -664,7 +664,7 @@ class APIClient {
     }
   }
 
-  async registerDynamicAgent(agentData: { name: string, description: string, system_prompt: string, traits: any }): Promise<any> {
+  async registerDynamicAgent(agentData: { name: string, description: string, system_prompt: string, traits: unknown }): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -688,7 +688,7 @@ class APIClient {
     }
   }
 
-  async getChatHistory(saintId: string): Promise<any[]> {
+  async getChatHistory(saintId: string): Promise<unknown[]> {
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
@@ -701,7 +701,7 @@ class APIClient {
     }
   }
 
-  async deliberate(query: string, context?: string, coordinationMode: boolean = false): Promise<{ transcript: any[], consensus: string, action_items: string[] }> {
+  async deliberate(query: string, context?: string, coordinationMode: boolean = false): Promise<{ transcript: unknown[], consensus: string, action_items: string[] }> {
     const headers = await this.buildAuthHeaders({
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
@@ -719,7 +719,7 @@ class APIClient {
       throw error;
     }
   }
-  async getActiveMissions(): Promise<any[]> {
+  async getActiveMissions(): Promise<unknown[]> {
     const headers = await this.buildAuthHeaders();
 
     try {
@@ -731,7 +731,7 @@ class APIClient {
     }
   }
 
-  async getPendingIntercessions(): Promise<any[]> {
+  async getPendingIntercessions(): Promise<unknown[]> {
     const headers = await this.buildAuthHeaders();
 
     try {
@@ -742,7 +742,7 @@ class APIClient {
     }
   }
 
-  async processIntercession(intercessionId: string, action: 'approve' | 'deny'): Promise<any> {
+  async processIntercession(intercessionId: string, action: 'approve' | 'deny'): Promise<unknown> {
     const headers = await this.buildAuthHeaders();
 
     try {
@@ -756,7 +756,7 @@ class APIClient {
     }
   }
 
-  async getSaintCognitionStatus(saintId: string): Promise<any> {
+  async getSaintCognitionStatus(saintId: string): Promise<unknown> {
     const headers = await this.buildAuthHeaders();
 
     try {
@@ -777,7 +777,7 @@ class APIClient {
     }
   }
 
-  async getSocietyFeed(): Promise<any[]> {
+  async getSocietyFeed(): Promise<unknown[]> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -796,7 +796,7 @@ class APIClient {
     }
   }
 
-  async triggerSocietyEvent(): Promise<any> {
+  async triggerSocietyEvent(): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -835,7 +835,7 @@ class APIClient {
     }
   }
 
-  async triggerLegacyPropagation(engramId: string, vignette: string): Promise<any> {
+  async triggerLegacyPropagation(engramId: string, vignette: string): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -855,7 +855,7 @@ class APIClient {
     }
   }
 
-  async batchSyncEngrams(members: any[]): Promise<Record<string, string>> {
+  async batchSyncEngrams(members: unknown[]): Promise<Record<string, string>> {
     const headers = await this.buildAuthHeaders({
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true'
@@ -873,7 +873,7 @@ class APIClient {
     }
   }
 
-  async boostSociety(count: number = 5): Promise<any> {
+  async boostSociety(count: number = 5): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -893,7 +893,7 @@ class APIClient {
     }
   }
 
-  async analyzePersonality(engramId: string): Promise<any> {
+  async analyzePersonality(engramId: string): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -913,7 +913,7 @@ class APIClient {
     }
   }
 
-  async startMentorship(engramId: string, mentorId: string): Promise<any> {
+  async startMentorship(engramId: string, mentorId: string): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -933,7 +933,7 @@ class APIClient {
     }
   }
 
-  async ingestVignette(engramId: string, content: string): Promise<any> {
+  async ingestVignette(engramId: string, content: string): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
 
@@ -1024,7 +1024,7 @@ class APIClient {
     return data.task;
   }
 
-  async getPersonalityQuizProfile(memberId: string): Promise<any | null> {
+  async getPersonalityQuizProfile(memberId: string): Promise<unknown | null> {
     try {
       const data = await this.requestBackendJson(`/api/v1/personality-quiz/profile/${memberId}`, {
         method: 'GET',
@@ -1039,7 +1039,7 @@ class APIClient {
   async submitOceanProfile(
     personId: string,
     scores: { O: number; C: number; E: number; A: number; N: number }
-  ): Promise<any> {
+  ): Promise<unknown> {
     const headers = await this.getAuthHeaders({
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
@@ -1264,7 +1264,7 @@ class APIClient {
     try {
       const engrams = await this.getEngrams();
       return engrams.some(engram => engram.name.toLowerCase() === name.toLowerCase());
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   }
@@ -1302,8 +1302,8 @@ class APIClient {
     name: string;
     description: string;
     system_prompt: string;
-    traits: Record<string, any>;
-  }): Promise<any> {
+    traits: Record<string, unknown>;
+  }): Promise<unknown> {
     const token = await this.getAuthToken();
     const API_BASE = `${API_BASE_URL}`;
     try {

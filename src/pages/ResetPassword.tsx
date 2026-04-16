@@ -56,7 +56,7 @@ export default function ResetPassword() {
           navigate('/login');
         }, 3000);
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred. Please try again.');
       setSubmitting(false);
     }

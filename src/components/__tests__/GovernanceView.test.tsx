@@ -15,7 +15,7 @@ const {
 
 vi.mock('../../lib/runtime-readiness', () => ({
   getRuntimeReadiness: getRuntimeReadinessMock,
-  getCapability: (_readiness: any, capabilityId: string) => _readiness?.capability_map?.[capabilityId] || null,
+  getCapability: (_readiness: unknown, capabilityId: string) => _readiness?.capability_map?.[capabilityId] || null,
 }));
 
 vi.mock('../../lib/api-client', () => ({

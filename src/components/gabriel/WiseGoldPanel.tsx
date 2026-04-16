@@ -85,7 +85,7 @@ interface LedgerEntry {
   metadata?: Record<string, unknown>;
 }
 
-interface WalletResponse {
+interface _WalletResponse {
   wallet: WiseGoldWallet;
   ritual_bond: RitualBond;
   living_will: LivingWill;

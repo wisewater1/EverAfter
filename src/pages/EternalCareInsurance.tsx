@@ -62,8 +62,8 @@ export default function EternalCareInsurance() {
   const [loading, setLoading] = useState(true);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'beneficiaries' | 'claims' | 'payments' | 'dividends'>('overview');
-  const [showAddPolicy, setShowAddPolicy] = useState(false);
-  const [dividendData, setDividendData] = useState<{ total_accumulated: number, recent_history: any[] }>({
+  const [_showAddPolicy, setShowAddPolicy] = useState(false);
+  const [dividendData, setDividendData] = useState<{ total_accumulated: number, recent_history: unknown[] }>({
     total_accumulated: 0,
     recent_history: []
   });

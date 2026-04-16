@@ -4,7 +4,7 @@ export interface FileUploadOptions {
   category?: 'health_report' | 'document' | 'image' | 'other';
   description?: string;
   isPublic?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserFile {
@@ -18,7 +18,7 @@ export interface UserFile {
   description?: string;
   storage_bucket: string;
   is_public: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -53,7 +53,7 @@ export async function uploadFile(
     const filePath = `${userPrefix}/${options.category || 'other'}/${timestamp}-${sanitizedFileName}`;
 
     // Upload file to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('user-files')
       .upload(filePath, file, {
         cacheControl: '3600',

@@ -44,7 +44,7 @@ export default function RemoveButton({
     try {
       await onRemove();
       setIsConfirmOpen(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Remove error:', err);
       setError(err.message || 'Failed to remove item. Please try again.');
     } finally {

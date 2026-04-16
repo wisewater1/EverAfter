@@ -17,7 +17,7 @@ export default function CrossSaintWhatIf() {
     const [scenarioType, setScenarioType] = useState('career');
     const [scenario, setScenario] = useState(SCENARIOS[0].example);
     const [months, setMonths] = useState(12);
-    const [result, setResult] = useState<any>(() => getStoredTrinityWhatIfHistory()[0]?.result || null);
+    const [result, setResult] = useState<unknown>(() => getStoredTrinityWhatIfHistory()[0]?.result || null);
     const [history, setHistory] = useState(() => getStoredTrinityWhatIfHistory());
     const [loading, setLoading] = useState(false);
 
@@ -206,7 +206,7 @@ export default function CrossSaintWhatIf() {
                             <p className="text-xs text-slate-400">{proj.joseph?.narrative}</p>
                             {proj.joseph?.similar_ancestors?.length > 0 && (
                                 <div className="mt-1 space-y-0.5">
-                                    {proj.joseph.similar_ancestors.slice(0, 3).map((ancestor: any, index: number) => (
+                                    {proj.joseph.similar_ancestors.slice(0, 3).map((ancestor: unknown, index: number) => (
                                         <p key={index} className="text-[10px] text-amber-400/60">{ancestor.name} - {ancestor.occupation}{ancestor.lifespan ? `, lived ${ancestor.lifespan}y` : ''}</p>
                                     ))}
                                 </div>

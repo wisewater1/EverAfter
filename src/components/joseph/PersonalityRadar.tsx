@@ -53,7 +53,7 @@ function buildFallbackProfile(memberId: string, memberName: string) {
 }
 
 export default function PersonalityRadar({ memberId, memberName, onClose }: PersonalityRadarProps) {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [error, setError] = useState<string | null>(null);
     const [activeTrait, setActiveTrait] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -191,7 +191,7 @@ export default function PersonalityRadar({ memberId, memberName, onClose }: Pers
                                     Trait Breakdown
                                 </h3>
                                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700">
-                                    {Object.entries(data.trait_details || {}).map(([trait, detail]: [string, any]) => (
+                                    {Object.entries(data.trait_details || {}).map(([trait, detail]: [string, unknown]) => (
                                         <div
                                             key={trait}
                                             className={`p-3 rounded-lg border cursor-pointer transition-colors ${activeTrait === trait ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}
@@ -210,7 +210,7 @@ export default function PersonalityRadar({ memberId, memberName, onClose }: Pers
                                                     {detail.description && <p>{detail.description}</p>}
                                                     {detail.facets && Object.keys(detail.facets).length > 0 && (
                                                         <div className="space-y-1">
-                                                            {Object.entries(detail.facets).map(([facetKey, facet]: [string, any]) => (
+                                                            {Object.entries(detail.facets).map(([facetKey, facet]: [string, unknown]) => (
                                                                 <div key={facetKey} className="flex items-center justify-between gap-3">
                                                                     <span>{facet.label || formatTraitLabel(facetKey)}</span>
                                                                     <span className="text-indigo-300">{Math.round(facet.score)}/100</span>

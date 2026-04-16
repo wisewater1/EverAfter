@@ -25,7 +25,7 @@ export default function ForgotPassword() {
         setSuccess(true);
         setSubmitting(false);
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred. Please try again.');
       setSubmitting(false);
     }

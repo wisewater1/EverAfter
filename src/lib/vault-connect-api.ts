@@ -668,7 +668,7 @@ export class VaultConnectAPI {
    *
    * @private
    */
-  private async encryptData(data: Record<string, unknown>, keyHash: string): Promise<string> {
+  private async encryptData(data: Record<string, unknown>, _keyHash: string): Promise<string> {
     // In production, use proper encryption (AES-256-GCM)
     // For now, return base64 encoded JSON
     const jsonString = JSON.stringify(data);

@@ -811,7 +811,7 @@ const TRAIT_LABELS: Record<string, string> = {
     neuroticism: 'Emotional Sensitivity',
 };
 
-function computeLocalProfile(name: string, id: string, answers: Record<string, number>, questions: QuizQuestion[]): PersonalityProfile {
+function computeLocalProfile(name: string, id: string, answers: Record<string, number>, _questions: QuizQuestion[]): PersonalityProfile {
     const traitMap: Record<string, string[]> = {
         openness: ['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'O7', 'O8', 'O9', 'O10'],
         conscientiousness: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'],

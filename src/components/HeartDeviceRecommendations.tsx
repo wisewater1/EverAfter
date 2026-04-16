@@ -140,7 +140,7 @@ export default function HeartDeviceRecommendations() {
     }
   }
 
-  function getCategoryIcon(category: string) {
+  function _getCategoryIcon(category: string) {
     switch (category) {
       case 'medical_ecg':
         return Heart;
@@ -157,15 +157,15 @@ export default function HeartDeviceRecommendations() {
     }
   }
 
-  function getCategoryLabel(category: string) {
+  function _getCategoryLabel(category: string) {
     return category.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
-  function getUseCaseLabel(useCase: string) {
+  function _getUseCaseLabel(useCase: string) {
     return useCase.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
-  function formatPrice(price: number) {
+  function _formatPrice(price: number) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

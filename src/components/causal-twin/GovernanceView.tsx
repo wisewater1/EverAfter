@@ -27,7 +27,7 @@ interface Proposal {
     status: 'pending' | 'ratified' | 'vetoed' | 'executed';
     priority: number;
     confidence_score: number;
-    parameters: any;
+    parameters: unknown;
     created_at: string;
 }
 

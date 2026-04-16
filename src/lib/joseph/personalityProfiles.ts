@@ -2,7 +2,7 @@ export interface StoredPersonalityProfile {
     member_id?: string;
     member_name?: string;
     scores?: Record<string, number>;
-    trait_details?: Record<string, any>;
+    trait_details?: Record<string, unknown>;
     traits?: string[];
     communication_style?: string;
     family_role?: { role?: string; description?: string };

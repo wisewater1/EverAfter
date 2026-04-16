@@ -214,7 +214,7 @@ export const createRovingTabIndex = (
       if (currentIndex === -1) return;
 
       handleArrowNavigation(
-        event as any,
+        event as unknown,
         currentIndex,
         items.length,
         setActiveItem,

@@ -221,7 +221,7 @@ export async function fetchHealthMetrics(
             { headers },
             'Failed to load health metrics.',
         );
-        return (data.metrics || []).map((row: any) => ({
+        return (data.metrics || []).map((row: unknown) => ({
             metric_type: row.metric_type,
             value: Number(row.value),
             unit: row.unit,
@@ -293,7 +293,7 @@ export async function fetchTrajectoryHistory(
 
     if (error || !data) return [];
 
-    return data.map((row: any) => ({
+    return data.map((row: unknown) => ({
         prediction_type: row.prediction_type,
         predicted_value: row.predicted_value,
         confidence: row.confidence,

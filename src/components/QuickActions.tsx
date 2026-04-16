@@ -92,7 +92,7 @@ export default function QuickActions({ onNavigate }: QuickActionsProps) {
         activeGoals: goalsResult.count || 0,
         connectedDevices: devicesResult.count || 0,
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading stats:', err);
       setError('Failed to load quick actions data');
     } finally {
