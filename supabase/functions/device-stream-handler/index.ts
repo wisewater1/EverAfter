@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +12,7 @@ interface StreamDataPoint {
   value: number;
   unit: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 Deno.serve(async (req: Request) => {
@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
         throw new Error('Device connection not found');
       }
 
-      const { data: existingStream, error: streamError } = await supabase
+      const { data: existingStream, error: _streamError } = await supabase
         .from('realtime_data_streams')
         .select('*')
         .eq('device_connection_id', deviceConnectionId)
@@ -140,7 +140,7 @@ Deno.serve(async (req: Request) => {
         throw new Error('Device connection not found or not owned by user');
       }
 
-      const { data: transformationRule, error: ruleError } = await supabase
+      const { data: transformationRule, error: _ruleError } = await supabase
         .from('data_transformation_rules')
         .select('*')
         .eq('provider_key', deviceConnection.provider_account_id)
@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
       let anomalyType = null;
 
       if (transformationRule?.validation_rules) {
-        const rules = transformationRule.validation_rules as any;
+        const rules = transformationRule.validation_rules as Record<string, number>;
 
         if (rules.min !== undefined && value < rules.min) {
           qualityScore -= 30;
@@ -342,7 +342,7 @@ Deno.serve(async (req: Request) => {
 });
 
 async function evaluateAlerts(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   deviceConnectionId: string,
   metricType: string,

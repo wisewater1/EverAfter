@@ -4,7 +4,7 @@ import {
   getButtonClasses,
   getButtonAriaProps,
   LoadingSpinner
-} from '../lib/button-system';
+} from '../lib/button-system.tsx';
 
 /**
  * Premium Button Component

@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,11 +63,11 @@ Deno.serve(async (req: Request) => {
           }
         );
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Connection rotation error:", error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         code: "ROTATION_ERROR",
       }),
       {
@@ -78,7 +78,7 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-async function processQueue(supabase: any) {
+async function processQueue(supabase: SupabaseClient) {
   const startTime = Date.now();
   let processed = 0;
   let successful = 0;
@@ -196,11 +196,11 @@ async function processQueue(supabase: any) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Queue processing error:", error);
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         processed,
         successful,
         failed,
@@ -213,7 +213,7 @@ async function processQueue(supabase: any) {
   }
 }
 
-async function scheduleRotation(supabase: any, req: Request) {
+async function scheduleRotation(supabase: SupabaseClient, req: Request) {
   try {
     const { user_id } = await req.json();
 
@@ -256,10 +256,10 @@ async function scheduleRotation(supabase: any, req: Request) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Schedule rotation error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -268,7 +268,7 @@ async function scheduleRotation(supabase: any, req: Request) {
   }
 }
 
-async function executeSync(supabase: any, req: Request) {
+async function executeSync(supabase: SupabaseClient, req: Request) {
   try {
     const { user_id, provider } = await req.json();
 
@@ -304,10 +304,10 @@ async function executeSync(supabase: any, req: Request) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Execute sync error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -316,7 +316,7 @@ async function executeSync(supabase: any, req: Request) {
   }
 }
 
-async function checkHealth(supabase: any, req: Request) {
+async function checkHealth(supabase: SupabaseClient, req: Request) {
   try {
     const { user_id, provider } = await req.json();
 
@@ -352,10 +352,10 @@ async function checkHealth(supabase: any, req: Request) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Check health error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -365,7 +365,7 @@ async function checkHealth(supabase: any, req: Request) {
 }
 
 async function syncProvider(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   provider: string
 ): Promise<SyncResult> {
@@ -419,18 +419,18 @@ async function syncProvider(
       metrics_synced: result.metrics_ingested || 0,
       duration_ms: Date.now() - startTime,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error(`Sync error for ${provider}:`, error);
     return {
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       duration_ms: Date.now() - startTime,
     };
   }
 }
 
 async function getRotationConfig(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ): Promise<RotationConfig | null> {
   try {
