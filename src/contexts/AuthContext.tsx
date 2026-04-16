@@ -54,14 +54,24 @@ function readWarmAuthState(): { session: Session | null; user: User | null } {
       const raw = window.localStorage.getItem(key);
       if (!raw) continue;
 
-      const parsed = JSON.parse(raw);
-      const candidateSession = parsed?.currentSession ?? parsed?.session ?? parsed;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        // Corrupted storage entry – remove it so it doesn't interfere on the
+        // next page load, then move on to the next candidate key.
+        try { window.localStorage.removeItem(key); } catch { /* ignore */ }
+        continue;
+      }
+
+      const candidate = parsed as Record<string, unknown> | null;
+      const candidateSession = (candidate?.currentSession ?? candidate?.session ?? candidate) as Record<string, unknown> | null;
       const accessToken = candidateSession?.access_token;
       const user = candidateSession?.user;
 
-      if (accessToken && user?.id) {
+      if (accessToken && (user as Record<string, unknown> | null)?.id) {
         return {
-          session: candidateSession as Session,
+          session: candidateSession as unknown as Session,
           user: user as User,
         };
       }

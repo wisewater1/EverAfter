@@ -570,6 +570,7 @@ export default function FirstEngramStep({
 
       onNext();
     } catch (creationError) {
+      console.error('[FirstEngramStep]', creationError);
       console.error('Failed to create onboarding seed:', creationError);
       const message = creationError instanceof Error ? creationError.message : 'Unknown sync error';
       setError(`Could not finish AI and family setup canonically. Local draft is preserved: ${message}`);

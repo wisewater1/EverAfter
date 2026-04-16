@@ -41,6 +41,8 @@ export default function UnifiedChatInterface() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -51,6 +53,9 @@ export default function UnifiedChatInterface() {
 
   const loadChatSessions = async () => {
     if (!user?.id) return;
+
+    setSessionsLoading(true);
+    setSessionsError(null);
 
     try {
       const { data: archetypalAIsData, error: archetypalError } = await supabase
@@ -85,6 +90,9 @@ export default function UnifiedChatInterface() {
       setChatSessions(sessions);
     } catch (error) {
       console.error('Error loading chat sessions:', error);
+      setSessionsError('Failed to load chat sessions');
+    } finally {
+      setSessionsLoading(false);
     }
   };
 
@@ -298,8 +306,32 @@ export default function UnifiedChatInterface() {
         })}
       </div>
 
+      {sessionsError && (
+        <p className="text-red-400 text-sm px-1">{sessionsError}</p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredSessions.map((session) => (
+        {sessionsLoading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-5 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl animate-pulse"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-14 h-14 bg-slate-700/50 rounded-xl flex-shrink-0" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <div className="h-4 bg-slate-700/50 rounded w-3/4" />
+                    <div className="h-3 bg-slate-700/50 rounded w-1/2" />
+                  </div>
+                </div>
+                <div className="h-12 bg-slate-700/50 rounded-xl" />
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+          {filteredSessions.map((session) => (
           <div
             key={session.id}
             onClick={() => handleSelectSession(session)}
@@ -364,16 +396,18 @@ export default function UnifiedChatInterface() {
           </div>
         ))}
 
-        {filteredSessions.length === 0 && (
-          <div className="col-span-full text-center py-16 bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
-            <div className="w-20 h-20 bg-slate-900/60 border border-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-10 h-10 text-slate-600" />
+          {filteredSessions.length === 0 && (
+            <div className="col-span-full text-center py-16 bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
+              <div className="w-20 h-20 bg-slate-900/60 border border-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="w-10 h-10 text-slate-600" />
+              </div>
+              <p className="text-slate-400 font-medium text-lg">No conversations found</p>
+              <p className="text-sm text-slate-500 mt-2">
+                {searchQuery ? 'Try a different search' : 'Create an AI assistant to get started'}
+              </p>
             </div>
-            <p className="text-slate-400 font-medium text-lg">No conversations found</p>
-            <p className="text-sm text-slate-500 mt-2">
-              {searchQuery ? 'Try a different search' : 'Create an AI assistant to get started'}
-            </p>
-          </div>
+          )}
+          </>
         )}
       </div>
 

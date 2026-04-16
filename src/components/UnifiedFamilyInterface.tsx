@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, User, Activity, Brain, Heart, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { requestBackendJson } from '../lib/backend-request';
@@ -155,6 +155,33 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       setActiveTab('daily-questions');
     }
   }, [preselectedAIId]);
+
+  // Stable callbacks for modal close handlers — prevents child re-renders
+  const handleCloseInviteModal = useCallback(() => {
+    setShowInviteModal(false);
+    clearInviteFeedback();
+  }, []);
+
+  const handleCloseQuestionModal = useCallback(() => {
+    setShowQuestionModal(false);
+    setSelectedMember(null);
+    setQuestionText('');
+  }, []);
+
+  const handleCloseProfileModal = useCallback(() => {
+    setShowProfileModal(false);
+    setSelectedMember(null);
+  }, []);
+
+  // Stable onChange handlers for export-data checkboxes — each creates a new
+  // object on every render when written inline.
+  const handleExportMembersChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedExportData(prev => ({ ...prev, members: e.target.checked }));
+  }, []);
+
+  const handleExportQuestionsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedExportData(prev => ({ ...prev, questions: e.target.checked }));
+  }, []);
 
   const normalizeRelationship = (relationship: string) => relationship.trim().toLowerCase();
 
@@ -728,7 +755,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 <input
                   type="checkbox"
                   checked={selectedExportData.members}
-                  onChange={(e) => setSelectedExportData({ ...selectedExportData, members: e.target.checked })}
+                  onChange={handleExportMembersChange}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <Users className="w-4 h-4 text-slate-400" />
@@ -738,7 +765,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 <input
                   type="checkbox"
                   checked={selectedExportData.questions}
-                  onChange={(e) => setSelectedExportData({ ...selectedExportData, questions: e.target.checked })}
+                  onChange={handleExportQuestionsChange}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <MessageCircle className="w-4 h-4 text-slate-400" />
@@ -816,10 +843,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">Invite Family Member</h3>
               <button
-                onClick={() => {
-                  setShowInviteModal(false);
-                  clearInviteFeedback();
-                }}
+                onClick={handleCloseInviteModal}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -929,11 +953,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">Send OCEAN Question to {selectedMember.name}</h3>
               <button
-                onClick={() => {
-                  setShowQuestionModal(false);
-                  setSelectedMember(null);
-                  setQuestionText('');
-                }}
+                onClick={handleCloseQuestionModal}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -970,10 +990,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">{selectedMember.name}'s Profile</h3>
               <button
-                onClick={() => {
-                  setShowProfileModal(false);
-                  setSelectedMember(null);
-                }}
+                onClick={handleCloseProfileModal}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -983,10 +1000,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
               familyMemberId={selectedMember.id}
               familyMemberName={selectedMember.name}
               familyMemberRelationship={selectedMember.relationship}
-              onClose={() => {
-                setShowProfileModal(false);
-                setSelectedMember(null);
-              }}
+              onClose={handleCloseProfileModal}
             />
           </div>
         </div>

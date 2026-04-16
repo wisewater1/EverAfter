@@ -404,7 +404,8 @@ class APIClient {
     });
 
     try {
-      return await this.requestBackendJson(`/api/v1/health/predictions?lookbackDays=${lookbackDays}`, {
+      const safeDays = Math.max(1, Math.min(365, Math.floor(Number(lookbackDays) || 30)));
+      return await this.requestBackendJson(`/api/v1/health/predictions?lookbackDays=${safeDays}`, {
         headers
       }, 'Predictive Analytics API Error');
     } catch (error) {
@@ -558,6 +559,7 @@ class APIClient {
 
   /**
    * Delete task
+   * @throws {Error} if user cancels — callers should confirm before calling
    */
   async deleteTask(taskId: string) {
     try {

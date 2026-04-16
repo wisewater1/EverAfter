@@ -73,7 +73,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
 
             const pred = await generateDelphiPrediction(effectiveUserId);
             setPrediction(pred);
-            saveTrajectorySnapshot(effectiveUserId, pred).catch(() => {});
+            saveTrajectorySnapshot(effectiveUserId, pred).catch((err) => console.error('[TrajectoryDashboard] saveTrajectorySnapshot failed:', err));
         } catch (error) {
             console.warn('Delphi prediction unavailable:', error);
             setPrediction(null);

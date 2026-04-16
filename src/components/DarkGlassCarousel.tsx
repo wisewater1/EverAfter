@@ -70,16 +70,18 @@ export default function DarkGlassCarousel({
   const [isHovered, setIsHovered] = useState(false);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
 
-  // Auto-rotation logic
+  // Auto-rotation logic — advance index directly to avoid re-creating the
+  // timer every time handleNext's identity changes.
   useEffect(() => {
     if (!autoRotate || isHovered) return;
 
     const timer = setInterval(() => {
-      handleNext();
+      setDirection('next');
+      setCurrentIndex((prev) => (prev + 1) % items.length);
     }, interval);
 
     return () => clearInterval(timer);
-  }, [currentIndex, autoRotate, isHovered, interval]);
+  }, [autoRotate, isHovered, interval, items.length]);
 
   const handleNext = useCallback(() => {
     setDirection('next');

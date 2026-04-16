@@ -143,7 +143,7 @@ export default function TrinitySynapsePanel({
                         family_members: familyMembers,
                     })
                         .then(d => { if (d) results.ancestry = d; })
-                        .catch(() => { })
+                        .catch((err) => console.error('[TrinitySynapsePanel]', err))
                 );
             }
 
@@ -158,7 +158,7 @@ export default function TrinitySynapsePanel({
                         health_risk_score: healthRiskScore,
                     })
                         .then(d => { if (d) results.financial = d; })
-                        .catch(() => { })
+                        .catch((err) => console.error('[TrinitySynapsePanel]', err))
                 );
             }
 
@@ -173,7 +173,7 @@ export default function TrinitySynapsePanel({
                         .then(d => {
                             if (d?.household_alerts) results.contagion_alerts = d.household_alerts;
                         })
-                        .catch(() => { })
+                        .catch((err) => console.error('[TrinitySynapsePanel]', err))
                 );
             }
 
@@ -188,7 +188,7 @@ export default function TrinitySynapsePanel({
                         .then(d => {
                             if (d?.personality_note) results.personality_note = d.personality_note;
                         })
-                        .catch(() => { })
+                        .catch((err) => console.error('[TrinitySynapsePanel]', err))
                 );
             }
 

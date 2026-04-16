@@ -91,7 +91,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
                 confidence: result.confidence?.score || 50,
                 evidence_type: 'population_prior',
             }),
-        }).catch(() => { });
+        }).catch((err) => console.error('[CausalAncestryPanel]', err));
         setArchived(true);
     }
 

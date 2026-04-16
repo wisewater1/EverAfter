@@ -201,15 +201,14 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     } catch (error) {
       console.error('Chat error:', error);
 
-      let errorMessage = 'I apologize, but I encountered an error. Please try again.';
+      let errorMessage = 'Something went wrong. Please try again.';
 
       if (error instanceof Error) {
-        if (error.message.includes('401')) {
-          errorMessage = 'Your session has expired. Please refresh the page and log in again.';
-        } else if (error.message.includes('Network')) {
-          errorMessage = 'Please check your internet connection.';
-        } else {
-          errorMessage = `Error: ${error.message}`;
+        const msg = error.message.toLowerCase();
+        if (msg.includes('401') || msg.includes('unauthorized')) {
+          errorMessage = 'Session expired. Please refresh and try again.';
+        } else if (msg.includes('network') || msg.includes('fetch')) {
+          errorMessage = 'Network error. Check your connection.';
         }
       }
 
@@ -247,7 +246,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
             </div>
           </div>
           <button
-            onClick={() => window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host'}
+            onClick={() => window.location.href = import.meta.env.VITE_EXTERNAL_HOST || 'https://crystal-blockchain-a-uwvs.bolt.host'}
             className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 border border-emerald-500/20 backdrop-blur-xl group"
           >
             <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -259,8 +258,14 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
         <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-2 sm:gap-3">
           <div className="p-2 sm:p-3 bg-white/5 rounded-lg">
             <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 mb-1" />
-            <p className="text-white text-xs sm:text-sm font-medium">{healthContext.recentMetrics}</p>
-            <p className="text-gray-400 text-[10px] sm:text-xs">Metrics</p>
+            {healthContext.recentMetrics === 0 ? (
+              <p className="text-gray-400 text-[10px] sm:text-xs leading-tight">No health data connected yet</p>
+            ) : (
+              <>
+                <p className="text-white text-xs sm:text-sm font-medium">{healthContext.recentMetrics}</p>
+                <p className="text-gray-400 text-[10px] sm:text-xs">Metrics</p>
+              </>
+            )}
           </div>
           <div className="p-2 sm:p-3 bg-white/5 rounded-lg">
             <Moon className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 mb-1" />

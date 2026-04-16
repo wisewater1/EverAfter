@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -29,15 +29,35 @@ export default function AutonomousHealthTaskManager() {
     failed: 0
   });
 
+  // Refs for backoff and in-flight guard
+  const consecutiveFailures = useRef(0);
+  const isFetching = useRef(false);
+
   useEffect(() => {
-    if (user) {
-      fetchTasks();
-      const interval = setInterval(fetchTasks, 30000);
-      return () => clearInterval(interval);
-    }
+    if (!user) return;
+
+    fetchTasks();
+
+    // Schedule next poll; interval grows with failures (max 8× = 240 s)
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const scheduleNext = () => {
+      const backoffFactor = Math.min(Math.pow(2, consecutiveFailures.current), 8);
+      const delay = 30000 * backoffFactor;
+      timeoutId = setTimeout(() => {
+        fetchTasks().then(scheduleNext);
+      }, delay);
+    };
+
+    scheduleNext();
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchTasks = async () => {
+    // Skip if a previous fetch is still in-flight
+    if (isFetching.current) return;
+    isFetching.current = true;
+
     try {
       const { data, error } = await supabase
         .from('engram_ai_tasks')
@@ -47,6 +67,9 @@ export default function AutonomousHealthTaskManager() {
 
       if (error) throw error;
 
+      // Success — reset failure count
+      consecutiveFailures.current = 0;
+
       setTasks(data || []);
 
       const pending = data?.filter(t => t.status === 'pending').length || 0;
@@ -55,8 +78,10 @@ export default function AutonomousHealthTaskManager() {
 
       setStats({ pending, completed, failed });
     } catch (error) {
+      consecutiveFailures.current += 1;
       console.error('Error fetching tasks:', error);
     } finally {
+      isFetching.current = false;
       setLoading(false);
     }
   };

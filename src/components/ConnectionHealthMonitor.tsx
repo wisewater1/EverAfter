@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -42,6 +42,10 @@ export default function ConnectionHealthMonitor() {
   const [summary, setSummary] = useState<HealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Guard against overlapping requests
+  const isFetching = useRef(false);
 
   useEffect(() => {
     if (user) {
@@ -55,9 +59,13 @@ export default function ConnectionHealthMonitor() {
 
   async function loadConnectionHealth() {
     if (!user) return;
+    // Skip if a previous fetch is still in-flight
+    if (isFetching.current) return;
+    isFetching.current = true;
 
     try {
       setRefreshing(true);
+      setError(null);
 
       // Load connection dashboard data
       const { data: dashboardData, error: dashboardError } = await supabase
@@ -77,13 +85,17 @@ export default function ConnectionHealthMonitor() {
 
       if (summaryError) {
         console.error('Error loading health summary:', summaryError);
-      } else if (summaryData && summaryData.length > 0) {
+      } else if (summaryData != null && typeof summaryData === 'object' && Array.isArray(summaryData) && summaryData.length > 0) {
         setSummary(summaryData[0]);
+      } else {
+        setSummary(null);
       }
 
     } catch (err) {
       console.error('Error loading connection health:', err);
+      setError('Failed to load connection health data. Please try refreshing.');
     } finally {
+      isFetching.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -159,6 +171,13 @@ export default function ConnectionHealthMonitor() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-600/10 border border-red-500/30 rounded-xl text-red-300 text-sm">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Health Summary Card */}
       {summary && (
         <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-lg rounded-2xl p-6 border border-white/10 shadow-xl">

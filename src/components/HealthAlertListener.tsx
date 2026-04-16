@@ -79,7 +79,7 @@ export default function HealthAlertListener() {
                     if (newNotification.priority === 'critical') {
                         try {
                             const audio = new Audio('/sounds/alert.mp3'); // We haven't added this file, so this might fail silently
-                            audio.play().catch(() => { });
+                            audio.play().catch(() => { /* autoplay blocked by browser policy — safe to ignore */ });
                         } catch (e) {
                             // Ignore audio errors
                         }

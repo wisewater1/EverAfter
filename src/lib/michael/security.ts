@@ -578,6 +578,7 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
                 alerts: [...alerts, ...findings]
             };
         } catch (e) {
+            console.error('[security]', e);
             console.warn("Backend status unavailable");
             if (isDevelopment) {
                 return {

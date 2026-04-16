@@ -114,7 +114,7 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
   };
 
   const deleteTask = async (taskId: string) => {
-    if (!confirm('Delete this task?')) return;
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
     try {
       await apiClient.deleteTask(taskId);
       loadTasks();
