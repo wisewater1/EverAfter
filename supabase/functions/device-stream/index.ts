@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
     async start(controller) {
       const encoder = new TextEncoder();
 
-      const sendEvent = (eventType: string, data: any) => {
+      const sendEvent = (eventType: string, data: Record<string, unknown>) => {
         const message = `data: ${JSON.stringify({ type: eventType, ...data })}\n\n`;
         controller.enqueue(encoder.encode(message));
       };

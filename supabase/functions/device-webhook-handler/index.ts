@@ -10,7 +10,7 @@ interface WebhookPayload {
   provider: string;
   user_id: string;
   event_type: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (data.metrics) {
-      const metricsToInsert = data.metrics.map((metric: any) => ({
+      const metricsToInsert = (data.metrics as Record<string, unknown>[]).map((metric) => ({
         user_id,
         provider,
         metric_type: metric.type,
@@ -92,13 +92,13 @@ Deno.serve(async (req: Request) => {
     console.error('Webhook error:', error);
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-async function evaluateDeviceHealth(supabase: any, userId: string, provider: string) {
+async function evaluateDeviceHealth(supabase: ReturnType<typeof createClient>, userId: string, provider: string) {
   try {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);

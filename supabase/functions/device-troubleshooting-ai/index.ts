@@ -13,7 +13,7 @@ interface TroubleshootingRequest {
   issue: string;
   userContext?: {
     previousAttempts?: string[];
-    diagnosticResults?: any;
+    diagnosticResults?: Record<string, unknown>;
     deviceStatus?: string;
   };
 }
