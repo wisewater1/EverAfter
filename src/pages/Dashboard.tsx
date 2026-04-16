@@ -106,27 +106,32 @@ export default function Dashboard() {
   }, [selectedView, user?.id]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadOnboardingResume() {
       if (isDemoMode) {
-        setOnboardingResume({
-          visible: false,
-          progressPercent: 0,
-          completedCount: 0,
-          currentLabel: ONBOARDING_STEPS[0],
-          skipped: false,
-          lastUpdated: null,
-        });
-        setLoadingOnboardingResume(false);
+        if (!cancelled) {
+          setOnboardingResume({
+            visible: false,
+            progressPercent: 0,
+            completedCount: 0,
+            currentLabel: ONBOARDING_STEPS[0],
+            skipped: false,
+            lastUpdated: null,
+          });
+          setLoadingOnboardingResume(false);
+        }
         return;
       }
 
       if (!user?.id) {
-        setLoadingOnboardingResume(false);
+        if (!cancelled) setLoadingOnboardingResume(false);
         return;
       }
 
       try {
         const bundle = await getOnboardingStatus();
+        if (cancelled) return;
         const profile = bundle?.profile || null;
         const status = bundle?.onboarding_status || null;
 
@@ -146,6 +151,7 @@ export default function Dashboard() {
           lastUpdated: status?.last_step_at ?? null,
         });
       } catch (error) {
+        if (cancelled) return;
         console.error('Failed to load onboarding resume state:', error);
         setOnboardingResume({
           visible: false,
@@ -156,13 +162,15 @@ export default function Dashboard() {
           lastUpdated: null,
         });
       } finally {
-        setLoadingOnboardingResume(false);
+        if (!cancelled) setLoadingOnboardingResume(false);
       }
     }
 
     if (!loading) {
       loadOnboardingResume();
     }
+
+    return () => { cancelled = true; };
   }, [user?.id, loading, isDemoMode]);
 
   useEffect(() => {

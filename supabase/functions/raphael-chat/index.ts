@@ -1,10 +1,22 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+const ALLOWED_ORIGINS = [
+  "https://everafterai.net",
+  "https://dev--everafterai.netlify.app",
+];
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get("Origin") ?? null;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+    "Vary": "Origin",
+  };
+}
 
 interface ErrorResponse {
   code: string;
@@ -13,10 +25,12 @@ interface ErrorResponse {
   status?: number;
 }
 
+let _corsHeaders: Record<string, string>;
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ..._corsHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -27,9 +41,11 @@ function errorResponse(code: string, message: string, status = 500, hint?: strin
 }
 
 Deno.serve(async (req: Request) => {
+  _corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: _corsHeaders });
   }
 
   if (req.method !== "POST") {
@@ -68,7 +84,7 @@ Deno.serve(async (req: Request) => {
       return errorResponse("INVALID_JSON", "Request body must be valid JSON", 400);
     }
 
-    const { input, engramId, system } = body;
+    const { input, engramId } = body;
 
     if (!input || typeof input !== "string") {
       return errorResponse("INVALID_INPUT", "Missing or invalid 'input' field", 400, "'input' must be a non-empty string");
@@ -87,14 +103,18 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // TODO: Add per-user rate limiting for AI API calls. Edge functions lack persistent
+    // in-memory state, so this requires either a Redis/Upstash check or a Supabase
+    // rate-limit table query (e.g., count requests in last 60s for this user_id).
+
     // 6. Get OpenAI API key
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiKey) {
       return errorResponse("CONFIG_MISSING", "OPENAI_API_KEY not configured in Supabase Functions secrets", 500);
     }
 
-    // 7. Build system prompt (St. Raphael persona)
-    const systemPrompt = system || `You are St. Raphael, a kind and supportive health companion.
+    // 7. Build system prompt (St. Raphael persona) - always use hardcoded safety prompt
+    const systemPrompt = `You are St. Raphael, a kind and supportive health companion.
 
 IMPORTANT SAFETY RULES:
 - You provide information and emotional support ONLY
@@ -154,7 +174,6 @@ Your role is to listen, encourage healthy habits, help track health goals, and p
 
   } catch (error) {
     console.error("Unhandled error in raphael-chat:", error);
-    const message = error instanceof Error ? error.message : String(error);
-    return errorResponse("SERVER_ERROR", message, 500, "Check function logs for details");
+    return errorResponse("SERVER_ERROR", "Internal server error", 500);
   }
 });

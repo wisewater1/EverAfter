@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { createAuditLog } from '../../lib/audit';
+import prisma from '../../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const bridgeSchema = z.object({
   userId: z.string(),
@@ -32,7 +31,14 @@ function verifySignature(payload: any, signature: string): boolean {
   hmac.update(JSON.stringify(payload));
   const expected = hmac.digest('hex');
 
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  // Bug #32 fix: timingSafeEqual throws if buffers differ in length
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expected);
+  if (sigBuf.length !== expectedBuf.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(sigBuf, expectedBuf);
 }
 
 router.post('/bridge/apple-health', async (req, res) => {

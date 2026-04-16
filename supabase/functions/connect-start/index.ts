@@ -32,10 +32,34 @@ Deno.serve(async (req: Request) => {
       return errorResponse(`Provider ${provider} not configured. Please add client credentials.`);
     }
 
-    const state = btoa(JSON.stringify({
+    const stateSecret = Deno.env.get('STATE_SIGNING_SECRET') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (!stateSecret) {
+      return errorResponse('State signing secret not configured', 500);
+    }
+
+    const statePayload = JSON.stringify({
       user_id: user.id,
       provider,
       timestamp: Date.now(),
+    });
+
+    // HMAC-sign the state payload
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(stateSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sigBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(statePayload));
+    const signature = Array.from(new Uint8Array(sigBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const state = btoa(JSON.stringify({
+      payload: statePayload,
+      sig: signature,
     }));
 
     let authUrl: string;

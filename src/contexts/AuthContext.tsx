@@ -57,9 +57,15 @@ function readWarmAuthState(): { session: Session | null; user: User | null } {
       const parsed = JSON.parse(raw);
       const candidateSession = parsed?.currentSession ?? parsed?.session ?? parsed;
       const accessToken = candidateSession?.access_token;
+      const expiresAt = candidateSession?.expires_at;
       const user = candidateSession?.user;
 
       if (accessToken && user?.id) {
+        // Check if the session has expired
+        if (typeof expiresAt === 'number' && expiresAt < Math.floor(Date.now() / 1000)) {
+          continue;
+        }
+
         return {
           session: candidateSession as Session,
           user: user as User,
@@ -269,7 +275,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null };
     }
 
-    if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
+    if (!supabase) {
+      setSession(null);
+      setUser(null);
+      return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
+    }
+
+    // Always clear local state regardless of whether the server-side sign out succeeds.
+    // This ensures the user is logged out even if the network request fails.
+    setSession(null);
+    setUser(null);
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       logger.error('Sign out failed', error);

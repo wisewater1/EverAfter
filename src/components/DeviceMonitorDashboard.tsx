@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -63,6 +63,12 @@ export default function DeviceMonitorDashboard() {
     name: string;
     type: string;
   } | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -95,6 +101,8 @@ export default function DeviceMonitorDashboard() {
 
         supabase.rpc('get_device_status_summary', { p_user_id: user?.id }),
       ]);
+
+      if (!mountedRef.current) return;
 
       if (devicesResponse.data) {
         setDevices(devicesResponse.data);
@@ -133,7 +141,9 @@ export default function DeviceMonitorDashboard() {
     } catch (error) {
       console.error('Error loading device data:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }
 

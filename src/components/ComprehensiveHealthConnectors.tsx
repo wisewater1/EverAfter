@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { readDemoStorage, writeDemoStorage, createDemoId } from '../lib/demo-storage';
@@ -392,6 +392,15 @@ export default function ComprehensiveHealthConnectors() {
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'all'>('all');
   const [connectedCount, setConnectedCount] = useState(0);
   const [showCustomDashboard, setShowCustomDashboard] = useState(false);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current !== null) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -492,11 +501,12 @@ export default function ComprehensiveHealthConnectors() {
 
       // Smooth transition to provider's auth page
       if (resData.data?.authUrl) {
-        // Add a slight delay so user can see the premium loading animation 
+        // Add a slight delay so user can see the premium loading animation
         // before being whisked away to the OAuth page
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           window.location.href = resData.data.authUrl;
         }, 1200);
+        redirectTimeoutRef.current = timeoutId;
       } else {
         throw new Error('No authorization URL returned from the service');
       }

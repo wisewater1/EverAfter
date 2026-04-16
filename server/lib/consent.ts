@@ -1,37 +1,32 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from './prisma';
 
 export async function checkConsent(
   userId: string,
   purpose: string
 ): Promise<boolean> {
-  const consent = await prisma.consent.findFirst({
-    where: {
-      userId,
-      purpose,
-      revokedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-    },
-  });
+  // Bug #20 fix: Use atomic SQL UPDATE with a WHERE clause that checks
+  // usageCount < interactionCap in the same statement, eliminating the
+  // race condition between checking and incrementing.
+  const now = new Date();
 
-  if (!consent) {
-    return false;
-  }
+  // Atomically increment usageCount only if consent is valid and under cap
+  // (or has no cap). The WHERE clause makes this a single atomic operation.
+  // Use a subquery with LIMIT 1 since PostgreSQL doesn't support LIMIT in UPDATE directly.
+  const updatedCount: number = await prisma.$executeRaw`
+    UPDATE "Consent"
+    SET "usageCount" = "usageCount" + 1
+    WHERE "id" = (
+      SELECT "id" FROM "Consent"
+      WHERE "userId" = ${userId}
+        AND "purpose" = ${purpose}
+        AND "revokedAt" IS NULL
+        AND ("expiresAt" IS NULL OR "expiresAt" > ${now})
+        AND ("interactionCap" IS NULL OR "usageCount" < "interactionCap")
+      LIMIT 1
+    )
+  `;
 
-  if (
-    consent.interactionCap !== null &&
-    consent.usageCount >= consent.interactionCap
-  ) {
-    return false;
-  }
-
-  await prisma.consent.update({
-    where: { id: consent.id },
-    data: { usageCount: { increment: 1 } },
-  });
-
-  return true;
+  return updatedCount > 0;
 }
 
 export async function grantConsent(

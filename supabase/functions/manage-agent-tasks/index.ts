@@ -1,13 +1,29 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const ALLOWED_ORIGINS = [
+  'https://everafterai.net',
+  'https://dev--everafterai.netlify.app',
+];
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get('Origin') ?? null;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+    'Vary': 'Origin',
+  };
+}
+
+let corsHeaders: Record<string, string>;
 
 Deno.serve(async (req: Request) => {
+  corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -30,7 +46,7 @@ Deno.serve(async (req: Request) => {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
+
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
@@ -39,7 +55,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
 
     // GET: Fetch tasks
     if (req.method === 'GET') {

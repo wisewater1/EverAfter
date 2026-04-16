@@ -1,14 +1,26 @@
 import { createClient, SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { crypto } from 'https://deno.land/std@0.224.0/crypto/mod.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const ALLOWED_ORIGINS = [
+  'https://everafterai.net',
+  'https://dev--everafterai.netlify.app',
+];
 
-export function getCorsHeaders() {
-  return corsHeaders;
+function getAllowedOrigin(origin: string | null): string {
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return origin;
+  }
+  return ALLOWED_ORIGINS[0]; // Default to production origin
+}
+
+export function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get('Origin') ?? null;
+  return {
+    'Access-Control-Allow-Origin': getAllowedOrigin(origin),
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+    'Vary': 'Origin',
+  };
 }
 
 export function supabaseFromRequest(req: Request): SupabaseClient {
@@ -32,15 +44,15 @@ export function serviceSupabase(): SupabaseClient {
   );
 }
 
-export function jsonResponse(data: any, status = 200) {
+export function jsonResponse(data: any, status = 200, req?: Request) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
-export function errorResponse(message: string, status = 400) {
-  return jsonResponse({ error: message }, status);
+export function errorResponse(message: string, status = 400, req?: Request) {
+  return jsonResponse({ error: message }, status, req);
 }
 
 export async function verifyTerraSignature(

@@ -1,10 +1,22 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+const ALLOWED_ORIGINS = [
+  "https://everafterai.net",
+  "https://dev--everafterai.netlify.app",
+];
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get("Origin") ?? null;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+    "Vary": "Origin",
+  };
+}
 
 interface ErrorResponse {
   code: string;
@@ -12,10 +24,12 @@ interface ErrorResponse {
   hint?: string;
 }
 
+let _corsHeaders: Record<string, string>;
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ..._corsHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -26,8 +40,10 @@ function errorResponse(code: string, message: string, status = 500, hint?: strin
 }
 
 Deno.serve(async (req: Request) => {
+  _corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: _corsHeaders });
   }
 
   if (req.method !== "POST") {
@@ -81,6 +97,7 @@ Deno.serve(async (req: Request) => {
       .from("engrams")
       .select("id, name")
       .eq("id", engramId)
+      .eq("user_id", user.id)
       .single();
 
     if (engramError || !engram) {
@@ -103,7 +120,7 @@ Deno.serve(async (req: Request) => {
 
     if (taskError) {
       console.error("Task creation error:", taskError);
-      return errorResponse("DB_ERROR", taskError.message, 400);
+      return errorResponse("DB_ERROR", "Failed to create task", 400);
     }
 
     return jsonResponse({ task }, 201);

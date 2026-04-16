@@ -49,6 +49,12 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
   const [healthContext, setHealthContext] = useState<HealthContext>({ recentMetrics: 0, upcomingAppointments: 0, activePrescriptions: 0 });
   const [healthDataNotice, setHealthDataNotice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,12 +156,13 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     const extracted = extractHealthDataFromMessage(userInput);
     if (!isDemoMode && extracted.length > 0 && user?.id) {
       storeHealthMetrics(user.id, extracted, 'raphael_chat').then(result => {
+        if (!mountedRef.current) return;
         if (result.stored > 0) {
           const labels = extracted.map(d => `${d.metric_type.replace(/_/g, ' ')}: ${d.value} ${d.unit}`).join(', ');
           setHealthDataNotice(`✓ Stored: ${labels}`);
           // Update health context count
           setHealthContext(prev => ({ ...prev, recentMetrics: prev.recentMetrics + result.stored }));
-          setTimeout(() => setHealthDataNotice(null), 4000);
+          setTimeout(() => { if (mountedRef.current) setHealthDataNotice(null); }, 4000);
         }
       });
       // Tag the user message with extracted data

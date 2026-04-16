@@ -1,12 +1,26 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+const ALLOWED_ORIGINS = [
+  "https://everafterai.net",
+  "https://dev--everafterai.netlify.app",
+];
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get("Origin") ?? null;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Client-Info, Apikey",
+    "Vary": "Origin",
+  };
+}
+
+let corsHeaders: Record<string, string>;
 
 /**
  * Safety Monitor - Negative Delta Detector
@@ -47,6 +61,8 @@ const MONITORED_TABLES = [
 ];
 
 Deno.serve(async (req: Request) => {
+  corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -69,7 +85,7 @@ Deno.serve(async (req: Request) => {
       case "snapshot":
         return await createSnapshot(supabaseClient);
       case "compare":
-        return await compareWithSnapshot(supabaseClient);
+        return await compareWithSnapshot(supabaseClient, req);
       default:
         return new Response(
           JSON.stringify({ error: "Invalid action" }),
@@ -241,8 +257,8 @@ async function createSnapshot(supabaseClient: any) {
 /**
  * Compare current state with a specific snapshot
  */
-async function compareWithSnapshot(supabaseClient: any) {
-  const url = new URL(Deno.env.get("SUPABASE_URL") || "");
+async function compareWithSnapshot(supabaseClient: any, req: Request) {
+  const url = new URL(req.url);
   const snapshotId = url.searchParams.get("snapshot_id");
 
   if (!snapshotId) {

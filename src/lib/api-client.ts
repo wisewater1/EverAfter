@@ -307,7 +307,7 @@ class APIClient {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Bypass-Tunnel-Reminder': 'true',
-      'Authorization': `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
+      'apikey': env.VITE_SUPABASE_ANON_KEY,
     };
 
     if (token) {

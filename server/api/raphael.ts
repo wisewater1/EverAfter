@@ -1,12 +1,11 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { runRaphael } from '../../agents/raphael/runner';
 import { writeEngram } from '../../agents/raphael/tools';
 import { checkConsent } from '../lib/consent';
 import { z } from 'zod';
+import prisma from '../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 router.get('/me/raphael/summary', async (req, res) => {
   try {
@@ -194,11 +193,14 @@ router.get('/me/engrams', async (req, res) => {
 });
 
 function calculateVitals(metrics: any[]) {
-  const hrMetrics = metrics.filter((m) => m.type === 'HEART_RATE' && m.value);
-  const hrvMetrics = metrics.filter((m) => m.type === 'HRV' && m.value);
-  const stepMetrics = metrics.filter((m) => m.type === 'STEPS' && m.value);
-  const sleepMetrics = metrics.filter((m) => m.type === 'SLEEP_DURATION' && m.value);
-  const glucoseMetrics = metrics.filter((m) => m.type === 'GLUCOSE' && m.value);
+  // Bug #30 fix: Use explicit null/undefined checks instead of truthy check,
+  // so that metrics with value === 0 are not dropped.
+  const hasValue = (m: any) => m.value !== null && m.value !== undefined;
+  const hrMetrics = metrics.filter((m) => m.type === 'HEART_RATE' && hasValue(m));
+  const hrvMetrics = metrics.filter((m) => m.type === 'HRV' && hasValue(m));
+  const stepMetrics = metrics.filter((m) => m.type === 'STEPS' && hasValue(m));
+  const sleepMetrics = metrics.filter((m) => m.type === 'SLEEP_DURATION' && hasValue(m));
+  const glucoseMetrics = metrics.filter((m) => m.type === 'GLUCOSE' && hasValue(m));
 
   return {
     heartRate: {

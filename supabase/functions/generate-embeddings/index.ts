@@ -1,10 +1,24 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const ALLOWED_ORIGINS = [
+  'https://everafterai.net',
+  'https://dev--everafterai.netlify.app',
+];
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get('Origin') ?? null;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+    'Vary': 'Origin',
+  };
+}
+
+let corsHeaders: Record<string, string>;
 
 interface EmbeddingRequest {
   text: string;
@@ -14,7 +28,28 @@ interface EmbeddingRequest {
   type: 'engram_memory' | 'family_member' | 'conversation';
 }
 
+// Simple deterministic hash for mock embeddings seeded from input text
+function deterministicMockEmbedding(text: string): number[] {
+  const embedding: number[] = [];
+  // Simple string hash function
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // Generate deterministic values using the hash as a seed
+  for (let i = 0; i < 1536; i++) {
+    // Linear congruential generator seeded from hash + index
+    hash = (hash * 1664525 + 1013904223) & 0x7fffffff;
+    embedding.push((hash / 0x7fffffff) * 0.1);
+  }
+  return embedding;
+}
+
 Deno.serve(async (req: Request) => {
+  corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,

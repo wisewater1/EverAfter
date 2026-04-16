@@ -22,26 +22,34 @@ function getIngestQueue(): Queue | null {
   return ingestQueue;
 }
 
-function verifyTerraWebhook(payload: string, signature: string): boolean {
+function verifyTerraWebhook(rawBody: string, signature: string): boolean {
   const secret = process.env.TERRA_WEBHOOK_SECRET;
   if (!secret) {
     return true;
   }
 
   const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(payload);
+  hmac.update(rawBody);
   const expected = hmac.digest('hex');
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  );
+  // Bug #9 fix: timingSafeEqual throws if buffers differ in length
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expected);
+  if (sigBuf.length !== expectedBuf.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(sigBuf, expectedBuf);
 }
 
 router.post('/webhooks/terra', async (req, res) => {
   try {
     const signature = req.headers['terra-signature'] as string;
-    const rawBody = JSON.stringify(req.body);
+    // Bug #10 fix: Use raw body for signature verification instead of re-serialized JSON.
+    // NOTE: This requires raw body middleware in Express, e.g.:
+    //   app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf.toString(); } }));
+    // Without that middleware, req.rawBody will be undefined and fall back to JSON.stringify.
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
 
     if (signature && !verifyTerraWebhook(rawBody, signature)) {
       console.warn('Invalid Terra webhook signature');

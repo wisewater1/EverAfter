@@ -1,9 +1,7 @@
 import { Queue, Worker } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import { runRaphael } from '../../agents/raphael/runner';
 import manifest from '../../agents/raphael/manifest.json';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export function isSchedulerEnabled() {
   return Boolean(process.env.REDIS_URL);

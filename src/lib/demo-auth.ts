@@ -14,11 +14,17 @@ function buildDemoUser(): User {
   } as User;
 }
 
+function generateSessionToken(prefix: string): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 10);
+  return `${prefix}-${timestamp}-${random}`;
+}
+
 function buildDemoSession(): Session {
   const user = buildDemoUser();
   return {
-    access_token: 'demo-show-token',
-    refresh_token: 'demo-show-refresh',
+    access_token: generateSessionToken('demo-at'),
+    refresh_token: generateSessionToken('demo-rt'),
     expires_in: 60 * 60 * 24,
     expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
     token_type: 'bearer',

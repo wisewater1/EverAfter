@@ -1,12 +1,24 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, X-Client-Info, Apikey, Terra-Signature",
-};
+const ALLOWED_ORIGINS = [
+  "https://everafterai.net",
+  "https://dev--everafterai.netlify.app",
+];
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get("Origin") ?? null;
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Client-Info, Apikey, Terra-Signature",
+    "Vary": "Origin",
+  };
+}
 
 async function verifyTerraSignature(
   payload: string,
@@ -83,7 +95,7 @@ async function processWebhookData(
 
   if (rawError) {
     console.error("Error storing raw metrics:", rawError);
-    return { success: false, error: rawError.message };
+    return { success: false, error: "Failed to store webhook data" };
   }
 
   await supabaseClient
@@ -338,6 +350,8 @@ async function normalizeWebhookData(
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -369,17 +383,33 @@ Deno.serve(async (req: Request) => {
     const webhookId =
       `terra_${payload.type}_${payload.user?.user_id}_${Date.now()}`;
 
-    let signatureValid = false;
-    if (TERRA_WEBHOOK_SECRET && terraSignature) {
-      signatureValid = await verifyTerraSignature(
-        payloadText,
-        terraSignature,
-        TERRA_WEBHOOK_SECRET
+    if (!TERRA_WEBHOOK_SECRET) {
+      console.error("TERRA_WEBHOOK_SECRET is not configured");
+      return new Response(
+        JSON.stringify({ error: "Webhook signature verification not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
-    } else {
-      console.warn("Webhook signature verification skipped");
-      signatureValid = true;
     }
+
+    if (!terraSignature) {
+      console.error("Missing terra-signature header");
+      return new Response(
+        JSON.stringify({ error: "Missing signature header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const signatureValid = await verifyTerraSignature(
+      payloadText,
+      terraSignature,
+      TERRA_WEBHOOK_SECRET
+    );
 
     const { error: eventError } = await supabaseClient
       .from("terra_webhook_events")
@@ -437,7 +467,6 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error",
       }),
       {
         status: 500,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Brain, Sparkles, Loader, Target, AlertCircle, CheckCircle2, X, Crown, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api-client';
@@ -46,6 +46,12 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
   const [createStep, setCreateStep] = useState<'archetype' | 'details' | 'confirm'>('archetype');
   const [selectedArchetype, setSelectedArchetype] = useState<AIArchetype | null>(null);
   const [trainingAI, setTrainingAI] = useState<ArchetypalAI | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const aiArchetypes: AIArchetype[] = [
     {
@@ -227,8 +233,13 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
       resetCreateModal();
 
       setTimeout(() => {
-        if (onSelectAI) {
-          onSelectAI(newEngram.id);
+        if (!mountedRef.current) return;
+        try {
+          if (onSelectAI) {
+            onSelectAI(newEngram.id);
+          }
+        } catch (err) {
+          console.error('Error in onSelectAI callback:', err);
         }
       }, 300);
     } catch (error) {

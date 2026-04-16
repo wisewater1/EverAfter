@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { createAuditLog } from '../../lib/audit';
 import { TerraClient } from '../../lib/terra-client';
+import prisma from '../../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 const terra = new TerraClient();
 
 const connectSchema = z.object({
@@ -64,42 +63,42 @@ router.get('/oauth/terra/callback', async (req, res) => {
       return res.status(400).send('Missing code or state');
     }
 
-    const userId = state as string;
+    const stateValue = state as string;
+
+    // Bug #8 fix: Validate state matches the authenticated user's ID
+    const authenticatedUserId = req.user?.id;
+    if (!authenticatedUserId || stateValue !== authenticatedUserId) {
+      return res.status(403).send('OAuth state mismatch: unauthorized callback');
+    }
+
+    const userId = authenticatedUserId;
 
     const tokens = await terra.exchangeToken(code as string);
 
-    const existingSource = await prisma.source.findUnique({
+    // Bug #31 fix: Use upsert instead of find-then-create/update race condition
+    await prisma.source.upsert({
       where: {
         userId_provider: {
           userId,
           provider: 'TERRA',
         },
       },
+      update: {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        lastSyncAt: new Date(),
+      },
+      create: {
+        userId,
+        provider: 'TERRA',
+        externalUserId: tokens.user_id,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        scopes: tokens.scope?.split(' ') || [],
+      },
     });
-
-    if (existingSource) {
-      await prisma.source.update({
-        where: { id: existingSource.id },
-        data: {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-          lastSyncAt: new Date(),
-        },
-      });
-    } else {
-      await prisma.source.create({
-        data: {
-          userId,
-          provider: 'TERRA',
-          externalUserId: tokens.user_id,
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-          scopes: tokens.scope?.split(' ') || [],
-        },
-      });
-    }
 
     await createAuditLog({
       userId,
@@ -115,4 +114,51 @@ router.get('/oauth/terra/callback', async (req, res) => {
   }
 });
 
+// Bug #19 fix: Helper to check token expiration and refresh if needed
+async function ensureValidToken(userId: string): Promise<{ valid: boolean; source?: any }> {
+  const source = await prisma.source.findUnique({
+    where: {
+      userId_provider: {
+        userId,
+        provider: 'TERRA',
+      },
+    },
+  });
+
+  if (!source) {
+    return { valid: false };
+  }
+
+  // Check if token is expired or about to expire (5-minute buffer)
+  if (source.expiresAt && source.expiresAt.getTime() < Date.now() + 5 * 60 * 1000) {
+    if (source.refreshToken) {
+      try {
+        const newTokens = await terra.refreshToken(source.refreshToken);
+        const updated = await prisma.source.update({
+          where: { id: source.id },
+          data: {
+            accessToken: newTokens.access_token,
+            refreshToken: newTokens.refresh_token || source.refreshToken,
+            expiresAt: new Date(Date.now() + newTokens.expires_in * 1000),
+          },
+        });
+        return { valid: true, source: updated };
+      } catch (error) {
+        console.error('Token refresh failed for user:', userId);
+        // Mark source as needing re-authentication
+        await prisma.source.update({
+          where: { id: source.id },
+          data: { lastSyncAt: null },
+        });
+        return { valid: false };
+      }
+    }
+    // No refresh token and token is expired
+    return { valid: false };
+  }
+
+  return { valid: true, source };
+}
+
+export { ensureValidToken };
 export default router;
