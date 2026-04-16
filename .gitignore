@@ -57,3 +57,4 @@ voice-ai-service/storage/
 .playwright-cli/
 playwright-report/
 test-results/
+.claude/
