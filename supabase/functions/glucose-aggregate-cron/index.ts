@@ -131,11 +131,12 @@ Deno.serve(async (req: Request) => {
       day: dayStr,
     });
 
-  } catch (err: any) {
+  } catch (err) {
     const supabase = serviceSupabase();
+    const errMsg = err instanceof Error ? err.message : String(err);
     await logJobAudit(supabase, 'glucose-aggregate-cron', 'failed', {
       durationMs: Date.now() - startTime,
-      error: err.message,
+      error: errMsg,
     });
 
     console.error('Glucose aggregation error:', err);

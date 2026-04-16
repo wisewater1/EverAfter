@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +14,7 @@ interface IngestRequest {
   engram_id?: string;
   content: {
     type: string;
-    data: any;
+    data: unknown;
     metadata?: {
       timestamp?: string;
       tags?: string[];
@@ -141,7 +141,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Queue processing tasks
-    const processingTasks: Promise<any>[] = [];
+    const processingTasks: Promise<void>[] = [];
 
     if (body.processing_options?.generate_embeddings !== false) {
       processingTasks.push(
@@ -187,9 +187,9 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Knowledge ingest error:", error);
-    return errorResponse(error.message, 500);
+    return errorResponse(error instanceof Error ? error.message : String(error), 500);
   }
 });
 
@@ -203,7 +203,7 @@ function errorResponse(message: string, status: number) {
   );
 }
 
-async function processContent(content: any): Promise<any> {
+async function processContent(content: { type: string; data: unknown }): Promise<unknown> {
   // Process based on content type
   switch (content.type) {
     case "text":
@@ -223,12 +223,12 @@ async function processContent(content: any): Promise<any> {
   }
 }
 
-function extractTextContent(processed: any): string {
+function extractTextContent(processed: unknown): string {
   if (typeof processed === "string") {
     return processed;
   }
-  if (processed.text) {
-    return processed.text;
+  if (typeof processed === "object" && processed !== null && "text" in processed) {
+    return (processed as { text: string }).text;
   }
   if (typeof processed === "object") {
     return JSON.stringify(processed);
@@ -236,7 +236,7 @@ function extractTextContent(processed: any): string {
   return String(processed);
 }
 
-function calculateQualityMetrics(content: any, metadata: any): {
+function calculateQualityMetrics(content: unknown, metadata: Record<string, unknown> | undefined): {
   overall: number;
   confidence: number;
   completeness: number;
@@ -246,12 +246,12 @@ function calculateQualityMetrics(content: any, metadata: any): {
   let completeness = 0.5;
   if (content) completeness += 0.2;
   if (metadata?.timestamp) completeness += 0.15;
-  if (metadata?.tags?.length) completeness += 0.15;
+  if ((metadata?.tags as unknown[] | undefined)?.length) completeness += 0.15;
 
   // Timeliness: Based on recency
   let timeliness = 1.0;
   if (metadata?.timestamp) {
-    const age = Date.now() - new Date(metadata.timestamp).getTime();
+    const age = Date.now() - new Date(metadata.timestamp as string).getTime();
     const daysOld = age / (1000 * 60 * 60 * 24);
     timeliness = Math.max(0.3, 1 - daysOld / 365);
   }
@@ -283,7 +283,7 @@ async function generateHash(text: string): Promise<string> {
 }
 
 async function generateAndStoreEmbedding(
-  supabase: any,
+  supabase: SupabaseClient,
   knowledgeItemId: string,
   text: string
 ): Promise<void> {
@@ -331,7 +331,7 @@ async function generateAndStoreEmbedding(
 }
 
 async function extractAndStoreEntities(
-  supabase: any,
+  supabase: SupabaseClient,
   knowledgeItemId: string,
   text: string
 ): Promise<void> {
@@ -391,7 +391,7 @@ function extractSimpleEntities(text: string): Array<{
   normalized: string;
   position: number;
 }> {
-  const entities: Array<any> = [];
+  const entities: Array<{ type: string; text: string; normalized: string; position: number }> = [];
 
   // Simple patterns for common medical terms
   const medicationPattern = /\b(aspirin|metformin|insulin|ibuprofen|acetaminophen)\b/gi;

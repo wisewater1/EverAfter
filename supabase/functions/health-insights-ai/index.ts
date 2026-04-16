@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import {
   getCorsHeaders,
   supabaseFromRequest,
@@ -21,7 +22,7 @@ interface HealthInsight {
   description: string;
   severity: 'info' | 'warning' | 'critical';
   metrics_analyzed: string[];
-  data_points: any[];
+  data_points: unknown[];
   recommendations?: string[];
   created_at: string;
 }
@@ -122,20 +123,20 @@ Deno.serve(async (req: Request) => {
       summary: generateSummary(insights),
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('health-insights-ai error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });
 
-function analyzeTrends(metrics: any[], timeframeDays: number): HealthInsight[] {
+function analyzeTrends(metrics: Record<string, unknown>[], timeframeDays: number): HealthInsight[] {
   const insights: HealthInsight[] = [];
   const metricsByType = groupByMetric(metrics);
 
   for (const [metricType, data] of Object.entries(metricsByType)) {
     if (data.length < 7) continue; // Need at least a week of data
 
-    const values = data.map((m: any) => m.value);
+    const values = data.map((m: Record<string, unknown>) => m.value as number);
     const trend = calculateTrend(values);
 
     if (Math.abs(trend.slope) > 0.1) {
@@ -146,7 +147,7 @@ function analyzeTrends(metrics: any[], timeframeDays: number): HealthInsight[] {
         insight_type: 'trend',
         title: `${capitalizeMetric(metricType)} is ${direction}`,
         description: `Over the past ${timeframeDays} days, your ${metricType.replace('_', ' ')} has been ${direction} by ${Math.abs(trend.percentChange).toFixed(1)}%.`,
-        severity: severity as any,
+        severity: severity as 'info' | 'warning' | 'critical',
         metrics_analyzed: [metricType],
         data_points: data.slice(-14), // Last 2 weeks
         created_at: new Date().toISOString(),
@@ -157,7 +158,7 @@ function analyzeTrends(metrics: any[], timeframeDays: number): HealthInsight[] {
   return insights;
 }
 
-function detectAnomalies(metrics: any[]): HealthInsight[] {
+function detectAnomalies(metrics: Record<string, unknown>[]): HealthInsight[] {
   const insights: HealthInsight[] = [];
   const anomalies = metrics.filter(m => m.is_anomaly && m.anomaly_reason);
 
@@ -182,7 +183,7 @@ function detectAnomalies(metrics: any[]): HealthInsight[] {
   return insights;
 }
 
-function analyzeCorrelations(metrics: any[]): HealthInsight[] {
+function analyzeCorrelations(metrics: Record<string, unknown>[]): HealthInsight[] {
   const insights: HealthInsight[] = [];
   const metricsByType = groupByMetric(metrics);
 
@@ -229,13 +230,13 @@ function analyzeCorrelations(metrics: any[]): HealthInsight[] {
   return insights;
 }
 
-function generateRecommendations(metrics: any[], insights: HealthInsight[]): HealthInsight[] {
+function generateRecommendations(metrics: Record<string, unknown>[], _insights: HealthInsight[]): HealthInsight[] {
   const recommendations: HealthInsight[] = [];
   const metricsByType = groupByMetric(metrics);
 
   // Recommendation based on step count
   if (metricsByType['steps']) {
-    const avgSteps = calculateAverage(metricsByType['steps'].map((m: any) => m.value));
+    const avgSteps = calculateAverage(metricsByType['steps'].map((m: Record<string, unknown>) => m.value as number));
     if (avgSteps < 5000) {
       recommendations.push({
         insight_type: 'recommendation',
@@ -257,7 +258,7 @@ function generateRecommendations(metrics: any[], insights: HealthInsight[]): Hea
 
   // Recommendation based on sleep
   if (metricsByType['sleep_hours']) {
-    const avgSleep = calculateAverage(metricsByType['sleep_hours'].map((m: any) => m.value));
+    const avgSleep = calculateAverage(metricsByType['sleep_hours'].map((m: Record<string, unknown>) => m.value as number));
     if (avgSleep < 7) {
       recommendations.push({
         insight_type: 'recommendation',
@@ -280,14 +281,15 @@ function generateRecommendations(metrics: any[], insights: HealthInsight[]): Hea
   return recommendations;
 }
 
-function groupByMetric(metrics: any[]): Record<string, any[]> {
-  const grouped: Record<string, any[]> = {};
+function groupByMetric(metrics: Record<string, unknown>[]): Record<string, Record<string, unknown>[]> {
+  const grouped: Record<string, Record<string, unknown>[]> = {};
 
   for (const metric of metrics) {
-    if (!grouped[metric.metric]) {
-      grouped[metric.metric] = [];
+    const key = metric.metric as string;
+    if (!grouped[key]) {
+      grouped[key] = [];
     }
-    grouped[metric.metric].push(metric);
+    grouped[key].push(metric);
   }
 
   return grouped;
@@ -314,21 +316,21 @@ function calculateTrend(values: number[]): { slope: number; percentChange: numbe
   return { slope, percentChange };
 }
 
-function calculateCorrelation(data1: any[], data2: any[]): number {
-  const timestamps1 = data1.map(d => new Date(d.ts).getTime());
-  const timestamps2 = data2.map(d => new Date(d.ts).getTime());
+function calculateCorrelation(data1: Record<string, unknown>[], data2: Record<string, unknown>[]): number {
+  const _timestamps1 = data1.map(d => new Date(d.ts as string).getTime());
+  const _timestamps2 = data2.map(d => new Date(d.ts as string).getTime());
 
   const paired = [];
   for (const d1 of data1) {
-    const ts1 = new Date(d1.ts).getTime();
+    const ts1 = new Date(d1.ts as string).getTime();
     const closest = data2.reduce((prev, curr) => {
-      const tsCurr = new Date(curr.ts).getTime();
-      const tsPrev = new Date(prev.ts).getTime();
+      const tsCurr = new Date(curr.ts as string).getTime();
+      const tsPrev = new Date(prev.ts as string).getTime();
       return Math.abs(tsCurr - ts1) < Math.abs(tsPrev - ts1) ? curr : prev;
     });
 
-    if (Math.abs(new Date(closest.ts).getTime() - ts1) < 24 * 60 * 60 * 1000) {
-      paired.push({ x: d1.value, y: closest.value });
+    if (Math.abs(new Date(closest.ts as string).getTime() - ts1) < 24 * 60 * 60 * 1000) {
+      paired.push({ x: d1.value as number, y: closest.value as number });
     }
   }
 
@@ -376,7 +378,7 @@ function generateSummary(insights: HealthInsight[]): string {
 }
 
 async function storeInsightForAI(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   engramId: string,
   insight: HealthInsight

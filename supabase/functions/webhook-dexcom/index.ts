@@ -19,8 +19,8 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({ status: 'stub_acknowledged', message: 'Dexcom webhook handler not fully implemented' });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('Dexcom webhook error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });

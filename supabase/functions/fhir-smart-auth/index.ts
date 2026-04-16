@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, SupabaseClient, User } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: "SMART on FHIR operation failed",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
  * Handle SMART App Launch
  * Initiates OAuth 2.0 authorization flow with FHIR server
  */
-async function handleLaunch(req: Request, supabaseClient: any, user: any) {
+async function handleLaunch(req: Request, supabaseClient: SupabaseClient, user: User) {
   const { iss, launch, aud, scope }: SMARTLaunchRequest = await req.json();
 
   if (!iss) {
@@ -203,7 +203,7 @@ async function handleLaunch(req: Request, supabaseClient: any, user: any) {
  * Handle OAuth callback
  * Exchange authorization code for access token
  */
-async function handleCallback(req: Request, supabaseClient: any, user: any) {
+async function handleCallback(req: Request, supabaseClient: SupabaseClient, _user: User) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -321,7 +321,7 @@ async function handleCallback(req: Request, supabaseClient: any, user: any) {
 /**
  * Get FHIR server metadata
  */
-async function handleMetadata(req: Request, supabaseClient: any) {
+async function handleMetadata(req: Request, _supabaseClient: SupabaseClient) {
   const url = new URL(req.url);
   const iss = url.searchParams.get("iss");
 

@@ -293,7 +293,7 @@ Constraints:
 
     return jsonResponse({ report });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Unhandled error in insights-report:", error);
     const message = error instanceof Error ? error.message : String(error);
     return errorResponse("SERVER_ERROR", message);

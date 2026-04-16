@@ -154,7 +154,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const webhookId = `test_${type}_${Date.now()}`;
+    const _webhookId = `test_${type}_${Date.now()}`;
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/terra-webhook`, {
       method: "POST",

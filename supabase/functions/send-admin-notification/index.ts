@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
     const emailsSent: string[] = [];
 
     for (const notification of unsentNotifications) {
-      const emailContent = `
+      const _emailContent = `
         <html>
           <head>
             <style>
@@ -162,10 +162,10 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in send-admin-notification:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

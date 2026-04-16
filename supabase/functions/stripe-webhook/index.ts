@@ -39,17 +39,18 @@ Deno.serve(async (req) => {
 
     try {
       event = await stripe.webhooks.constructEventAsync(body, signature, stripeWebhookSecret);
-    } catch (error: any) {
-      console.error(`Webhook signature verification failed: ${error.message}`);
-      return new Response(`Webhook signature verification failed: ${error.message}`, { status: 400 });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`Webhook signature verification failed: ${msg}`);
+      return new Response(`Webhook signature verification failed: ${msg}`, { status: 400 });
     }
 
     EdgeRuntime.waitUntil(handleEvent(event));
 
     return Response.json({ received: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error processing webhook:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 });
 
@@ -181,7 +182,7 @@ async function syncCustomerFromStripe(customerId: string) {
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
         plan_name: planName,
-        status: subscription.status as any,
+        status: subscription.status as string,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         cancel_at_period_end: subscription.cancel_at_period_end,

@@ -10,7 +10,7 @@ interface DiagnosticResult {
   service: string;
   status: "ok" | "error" | "missing";
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 Deno.serve(async (req: Request) => {
@@ -68,8 +68,8 @@ Deno.serve(async (req: Request) => {
 
       if (testResponse.ok) {
         const models = await testResponse.json();
-        const hasGpt4Mini = models.data.some((m: any) => m.id === 'gpt-4o-mini');
-        const hasEmbedding = models.data.some((m: any) => m.id.includes('embedding'));
+        const hasGpt4Mini = models.data.some((m: Record<string, unknown>) => m.id === 'gpt-4o-mini');
+        const hasEmbedding = models.data.some((m: Record<string, unknown>) => (m.id as string).includes('embedding'));
         
         diagnostics.push({
           service: "OpenAI API Key",
@@ -94,13 +94,13 @@ Deno.serve(async (req: Request) => {
           }
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       diagnostics.push({
         service: "OpenAI API Key",
         status: "error",
         message: "Failed to validate API key",
         details: {
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         }
       });
     }
@@ -141,12 +141,12 @@ Deno.serve(async (req: Request) => {
           details: { error: errorText.substring(0, 200) }
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       diagnostics.push({
         service: "OpenAI Embeddings",
         status: "error",
         message: "Embedding generation failed",
-        details: { error: error.message }
+        details: { error: error instanceof Error ? error.message : String(error) }
       });
     }
   }
@@ -187,12 +187,12 @@ Deno.serve(async (req: Request) => {
           details: { error: errorText.substring(0, 200) }
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       diagnostics.push({
         service: "OpenAI Chat Completions",
         status: "error",
         message: "Chat API request failed",
-        details: { error: error.message }
+        details: { error: error instanceof Error ? error.message : String(error) }
       });
     }
   }

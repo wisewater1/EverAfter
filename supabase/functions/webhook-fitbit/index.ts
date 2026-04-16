@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
     let totalMetrics = 0;
 
     for (const notification of payload) {
-      const { ownerId, subscriptionId, date, collectionType } = notification;
+      const { ownerId, subscriptionId: _subscriptionId, date, collectionType } = notification;
 
       const dedupKey = generateDedupKey('fitbit', `${ownerId}-${collectionType}-${date}`, date);
 
@@ -182,7 +182,8 @@ Deno.serve(async (req: Request) => {
           metrics_inserted: metricsInserted,
         });
 
-      } catch (fetchErr: any) {
+      } catch (fetchErr) {
+        const fetchErrMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
         console.error('Fitbit data fetch error:', fetchErr);
         await supabase.from('webhook_events').insert({
           provider: 'fitbit',
@@ -190,7 +191,7 @@ Deno.serve(async (req: Request) => {
           payload: notification,
           dedup_key: dedupKey,
           processed: false,
-          error: fetchErr.message,
+          error: fetchErrMsg,
           user_id: userId,
         });
       }
@@ -199,8 +200,8 @@ Deno.serve(async (req: Request) => {
     console.log(`Fitbit webhook processed: ${totalMetrics} metrics ingested`);
     return jsonResponse({ status: 'success', metrics_inserted: totalMetrics });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('Fitbit webhook error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });

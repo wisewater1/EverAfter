@@ -101,7 +101,7 @@ Deno.serve(async (req: Request) => {
       throw responseError;
     }
 
-    const { data: memoryData, error: memoryError } = await supabase
+    const { data: _memoryData, error: memoryError } = await supabase
       .from('memories')
       .insert({
         user_id: user.id,
@@ -186,7 +186,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Error in submit-daily-response:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

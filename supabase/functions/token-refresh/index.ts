@@ -1,9 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import {
   getCorsHeaders,
   supabaseFromRequest,
   serviceSupabase,
   getProviderConfig,
+  ProviderConfig,
   errorResponse,
   jsonResponse,
 } from '../_shared/connectors.ts';
@@ -42,7 +44,7 @@ Deno.serve(async (req: Request) => {
     const { provider_account_id, provider }: TokenRefreshRequest = await req.json();
     const serviceClient = serviceSupabase();
 
-    let accountsToRefresh: any[] = [];
+    let accountsToRefresh: Record<string, unknown>[] = [];
 
     // Get accounts that need refreshing
     if (provider_account_id) {
@@ -101,20 +103,20 @@ Deno.serve(async (req: Request) => {
       results: results,
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('token-refresh error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });
 
-async function refreshProviderToken(supabase: any, account: any): Promise<TokenRefreshResult> {
-  const provider = account.provider.toLowerCase();
+async function refreshProviderToken(supabase: SupabaseClient, account: Record<string, unknown>): Promise<TokenRefreshResult> {
+  const provider = (account.provider as string).toLowerCase();
 
   try {
     if (!account.refresh_token) {
       return {
         success: false,
-        provider: account.provider,
+        provider: account.provider as string,
         error: 'No refresh token available',
       };
     }
@@ -123,33 +125,34 @@ async function refreshProviderToken(supabase: any, account: any): Promise<TokenR
     if (!config) {
       return {
         success: false,
-        provider: account.provider,
+        provider: account.provider as string,
         error: 'Provider not supported',
       };
     }
 
     // Attempt token refresh
-    const tokenData = await exchangeRefreshToken(provider, account.refresh_token, config);
+    const tokenData = await exchangeRefreshToken(provider, account.refresh_token as string, config);
 
     if (!tokenData) {
       await logTokenRefresh(supabase, account, 'failed', 'Token exchange failed');
       return {
         success: false,
-        provider: account.provider,
+        provider: account.provider as string,
         error: 'Token exchange failed',
       };
     }
 
-    const expiresAt = tokenData.expires_in
-      ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+    const tokenRecord = tokenData as Record<string, unknown>;
+    const expiresAt = tokenRecord.expires_in
+      ? new Date(Date.now() + (tokenRecord.expires_in as number) * 1000).toISOString()
       : null;
 
     // Update account with new tokens
     const { error: updateError } = await supabase
       .from('provider_accounts')
       .update({
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || account.refresh_token,
+        access_token: tokenRecord.access_token,
+        refresh_token: tokenRecord.refresh_token || account.refresh_token,
         expires_at: expiresAt,
         token_refreshed_at: new Date().toISOString(),
         status: 'active',
@@ -162,7 +165,7 @@ async function refreshProviderToken(supabase: any, account: any): Promise<TokenR
       await logTokenRefresh(supabase, account, 'failed', updateError.message);
       return {
         success: false,
-        provider: account.provider,
+        provider: account.provider as string,
         error: updateError.message,
       };
     }
@@ -171,13 +174,14 @@ async function refreshProviderToken(supabase: any, account: any): Promise<TokenR
 
     return {
       success: true,
-      provider: account.provider,
+      provider: account.provider as string,
       new_expires_at: expiresAt || undefined,
     };
 
-  } catch (err: any) {
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`Token refresh failed for ${provider}:`, err);
-    await logTokenRefresh(supabase, account, 'failed', err.message);
+    await logTokenRefresh(supabase, account, 'failed', errMsg);
 
     // Mark account as error if refresh fails
     await supabase
@@ -185,14 +189,14 @@ async function refreshProviderToken(supabase: any, account: any): Promise<TokenR
       .update({
         status: 'token_expired',
         last_error_at: new Date().toISOString(),
-        last_error_message: err.message,
+        last_error_message: errMsg,
       })
       .eq('id', account.id);
 
     return {
       success: false,
-      provider: account.provider,
-      error: err.message,
+      provider: account.provider as string,
+      error: errMsg,
     };
   }
 }
@@ -200,8 +204,8 @@ async function refreshProviderToken(supabase: any, account: any): Promise<TokenR
 async function exchangeRefreshToken(
   provider: string,
   refreshToken: string,
-  config: any
-): Promise<any | null> {
+  config: ProviderConfig
+): Promise<Record<string, unknown> | null> {
   try {
     const body = new URLSearchParams({
       grant_type: 'refresh_token',
@@ -233,8 +237,8 @@ async function exchangeRefreshToken(
 }
 
 async function logTokenRefresh(
-  supabase: any,
-  account: any,
+  supabase: SupabaseClient,
+  account: Record<string, unknown>,
   status: 'success' | 'failed' | 'expired',
   errorMessage: string | null,
   newExpiresAt?: string | null

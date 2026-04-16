@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,9 +141,9 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Knowledge query error:", error);
-    return errorResponse(error.message, 500);
+    return errorResponse(error instanceof Error ? error.message : String(error), 500);
   }
 });
 
@@ -158,12 +158,12 @@ function errorResponse(message: string, status: number) {
 }
 
 async function queryByText(
-  supabase: any,
+  supabase: SupabaseClient,
   text: string,
-  filters: any,
-  options: any,
+  filters: Record<string, unknown>,
+  options: Record<string, unknown>,
   userId: string
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   // Generate embedding for the query text
   const queryEmbedding = await generateEmbedding(text);
 
@@ -177,12 +177,12 @@ async function queryByText(
 }
 
 async function queryByVector(
-  supabase: any,
+  supabase: SupabaseClient,
   vector: number[],
-  filters: any,
-  options: any,
+  filters: Record<string, unknown>,
+  options: Record<string, unknown>,
   userId: string
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   // Build query
   let query = supabase
     .from("knowledge_embeddings")
@@ -243,36 +243,37 @@ async function queryByVector(
 
   // Calculate similarity scores and filter
   const results = data
-    .map((item: any) => {
-      const similarity = cosineSimilarity(vector, item.embedding);
+    .map((item: Record<string, unknown>) => {
+      const ki = item.knowledge_items as Record<string, unknown>;
+      const similarity = cosineSimilarity(vector, item.embedding as number[]);
       return {
-        knowledge_item_id: item.knowledge_items.id,
-        content: item.knowledge_items.content_text || item.knowledge_items.content_structured,
+        knowledge_item_id: ki.id,
+        content: ki.content_text || ki.content_structured,
         similarity_score: similarity,
-        quality_score: item.knowledge_items.quality_score,
-        confidence_score: item.knowledge_items.confidence_score,
-        categories: item.knowledge_items.categories,
-        tags: item.knowledge_items.tags,
+        quality_score: ki.quality_score,
+        confidence_score: ki.confidence_score,
+        categories: ki.categories,
+        tags: ki.tags,
         metadata: {
-          created_at: item.knowledge_items.created_at,
-          content_timestamp: item.knowledge_items.content_timestamp,
-          source_type: item.knowledge_items.source_type,
-          content_type: item.knowledge_items.content_type,
+          created_at: ki.created_at,
+          content_timestamp: ki.content_timestamp,
+          source_type: ki.source_type,
+          content_type: ki.content_type,
         },
       };
     })
-    .filter((item: any) => item.similarity_score >= (options.similarity_threshold || 0.5))
-    .sort((a: any, b: any) => b.similarity_score - a.similarity_score);
+    .filter((item: Record<string, unknown>) => (item.similarity_score as number) >= ((options.similarity_threshold as number) || 0.5))
+    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.similarity_score as number) - (a.similarity_score as number));
 
   return results;
 }
 
 async function queryStructured(
-  supabase: any,
-  filters: any,
-  options: any,
+  supabase: SupabaseClient,
+  filters: Record<string, unknown>,
+  options: Record<string, unknown>,
   userId: string
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   // Build structured query
   let query = supabase
     .from("knowledge_items")
@@ -309,7 +310,7 @@ async function queryStructured(
     throw error;
   }
 
-  return data.map((item: any) => ({
+  return data.map((item: Record<string, unknown>) => ({
     knowledge_item_id: item.id,
     content: item.content_text || item.content_structured,
     similarity_score: null,
@@ -327,12 +328,12 @@ async function queryStructured(
 }
 
 async function fullTextSearch(
-  supabase: any,
+  supabase: SupabaseClient,
   text: string,
-  filters: any,
-  options: any,
+  filters: Record<string, unknown>,
+  options: Record<string, unknown>,
   userId: string
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   // Use PostgreSQL full-text search
   let query = supabase
     .from("knowledge_items")
@@ -365,7 +366,7 @@ async function fullTextSearch(
     throw error;
   }
 
-  return data.map((item: any) => ({
+  return data.map((item: Record<string, unknown>) => ({
     knowledge_item_id: item.id,
     content: item.content_text || item.content_structured,
     similarity_score: null,
@@ -383,9 +384,9 @@ async function fullTextSearch(
 }
 
 async function enhanceWithRelationships(
-  supabase: any,
-  results: any[]
-): Promise<any[]> {
+  supabase: SupabaseClient,
+  results: Record<string, unknown>[]
+): Promise<Record<string, unknown>[]> {
   const itemIds = results.map((r) => r.knowledge_item_id);
 
   if (itemIds.length === 0) return results;
@@ -399,12 +400,12 @@ async function enhanceWithRelationships(
   // Attach relationships to results
   return results.map((result) => {
     const rels = relationships?.filter(
-      (r: any) => r.source_item_id === result.knowledge_item_id
+      (r: Record<string, unknown>) => r.source_item_id === result.knowledge_item_id
     ) || [];
 
     return {
       ...result,
-      relationships: rels.map((r: any) => ({
+      relationships: rels.map((r: Record<string, unknown>) => ({
         type: r.relationship_type,
         target_id: r.target_item_id,
         strength: r.strength,
@@ -415,9 +416,9 @@ async function enhanceWithRelationships(
 }
 
 async function enhanceWithContext(
-  supabase: any,
-  results: any[]
-): Promise<any[]> {
+  supabase: SupabaseClient,
+  results: Record<string, unknown>[]
+): Promise<Record<string, unknown>[]> {
   const itemIds = results.map((r) => r.knowledge_item_id);
 
   if (itemIds.length === 0) return results;
@@ -440,15 +441,15 @@ async function enhanceWithContext(
   // Attach entities to results
   return results.map((result) => {
     const entities = occurrences?.filter(
-      (o: any) => o.knowledge_item_id === result.knowledge_item_id
+      (o: Record<string, unknown>) => o.knowledge_item_id === result.knowledge_item_id
     ) || [];
 
     return {
       ...result,
-      entities: entities.map((e: any) => ({
-        type: e.knowledge_entities.entity_type,
-        text: e.knowledge_entities.entity_text,
-        normalized: e.knowledge_entities.normalized_text,
+      entities: entities.map((e: Record<string, unknown>) => ({
+        type: (e.knowledge_entities as Record<string, unknown>).entity_type,
+        text: (e.knowledge_entities as Record<string, unknown>).entity_text,
+        normalized: (e.knowledge_entities as Record<string, unknown>).normalized_text,
         context_before: e.context_before,
         context_after: e.context_after,
       })),
@@ -507,7 +508,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 async function logAccess(
-  supabase: any,
+  supabase: SupabaseClient,
   knowledgeItemId: string | null,
   accessorType: string,
   accessorId: string,

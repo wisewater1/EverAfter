@@ -6,13 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface PersonalityResponse {
-  id: string;
-  question_text: string;
-  answer_text: string;
-  sent_at: string;
-  answered_at: string;
-}
 
 interface TraitExtraction {
   trait_name: string;
@@ -23,12 +16,12 @@ interface TraitExtraction {
 }
 
 interface PersonalityProfile {
-  core_traits: Record<string, any>;
-  communication_style: Record<string, any>;
-  social_tendencies: Record<string, any>;
-  interests: Record<string, any>;
-  behavioral_patterns: Record<string, any>;
-  relationship_dynamics: Record<string, any>;
+  core_traits: Record<string, unknown>;
+  communication_style: Record<string, unknown>;
+  social_tendencies: Record<string, unknown>;
+  interests: Record<string, unknown>;
+  behavioral_patterns: Record<string, unknown>;
+  relationship_dynamics: Record<string, unknown>;
 }
 
 Deno.serve(async (req: Request) => {
@@ -153,11 +146,11 @@ Deno.serve(async (req: Request) => {
     let totalConfidence = 0;
 
     const responseTexts = responses
-      .map((r: any, idx: number) => `Q${idx + 1}: ${r.question_text}\nA${idx + 1}: ${r.answer_text}`)
+      .map((r: Record<string, unknown>, idx: number) => `Q${idx + 1}: ${r.question_text}\nA${idx + 1}: ${r.answer_text}`)
       .join("\n\n");
 
     for (const dimension of (dimensions || [])) {
-      const dimensionResponses = responses.filter((r: any) =>
+      const _dimensionResponses = responses.filter((r: Record<string, unknown>) =>
         r.question_text.toLowerCase().includes(dimension.dimension_name.toLowerCase()) ||
         r.answer_text.toLowerCase().includes(dimension.dimension_name.toLowerCase())
       );
@@ -223,7 +216,7 @@ Return ONLY a valid JSON array with no additional text:
         let traits: TraitExtraction[] = [];
         try {
           traits = JSON.parse(content);
-        } catch (parseError) {
+        } catch (_parseError) {
           const jsonMatch = content.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
             traits = JSON.parse(jsonMatch[0]);
@@ -245,7 +238,7 @@ Return ONLY a valid JSON array with no additional text:
               profileData[category as keyof PersonalityProfile] = {};
             }
 
-            (profileData[category as keyof PersonalityProfile] as Record<string, any>)[trait.trait_name] = {
+            (profileData[category as keyof PersonalityProfile] as Record<string, unknown>)[trait.trait_name] = {
               value: trait.trait_value,
               description: trait.trait_description,
               confidence: trait.confidence,
@@ -325,7 +318,7 @@ Return ONLY a valid JSON array with no additional text:
       const { data: dimension } = await supabase
         .from("personality_dimensions")
         .select("id")
-        .eq("dimension_name", (trait as any).dimension)
+        .eq("dimension_name", (trait as Record<string, unknown>).dimension)
         .single();
 
       if (dimension) {
@@ -336,7 +329,7 @@ Return ONLY a valid JSON array with no additional text:
           trait_value: trait.trait_value,
           trait_description: trait.trait_description,
           confidence_score: trait.confidence,
-          supporting_response_ids: responses.slice(0, 5).map((r: any) => r.id),
+          supporting_response_ids: responses.slice(0, 5).map((r: Record<string, unknown>) => r.id),
           evidence_summary: trait.evidence?.join("; ") || "",
         });
       }
@@ -391,8 +384,8 @@ Return ONLY a valid JSON array with no additional text:
   }
 });
 
-function analyzePatterns(responses: any[]): Record<string, any> {
-  const patterns: Record<string, any> = {};
+function analyzePatterns(responses: Record<string, unknown>[]): Record<string, unknown> {
+  const patterns: Record<string, unknown> = {};
 
   const avgResponseLength = responses.reduce((sum, r) => sum + (r.answer_text?.length || 0), 0) / responses.length;
   patterns.response_depth = avgResponseLength > 300 ? "detailed" : avgResponseLength > 150 ? "moderate" : "brief";

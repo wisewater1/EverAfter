@@ -242,10 +242,10 @@ Deno.serve(async (req: Request) => {
  * This is a simplified version - each provider would need full implementation
  */
 async function fetchProviderData(
-  provider: any,
-  connection: any,
+  provider: Record<string, unknown>,
+  connection: Record<string, unknown>,
   job: SyncJob
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   // Check if token needs refresh
   if (
     connection.token_expires_at &&

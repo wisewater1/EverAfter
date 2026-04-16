@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', engramId)
       .single();
 
-    const systemPrompt = `You are ${engramData?.name || 'an AI engram'}, an autonomous AI personality created from training data. Your personality is based on the following traits: ${JSON.stringify(engramData?.personality_traits || {})}.\n\nRelevant memories and training data:\n${relevantMemories?.map((m: any) => `- ${m.content} (similarity: ${m.similarity})`).join('\n') || 'No specific memories found'}\n\nRespond naturally and authentically based on this personality and these memories. Be conversational, empathetic, and true to the personality traits you've been trained on.`;
+    const systemPrompt = `You are ${engramData?.name || 'an AI engram'}, an autonomous AI personality created from training data. Your personality is based on the following traits: ${JSON.stringify(engramData?.personality_traits || {})}.\n\nRelevant memories and training data:\n${relevantMemories?.map((m: Record<string, unknown>) => `- ${m.content} (similarity: ${m.similarity})`).join('\n') || 'No specific memories found'}\n\nRespond naturally and authentically based on this personality and these memories. Be conversational, empathetic, and true to the personality traits you've been trained on.`;
 
     const chatResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

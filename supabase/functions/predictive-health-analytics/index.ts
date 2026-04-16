@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url);
-    const analysisType = url.searchParams.get('type') || 'comprehensive';
+    const _analysisType = url.searchParams.get('type') || 'comprehensive';
     const lookbackDays = parseInt(url.searchParams.get('lookbackDays') || '30');
 
     const startDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
@@ -76,25 +76,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const metricsByType = healthMetrics.reduce((acc: any, metric: any) => {
-      if (!acc[metric.metric]) {
-        acc[metric.metric] = [];
+    const metricsByType = healthMetrics.reduce((acc: Record<string, { value: number; timestamp: string }[]>, metric: Record<string, unknown>) => {
+      const key = metric.metric as string;
+      if (!acc[key]) {
+        acc[key] = [];
       }
-      acc[metric.metric].push({
-        value: parseFloat(metric.value),
-        timestamp: metric.ts,
+      acc[key].push({
+        value: parseFloat(metric.value as string),
+        timestamp: metric.ts as string,
       });
       return acc;
-    }, {});
+    }, {} as Record<string, { value: number; timestamp: string }[]>);
 
     const patterns: HealthPattern[] = [];
     const insights: string[] = [];
-    const correlations: any[] = [];
+    const correlations: Record<string, unknown>[] = [];
 
-    for (const [metricType, readings] of Object.entries(metricsByType) as [string, any[]][]) {
+    for (const [metricType, readings] of Object.entries(metricsByType)) {
       if (readings.length < 7) continue;
 
-      const values = readings.map((r: any) => r.value);
+      const values = readings.map((r) => r.value);
       const recent = values.slice(-7);
       const previous = values.slice(-14, -7);
 
@@ -119,8 +120,8 @@ Deno.serve(async (req: Request) => {
       }
 
       const stdDev = calculateStdDev(values);
-      const min = Math.min(...values);
-      const max = Math.max(...values);
+      const _min = Math.min(...values);
+      const _max = Math.max(...values);
 
       const pattern: HealthPattern = {
         metric: metricType,
@@ -155,8 +156,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if (metricsByType['glucose'] && metricsByType['steps']) {
-      const glucoseVals = metricsByType['glucose'].map((r: any) => r.value);
-      const stepsVals = metricsByType['steps'].map((r: any) => r.value);
+      const glucoseVals = metricsByType['glucose'].map((r) => r.value);
+      const stepsVals = metricsByType['steps'].map((r) => r.value);
 
       if (glucoseVals.length > 10 && stepsVals.length > 10) {
         const correlation = calculateCorrelation(
@@ -181,8 +182,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if (metricsByType['glucose'] && metricsByType['sleep_duration']) {
-      const glucoseVals = metricsByType['glucose'].map((r: any) => r.value);
-      const sleepVals = metricsByType['sleep_duration'].map((r: any) => r.value);
+      const glucoseVals = metricsByType['glucose'].map((r) => r.value);
+      const sleepVals = metricsByType['sleep_duration'].map((r) => r.value);
 
       if (glucoseVals.length > 10 && sleepVals.length > 10) {
         const correlation = calculateCorrelation(
@@ -297,7 +298,7 @@ function calculateCorrelation(x: number[], y: number[]): number {
   return numerator / Math.sqrt(xDenominator * yDenominator);
 }
 
-function generateRecommendations(patterns: HealthPattern[], correlations: any[]): string[] {
+function generateRecommendations(patterns: HealthPattern[], correlations: Record<string, unknown>[]): string[] {
   const recommendations: string[] = [];
 
   const decliningMetrics = patterns.filter(p => p.trend === 'declining');

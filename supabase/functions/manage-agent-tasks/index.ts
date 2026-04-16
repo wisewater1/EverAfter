@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    const _action = url.searchParams.get('action');
 
     // GET: Fetch tasks
     if (req.method === 'GET') {
@@ -134,7 +134,7 @@ Deno.serve(async (req: Request) => {
         );
       }
       
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (status) updateData.status = status;
       if (result) updateData.result = result;
       if (details) updateData.details = details;
@@ -205,10 +205,10 @@ Deno.serve(async (req: Request) => {
       { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

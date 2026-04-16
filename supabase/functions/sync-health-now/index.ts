@@ -163,8 +163,8 @@ Deno.serve(async (req: Request) => {
       days_synced: days,
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('sync-health-now error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });

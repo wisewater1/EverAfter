@@ -177,7 +177,7 @@ Deno.serve(async (req: Request) => {
       tokens_used: openaiData.usage?.total_tokens || 0,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Unhandled error in marketplace-template-run:", error);
     const message = error instanceof Error ? error.message : String(error);
     return jsonResponse({ error: message }, 500);

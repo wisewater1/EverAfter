@@ -16,7 +16,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { item_id, format = 'pdf', user_id } = await req.json();
+    const { item_id, format: _format = 'pdf', user_id } = await req.json();
 
     if (!item_id || !user_id) {
       return new Response(
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
     console.error('Export error:', error);
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

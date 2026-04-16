@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,10 +21,7 @@ const corsHeaders = {
  * - health_providers_registry (provider configs)
  */
 
-interface TableCount {
-  table_name: string;
-  count: bigint;
-}
+// TableCount is used conceptually but not as an explicit type in this file
 
 interface IntegrityCheck {
   table_name: string;
@@ -85,7 +82,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: "Safety monitor operation failed",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
@@ -99,7 +96,7 @@ Deno.serve(async (req: Request) => {
  * Perform integrity check
  * Compares current counts with last snapshot
  */
-async function performIntegrityCheck(supabaseClient: any) {
+async function performIntegrityCheck(supabaseClient: SupabaseClient) {
   const checks: IntegrityCheck[] = [];
   let criticalIssues = 0;
   let warnings = 0;
@@ -200,7 +197,7 @@ async function performIntegrityCheck(supabaseClient: any) {
 /**
  * Create a snapshot of current table counts
  */
-async function createSnapshot(supabaseClient: any) {
+async function createSnapshot(supabaseClient: SupabaseClient) {
   const snapshot: Record<string, number> = {};
   const snapshotId = `snapshot_${Date.now()}`;
 
@@ -241,7 +238,7 @@ async function createSnapshot(supabaseClient: any) {
 /**
  * Compare current state with a specific snapshot
  */
-async function compareWithSnapshot(supabaseClient: any) {
+async function compareWithSnapshot(supabaseClient: SupabaseClient) {
   const url = new URL(Deno.env.get("SUPABASE_URL") || "");
   const snapshotId = url.searchParams.get("snapshot_id");
 
@@ -317,7 +314,7 @@ async function compareWithSnapshot(supabaseClient: any) {
 /**
  * Send critical alert
  */
-async function sendAlert(supabaseClient: any, alert: any) {
+async function sendAlert(supabaseClient: SupabaseClient, alert: Record<string, unknown>) {
   try {
     // Log to audit table (ADDITIVE)
     await supabaseClient.from("health_connection_audit").insert({

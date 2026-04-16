@@ -10,7 +10,7 @@ interface EmbeddingRequest {
   text: string;
   engramId?: string;
   familyMemberId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   type: 'engram_memory' | 'family_member' | 'conversation';
 }
 

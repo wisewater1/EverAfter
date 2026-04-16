@@ -288,7 +288,7 @@ async function normalizeWebhookData(
         }
         break;
 
-      case "daily":
+      case "daily": {
         const metadata = dataItem.metadata as Record<string, string>;
         const timestamp = new Date(metadata?.start_time || new Date().toISOString());
 
@@ -331,6 +331,7 @@ async function normalizeWebhookData(
           }
         }
         break;
+      }
     }
   }
 

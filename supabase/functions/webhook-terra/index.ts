@@ -136,8 +136,8 @@ Deno.serve(async (req: Request) => {
     console.log(`Terra webhook processed: ${metricsInserted} metrics ingested`);
     return jsonResponse({ status: 'success', metrics_inserted: metricsInserted });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('Terra webhook error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });
