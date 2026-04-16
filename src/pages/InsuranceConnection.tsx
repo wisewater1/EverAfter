@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Heart, Shield, Users, FileText, CheckCircle2, ArrowRight,
-  Lock, Clock, Award, TrendingUp, DollarSign, Activity,
-  ChevronRight, ArrowLeft, Info
-} from 'lucide-react';
+import { Heart, Shield, Users, FileText, CheckCircle2, ArrowRight, Lock, Clock, Award, TrendingUp, ArrowLeft, Info } from 'lucide-react';
 
 export default function InsuranceConnection() {
   const navigate = useNavigate();

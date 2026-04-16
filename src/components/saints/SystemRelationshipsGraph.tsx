@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Shield, Heart, Users, Search, Wallet, User, Activity, XCircle } from 'lucide-react';
 
 interface Node {

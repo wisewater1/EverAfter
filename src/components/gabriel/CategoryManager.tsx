@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Eye, EyeOff, Save, FolderPlus, Loader2 } from 'lucide-react';
+import { X, Plus, EyeOff, FolderPlus, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 import { financeApi } from '../../lib/gabriel/finance';

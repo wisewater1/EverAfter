@@ -30,7 +30,7 @@ class HealthCli {
         const data = fs.readFileSync(this.configPath, 'utf8');
         this.config = JSON.parse(data);
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn('Could not load config file, using defaults');
     }
   }
@@ -88,8 +88,8 @@ class HealthCli {
       });
 
       console.log('└─────────────┴──────────┴─────────────────────┴─────────────────────┘\n');
-    } catch (error: any) {
-      console.error('❌ Error listing connections:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error listing connections:', (error as Error).message);
     }
   }
 
@@ -112,14 +112,14 @@ class HealthCli {
       });
 
       if (!response.ok) {
-        const error = await response.json() as any;
+        const error = await response.json() as { error?: string };
         throw new Error(error.error || 'Sync failed');
       }
 
-      const result = await response.json() as any;
+      const result = await response.json() as { metrics_ingested?: number };
       console.log(`✓ Synced ${result.metrics_ingested || 0} metrics from ${provider}`);
-    } catch (error: any) {
-      console.error('❌ Sync error:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Sync error:', (error as Error).message);
     }
   }
 
@@ -162,8 +162,8 @@ class HealthCli {
       }
 
       console.log(`✓ Exported ${data.length} records to ${outputPath}`);
-    } catch (error: any) {
-      console.error('❌ Export error:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Export error:', (error as Error).message);
     }
   }
 
@@ -216,8 +216,8 @@ class HealthCli {
       });
 
       console.log('└─────────────────────┴───────┴─────────┴─────────┴─────────┘\n');
-    } catch (error: any) {
-      console.error('❌ Error getting stats:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error getting stats:', (error as Error).message);
     }
   }
 
@@ -235,14 +235,14 @@ class HealthCli {
         try {
           await check.test();
           console.log(`✓ ${check.name}: OK`);
-        } catch (error) {
+        } catch (_error) {
           console.log(`❌ ${check.name}: FAILED`);
         }
       }
 
       console.log('\n✓ Health check complete');
-    } catch (error: any) {
-      console.error('❌ Health check error:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Health check error:', (error as Error).message);
     }
   }
 

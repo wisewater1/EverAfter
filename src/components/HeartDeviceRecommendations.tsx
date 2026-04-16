@@ -1,25 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  Heart,
-  Activity,
-  Zap,
-  CheckCircle,
-  ChevronRight,
-  Star,
-  TrendingUp,
-  Shield,
-  Battery,
-  Smartphone,
-  DollarSign,
-  AlertCircle,
-  Info,
-  ArrowRight,
-  X,
-  Filter,
-  Search,
-} from 'lucide-react';
+import { Heart, Activity, Zap, CheckCircle, ChevronRight, Star, TrendingUp, Shield, DollarSign, AlertCircle, ArrowRight, X, Search,  } from 'lucide-react';
 
 interface HeartDevice {
   id: string;

@@ -1,25 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  Briefcase,
-  Target,
-  Users,
-  Mail,
-  Plus,
-  Edit3,
-  Trash2,
-  Check,
-  X,
-  ExternalLink,
-  Copy,
-  Share2,
-  MessageSquare,
-  TrendingUp,
-  AlertCircle,
-  ChevronRight,
-  Settings
-} from 'lucide-react';
+import { Briefcase, Target, Users, Mail, Plus, Edit3, Check, X, Share2, MessageSquare, AlertCircle, ChevronRight } from 'lucide-react';
 
 interface CareerProfile {
   id: string;

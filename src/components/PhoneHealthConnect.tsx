@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { storeHealthMetrics, type ExtractedHealthData } from '../lib/raphael/healthDataService';
+import { type ExtractedHealthData } from '../lib/raphael/healthDataService';
 import { bluetoothConnector, isBluetoothSupported, type BLEDevice, type BLEDeviceType } from '../lib/connectors/bluetooth-health';
 import { cameraHeartRate, isCameraSupported } from '../lib/connectors/camera-heart-rate';
 import { motionTracker, isMotionSupported, isGeolocationSupported } from '../lib/connectors/motion-tracker';

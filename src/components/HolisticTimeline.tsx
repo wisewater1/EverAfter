@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, DollarSign, Heart, Users, Calendar, Brain, Shield, Sparkles } from 'lucide-react';
+import { Activity, DollarSign, Heart, Users, Calendar, Brain, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '../lib/env';
 
 interface TimelineEvent {

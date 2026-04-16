@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Image, Video, Mic, File, X, Play, Pause, Trash2, Tag, CheckCircle } from 'lucide-react';
+import { Upload, Image, Video, Mic, File, Play, Pause, Trash2, Tag, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface MediaFile {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Monitor, Smartphone, Grid, ZoomIn, Ruler, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
+import { Monitor, Smartphone, Grid, Ruler, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
 import { scaleCanvas, getDevicePixelRatio } from '../lib/canvas-utils';
 
 interface DeviceMetrics {

@@ -1,22 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Droplet,
-  Heart,
-  Moon,
-  Activity,
-  Loader,
-  Settings,
-  Trash2,
-  RefreshCw,
-  AlertCircle,
-  Brain,
-  Sparkles,
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Droplet, Moon, Loader, Trash2, RefreshCw, AlertCircle, Brain, Sparkles,  } from 'lucide-react';
 
 interface Widget {
   id: string;

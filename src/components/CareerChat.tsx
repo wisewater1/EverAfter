@@ -2,20 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { EdgeFunctionException } from '../lib/edge-functions';
-import {
-  Send,
-  Bot,
-  User,
-  Briefcase,
-  Target,
-  Users,
-  Mail,
-  Sparkles,
-  Share2,
-  Copy,
-  Check,
-  ExternalLink
-} from 'lucide-react';
+import { Send, Bot, User, Briefcase, Target, Users, Mail, Sparkles, Share2, Check } from 'lucide-react';
 
 interface Message {
   id: string;

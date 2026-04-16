@@ -193,7 +193,7 @@ router.get('/me/engrams', async (req, res) => {
   }
 });
 
-function calculateVitals(metrics: any[]) {
+function calculateVitals(metrics: Array<{ type: string; value: number }>) {
   const hrMetrics = metrics.filter((m) => m.type === 'HEART_RATE' && m.value);
   const hrvMetrics = metrics.filter((m) => m.type === 'HRV' && m.value);
   const stepMetrics = metrics.filter((m) => m.type === 'STEPS' && m.value);

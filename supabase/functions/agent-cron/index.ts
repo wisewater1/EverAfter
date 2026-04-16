@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,15 +11,15 @@ interface TaskExecution {
   task_id: string;
   step: string;
   status: "started" | "completed" | "failed";
-  result?: any;
+  result?: unknown;
   error?: string;
   timestamp: string;
 }
 
 // Simulate task execution (in production, this would integrate with actual services)
-async function executeTask(task: any, supabase: any): Promise<{
+async function executeTask(task: Record<string, unknown>, supabase: SupabaseClient): Promise<{
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   execution_log: TaskExecution[];
 }> {
@@ -46,7 +46,7 @@ async function executeTask(task: any, supabase: any): Promise<{
       .eq('id', taskId);
 
     // Execute based on task type
-    let result: any = {};
+    let result: Record<string, unknown> = {};
     
     switch (task.task_type) {
       case 'doctor_appointment': {
@@ -277,14 +277,15 @@ async function executeTask(task: any, supabase: any): Promise<{
       execution_log: executionLog
     };
 
-  } catch (error: any) {
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
     console.error(`Task execution error [${taskId}]:`, error);
 
     executionLog.push({
       task_id: taskId,
       step: "task_failed",
       status: "failed",
-      error: error.message,
+      error: errMsg,
       timestamp: new Date().toISOString()
     });
 
@@ -293,14 +294,14 @@ async function executeTask(task: any, supabase: any): Promise<{
       .from('agent_task_queue')
       .update({
         status: 'failed',
-        error_message: error.message,
+        error_message: errMsg,
         completed_at: new Date().toISOString()
       })
       .eq('id', taskId);
 
     return {
       success: false,
-      error: error.message,
+      error: errMsg,
       execution_log: executionLog
     };
   }

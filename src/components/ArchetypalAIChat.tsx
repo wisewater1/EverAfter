@@ -265,7 +265,7 @@ ${ai.interaction_count > 0 ? `We've had ${ai.interaction_count} conversations so
       .order('created_at', { ascending: false })
       .limit(15);
 
-    const memoryContext = recentResponses
+    const _memoryContext = recentResponses
       ?.map(r => `- ${r.response_text}`)
       .join('\n') || '';
 
@@ -276,11 +276,11 @@ ${ai.interaction_count > 0 ? `We've had ${ai.interaction_count} conversations so
       .order('created_at', { ascending: false })
       .limit(5);
 
-    const conversationHistory = recentConversations
+    const _conversationHistory = recentConversations
       ?.map(c => `User: ${c.user_message}\nAI: ${c.ai_response}`)
       .join('\n\n') || '';
 
-    const foundationalQs = Array.isArray(ai.foundational_questions)
+    const _foundationalQs = Array.isArray(ai.foundational_questions)
       ? ai.foundational_questions
       : [];
 

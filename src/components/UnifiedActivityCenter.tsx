@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Shield, Heart, Brain, MessageCircle, Activity, Pill,
-  Calendar, CheckSquare, Lightbulb, Link, Users, BookOpen,
-  Star, Clock, TrendingUp, Zap, ChevronRight, RotateCw
-} from 'lucide-react';
+import { Shield, Heart, Brain, MessageCircle, Activity, Pill, Calendar, CheckSquare, Lightbulb, Link, Users, BookOpen, Star, Clock, Zap, ChevronRight, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { getTodayOverview, type TodayOverview } from '../lib/raphael/monitors';

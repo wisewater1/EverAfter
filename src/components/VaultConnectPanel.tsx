@@ -6,35 +6,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  Shield,
-  Link2,
-  Search,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  ChevronRight,
-  Settings,
-  FileText,
-  Lock,
-  Unlock,
-  Trash2,
-  PauseCircle,
-  PlayCircle,
-  ExternalLink,
-} from 'lucide-react';
-import {
-  VaultConnectAPI,
-  Partner,
-  Connection,
-  ConnectionRequest,
-  getPartnerCategories,
-  getConnectionStatusInfo,
-  ValidationError,
-  ConnectionExistsError,
-  PartnerNotFoundError,
-} from '../lib/vault-connect-api';
+import { Shield, Link2, Search, CheckCircle, XCircle, AlertTriangle, FileText, Trash2, PauseCircle, PlayCircle, ExternalLink,  } from 'lucide-react';
+import { VaultConnectAPI, Partner, Connection, ConnectionRequest, getPartnerCategories, getConnectionStatusInfo, ValidationError, ConnectionExistsError,  } from '../lib/vault-connect-api';
 
 interface VaultConnectPanelProps {
   userId: string;

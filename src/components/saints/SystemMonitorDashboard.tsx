@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react';
-import {
-    Activity,
-    Server,
-    Database,
-    Clock,
-    Shield,
-    AlertTriangle,
-    CheckCircle2,
-    Cpu,
-    Zap,
-    ArrowLeft
-} from 'lucide-react';
+import { Activity, Server, Database, Clock, AlertTriangle, CheckCircle2, Cpu, Zap, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { buildApiUrl } from '../../lib/env';
 
 interface MetricPoint {

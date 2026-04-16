@@ -10,7 +10,7 @@ export interface LogEntry {
   level: LogLevel;
   function: string;
   message: string;
-  data?: any;
+  data?: unknown;
   userId?: string;
   requestId?: string;
   duration?: number;
@@ -38,7 +38,7 @@ export class Logger {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private formatLog(level: LogLevel, message: string, data?: any, error?: Error): LogEntry {
+  private formatLog(level: LogLevel, message: string, data?: unknown, error?: Error): LogEntry {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -63,22 +63,22 @@ export class Logger {
     return entry;
   }
 
-  private sanitizeData(data: any): any {
+  private sanitizeData(data: unknown): unknown {
     if (!data) return data;
 
     const sensitive = ['password', 'token', 'secret', 'apikey', 'api_key', 'access_token', 'refresh_token'];
 
     if (typeof data === 'object') {
-      const sanitized = Array.isArray(data) ? [] : {};
+      const sanitized: Record<string, unknown> = Array.isArray(data) ? [] : {};
 
       for (const [key, value] of Object.entries(data)) {
         const keyLower = key.toLowerCase();
         if (sensitive.some(s => keyLower.includes(s))) {
-          (sanitized as any)[key] = '[REDACTED]';
+          sanitized[key] = '[REDACTED]';
         } else if (typeof value === 'object' && value !== null) {
-          (sanitized as any)[key] = this.sanitizeData(value);
+          sanitized[key] = this.sanitizeData(value);
         } else {
-          (sanitized as any)[key] = value;
+          sanitized[key] = value;
         }
       }
 
@@ -106,27 +106,27 @@ export class Logger {
     }
   }
 
-  debug(message: string, data?: any): void {
+  debug(message: string, data?: unknown): void {
     const entry = this.formatLog('debug', message, data);
     this.output(entry);
   }
 
-  info(message: string, data?: any): void {
+  info(message: string, data?: unknown): void {
     const entry = this.formatLog('info', message, data);
     this.output(entry);
   }
 
-  warn(message: string, data?: any): void {
+  warn(message: string, data?: unknown): void {
     const entry = this.formatLog('warn', message, data);
     this.output(entry);
   }
 
-  error(message: string, error?: Error, data?: any): void {
+  error(message: string, error?: Error, data?: unknown): void {
     const entry = this.formatLog('error', message, data, error);
     this.output(entry);
   }
 
-  critical(message: string, error?: Error, data?: any): void {
+  critical(message: string, error?: Error, data?: unknown): void {
     const entry = this.formatLog('critical', message, data, error);
     this.output(entry);
   }
@@ -197,7 +197,7 @@ export interface ErrorContext {
   userId?: string;
   provider?: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export function trackError(error: Error, context: ErrorContext, logger: Logger): void {
@@ -245,7 +245,7 @@ export async function logRequest(
 export function logResponse(
   status: number,
   logger: Logger,
-  metadata?: any
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Response sent', {
     status,
@@ -259,7 +259,7 @@ export function logResponse(
  */
 export async function logQuery<T>(
   query: string,
-  params: any,
+  params: unknown,
   executor: () => Promise<T>,
   logger: Logger
 ): Promise<T> {

@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  Activity, AlertCircle, Battery, CheckCircle, Clock, Download,
-  FileText, Heart, Link, RefreshCw, Settings, Shield, Signal,
-  Trash2, TrendingUp, Wifi, WifiOff, X, ChevronRight, Droplet,
-  Brain, Moon, Footprints, Target, ThermometerSun, Zap, Eye,
-  Play, Info, AlertTriangle, Plus, ExternalLink
-} from 'lucide-react';
+import { Activity, AlertCircle, Battery, CheckCircle, Clock, Download, Link, RefreshCw, Settings, Trash2, TrendingUp, Wifi, WifiOff, X, ChevronRight, Zap, AlertTriangle, Plus, ExternalLink } from 'lucide-react';
 
 interface Connection {
   id: string;

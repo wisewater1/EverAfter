@@ -22,7 +22,7 @@ const bridgeSchema = z.object({
   ),
 });
 
-function verifySignature(payload: any, signature: string): boolean {
+function verifySignature(payload: Record<string, unknown>, signature: string): boolean {
   const secret = process.env.BRIDGE_SHARED_SECRET;
   if (!secret) {
     throw new Error('BRIDGE_SHARED_SECRET not configured');

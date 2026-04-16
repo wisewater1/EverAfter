@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Zap,
-  Shield,
-  XCircle,
-} from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Clock, RefreshCw, TrendingUp, Zap, Shield, XCircle,  } from 'lucide-react';
 
 interface ConnectionHealth {
   provider: string;

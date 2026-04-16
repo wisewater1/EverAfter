@@ -1,20 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  RefreshCw,
-  Brain,
-  AlertTriangle,
-  CheckCircle,
-  Link as LinkIcon,
-  Lightbulb,
-  Calendar,
-  BarChart3,
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Link as LinkIcon, Lightbulb, Calendar, BarChart3,  } from 'lucide-react';
 
 interface HealthPattern {
   metric: string;

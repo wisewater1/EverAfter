@@ -68,22 +68,23 @@ class DataTransformer {
     });
   }
 
-  private transformData(inputData: any[]): HealthMetric[] {
+  private transformData(inputData: unknown[]): HealthMetric[] {
     return inputData.map(record => {
+      const rec = record as Record<string, unknown>;
       const metric: HealthMetric = {
-        timestamp: this.mapField(record, 'timestamp'),
+        timestamp: this.mapField(rec, 'timestamp'),
         metric_type: this.config.metricType,
-        value: parseFloat(this.mapField(record, 'value')),
-        unit: this.mapField(record, 'unit') || this.inferUnit(this.config.metricType),
+        value: parseFloat(this.mapField(rec, 'value')),
+        unit: this.mapField(rec, 'unit') || this.inferUnit(this.config.metricType),
         provider: this.config.provider,
-        metadata: this.extractMetadata(record),
+        metadata: this.extractMetadata(rec),
       };
 
       return metric;
     });
   }
 
-  private mapField(record: any, targetField: string): string {
+  private mapField(record: Record<string, unknown>, targetField: string): string {
     const sourceField = this.config.mappings[targetField];
     if (!sourceField) {
       throw new Error(`No mapping found for field: ${targetField}`);
@@ -125,8 +126,8 @@ class DataTransformer {
     return unitMap[metricType] || 'unknown';
   }
 
-  private extractMetadata(record: any): Record<string, any> {
-    const metadata: Record<string, any> = {};
+  private extractMetadata(record: Record<string, unknown>): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
     const standardFields = ['timestamp', 'value', 'unit'];
 
     Object.entries(record).forEach(([key, value]) => {
@@ -146,10 +147,11 @@ class DataTransformer {
       case '.json':
         fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
         break;
-      case '.csv':
+      case '.csv': {
         const csv = this.convertToCsv(data);
         fs.writeFileSync(outputPath, csv);
         break;
+      }
       default:
         throw new Error(`Unsupported output format: ${ext}`);
     }
@@ -257,7 +259,7 @@ class BatchTransformer {
   async mergeFiles(inputFiles: string[], outputFile: string): Promise<void> {
     console.log(`🔗 Merging ${inputFiles.length} files into ${outputFile}`);
 
-    const allData: any[] = [];
+    const allData: unknown[] = [];
 
     for (const file of inputFiles) {
       const content = fs.readFileSync(file, 'utf8');

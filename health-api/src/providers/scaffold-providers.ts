@@ -50,12 +50,12 @@ function createScaffoldProvider(provider: Provider): ProviderDriver {
         throw new Error(`Failed to exchange token for ${provider}: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as Record<string, unknown>;
       return {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
-        scopes: data.scope ? data.scope.split(' ') : undefined,
+        accessToken: data.access_token as string,
+        refreshToken: data.refresh_token as string | undefined,
+        expiresAt: data.expires_in ? new Date(Date.now() + (data.expires_in as number) * 1000) : undefined,
+        scopes: data.scope ? (data.scope as string).split(' ') : undefined,
       };
     },
 
@@ -83,16 +83,16 @@ function createScaffoldProvider(provider: Provider): ProviderDriver {
         throw new Error(`Failed to refresh token for ${provider}: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as Record<string, unknown>;
       return {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token || refreshToken, // Some providers don't return a new refresh token
-        expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
-        scopes: data.scope ? data.scope.split(' ') : undefined,
+        accessToken: data.access_token as string,
+        refreshToken: (data.refresh_token as string | undefined) || refreshToken, // Some providers don't return a new refresh token
+        expiresAt: data.expires_in ? new Date(Date.now() + (data.expires_in as number) * 1000) : undefined,
+        scopes: data.scope ? (data.scope as string).split(' ') : undefined,
       };
     },
 
-    async fetchProfile(accessToken: string): Promise<ProviderProfile> {
+    async fetchProfile(_accessToken: string): Promise<ProviderProfile> {
       // Basic implementation - each provider will need custom mapping
       // For scaffold, we return a mock profile with the provider ID
       console.warn(`[Scaffold] Using mock profile fetch for ${provider}`);
@@ -102,7 +102,7 @@ function createScaffoldProvider(provider: Provider): ProviderDriver {
       };
     },
 
-    async fetchLatestMetrics({ accessToken, since }): Promise<NormalizedMetric[]> {
+    async fetchLatestMetrics({ accessToken: _accessToken, since: _since }): Promise<NormalizedMetric[]> {
       // Basic implementation - each provider will need custom mapping
       console.warn(`[Scaffold] Using mock metrics fetch for ${provider}`);
       return [];
@@ -120,11 +120,11 @@ export const googleFitProvider: ProviderDriver = {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       if (!response.ok) throw new Error(`Google Fit profile fetch failed: ${response.statusText}`);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as Record<string, unknown>;
       return {
-        externalUserId: data.id || data.sub,
-        email: data.email,
-        name: data.name,
+        externalUserId: (data.id || data.sub) as string,
+        email: data.email as string | undefined,
+        name: data.name as string | undefined,
       };
     } catch (error) {
       console.error("Error fetching Google Fit profile", error);

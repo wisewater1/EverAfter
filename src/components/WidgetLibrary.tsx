@@ -1,24 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import {
-  X,
-  Plus,
-  TrendingUp,
-  Activity,
-  Droplet,
-  Heart,
-  Moon,
-  Target,
-  BarChart3,
-  PieChart,
-  LineChart,
-  Gauge,
-  Calendar,
-  AlertCircle,
-  LayoutDashboard,
-  Brain,
-  Sparkles,
-} from 'lucide-react';
+import { X, Plus, TrendingUp, Activity, Droplet, Heart, Moon, Target, BarChart3, LineChart, Gauge, Calendar, AlertCircle, LayoutDashboard, Brain,  } from 'lucide-react';
 
 interface WidgetType {
   id: string;

@@ -23,7 +23,7 @@ export const stravaProvider: ProviderDriver = {
     return `${config.authUrl}?${params.toString()}`;
   },
 
-  async exchangeCodeForTokens(code: string, redirectUri: string): Promise<OAuthTokens> {
+  async exchangeCodeForTokens(code: string, _redirectUri: string): Promise<OAuthTokens> {
     const config = getProviderConfig(Provider.STRAVA);
 
     try {

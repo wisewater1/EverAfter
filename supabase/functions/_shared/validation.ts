@@ -6,7 +6,7 @@
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
-  sanitized?: any;
+  sanitized?: unknown;
 }
 
 /**
@@ -117,7 +117,7 @@ export function validateMetricType(metric: string): ValidationResult {
  * Validate numeric value with range
  */
 export function validateNumericValue(
-  value: any,
+  value: unknown,
   fieldName: string,
   options: { min?: number; max?: number; required?: boolean } = {}
 ): ValidationResult {
@@ -155,7 +155,7 @@ export function validateNumericValue(
 /**
  * Validate date/timestamp
  */
-export function validateTimestamp(timestamp: any, fieldName: string = 'Timestamp'): ValidationResult {
+export function validateTimestamp(timestamp: unknown, fieldName: string = 'Timestamp'): ValidationResult {
   const errors: string[] = [];
 
   if (!timestamp) {
@@ -178,7 +178,7 @@ export function validateTimestamp(timestamp: any, fieldName: string = 'Timestamp
         errors.push(`${fieldName} cannot be in the future`);
       }
     }
-  } catch (e) {
+  } catch {
     errors.push(`${fieldName} is not a valid date`);
   }
 
@@ -200,15 +200,16 @@ export function sanitizeString(input: string, maxLength: number = 1000): string 
   return input
     .trim()
     .slice(0, maxLength)
-    .replace(/[<>\"']/g, '') // Remove potential XSS characters
+    .replace(/[<>"']/g, '') // Remove potential XSS characters
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
 }
 
 /**
  * Validate request body against schema
  */
-export function validateRequestBody<T>(
-  body: any,
+export function validateRequestBody(
+  body: unknown,
   requiredFields: string[],
   optionalFields: string[] = []
 ): ValidationResult {
@@ -218,14 +219,16 @@ export function validateRequestBody<T>(
     return { valid: false, errors: ['Request body must be a valid JSON object'] };
   }
 
+  const bodyObj = body as Record<string, unknown>;
+
   for (const field of requiredFields) {
-    if (!(field in body) || body[field] === null || body[field] === undefined) {
+    if (!(field in bodyObj) || bodyObj[field] === null || bodyObj[field] === undefined) {
       errors.push(`Missing required field: ${field}`);
     }
   }
 
   const allFields = [...requiredFields, ...optionalFields];
-  const extraFields = Object.keys(body).filter(key => !allFields.includes(key));
+  const extraFields = Object.keys(bodyObj).filter(key => !allFields.includes(key));
 
   if (extraFields.length > 0) {
     errors.push(`Unexpected fields: ${extraFields.join(', ')}`);
@@ -234,7 +237,7 @@ export function validateRequestBody<T>(
   return {
     valid: errors.length === 0,
     errors,
-    sanitized: body,
+    sanitized: bodyObj,
   };
 }
 
@@ -242,11 +245,11 @@ export function validateRequestBody<T>(
  * Validate pagination parameters
  */
 export function validatePagination(
-  limit?: any,
-  offset?: any
+  limit?: unknown,
+  offset?: unknown
 ): ValidationResult {
   const errors: string[] = [];
-  const sanitized: any = {};
+  const sanitized: Record<string, unknown> = {};
 
   if (limit !== undefined) {
     const limitResult = validateNumericValue(limit, 'limit', { min: 1, max: 1000 });

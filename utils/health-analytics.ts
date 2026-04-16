@@ -345,7 +345,7 @@ class HealthAnalytics {
       try {
         const report = await this.generateReport(userId, provider, metricType, days);
         reports.push(report);
-      } catch (error) {
+      } catch (_error) {
         console.log(`⚠️ No data for ${provider}`);
       }
     }

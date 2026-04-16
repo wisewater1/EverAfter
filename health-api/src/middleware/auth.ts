@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { jwtVerify } from 'jose';
 import { AuthenticatedRequest } from '../types/index.js';
 import { logger } from '../utils/logger.js';

@@ -42,12 +42,12 @@ export const polarProvider: ProviderDriver = {
             throw new Error(`Failed to exchange token for POLAR: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as Record<string, unknown>;
         return {
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token,
-            expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
-            scopes: data.scope ? data.scope.split(' ') : undefined,
+            accessToken: data.access_token as string,
+            refreshToken: data.refresh_token as string | undefined,
+            expiresAt: data.expires_in ? new Date(Date.now() + (data.expires_in as number) * 1000) : undefined,
+            scopes: data.scope ? (data.scope as string).split(' ') : undefined,
         };
     },
 
@@ -73,12 +73,12 @@ export const polarProvider: ProviderDriver = {
             throw new Error(`Failed to refresh token for POLAR: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as Record<string, unknown>;
         return {
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token || refreshToken,
-            expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
-            scopes: data.scope ? data.scope.split(' ') : undefined,
+            accessToken: data.access_token as string,
+            refreshToken: (data.refresh_token as string | undefined) || refreshToken,
+            expiresAt: data.expires_in ? new Date(Date.now() + (data.expires_in as number) * 1000) : undefined,
+            scopes: data.scope ? (data.scope as string).split(' ') : undefined,
         };
     },
 
@@ -87,7 +87,7 @@ export const polarProvider: ProviderDriver = {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         if (response.ok) {
-            const data = (await response.json()) as any;
+            const data = (await response.json()) as Record<string, unknown>;
             return {
                 externalUserId: data['member-id'] || `polar_${Date.now()}`,
                 name: "Polar User",
@@ -100,7 +100,7 @@ export const polarProvider: ProviderDriver = {
         };
     },
 
-    async fetchLatestMetrics({ accessToken, since }): Promise<NormalizedMetric[]> {
+    async fetchLatestMetrics({ accessToken: _accessToken, since: _since }): Promise<NormalizedMetric[]> {
         return [];
     }
 };

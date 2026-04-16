@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, File, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
 
 interface FileUploadZoneProps {

@@ -44,7 +44,7 @@ export async function getValidToken(
     }
 
     return account.access_token_encrypted;
-  } catch (err: any) {
+  } catch (err) {
     console.error('getValidToken error:', err);
     return null;
   }
@@ -113,7 +113,7 @@ async function refreshToken(
 
     console.log(`✓ Token refreshed successfully for ${provider}`);
     return data.access_token;
-  } catch (err: any) {
+  } catch (err) {
     console.error(`Token refresh error for ${provider}:`, err);
     return null;
   }
@@ -152,7 +152,7 @@ export async function storeTokens(
     }
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err) {
     return { success: false, error: err.message };
   }
 }

@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Activity, Heart, Droplet, Scale, Moon, Baby, Link2, Search,
-  CheckCircle, Clock, AlertCircle, RefreshCw, Smartphone, Watch,
-  TrendingUp, Zap, Plus
-} from 'lucide-react';
+import { Activity, Droplet, Scale, Baby, Link2, Search, CheckCircle, RefreshCw, Smartphone, Watch, Zap, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 

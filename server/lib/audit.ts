@@ -9,7 +9,7 @@ interface AuditLogParams {
   provider?: Provider;
   snapshotId?: string;
   consentId?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export async function createAuditLog(params: AuditLogParams): Promise<void> {

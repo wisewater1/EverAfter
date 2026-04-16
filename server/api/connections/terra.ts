@@ -15,7 +15,7 @@ const connectSchema = z.object({
 
 router.post('/connect/terra', async (req, res) => {
   try {
-    const { userId, redirectUrl } = connectSchema.parse(req.body);
+    const { userId } = connectSchema.parse(req.body);
 
     if (req.headers.host?.includes('webcontainer-api.io')) {
       return res.status(400).json({

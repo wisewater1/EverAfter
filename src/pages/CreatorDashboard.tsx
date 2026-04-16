@@ -3,22 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { buildApiUrl } from '../lib/env';
-import {
-  ArrowLeft,
-  Plus,
-  Edit,
-  Eye,
-  DollarSign,
-  TrendingUp,
-  Users,
-  Star,
-  Package,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Brain,
-  Sparkles
-} from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Eye, DollarSign, TrendingUp, Star, Package, CheckCircle, Clock, XCircle, Brain, Sparkles } from 'lucide-react';
 
 interface CreatorProfile {
   id: string;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, Mic, Radio, RefreshCw, Sparkles, Volume2, Waves } from 'lucide-react';
+import { CheckCircle2, Loader2, Mic, Radio, RefreshCw, Sparkles, Volume2, Waves } from 'lucide-react';
 import {
   createJosephVoiceProfile,
   getJosephVoiceHealth,

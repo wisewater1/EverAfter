@@ -3,11 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { buildApiUrl } from '../lib/env';
-import {
-  Heart, Plus, Edit, Trash2, DollarSign, Calendar, Users, FileText,
-  Download, Upload, Shield, TrendingUp, AlertCircle, CheckCircle2,
-  Clock, ArrowLeft, Search, Filter, MoreVertical, X, File
-} from 'lucide-react';
+import { Heart, Plus, Edit, Trash2, DollarSign, Users, FileText, Shield, Clock, ArrowLeft, MoreVertical } from 'lucide-react';
 
 interface Policy {
   id: string;

@@ -2,20 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import {
-  Users,
-  Mail,
-  Download,
-  TrendingUp,
-  Activity,
-  Bell,
-  Shield,
-  ArrowLeft,
-  Eye,
-  RefreshCw,
-  Filter,
-  Search
-} from 'lucide-react';
+import { Users, Download, TrendingUp, Activity, Bell, Shield, ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface AdminStats {
   totalUsers: number;

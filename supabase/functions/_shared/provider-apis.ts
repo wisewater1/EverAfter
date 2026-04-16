@@ -4,7 +4,7 @@ export interface ProviderDataFetchOptions {
   endDate: Date;
 }
 
-export async function fetchDexcomData(options: ProviderDataFetchOptions): Promise<any> {
+export async function fetchDexcomData(options: ProviderDataFetchOptions): Promise<unknown> {
   const { accessToken, startDate, endDate } = options;
 
   const url = new URL('https://sandbox-api.dexcom.com/v3/users/self/egvs');
@@ -25,8 +25,8 @@ export async function fetchDexcomData(options: ProviderDataFetchOptions): Promis
   return await response.json();
 }
 
-export async function fetchFitbitData(options: ProviderDataFetchOptions): Promise<any> {
-  const { accessToken, startDate, endDate } = options;
+export async function fetchFitbitData(options: ProviderDataFetchOptions): Promise<unknown> {
+  const { accessToken, endDate } = options;
 
   const dateStr = endDate.toISOString().split('T')[0];
 
@@ -47,7 +47,7 @@ export async function fetchFitbitData(options: ProviderDataFetchOptions): Promis
   return { activities, heart, sleep };
 }
 
-export async function fetchOuraData(options: ProviderDataFetchOptions): Promise<any> {
+export async function fetchOuraData(options: ProviderDataFetchOptions): Promise<unknown> {
   const { accessToken, startDate, endDate } = options;
 
   const start = startDate.toISOString().split('T')[0];
@@ -70,7 +70,7 @@ export async function fetchOuraData(options: ProviderDataFetchOptions): Promise<
   return { sleep, activity, readiness };
 }
 
-export async function fetchTerraData(options: ProviderDataFetchOptions): Promise<any> {
+export async function fetchTerraData(options: ProviderDataFetchOptions): Promise<unknown> {
   const { accessToken, startDate, endDate } = options;
 
   const start = startDate.toISOString().split('T')[0];
@@ -123,7 +123,7 @@ export async function fetchTerraData(options: ProviderDataFetchOptions): Promise
 export async function fetchProviderData(
   provider: string,
   options: ProviderDataFetchOptions
-): Promise<any> {
+): Promise<unknown> {
   switch (provider.toLowerCase()) {
     case 'dexcom':
       return await fetchDexcomData(options);

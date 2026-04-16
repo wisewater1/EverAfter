@@ -102,7 +102,7 @@ export const fitbitProvider: ProviderDriver = {
     }
   },
 
-  async fetchLatestMetrics({ accessToken, since }): Promise<NormalizedMetric[]> {
+  async fetchLatestMetrics({ accessToken, since: _since }): Promise<NormalizedMetric[]> {
     const metrics: NormalizedMetric[] = [];
     const days = 7;
     const headers = { Authorization: `Bearer ${accessToken}` };

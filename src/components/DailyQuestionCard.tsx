@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Send, SkipForward, Calendar, Sparkles, User, Upload, X, Clock } from 'lucide-react';
+import { MessageCircle, Send, SkipForward, Calendar, Sparkles, Upload, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
 

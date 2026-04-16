@@ -7,7 +7,7 @@ export interface GlucosePoint {
   unit?: 'mg/dL' | 'mmol/L';
   trend?: string;
   quality?: string;
-  raw?: any;
+  raw?: Record<string, unknown>;
 }
 
 export interface LabResult {
@@ -16,7 +16,7 @@ export interface LabResult {
   name: string;
   value: number;
   unit: string;
-  raw?: any;
+  raw?: Record<string, unknown>;
 }
 
 export interface MetabolicEvent {
@@ -26,7 +26,7 @@ export interface MetabolicEvent {
   insulin_units?: number;
   intensity?: string;
   text?: string;
-  raw?: any;
+  raw?: Record<string, unknown>;
 }
 
 export function toMgDl(value: number, unit: 'mg/dL' | 'mmol/L' = 'mg/dL'): number {
@@ -69,9 +69,9 @@ export async function upsertGlucoseReading(
     }
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Glucose upsert exception:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -226,7 +226,7 @@ export function parseDexcomCsv(content: string): { points: GlucosePoint[]; event
   const tsIndex = headers.findIndex(h => h.includes('timestamp') || h.includes('time'));
   const valueIndex = headers.findIndex(h => h.includes('glucose') || h.includes('value'));
   const unitIndex = headers.findIndex(h => h.includes('unit'));
-  const eventIndex = headers.findIndex(h => h.includes('event') || h.includes('type'));
+  const _eventIndex = headers.findIndex(h => h.includes('event') || h.includes('type'));
 
   if (tsIndex === -1 || valueIndex === -1) {
     throw new Error('CSV must contain timestamp and glucose value columns');

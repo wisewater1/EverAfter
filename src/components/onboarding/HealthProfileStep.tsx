@@ -1,16 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { reconcileOnboarding } from '../../lib/onboardingApi';
 import { clearHealthProfileDraft, saveHealthProfileDraft } from '../../lib/onboardingDraft';
-import {
-  Heart,
-  Target,
-  Activity,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
-  X,
-  Plus,
-} from 'lucide-react';
+import { Heart, ArrowRight, ArrowLeft, Loader2, X, Plus,  } from 'lucide-react';
 
 interface HealthProfileData {
   dateOfBirth?: string;

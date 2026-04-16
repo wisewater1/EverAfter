@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Bot, Heart, Activity, Clock, Star, Search, Plus, Settings, X, CheckSquare } from 'lucide-react';
+import { MessageCircle, Bot, Activity, Clock, Star, Search, Settings, X, CheckSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import ArchetypalAIChat from './ArchetypalAIChat';

@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-    Activity, Heart, Droplet, Moon, Footprints,
-    CheckCircle, Shield, Clock,
-    Zap, ArrowLeft, Brain, Target, Beaker, FileText,
-    ChevronRight, Link2, MessagesSquare
-} from 'lucide-react';
+import { Activity, Heart, Droplet, Moon, Footprints, CheckCircle, Shield, Clock, Zap, ArrowLeft, Brain, Target, Beaker, ChevronRight, Link2, MessagesSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';

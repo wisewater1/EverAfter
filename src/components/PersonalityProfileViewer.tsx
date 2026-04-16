@@ -1,22 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Brain,
-  MessageCircle,
-  Users,
-  Heart,
-  TrendingUp,
-  Target,
-  Sparkles,
-  BarChart3,
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  RefreshCw,
-  Download,
-  X,
-} from 'lucide-react';
+import { Brain, MessageCircle, Users, Heart, TrendingUp, Target, Sparkles, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, RefreshCw, X,  } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { readDemoStorage, writeDemoStorage, createDemoId } from '../lib/demo-storage';

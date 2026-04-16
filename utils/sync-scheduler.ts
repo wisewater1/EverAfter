@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import * as cron from 'node:timers/promises';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -43,8 +42,8 @@ class SyncScheduler {
         });
         console.log(`✓ Loaded ${this.jobs.size} sync jobs`);
       }
-    } catch (error: any) {
-      console.error('Failed to load sync jobs:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to load sync jobs:', (error as Error).message);
     }
   }
 
@@ -59,7 +58,7 @@ class SyncScheduler {
     };
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('sync_schedules')
         .insert(job)
         .select()
@@ -70,8 +69,8 @@ class SyncScheduler {
       this.jobs.set(job.id, job);
       console.log(`✓ Created sync job: ${job.id}`);
       return job.id;
-    } catch (error: any) {
-      console.error('Failed to create sync job:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to create sync job:', (error as Error).message);
       throw error;
     }
   }
@@ -87,8 +86,8 @@ class SyncScheduler {
 
       this.jobs.delete(jobId);
       console.log(`✓ Deleted sync job: ${jobId}`);
-    } catch (error: any) {
-      console.error('Failed to delete sync job:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to delete sync job:', (error as Error).message);
       throw error;
     }
   }
@@ -134,11 +133,11 @@ class SyncScheduler {
       });
 
       if (!response.ok) {
-        const error = await response.json() as any;
+        const error = await response.json() as { error?: string };
         throw new Error(error.error || 'Sync failed');
       }
 
-      const result = await response.json() as any;
+      const result = await response.json() as { metrics_ingested?: number };
       const syncResult: SyncResult = {
         success: true,
         metricsIngested: result.metrics_ingested || 0,
@@ -147,12 +146,12 @@ class SyncScheduler {
 
       console.log(`✓ Synced ${syncResult.metricsIngested} metrics in ${Date.now() - startTime}ms`);
       return syncResult;
-    } catch (error: any) {
-      console.error(`❌ Sync failed for ${job.provider}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`❌ Sync failed for ${job.provider}:`, (error as Error).message);
       return {
         success: false,
         metricsIngested: 0,
-        error: error.message,
+        error: (error as Error).message,
         timestamp: new Date().toISOString(),
       };
     }
@@ -182,8 +181,8 @@ class SyncScheduler {
       if (history.length > 100) {
         history.shift();
       }
-    } catch (error: any) {
-      console.error('Failed to update job after sync:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to update job after sync:', (error as Error).message);
     }
   }
 

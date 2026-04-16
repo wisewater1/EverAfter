@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Lock, Unlock, Mail, Plus, Clock,
-    Calendar, Sparkles, Send, X, Loader
-} from 'lucide-react';
+import { Lock, Unlock, Mail, Plus, Clock, Sparkles, X, Loader } from 'lucide-react';
 import { buildAccessTokenHeaders } from '../../lib/auth-session';
 import { requestBackendJson } from '../../lib/backend-request';
 

@@ -5,7 +5,6 @@ import { verifyHmacSignature } from '../utils/crypto.js';
 import { logger } from '../utils/logger.js';
 
 const TERRA_API_URL = 'https://api.tryterra.co/v2';
-const TERRA_WEBHOOK_URL = 'https://ws.tryterra.co/webhooks';
 
 export const terraProvider: ProviderDriver = {
   id: Provider.TERRA,

@@ -29,7 +29,7 @@ async function demo1_Initialization() {
 
   try {
     // ✅ Valid initialization
-    const api = createVaultConnectClient(DEMO_USER_ID);
+    const _api = createVaultConnectClient(DEMO_USER_ID);
     console.log('✅ API client created successfully');
 
     // ❌ Invalid initialization
@@ -229,10 +229,10 @@ async function demo5_ErrorHandling() {
   try {
     await api.createConnection({
       partner_id: 'invalid-uuid',
-      data_sharing_level: 'invalid' as any,
+      data_sharing_level: 'invalid' as 'basic' | 'standard' | 'full',
       permissions: [],
     });
-  } catch (error) {
+  } catch (_error) {
     console.log('✅ Invalid connection request validation: PASSED');
   }
 

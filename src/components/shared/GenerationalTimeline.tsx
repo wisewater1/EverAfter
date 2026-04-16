@@ -10,10 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import {
-    GitBranch, Heart, Wallet, Activity, TrendingUp,
-    TrendingDown, Minus, Loader2, AlertCircle
-} from 'lucide-react';
+import { GitBranch, Wallet, Activity, TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react';
 import { requestBackendJson } from '../../lib/backend-request';
 
 interface GenMember {

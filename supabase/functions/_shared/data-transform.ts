@@ -5,21 +5,23 @@ export interface StandardMetric {
   metric_unit: string;
   source: string;
   recorded_at: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
-export function transformDexcomData(data: any, userId: string): StandardMetric[] {
+type ApiData = Record<string, unknown>;
+
+export function transformDexcomData(data: ApiData, userId: string): StandardMetric[] {
   if (!data.egvs || !Array.isArray(data.egvs)) {
     return [];
   }
 
-  return data.egvs.map((egv: any) => ({
+  return (data.egvs as ApiData[]).map((egv) => ({
     user_id: userId,
     metric_type: 'glucose',
-    metric_value: egv.value,
-    metric_unit: egv.unit || 'mg/dL',
+    metric_value: egv.value as number,
+    metric_unit: (egv.unit as string) || 'mg/dL',
     source: 'dexcom',
-    recorded_at: egv.systemTime,
+    recorded_at: egv.systemTime as string,
     metadata: {
       trend: egv.trend,
       trend_rate: egv.trendRate,
@@ -29,18 +31,19 @@ export function transformDexcomData(data: any, userId: string): StandardMetric[]
   }));
 }
 
-export function transformFitbitData(data: any, userId: string): StandardMetric[] {
+export function transformFitbitData(data: ApiData, userId: string): StandardMetric[] {
   const metrics: StandardMetric[] = [];
   const now = new Date().toISOString();
 
-  if (data.activities?.summary) {
-    const summary = data.activities.summary;
+  const activities = data.activities as ApiData | undefined;
+  const summary = activities?.summary as ApiData | undefined;
 
+  if (summary) {
     if (summary.steps) {
       metrics.push({
         user_id: userId,
         metric_type: 'steps',
-        metric_value: summary.steps,
+        metric_value: summary.steps as number,
         metric_unit: 'steps',
         source: 'fitbit',
         recorded_at: now,
@@ -51,7 +54,7 @@ export function transformFitbitData(data: any, userId: string): StandardMetric[]
       metrics.push({
         user_id: userId,
         metric_type: 'distance',
-        metric_value: summary.distance,
+        metric_value: summary.distance as number,
         metric_unit: 'km',
         source: 'fitbit',
         recorded_at: now,
@@ -62,7 +65,7 @@ export function transformFitbitData(data: any, userId: string): StandardMetric[]
       metrics.push({
         user_id: userId,
         metric_type: 'calories_burned',
-        metric_value: summary.caloriesOut,
+        metric_value: summary.caloriesOut as number,
         metric_unit: 'kcal',
         source: 'fitbit',
         recorded_at: now,
@@ -73,7 +76,7 @@ export function transformFitbitData(data: any, userId: string): StandardMetric[]
       metrics.push({
         user_id: userId,
         metric_type: 'active_minutes',
-        metric_value: (summary.veryActiveMinutes || 0) + (summary.fairlyActiveMinutes || 0),
+        metric_value: ((summary.veryActiveMinutes as number) || 0) + ((summary.fairlyActiveMinutes as number) || 0),
         metric_unit: 'minutes',
         source: 'fitbit',
         recorded_at: now,
@@ -81,37 +84,40 @@ export function transformFitbitData(data: any, userId: string): StandardMetric[]
     }
   }
 
-  if (data.heart?.['activities-heart']?.[0]?.value) {
-    const heartData = data.heart['activities-heart'][0].value;
+  const heart = data.heart as ApiData | undefined;
+  const heartEntries = heart?.['activities-heart'] as ApiData[] | undefined;
+  const firstHeartEntry = heartEntries?.[0];
+  const heartData = firstHeartEntry?.value as ApiData | undefined;
 
-    if (heartData.restingHeartRate) {
-      metrics.push({
-        user_id: userId,
-        metric_type: 'resting_heart_rate',
-        metric_value: heartData.restingHeartRate,
-        metric_unit: 'bpm',
-        source: 'fitbit',
-        recorded_at: now,
-        metadata: {
-          heart_rate_zones: heartData.heartRateZones,
-        },
-      });
-    }
+  if (heartData?.restingHeartRate) {
+    metrics.push({
+      user_id: userId,
+      metric_type: 'resting_heart_rate',
+      metric_value: heartData.restingHeartRate as number,
+      metric_unit: 'bpm',
+      source: 'fitbit',
+      recorded_at: now,
+      metadata: {
+        heart_rate_zones: heartData.heartRateZones,
+      },
+    });
   }
 
-  if (data.sleep?.sleep?.[0]) {
-    const sleep = data.sleep.sleep[0];
+  const sleepData = data.sleep as ApiData | undefined;
+  const sleepEntries = sleepData?.sleep as ApiData[] | undefined;
+  const firstSleep = sleepEntries?.[0];
 
+  if (firstSleep) {
     metrics.push({
       user_id: userId,
       metric_type: 'sleep_duration',
-      metric_value: sleep.minutesAsleep / 60,
+      metric_value: (firstSleep.minutesAsleep as number) / 60,
       metric_unit: 'hours',
       source: 'fitbit',
-      recorded_at: sleep.dateOfSleep,
+      recorded_at: firstSleep.dateOfSleep as string,
       metadata: {
-        efficiency: sleep.efficiency,
-        stages: sleep.levels?.summary,
+        efficiency: firstSleep.efficiency,
+        stages: (firstSleep.levels as ApiData | undefined)?.summary,
       },
     });
   }
@@ -119,39 +125,41 @@ export function transformFitbitData(data: any, userId: string): StandardMetric[]
   return metrics;
 }
 
-export function transformOuraData(data: any, userId: string): StandardMetric[] {
+export function transformOuraData(data: ApiData, userId: string): StandardMetric[] {
   const metrics: StandardMetric[] = [];
 
-  if (data.sleep?.data) {
-    data.sleep.data.forEach((item: any) => {
+  const sleepData = data.sleep as ApiData | undefined;
+  if (sleepData?.data) {
+    (sleepData.data as ApiData[]).forEach((item) => {
       metrics.push({
         user_id: userId,
         metric_type: 'sleep_score',
-        metric_value: item.score || 0,
+        metric_value: (item.score as number) || 0,
         metric_unit: 'score',
         source: 'oura',
-        recorded_at: item.day,
+        recorded_at: item.day as string,
         metadata: {
-          total_sleep: item.contributors?.total_sleep_duration,
-          efficiency: item.contributors?.sleep_efficiency,
-          restfulness: item.contributors?.restfulness,
-          rem_sleep: item.contributors?.rem_sleep_duration,
-          deep_sleep: item.contributors?.deep_sleep_duration,
+          total_sleep: (item.contributors as ApiData | undefined)?.total_sleep_duration,
+          efficiency: (item.contributors as ApiData | undefined)?.sleep_efficiency,
+          restfulness: (item.contributors as ApiData | undefined)?.restfulness,
+          rem_sleep: (item.contributors as ApiData | undefined)?.rem_sleep_duration,
+          deep_sleep: (item.contributors as ApiData | undefined)?.deep_sleep_duration,
         },
       });
     });
   }
 
-  if (data.activity?.data) {
-    data.activity.data.forEach((item: any) => {
+  const activityData = data.activity as ApiData | undefined;
+  if (activityData?.data) {
+    (activityData.data as ApiData[]).forEach((item) => {
       if (item.steps) {
         metrics.push({
           user_id: userId,
           metric_type: 'steps',
-          metric_value: item.steps,
+          metric_value: item.steps as number,
           metric_unit: 'steps',
           source: 'oura',
-          recorded_at: item.day,
+          recorded_at: item.day as string,
         });
       }
 
@@ -159,10 +167,10 @@ export function transformOuraData(data: any, userId: string): StandardMetric[] {
         metrics.push({
           user_id: userId,
           metric_type: 'activity_score',
-          metric_value: item.score,
+          metric_value: item.score as number,
           metric_unit: 'score',
           source: 'oura',
-          recorded_at: item.day,
+          recorded_at: item.day as string,
           metadata: {
             active_calories: item.active_calories,
             equivalent_walking_distance: item.equivalent_walking_distance,
@@ -172,15 +180,16 @@ export function transformOuraData(data: any, userId: string): StandardMetric[] {
     });
   }
 
-  if (data.readiness?.data) {
-    data.readiness.data.forEach((item: any) => {
+  const readinessData = data.readiness as ApiData | undefined;
+  if (readinessData?.data) {
+    (readinessData.data as ApiData[]).forEach((item) => {
       metrics.push({
         user_id: userId,
         metric_type: 'readiness_score',
-        metric_value: item.score || 0,
+        metric_value: (item.score as number) || 0,
         metric_unit: 'score',
         source: 'oura',
-        recorded_at: item.day,
+        recorded_at: item.day as string,
         metadata: {
           temperature_deviation: item.temperature_deviation,
           temperature_trend_deviation: item.temperature_trend_deviation,
@@ -193,65 +202,73 @@ export function transformOuraData(data: any, userId: string): StandardMetric[] {
   return metrics;
 }
 
-export function transformTerraData(data: any, userId: string): StandardMetric[] {
+export function transformTerraData(data: ApiData, userId: string): StandardMetric[] {
   const metrics: StandardMetric[] = [];
 
-  if (data.daily?.data) {
-    data.daily.data.forEach((day: any) => {
-      if (day.distance_data?.steps) {
+  const dailyData = data.daily as ApiData | undefined;
+  if (dailyData?.data) {
+    (dailyData.data as ApiData[]).forEach((day) => {
+      const distanceData = day.distance_data as ApiData | undefined;
+      if (distanceData?.steps) {
         metrics.push({
           user_id: userId,
           metric_type: 'steps',
-          metric_value: day.distance_data.steps,
+          metric_value: distanceData.steps as number,
           metric_unit: 'steps',
           source: 'terra',
-          recorded_at: day.metadata?.start_time || new Date().toISOString(),
+          recorded_at: (day.metadata as ApiData | undefined)?.start_time as string || new Date().toISOString(),
         });
       }
 
-      if (day.heart_rate_data?.summary?.avg_hr_bpm) {
+      const hrData = day.heart_rate_data as ApiData | undefined;
+      const hrSummary = hrData?.summary as ApiData | undefined;
+      if (hrSummary?.avg_hr_bpm) {
         metrics.push({
           user_id: userId,
           metric_type: 'heart_rate',
-          metric_value: day.heart_rate_data.summary.avg_hr_bpm,
+          metric_value: hrSummary.avg_hr_bpm as number,
           metric_unit: 'bpm',
           source: 'terra',
-          recorded_at: day.metadata?.start_time || new Date().toISOString(),
+          recorded_at: (day.metadata as ApiData | undefined)?.start_time as string || new Date().toISOString(),
           metadata: {
-            min_hr: day.heart_rate_data.summary.min_hr_bpm,
-            max_hr: day.heart_rate_data.summary.max_hr_bpm,
-            resting_hr: day.heart_rate_data.summary.resting_hr_bpm,
+            min_hr: hrSummary.min_hr_bpm,
+            max_hr: hrSummary.max_hr_bpm,
+            resting_hr: hrSummary.resting_hr_bpm,
           },
         });
       }
 
-      if (day.calories_data?.total_burned_calories) {
+      const caloriesData = day.calories_data as ApiData | undefined;
+      if (caloriesData?.total_burned_calories) {
         metrics.push({
           user_id: userId,
           metric_type: 'calories_burned',
-          metric_value: day.calories_data.total_burned_calories,
+          metric_value: caloriesData.total_burned_calories as number,
           metric_unit: 'kcal',
           source: 'terra',
-          recorded_at: day.metadata?.start_time || new Date().toISOString(),
+          recorded_at: (day.metadata as ApiData | undefined)?.start_time as string || new Date().toISOString(),
         });
       }
     });
   }
 
-  if (data.sleep?.data) {
-    data.sleep.data.forEach((sleep: any) => {
-      if (sleep.sleep_durations_data?.asleep?.duration_asleep_state_seconds) {
+  const sleepData = data.sleep as ApiData | undefined;
+  if (sleepData?.data) {
+    (sleepData.data as ApiData[]).forEach((sleep) => {
+      const sleepDurations = sleep.sleep_durations_data as ApiData | undefined;
+      const asleep = sleepDurations?.asleep as ApiData | undefined;
+      if (asleep?.duration_asleep_state_seconds) {
         metrics.push({
           user_id: userId,
           metric_type: 'sleep_duration',
-          metric_value: sleep.sleep_durations_data.asleep.duration_asleep_state_seconds / 3600,
+          metric_value: (asleep.duration_asleep_state_seconds as number) / 3600,
           metric_unit: 'hours',
           source: 'terra',
-          recorded_at: sleep.metadata?.start_time || new Date().toISOString(),
+          recorded_at: (sleep.metadata as ApiData | undefined)?.start_time as string || new Date().toISOString(),
           metadata: {
-            rem_duration: sleep.sleep_durations_data.rem?.duration_rem_state_seconds,
-            deep_duration: sleep.sleep_durations_data.deep?.duration_deep_sleep_state_seconds,
-            light_duration: sleep.sleep_durations_data.light?.duration_light_sleep_state_seconds,
+            rem_duration: (sleepDurations?.rem as ApiData | undefined)?.duration_rem_state_seconds,
+            deep_duration: (sleepDurations?.deep as ApiData | undefined)?.duration_deep_sleep_state_seconds,
+            light_duration: (sleepDurations?.light as ApiData | undefined)?.duration_light_sleep_state_seconds,
           },
         });
       }
@@ -261,7 +278,7 @@ export function transformTerraData(data: any, userId: string): StandardMetric[] 
   return metrics;
 }
 
-export function transformToStandardFormat(data: any, provider: string, userId: string): StandardMetric[] {
+export function transformToStandardFormat(data: ApiData, provider: string, userId: string): StandardMetric[] {
   switch (provider.toLowerCase()) {
     case 'dexcom':
       return transformDexcomData(data, userId);

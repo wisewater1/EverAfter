@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Zap, Crown, Sparkles, Loader, LogIn, Brain, Heart, Lock, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Check, Crown, Sparkles, Loader, LogIn, Brain, Heart, Lock, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';

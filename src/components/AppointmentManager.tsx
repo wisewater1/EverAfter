@@ -93,9 +93,9 @@ export default function AppointmentManager() {
     }
     return () => {
       if (container) {
-        container.removeEventListener('touchstart', handleTouchStart as any);
-        container.removeEventListener('touchmove', handleTouchMove as any);
-        container.removeEventListener('touchend', handleTouchEnd as any);
+        container.removeEventListener('touchstart', handleTouchStart as EventListener);
+        container.removeEventListener('touchmove', handleTouchMove as EventListener);
+        container.removeEventListener('touchend', handleTouchEnd as EventListener);
       }
     };
   }, [pullDistance]);
