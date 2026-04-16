@@ -32,7 +32,7 @@ export function serviceSupabase(): SupabaseClient {
   );
 }
 
-export function jsonResponse(data: any, status = 200) {
+export function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -122,7 +122,7 @@ export interface MetricIngestion {
   value: number;
   unit: string;
   ts: string;
-  raw: any;
+  raw: Record<string, unknown>;
 }
 
 export async function ingestMetric(
@@ -191,9 +191,9 @@ export async function ingestMetric(
     }
 
     return { success: true, isDuplicate: false };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Metric ingestion exception:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 

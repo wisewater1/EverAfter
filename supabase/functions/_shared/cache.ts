@@ -224,17 +224,17 @@ export const CacheKeys = {
 /**
  * Global cache instances
  */
-export const UserDataCache = new Cache<any>({
+export const UserDataCache = new Cache<unknown>({
   ttl: 300000, // 5 minutes
   maxSize: 500,
 });
 
-export const ConnectionCache = new Cache<any>({
+export const ConnectionCache = new Cache<unknown>({
   ttl: 60000, // 1 minute
   maxSize: 200,
 });
 
-export const InsightsCache = new Cache<any>({
+export const InsightsCache = new Cache<unknown>({
   ttl: 900000, // 15 minutes
   maxSize: 100,
 });
@@ -285,7 +285,7 @@ export function getAllCacheStats(): Record<string, CacheStats> {
  */
 export async function warmCache(
   userId: string,
-  fetchFunctions: Record<string, () => Promise<any>>
+  fetchFunctions: Record<string, () => Promise<unknown>>
 ): Promise<void> {
   const promises = Object.entries(fetchFunctions).map(async ([key, fetchFn]) => {
     try {
@@ -302,7 +302,7 @@ export async function warmCache(
 /**
  * Invalidate cache entries by pattern
  */
-export function invalidatePattern(cache: Cache<any>, pattern: string): number {
+export function invalidatePattern(cache: Cache<unknown>, pattern: string): number {
   let invalidated = 0;
   const keys = cache.keys();
 

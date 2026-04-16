@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Calendar, Plus, Clock, MapPin, User, CheckCircle, XCircle, Edit,
-  Trash2, AlertCircle, Upload, FileText, Image as ImageIcon,
-  Sparkles, RefreshCw, Bell, Video, Phone, Download, ExternalLink, X
+  Trash2, AlertCircle, Upload, FileText,
+  Sparkles, RefreshCw, Bell, Video, Download, ExternalLink, X
 } from 'lucide-react';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
 
@@ -87,9 +87,9 @@ export default function AppointmentManager() {
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('touchstart', handleTouchStart as any);
-      container.addEventListener('touchmove', handleTouchMove as any);
-      container.addEventListener('touchend', handleTouchEnd as any);
+      container.addEventListener('touchstart', handleTouchStart as EventListener);
+      container.addEventListener('touchmove', handleTouchMove as EventListener);
+      container.addEventListener('touchend', handleTouchEnd as EventListener);
     }
     return () => {
       if (container) {

@@ -45,7 +45,7 @@ interface WriteEngramParams {
   kind: string;
   text: string;
   tags: string[];
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export async function writeEngram(

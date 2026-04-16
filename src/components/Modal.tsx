@@ -46,7 +46,7 @@ export default function Modal({
         modalManagerRef.current.close();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

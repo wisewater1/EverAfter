@@ -89,8 +89,8 @@ class ConfigManager {
 
       this.saveConfig(this.defaultConfig);
       return this.defaultConfig;
-    } catch (error: any) {
-      console.warn('Error loading config, using defaults:', error.message);
+    } catch (error: unknown) {
+      console.warn('Error loading config, using defaults:', (error as Error).message);
       return this.defaultConfig;
     }
   }
@@ -104,8 +104,8 @@ class ConfigManager {
 
       fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
       this.config = config;
-    } catch (error: any) {
-      console.error('Failed to save config:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to save config:', (error as Error).message);
       throw error;
     }
   }
@@ -191,8 +191,8 @@ class ConfigManager {
       const importedConfig = JSON.parse(data);
       this.saveConfig({ ...this.defaultConfig, ...importedConfig });
       console.log(`✓ Configuration imported from ${inputPath}`);
-    } catch (error: any) {
-      console.error('Failed to import config:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to import config:', (error as Error).message);
       throw error;
     }
   }
@@ -290,7 +290,7 @@ async function main() {
       configManager.setUser(args[1], args[2]);
       break;
     case 'set-format':
-      configManager.setOutputFormat(args[1] as any);
+      configManager.setOutputFormat(args[1] as 'json' | 'csv' | 'table');
       break;
     case 'add-schedule':
       configManager.addSyncSchedule(args[1], args[2]);
@@ -298,7 +298,7 @@ async function main() {
     case 'remove-schedule':
       configManager.removeSyncSchedule(args[1]);
       break;
-    case 'list-schedules':
+    case 'list-schedules': {
       const schedules = configManager.listSyncSchedules();
       console.log('\nSync Schedules:\n');
       schedules.forEach(s => {
@@ -306,6 +306,7 @@ async function main() {
       });
       console.log();
       break;
+    }
     case 'export':
       configManager.export(args[1]);
       break;
@@ -315,7 +316,7 @@ async function main() {
     case 'reset':
       configManager.reset();
       break;
-    case 'validate':
+    case 'validate': {
       const validation = configManager.validate();
       if (validation.valid) {
         console.log('✓ Configuration is valid');
@@ -324,6 +325,7 @@ async function main() {
         validation.errors.forEach(err => console.log(`  • ${err}`));
       }
       break;
+    }
     default:
       console.log(`
 USAGE:

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Activity, Heart, TrendingUp, TrendingDown, Zap, Moon,
+  Activity, Heart, TrendingUp, Zap, Moon,
   Footprints, AlertCircle, CheckCircle, Target, Calendar,
-  Droplet, Wind, Battery, Brain
+  Wind, Battery, Brain
 } from 'lucide-react';
 
 interface HealthMetric {

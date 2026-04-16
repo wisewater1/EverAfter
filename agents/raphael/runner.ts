@@ -45,7 +45,7 @@ export async function runRaphael(input: RunInput): Promise<RunOutput> {
 
   console.log(`🩺 Starting Raphael run ${runId} for user ${input.userId}`);
 
-  const run = await prisma.agentRun.create({
+  const _run = await prisma.agentRun.create({
     data: {
       id: runId,
       userId: input.userId,

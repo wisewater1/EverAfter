@@ -28,7 +28,7 @@ const EVENT_LOG_KEY = 'everafter_saint_events_v2';
 const MAX_LOG_SIZE = 100;
 const CHANNEL_NAME = 'everafter_divine_protocol';
 
-let _handlers: Map<string, EventHandler[]> = new Map();
+const _handlers: Map<string, EventHandler[]> = new Map();
 let _channel: BroadcastChannel | null = null;
 let _heartbeatInterval: any = null;
 

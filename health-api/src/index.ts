@@ -17,7 +17,7 @@ import {
   scheduleTokenRefreshChecks,
 } from './services/queue.js';
 import { processSyncJob } from './services/sync-service.js';
-import { processTokenRefresh, checkExpiringTokens } from './services/token-refresh-service.js';
+import { processTokenRefresh } from './services/token-refresh-service.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -50,7 +50,7 @@ app.use((req, res, next) => {
 });
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -61,7 +61,7 @@ app.get('/health', (req, res) => {
 });
 
 // API info
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({
     name: 'Raphael Health Connect API',
     version: '1.0.0',
@@ -109,7 +109,7 @@ if (process.env.ENABLE_SWAGGER_UI === 'true') {
 }
 
 // Error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: { message?: string; status?: number; stack?: string }, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error('Unhandled error', {
     error: err.message,
     stack: err.stack,

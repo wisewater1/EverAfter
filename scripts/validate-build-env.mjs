@@ -62,12 +62,20 @@ if (isProductionBuild && apiBaseUrl) {
 }
 
 if (failures.length > 0) {
-  console.error('\nBuild environment validation failed:\n');
-  for (const failure of failures) {
-    console.error(`- ${failure}`);
+  if (isProductionBuild) {
+    console.error('\nBuild environment validation failed:\n');
+    for (const failure of failures) {
+      console.error(`- ${failure}`);
+    }
+    console.error('\nRefusing to build with invalid production configuration.\n');
+    process.exit(1);
+  } else {
+    console.warn('\nBuild environment warnings (non-production build):\n');
+    for (const failure of failures) {
+      console.warn(`- ${failure}`);
+    }
+    console.warn('\nContinuing with incomplete configuration for non-production build.\n');
   }
-  console.error('\nRefusing to build with invalid production configuration.\n');
-  process.exit(1);
 }
 
 if (warnings.length > 0) {

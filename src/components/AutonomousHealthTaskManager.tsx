@@ -50,7 +50,7 @@ export default function AutonomousHealthTaskManager() {
 
     scheduleNext();
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user]);
 
   const fetchTasks = async () => {

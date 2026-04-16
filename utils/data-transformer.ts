@@ -7,7 +7,7 @@ interface HealthMetric {
   value: number;
   unit: string;
   provider: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface TransformConfig {
@@ -34,13 +34,13 @@ class DataTransformer {
       this.writeOutputFile(outputPath, transformedData);
 
       console.log(`✓ Transformed ${transformedData.length} records`);
-    } catch (error: any) {
-      console.error('❌ Transformation error:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Transformation error:', (error as Error).message);
       throw error;
     }
   }
 
-  private readInputFile(inputPath: string): any[] {
+  private readInputFile(inputPath: string): unknown[] {
     const content = fs.readFileSync(inputPath, 'utf8');
     const ext = path.extname(inputPath).toLowerCase();
 
@@ -54,7 +54,7 @@ class DataTransformer {
     }
   }
 
-  private parseCsv(content: string): any[] {
+  private parseCsv(content: string): Record<string, string>[] {
     const lines = content.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim());
 
