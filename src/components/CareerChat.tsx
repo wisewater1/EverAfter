@@ -413,7 +413,7 @@ export default function CareerChat({ publicToken }: CareerChatProps) {
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder={isPublicMode ? "Ask a question..." : "Type your message..."}
             className="flex-1 bg-gray-700/50 text-white rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 placeholder-gray-400 min-h-[44px] max-h-32"
             rows={1}

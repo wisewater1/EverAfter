@@ -350,7 +350,7 @@ export default function CareerDashboard() {
                   type="text"
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                   className="flex-1 bg-gray-700/50 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   placeholder="Add a skill..."
                 />

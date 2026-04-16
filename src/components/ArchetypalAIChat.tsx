@@ -531,7 +531,7 @@ What aspects of this are most meaningful to you? I'd like to understand your per
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !loading && sendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && !loading && sendMessage()}
                 placeholder={
                   mode.type === 'dual'
                     ? 'Ask both AIs...'

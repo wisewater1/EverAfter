@@ -192,6 +192,7 @@ const SocietyFeed: React.FC = () => {
     // Physics Engine State
     const physicsRef = useRef<Record<string, { x: number, y: number, vx: number, vy: number, baseVy: number, targetHeight: number, arc: Archetype }>>({});
     const [positions, setPositions] = useState<Record<string, { x: number, y: number }>>({});
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const appendLocalEvents = (newEvents: InteractionEvent[]) => {
         if (newEvents.length === 0) return;
@@ -403,10 +404,27 @@ const SocietyFeed: React.FC = () => {
                 updated[k1] = { x: p1.x, y: p1.y };
             }
 
-            setPositions(updated);
+            // Direct DOM updates to bypass React reconciliation
+            if (containerRef.current) {
+                for (const [id, pos] of Object.entries(updated)) {
+                    const el = containerRef.current.querySelector(`[data-agent-id="${id}"]`) as HTMLElement | null;
+                    if (el) {
+                        el.style.left = `${pos.x}%`;
+                        el.style.top = `${pos.y}%`;
+                    }
+                }
+            }
+
+            // Sync state at 4fps for SVG connection lines
+            frameCount++;
+            if (frameCount % 15 === 0) {
+                setPositions({ ...updated });
+            }
+
             frameId = requestAnimationFrame(tick);
         };
 
+        let frameCount = 0;
         frameId = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frameId);
     }, [agents, activeTab]);
@@ -548,6 +566,7 @@ const SocietyFeed: React.FC = () => {
                         return (
                             <div
                                 key={agent.id}
+                                data-agent-id={agent.id}
                                 onMouseEnter={() => setHoveredAgent(agent.id)}
                                 onMouseLeave={() => setHoveredAgent(null)}
                                 className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full border-2 p-0.5 cursor-pointer transition-all duration-300 z-30 shadow-2xl ${colors.border} ${isHovered ? 'scale-125 z-40' : 'scale-100 opacity-80'}`}

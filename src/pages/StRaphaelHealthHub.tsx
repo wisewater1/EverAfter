@@ -1,34 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
     Activity, Heart, Droplet, Moon, Footprints,
     CheckCircle, Shield, Clock,
-    Zap, ArrowLeft, Brain, Target, Beaker, FileText,
+    Zap, ArrowLeft, Brain, Target, Beaker,
     ChevronRight, Link2, MessagesSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 
-// Causal Twin Components
-import WhatIfSimulator from '../components/causal-twin/WhatIfSimulator';
-import ExperimentLab from '../components/causal-twin/ExperimentLab';
-import EvidenceLedgerView from '../components/causal-twin/EvidenceLedgerView';
-import ModelHealthPanel from '../components/causal-twin/ModelHealthPanel';
-import GovernanceView from '../components/causal-twin/GovernanceView';
+// Lazy-load tab views for faster initial page load
+const WhatIfSimulator = lazy(() => import('../components/causal-twin/WhatIfSimulator'));
+const ExperimentLab = lazy(() => import('../components/causal-twin/ExperimentLab'));
+const EvidenceLedgerView = lazy(() => import('../components/causal-twin/EvidenceLedgerView'));
+const ModelHealthPanel = lazy(() => import('../components/causal-twin/ModelHealthPanel'));
+const GovernanceView = lazy(() => import('../components/causal-twin/GovernanceView'));
+const RaphaelChat = lazy(() => import('../components/RaphaelChat'));
+const DelphiView = lazy(() => import('../components/dht/DelphiView'));
+const TrajectoryDashboard = lazy(() => import('../components/TrajectoryDashboard'));
+const ComprehensiveAnalyticsDashboard = lazy(() => import('../components/ComprehensiveAnalyticsDashboard'));
+const ConnectionRotationConfig = lazy(() => import('../components/ConnectionRotationConfig'));
+const ConnectionRotationMonitor = lazy(() => import('../components/ConnectionRotationMonitor'));
+const PredictiveHealthInsights = lazy(() => import('../components/PredictiveHealthInsights'));
+const MedicationTracker = lazy(() => import('../components/MedicationTracker'));
+const HealthGoals = lazy(() => import('../components/HealthGoals'));
 
-// Specialized Healthcare Components
-import RaphaelChat from '../components/RaphaelChat';
-import DelphiView from '../components/dht/DelphiView';
-import TrajectoryDashboard from '../components/TrajectoryDashboard';
+// Eagerly loaded (used in overview)
 import DeviceMonitorDashboard from '../components/DeviceMonitorDashboard';
-import ComprehensiveAnalyticsDashboard from '../components/ComprehensiveAnalyticsDashboard';
-import ConnectionRotationConfig from '../components/ConnectionRotationConfig';
-import ConnectionRotationMonitor from '../components/ConnectionRotationMonitor';
-import PredictiveHealthInsights from '../components/PredictiveHealthInsights';
-
-// Legacy components to preserve functionality
-import MedicationTracker from '../components/MedicationTracker';
-import HealthGoals from '../components/HealthGoals';
 import PhoneHealthConnect from '../components/PhoneHealthConnect';
 import ComprehensiveHealthConnectors from '../components/ComprehensiveHealthConnectors';
 import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge';
@@ -148,6 +146,17 @@ const RAPHAEL_NAV_ITEMS = [
     { key: 'trajectory', label: 'Neural Trajectory', mobileLabel: 'Trajectory', icon: Brain },
     { key: 'chat', label: 'Raphael AI Oracle', mobileLabel: 'Oracle', icon: MessagesSquare },
 ] as const;
+
+function TabFallback() {
+    return (
+        <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-400 mx-auto mb-3" />
+                <p className="text-xs text-slate-500">Loading view</p>
+            </div>
+        </div>
+    );
+}
 
 export default function StRaphaelHealthHub() {
     const navigate = useNavigate();
@@ -370,21 +379,9 @@ export default function StRaphaelHealthHub() {
                                 label={item.label}
                             />
                         ))}
-                        <NavButton
-                            active={activeView === 'lab'}
-                            onClick={() => setActiveView('lab')}
-                            icon={Beaker}
-                            label="Evidence Ledger"
-                        />
-                        <NavButton
-                            active={activeView === 'chat'}
-                            onClick={() => setActiveView('chat')}
-                            icon={MessagesSquare}
-                            label="Raphael AI Oracle"
-                        />
                         <div className="pt-4 mt-4 border-t border-white/5">
                             <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-4 px-4 font-bold">Autonomous Status</h4>
-                            <div className="p-4 rounded-2x bg-white/[0.02] border border-white/5 space-y-3">
+                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
                                 <StatusLine label="Model Stability" value="98.2%" color="text-teal-400" />
                                 <StatusLine label="Last Synapse" value={lastRun ? formatTime(lastRun) : 'N/A'} color="text-slate-400" />
                             </div>
@@ -402,6 +399,7 @@ export default function StRaphaelHealthHub() {
                         ) : (
                             <>
                         {activeView === 'overview' && (
+                            <Suspense fallback={<TabFallback />}>
                             <div className="space-y-6">
                                 {/* Summary View */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -463,8 +461,10 @@ export default function StRaphaelHealthHub() {
                                     </div>
                                 </div>
                             </div>
+                            </Suspense>
                         )}
 
+                        <Suspense fallback={<TabFallback />}>
                         {activeView === 'simulation' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                 <div className="p-8 rounded-[32px] bg-gradient-to-br from-[#12121a] to-[#0d0d12] border border-white/[0.03]">
@@ -522,6 +522,7 @@ export default function StRaphaelHealthHub() {
                                 <RaphaelChat />
                             </div>
                         )}
+                        </Suspense>
                             </>
                         )}
                     </div>

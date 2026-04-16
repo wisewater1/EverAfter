@@ -98,10 +98,6 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Initial configuration or analytics tracking could go here
-  }, []);
-
-  useEffect(() => {
     setSecondaryPanelsReady(false);
     const timer = window.setTimeout(() => {
       setSecondaryPanelsReady(true);

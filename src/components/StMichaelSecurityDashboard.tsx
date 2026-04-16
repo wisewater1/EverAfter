@@ -282,7 +282,7 @@ export default function StMichaelSecurityDashboard() {
                 {/* Navigation & Header */}
                 <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 sm:gap-6">
-                        <button onClick={() => navigate('/saints')}
+                        <button onClick={() => navigate('/dashboard')}
                             className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-slate-900/50 transition-all hover:bg-slate-900">
                             <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-white" />
                         </button>

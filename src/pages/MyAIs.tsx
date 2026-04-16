@@ -318,7 +318,7 @@ function AICard({ purchase, onActivate, onToggleActive, onStartChat }: AICardPro
               {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
             <button
-              onClick={() => {}}
+              onClick={() => window.location.href = '/dashboard'}
               className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-white rounded-lg transition-all"
               title="Settings"
             >

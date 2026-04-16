@@ -270,7 +270,7 @@ export default function LegacyVaultEnhanced() {
             <button
               onClickCapture={(e) => {
                 e.stopPropagation();
-                console.log('Create New Clicked (Capture)');
+
                 setIsCreateModalOpen(true);
               }}
               className="relative z-[100] pointer-events-auto px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
@@ -285,7 +285,7 @@ export default function LegacyVaultEnhanced() {
           <button
             onClickCapture={(e) => {
               e.stopPropagation();
-              console.log('Section Tab Clicked (Capture): continuity');
+
               setActiveSection('continuity');
             }}
             className={`px-6 py-3 font-medium transition-all relative cursor-pointer pointer-events-auto ${activeSection === 'continuity'
@@ -301,7 +301,7 @@ export default function LegacyVaultEnhanced() {
           <button
             onClickCapture={(e) => {
               e.stopPropagation();
-              console.log('Section Tab Clicked (Capture): assurance');
+
               setActiveSection('assurance');
             }}
             className={`px-6 py-3 font-medium transition-all relative cursor-pointer pointer-events-auto ${activeSection === 'assurance'
@@ -317,7 +317,7 @@ export default function LegacyVaultEnhanced() {
           <button
             onClickCapture={(e) => {
               e.stopPropagation();
-              console.log('Section Tab Clicked (Capture): shared');
+
               setActiveSection('shared');
             }}
             className={`px-6 py-3 font-medium transition-all relative cursor-pointer pointer-events-auto ${activeSection === 'shared'

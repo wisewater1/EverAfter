@@ -424,7 +424,7 @@ export default function SaintChat({
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder={blockedReason ? `${saintName} is unavailable until runtime dependencies recover.` : `Ask ${saintName} for guidance...`}
                             className="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm"
                             disabled={loading || bootstrapping || Boolean(blockedReason)}

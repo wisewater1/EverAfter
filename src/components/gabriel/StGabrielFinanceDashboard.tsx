@@ -450,12 +450,12 @@ export default function StGabrielFinanceDashboard() {
                         </button>
                     </div>
                     <button
-                        onClick={() => navigate('/saints')}
+                        onClick={() => navigate('/dashboard')}
                         className="mt-4 flex w-full items-center justify-center gap-2 py-2 text-xs text-slate-500 transition-colors hover:text-slate-300"
                     >
                         <ArrowLeft className="w-3 h-3" />
                         <span className="sm:hidden">Back</span>
-                        <span className="hidden sm:inline">Back to Saints</span>
+                        <span className="hidden sm:inline">Back to Dashboard</span>
                     </button>
                 </div>
             </div>

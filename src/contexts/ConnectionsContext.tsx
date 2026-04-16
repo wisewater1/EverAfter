@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -104,7 +104,7 @@ export function ConnectionsProvider({ children }: { children: React.ReactNode })
     return connections.filter(conn => conn.status === 'active').length;
   }, [connections]);
 
-  const value: ConnectionsContextType = {
+  const value = useMemo<ConnectionsContextType>(() => ({
     connections,
     loading,
     isPanelOpen,
@@ -114,7 +114,7 @@ export function ConnectionsProvider({ children }: { children: React.ReactNode })
     refreshConnections,
     getConnectionsByCategory,
     getActiveConnectionsCount,
-  };
+  }), [connections, loading, isPanelOpen, activeCategory, openConnectionsPanel, closeConnectionsPanel, refreshConnections, getConnectionsByCategory, getActiveConnectionsCount]);
 
   return (
     <ConnectionsContext.Provider value={value}>

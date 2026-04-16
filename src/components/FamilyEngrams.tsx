@@ -631,7 +631,7 @@ function CreateEngramModal({ onClose, onSuccess }: CreateEngramModalProps) {
                     type="text"
                     value={newTrait}
                     onChange={(e) => setNewTrait(e.target.value)}
-                    onKeyPress={(e) => {
+                    onKeyDown={(e) => {
                       if (e.key === 'Enter' && newTrait.trim()) {
                         setFormData({
                           ...formData,

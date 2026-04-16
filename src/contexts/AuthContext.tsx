@@ -83,7 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
-    console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
     if (isDemoAuthEnabled()) {
       const demoState = readDemoAuthState();
       setSession(demoState.session);
@@ -122,7 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         if (error) throw error;
 
-        console.log('AuthContext: Session retrieved', { hasSession: !!session });
         setSession(session);
         setUser(session?.user ?? null);
         setIsDemoMode(false);
@@ -155,7 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, AUTH_BOOT_TIMEOUT_MS + 2000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      console.log('AuthContext: Auth state changed', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
       setIsDemoMode(false);

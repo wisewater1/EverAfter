@@ -320,7 +320,7 @@ export default function UserProfileSetup() {
                     type="text"
                     value={newInterest}
                     onChange={(e) => setNewInterest(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addInterest())}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addInterest())}
                     className="flex-1 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
                     placeholder="Add an interest..."
                   />
@@ -355,7 +355,7 @@ export default function UserProfileSetup() {
                     type="text"
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                     className="flex-1 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
                     placeholder="Add a skill..."
                   />

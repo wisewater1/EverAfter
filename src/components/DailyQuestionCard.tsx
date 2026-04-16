@@ -186,14 +186,6 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         }
       }
 
-      console.log('Submitting response with data:', {
-        user_id: userId,
-        ai_id: selectedAI.id,
-        day_number: question.day_number,
-        response_length: response.length,
-        file_count: uploadedFileIds.length
-      });
-
       const { data, error } = await supabase
         .from('daily_question_responses')
         .insert([{
@@ -225,8 +217,6 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
         throw new Error(userMessage);
       }
-
-      console.log('Response saved successfully:', data);
 
       setUploadProgress(100);
       setShowSuccess(true);

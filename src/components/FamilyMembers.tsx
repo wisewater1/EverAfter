@@ -630,7 +630,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                  onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
                   placeholder={`Ask about ${selectedMember.name}...`}
                   className="flex-1 px-4 py-3 bg-slate-800/80 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   disabled={aiTyping}

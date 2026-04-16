@@ -447,13 +447,13 @@ export default function TerraSetupWizard() {
 
               <div className="flex gap-4">
                 <button
-                  onClick={() => window.location.href = '/health/devices'}
+                  onClick={() => window.location.href = '/devices'}
                   className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700"
                 >
                   Go to Devices
                 </button>
                 <button
-                  onClick={() => window.location.href = '/health'}
+                  onClick={() => window.location.href = '/health-dashboard'}
                   className="flex-1 py-3 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600"
                 >
                   View Dashboard
