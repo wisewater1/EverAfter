@@ -1,10 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+
+let corsHeaders: Record<string, string>;
 
 interface DiagnosticResult {
   service: string;
@@ -14,6 +12,8 @@ interface DiagnosticResult {
 }
 
 Deno.serve(async (req: Request) => {
+  corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });

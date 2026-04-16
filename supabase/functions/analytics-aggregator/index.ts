@@ -1,10 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+
+let corsHeaders: Record<string, string>;
 
 interface AnalyticsRequest {
   timePeriod?: string;
@@ -20,6 +18,8 @@ interface MetricData {
 }
 
 Deno.serve(async (req: Request) => {
+  corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,

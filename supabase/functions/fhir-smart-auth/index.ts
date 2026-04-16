@@ -1,12 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+
+let corsHeaders: Record<string, string>;
 
 /**
  * SMART on FHIR R4 OAuth Handler
@@ -25,6 +22,8 @@ interface SMARTLaunchRequest {
 }
 
 Deno.serve(async (req: Request) => {
+  corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,

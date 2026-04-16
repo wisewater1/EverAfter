@@ -1,6 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@17.7.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { getCorsHeaders } from '../_shared/cors.ts';
+
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
@@ -11,29 +13,27 @@ const stripe = new Stripe(stripeSecret, {
   },
 });
 
+let _corsHeaders: Record<string, string>;
+
 // Helper function to create responses with CORS headers
 function corsResponse(body: string | object | null, status = 200) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': '*',
-  };
-
   // For 204 No Content, don't include Content-Type or body
   if (status === 204) {
-    return new Response(null, { status, headers });
+    return new Response(null, { status, headers: _corsHeaders });
   }
 
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...headers,
+      ..._corsHeaders,
       'Content-Type': 'application/json',
     },
   });
 }
 
 Deno.serve(async (req) => {
+  _corsHeaders = getCorsHeaders(req);
+
   try {
     if (req.method === 'OPTIONS') {
       return corsResponse({}, 204);
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     return corsResponse({ sessionId: session.id, url: session.url });
   } catch (error: any) {
     console.error(`Checkout error: ${error.message}`);
-    return corsResponse({ error: error.message }, 500);
+    return corsResponse({ error: 'Internal server error' }, 500);
   }
 });
 

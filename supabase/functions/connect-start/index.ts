@@ -126,6 +126,6 @@ Deno.serve(async (req: Request) => {
 
   } catch (err: any) {
     console.error('connect-start error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse('Internal server error', 500);
   }
 });
