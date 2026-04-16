@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
       console.warn('OpenAI API key not configured, using mock embeddings');
-      const mockEmbedding = Array(1536).fill(0).map(() => Math.random() * 0.1);
+      const mockEmbedding = deterministicMockEmbedding(text);
       
       let insertResult;
       if (type === 'engram_memory' && engramId) {
