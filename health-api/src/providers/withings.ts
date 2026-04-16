@@ -73,16 +73,16 @@ export const withingsProvider: ProviderDriver = {
             throw new Error(`Failed to refresh token for WITHINGS: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as Record<string, unknown>;
         return {
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token || refreshToken,
-            expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined,
-            scopes: data.scope ? data.scope.split(' ') : undefined,
+            accessToken: data.access_token as string,
+            refreshToken: (data.refresh_token as string | undefined) || refreshToken,
+            expiresAt: data.expires_in ? new Date(Date.now() + (data.expires_in as number) * 1000) : undefined,
+            scopes: data.scope ? (data.scope as string).split(' ') : undefined,
         };
     },
 
-    async fetchProfile(accessToken: string): Promise<ProviderProfile> {
+    async fetchProfile(_accessToken: string): Promise<ProviderProfile> {
         // Withings returns the userid in the token response, which should be stored
         // For this implementation, we'll try to get it from a dummy call if possible
         // but typically it's passed along. Here we provide a structured placeholder.
@@ -92,7 +92,7 @@ export const withingsProvider: ProviderDriver = {
         };
     },
 
-    async fetchLatestMetrics({ accessToken, since }): Promise<NormalizedMetric[]> {
+    async fetchLatestMetrics({ accessToken: _accessToken, since: _since }): Promise<NormalizedMetric[]> {
         // Basic structural implementation for metrics array returned
         return [];
     }

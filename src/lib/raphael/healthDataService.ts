@@ -54,13 +54,13 @@ const HEALTH_PATTERNS: Array<{
 }> = [
         // Blood pressure: "120/80", "BP 120/80", "blood pressure is 120 over 80"
         {
-            pattern: /(?:blood\s*pressure|bp)\s*(?:is|was|:)?\s*(\d{2,3})\s*[\/over]+\s*(\d{2,3})/i,
+            pattern: /(?:blood\s*pressure|bp)\s*(?:is|was|:)?\s*(\d{2,3})\s*[/over]+\s*(\d{2,3})/i,
             metric_type: 'blood_pressure_systolic',
             unit: 'mmHg',
             extractor: (m) => parseInt(m[1]),
         },
         {
-            pattern: /(?:blood\s*pressure|bp)\s*(?:is|was|:)?\s*(\d{2,3})\s*[\/over]+\s*(\d{2,3})/i,
+            pattern: /(?:blood\s*pressure|bp)\s*(?:is|was|:)?\s*(\d{2,3})\s*[/over]+\s*(\d{2,3})/i,
             metric_type: 'blood_pressure_diastolic',
             unit: 'mmHg',
             extractor: (m) => parseInt(m[2]),

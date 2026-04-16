@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { MetricType, Provider } from '../generated/prisma/client.js';
-import { AuthenticatedRequest, ApiResponse, MetricsQueryParams, DailySummary } from '../types/index.js';
+import { MetricType } from '../generated/prisma/client.js';
+import { AuthenticatedRequest, ApiResponse, DailySummary } from '../types/index.js';
 import { prisma } from '../utils/db.js';
 import { logger } from '../utils/logger.js';
 
@@ -17,9 +17,9 @@ router.get('/me/metrics', async (req: AuthenticatedRequest, res) => {
       provider,
       limit = 100,
       offset = 0,
-    } = req.query as any;
+    } = req.query as Record<string, string>;
 
-    const where: any = { userId };
+    const where: Record<string, unknown> = { userId };
 
     if (types) {
       const typeArray = Array.isArray(types) ? types : types.split(',');

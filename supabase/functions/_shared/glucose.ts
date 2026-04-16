@@ -103,9 +103,9 @@ export async function upsertLabResult(
     }
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Lab result insert exception:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -138,9 +138,9 @@ export async function insertMetabolicEvent(
     }
 
     return { success: true, id: data.id };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Metabolic event insert exception:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 

@@ -7,7 +7,7 @@ import { logger } from '../utils/logger.js';
 import { SyncJobData } from '../types/index.js';
 
 export async function processSyncJob(job: Job<SyncJobData>): Promise<void> {
-  const { userId, provider, accountId, since, fullBackfill } = job.data;
+  const { userId, provider, accountId, since, fullBackfill: _fullBackfill } = job.data;
 
   try {
     // Get provider account with tokens
@@ -62,7 +62,7 @@ export async function processSyncJob(job: Job<SyncJobData>): Promise<void> {
         insertedCount++;
       } catch (error) {
         // Ignore duplicate errors, log others
-        if (!(error as any)?.code?.includes('unique')) {
+        if (!(error as Record<string, unknown>)?.['code']?.toString().includes('unique')) {
           logger.error('Failed to insert metric', { error, metric });
         }
       }

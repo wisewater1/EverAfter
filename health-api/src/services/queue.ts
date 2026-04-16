@@ -4,9 +4,9 @@ import { SyncJobData, TokenRefreshJobData } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
 let warnedQueueDisabled = false;
-let syncQueue: Queue<any, any, string> | null = null;
-let tokenRefreshQueue: Queue<any, any, string> | null = null;
-let webhookQueue: Queue<any, any, string> | null = null;
+let syncQueue: Queue<SyncJobData, unknown, string> | null = null;
+let tokenRefreshQueue: Queue<TokenRefreshJobData, unknown, string> | null = null;
+let webhookQueue: Queue<unknown, unknown, string> | null = null;
 
 export function isQueueingEnabled(): boolean {
   return Boolean(process.env.REDIS_URL);
@@ -29,9 +29,9 @@ function getConnectionOptions(): { url: string } | null {
   return { url: process.env.REDIS_URL! };
 }
 
-function getSyncQueue(): Queue<SyncJobData, any, string> | null {
+function getSyncQueue(): Queue<SyncJobData, unknown, string> | null {
   if (syncQueue) {
-    return syncQueue as Queue<SyncJobData, any, string>;
+    return syncQueue as Queue<SyncJobData, unknown, string>;
   }
 
   const connection = getConnectionOptions();
@@ -40,12 +40,12 @@ function getSyncQueue(): Queue<SyncJobData, any, string> | null {
   }
 
   syncQueue = new Queue('health-sync', { connection });
-  return syncQueue as Queue<SyncJobData, any, string>;
+  return syncQueue as Queue<SyncJobData, unknown, string>;
 }
 
-function getTokenRefreshQueue(): Queue<TokenRefreshJobData, any, string> | null {
+function getTokenRefreshQueue(): Queue<TokenRefreshJobData, unknown, string> | null {
   if (tokenRefreshQueue) {
-    return tokenRefreshQueue as Queue<TokenRefreshJobData, any, string>;
+    return tokenRefreshQueue as Queue<TokenRefreshJobData, unknown, string>;
   }
 
   const connection = getConnectionOptions();
@@ -54,10 +54,10 @@ function getTokenRefreshQueue(): Queue<TokenRefreshJobData, any, string> | null 
   }
 
   tokenRefreshQueue = new Queue('token-refresh', { connection });
-  return tokenRefreshQueue as Queue<TokenRefreshJobData, any, string>;
+  return tokenRefreshQueue as Queue<TokenRefreshJobData, unknown, string>;
 }
 
-function getWebhookQueue(): Queue<any, any, string> | null {
+function getWebhookQueue(): Queue<unknown, unknown, string> | null {
   if (webhookQueue) {
     return webhookQueue;
   }
@@ -71,14 +71,14 @@ function getWebhookQueue(): Queue<any, any, string> | null {
   return webhookQueue;
 }
 
-export function createSyncWorker(processor: (job: Job<SyncJobData, any, string>) => Promise<void>) {
+export function createSyncWorker(processor: (job: Job<SyncJobData, unknown, string>) => Promise<void>) {
   const connection = getConnectionOptions();
   if (!connection) {
     logQueueDisabled('Skipping sync worker startup');
     return null;
   }
 
-  return new Worker<SyncJobData, any, string>(
+  return new Worker<SyncJobData, unknown, string>(
     'health-sync',
     async (job) => {
       logger.info(`Processing sync job for provider ${job.data.provider}`, {
@@ -96,14 +96,14 @@ export function createSyncWorker(processor: (job: Job<SyncJobData, any, string>)
   );
 }
 
-export function createTokenRefreshWorker(processor: (job: Job<TokenRefreshJobData, any, string>) => Promise<void>) {
+export function createTokenRefreshWorker(processor: (job: Job<TokenRefreshJobData, unknown, string>) => Promise<void>) {
   const connection = getConnectionOptions();
   if (!connection) {
     logQueueDisabled('Skipping token refresh worker startup');
     return null;
   }
 
-  return new Worker<TokenRefreshJobData, any, string>(
+  return new Worker<TokenRefreshJobData, unknown, string>(
     'token-refresh',
     async (job) => {
       logger.info(`Refreshing tokens for account ${job.data.accountId}`);
@@ -118,14 +118,14 @@ export function createTokenRefreshWorker(processor: (job: Job<TokenRefreshJobDat
   );
 }
 
-export function createWebhookWorker(processor: (job: Job<any, any, string>) => Promise<void>) {
+export function createWebhookWorker(processor: (job: Job<unknown, unknown, string>) => Promise<void>) {
   const connection = getConnectionOptions();
   if (!connection) {
     logQueueDisabled('Skipping webhook worker startup');
     return null;
   }
 
-  return new Worker<any, any, string>(
+  return new Worker<unknown, unknown, string>(
     'webhook-processing',
     async (job) => {
       logger.info(`Processing webhook from ${job.data.provider}`, {
@@ -149,7 +149,7 @@ export async function enqueueSyncJob(data: SyncJobData) {
     return null;
   }
 
-  return await queue.add('sync' as any, data, {
+  return await queue.add('sync', data, {
     attempts: 3,
     backoff: {
       type: 'exponential',
@@ -165,7 +165,7 @@ export async function enqueueTokenRefresh(data: TokenRefreshJobData, delayMs?: n
     return null;
   }
 
-  return await queue.add('refresh' as any, data, {
+  return await queue.add('refresh', data, {
     attempts: 5,
     backoff: {
       type: 'exponential',
@@ -175,14 +175,14 @@ export async function enqueueTokenRefresh(data: TokenRefreshJobData, delayMs?: n
   });
 }
 
-export async function enqueueWebhookJob(data: any) {
+export async function enqueueWebhookJob(data: unknown) {
   const queue = getWebhookQueue();
   if (!queue) {
     logQueueDisabled('Skipping webhook enqueue');
     return null;
   }
 
-  return await queue.add('process' as any, data, {
+  return await queue.add('process', data, {
     attempts: 3,
     backoff: {
       type: 'exponential',
@@ -199,8 +199,8 @@ export async function scheduleTokenRefreshChecks() {
   }
 
   await queue.add(
-    'check-expiring-tokens' as any,
-    { accountId: 'system', provider: Provider.TERRA } as any,
+    'check-expiring-tokens',
+    { accountId: 'system', provider: Provider.TERRA } as unknown as TokenRefreshJobData,
     {
       repeat: {
         pattern: '0 * * * *',

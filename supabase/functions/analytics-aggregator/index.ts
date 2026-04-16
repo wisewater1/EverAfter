@@ -58,7 +58,7 @@ Deno.serve(async (req: Request) => {
       throw providersError;
     }
 
-    const analytics: any[] = [];
+    const analytics: Record<string, unknown>[] = [];
 
     // Filter providers if specific sources requested
     const targetProviders = sources && sources.length > 0
@@ -139,7 +139,7 @@ Deno.serve(async (req: Request) => {
       });
 
       // Calculate statistics for each category
-      const categoryStats: Record<string, any> = {};
+      const categoryStats: Record<string, unknown> = {};
       
       for (const [category, data] of Object.entries(metricsByCategory)) {
         const values = data.map(d => d.value);

@@ -78,17 +78,7 @@ export default function LegacyVaultEnhanced() {
 
 
 
-  if (!supabase) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Configuration Error</h2>
-          <p className="text-slate-400">Supabase connection not initialized. Please check your environment variables.</p>
-        </div>
-      </div>
-    );
-  }
+  const supabaseMissing = !supabase;
 
   useEffect(() => {
     console.log('Active Section changed to:', activeSection);
@@ -257,6 +247,18 @@ export default function LegacyVaultEnhanced() {
       return payloadRecipients > 0;
     }).length,
   };
+
+  if (supabaseMissing) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Configuration Error</h2>
+          <p className="text-slate-400">Supabase connection not initialized. Please check your environment variables.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 isolation-isolate">
@@ -1352,6 +1354,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
       if (error) throw error;
       setSelectedBeneficiaries(data.map((d: unknown) => ({ id: d.beneficiary_id, role: d.role })));
     } catch (_err) {
+      /* intentional */
     }
   };
 
@@ -1366,6 +1369,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
       if (error) throw error;
       setAvailableBeneficiaries(data || []);
     } catch (_err) {
+      /* intentional */
     }
   };
 
@@ -1876,6 +1880,7 @@ function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem;
         setDecryptedPayload({ message: decrypted });
       }
     } catch (_err) {
+      /* intentional */
     }
   };
 
@@ -1898,6 +1903,7 @@ function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem;
       if (error) throw error;
       setBeneficiaries(data || []);
     } catch (_err) {
+      /* intentional */
     } finally {
       setLoading(false);
     }

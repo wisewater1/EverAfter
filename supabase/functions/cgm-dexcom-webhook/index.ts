@@ -90,14 +90,15 @@ Deno.serve(async (req: Request) => {
     console.log(`Dexcom webhook processed: ${insertedCount} readings inserted`);
     return jsonResponse({ status: 'success', readings_inserted: insertedCount });
 
-  } catch (err: any) {
+  } catch (err) {
     const supabase = serviceSupabase();
+    const errMsg = err instanceof Error ? err.message : String(err);
     await logJobAudit(supabase, 'dexcom-webhook', 'failed', {
       durationMs: Date.now() - startTime,
-      error: err.message,
+      error: errMsg,
     });
 
     console.error('Dexcom webhook error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(errMsg || 'Internal server error', 500);
   }
 });

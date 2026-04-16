@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { getCorsHeaders, supabaseFromRequest, serviceSupabase, errorResponse, jsonResponse } from '../_shared/connectors.ts';
+import { getCorsHeaders, supabaseFromRequest, serviceSupabase, errorResponse } from '../_shared/connectors.ts';
 
 const corsHeaders = getCorsHeaders();
 
@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
         return errorResponse('Missing code or state');
       }
 
-      let stateData: any;
+      let stateData: Record<string, unknown>;
       try {
         stateData = JSON.parse(atob(state));
       } catch {
@@ -187,8 +187,8 @@ Deno.serve(async (req: Request) => {
 
     return errorResponse('Invalid action parameter');
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('Dexcom OAuth error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });

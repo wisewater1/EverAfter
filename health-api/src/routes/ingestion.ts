@@ -17,6 +17,10 @@ const ingestionSchema = z.object({
     }))
 });
 
+// Helper to access Prisma models not in the generated type (e.g. legacy 'source'/'metric' tables)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const prismaAny = prisma as unknown as Record<string, any>;
+
 // Apple Health Direct Ingestion
 router.post('/apple-health', async (req, res) => {
     try {
@@ -24,7 +28,7 @@ router.post('/apple-health', async (req, res) => {
 
         logger.info(`Received Apple Health ingestion for user ${userId} with ${metrics.length} metrics.`);
 
-        const source = await (prisma as any).source.findFirst({
+        const source = await prismaAny['source'].findFirst({
             where: {
                 userId,
                 provider: 'APPLE_HEALTH',
@@ -45,7 +49,7 @@ router.post('/apple-health', async (req, res) => {
             payload: m.payload || {},
         }));
 
-        await (prisma as any).metric.createMany({
+        await prismaAny['metric'].createMany({
             data: dataToInsert,
             skipDuplicates: true,
         });
@@ -64,7 +68,7 @@ router.post('/health-connect', async (req, res) => {
 
         logger.info(`Received Health Connect ingestion for user ${userId} with ${metrics.length} metrics.`);
 
-        const source = await (prisma as any).source.findFirst({
+        const source = await prismaAny['source'].findFirst({
             where: {
                 userId,
                 provider: 'SAMSUNG_HEALTH',
@@ -85,7 +89,7 @@ router.post('/health-connect', async (req, res) => {
             payload: m.payload || {},
         }));
 
-        await (prisma as any).metric.createMany({
+        await prismaAny['metric'].createMany({
             data: dataToInsert,
             skipDuplicates: true,
         });

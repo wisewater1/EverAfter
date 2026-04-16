@@ -3,7 +3,6 @@ import { Provider } from '../generated/prisma/client.js';
 import { AuthenticatedRequest, ApiResponse, ConnectionStatus } from '../types/index.js';
 import { prisma } from '../utils/db.js';
 import { getProvider, isProviderImplemented } from '../providers/index.js';
-import { getProviderConfig } from '../config/providers.js';
 import { generateState, encryptToken } from '../utils/crypto.js';
 import { enqueueSyncJob } from '../services/queue.js';
 import { logger } from '../utils/logger.js';

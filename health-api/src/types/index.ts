@@ -49,7 +49,7 @@ export interface ProviderProfile {
   externalUserId: string;
   email?: string;
   name?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProviderDevice {
@@ -66,7 +66,7 @@ export interface NormalizedMetric {
   unit?: string;
   timestamp: Date;
   deviceId?: string;
-  raw?: Record<string, any>;
+  raw?: Record<string, unknown>;
 }
 
 export interface WebhookPayload {
@@ -74,7 +74,7 @@ export interface WebhookPayload {
   eventId?: string;
   userId?: string;
   externalUserId?: string;
-  data: any;
+  data: unknown;
   signature?: string;
 }
 
@@ -104,7 +104,7 @@ export interface MetricsQueryParams {
   offset?: number;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

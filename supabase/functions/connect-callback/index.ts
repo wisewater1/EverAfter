@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Missing required parameters');
     }
 
-    let stateData: any;
+    let stateData: Record<string, unknown>;
     try {
       stateData = JSON.parse(atob(state));
     } catch {
@@ -96,8 +96,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'text/html' },
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('connect-callback error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(err instanceof Error ? err.message : 'Internal server error', 500);
   }
 });

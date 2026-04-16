@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -146,12 +146,12 @@ const TOOLS = [
 // Execute tool calls
 async function executeTool(
   toolName: string,
-  args: any,
-  supabase: any,
+  args: Record<string, unknown>,
+  supabase: SupabaseClient,
   profileOwnerId: string,
   visitorToken: string | null,
   isOwner: boolean
-): Promise<any> {
+): Promise<unknown> {
   try {
     switch (toolName) {
       case "record_user_details": {
@@ -244,7 +244,7 @@ async function executeTool(
 
       case "get_career_context": {
         const { include_goals = true, include_profile = true } = args;
-        const context: any = {};
+        const context: Record<string, unknown> = {};
 
         if (include_profile) {
           const { data: profile } = await supabase
@@ -280,17 +280,17 @@ async function executeTool(
           error: `Unknown tool: ${toolName}`
         };
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error(`Tool execution error [${toolName}]:`, error);
     return {
       success: false,
-      error: error.message || String(error)
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }
 
 // Build system prompt based on career profile
-function buildSystemPrompt(profile: any, isOwner: boolean, profileOwnerName: string): string {
+function buildSystemPrompt(profile: Record<string, unknown> | null, isOwner: boolean, profileOwnerName: string): string {
   const basePrompt = isOwner
     ? `You are a personal career coach and assistant helping ${profileOwnerName} manage their professional development.`
     : `You are ${profileOwnerName}'s AI career assistant, answering questions about their professional background, skills, and experiences.`;
@@ -380,7 +380,7 @@ Deno.serve(async (req: Request) => {
     let profileOwnerId: string;
     let isOwner = false;
     let visitorToken: string | null = null;
-    let profile: any = null;
+    let profile: Record<string, unknown> | null = null;
     let profileOwnerName = "the professional";
 
     // Service client for reading profiles (bypasses RLS)
@@ -524,7 +524,7 @@ Deno.serve(async (req: Request) => {
     // 7. Handle tool calls in a loop (max 3 rounds)
     const maxToolRounds = 3;
     let toolRound = 0;
-    const toolExecutionLog: any[] = [];
+    const toolExecutionLog: unknown[] = [];
 
     // Use service client for tool execution (to bypass RLS for anonymous users)
     const toolClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -634,7 +634,7 @@ Deno.serve(async (req: Request) => {
       visitor_token: visitorToken
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Unhandled error in career-chat:", error);
     const message = error instanceof Error ? error.message : String(error);
     return errorResponse("SERVER_ERROR", message, "Check function logs for details");

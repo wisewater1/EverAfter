@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
         .single();
 
       // Prepare update data
-      const profileData: Record<string, any> = {
+      const profileData: Record<string, unknown> = {
         user_id: user.id,
         updated_at: new Date().toISOString()
       };
@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
 
     return errorResponse("METHOD_NOT_ALLOWED", `Method ${method} not allowed`, undefined, 405);
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Unhandled error in career-profile-update:", error);
     const message = error instanceof Error ? error.message : String(error);
     return errorResponse("SERVER_ERROR", message, "Check function logs for details");

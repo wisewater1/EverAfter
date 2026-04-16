@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders, supabaseFromRequest, errorResponse, jsonResponse } from '../_shared/connectors.ts';
-import { parseDexcomCsv, upsertGlucoseReading, getOrCreateRaphaelEngram, logJobAudit } from '../_shared/glucose.ts';
+import { parseDexcomCsv, upsertGlucoseReading, getOrCreateRaphaelEngram, logJobAudit, GlucosePoint } from '../_shared/glucose.ts';
 
 const corsHeaders = getCorsHeaders();
 
@@ -61,18 +61,15 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Failed to process upload', 500);
     }
 
-    let points: any[] = [];
-    let events: any[] = [];
+    let points: GlucosePoint[] = [];
 
     if (fileName.endsWith('.csv')) {
       const parsed = parseDexcomCsv(fileContent);
       points = parsed.points;
-      events = parsed.events;
     } else if (fileName.endsWith('.json')) {
       try {
         const json = JSON.parse(fileContent);
         points = json.readings || json.points || [];
-        events = json.events || [];
       } catch {
         return errorResponse('Invalid JSON format');
       }
@@ -124,14 +121,15 @@ Deno.serve(async (req: Request) => {
       file_name: fileName,
     });
 
-  } catch (err: any) {
+  } catch (err) {
     const supabase = supabaseFromRequest(req);
+    const errMsg = err instanceof Error ? err.message : String(err);
     await logJobAudit(supabase, 'manual-upload', 'failed', {
       durationMs: Date.now() - startTime,
-      error: err.message,
+      error: errMsg,
     });
 
     console.error('Manual upload error:', err);
-    return errorResponse(err.message || 'Internal server error', 500);
+    return errorResponse(errMsg || 'Internal server error', 500);
   }
 });
