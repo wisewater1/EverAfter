@@ -505,6 +505,7 @@ class APIClient {
    * List tasks for engram
    */
   async listTasks(engramId: string) {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { data, error } = await supabase
         .from('agent_task_queue')
@@ -524,6 +525,7 @@ class APIClient {
    * Create new task
    */
   async createTask(engramId: string, taskData: Record<string, unknown>) {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { data, error } = await supabase
         .from('agent_task_queue')
@@ -562,6 +564,7 @@ class APIClient {
    * @throws {Error} if user cancels — callers should confirm before calling
    */
   async deleteTask(taskId: string) {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { error } = await supabase.from('agent_task_queue').delete().eq('id', taskId);
 

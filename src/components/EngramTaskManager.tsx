@@ -38,6 +38,7 @@ export default function EngramTaskManager({ engrams, userId }: EngramTaskManager
   });
 
   const loadEngrams = useCallback(async () => {
+    if (!supabase) return;
     try {
       const { data } = await supabase
         .from('archetypal_ais')

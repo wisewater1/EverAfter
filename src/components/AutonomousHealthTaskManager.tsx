@@ -59,6 +59,7 @@ export default function AutonomousHealthTaskManager() {
     isFetching.current = true;
 
     try {
+      if (!supabase) throw new Error('Supabase client not initialized');
       const { data, error } = await supabase
         .from('engram_ai_tasks')
         .select('*')

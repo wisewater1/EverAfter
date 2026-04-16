@@ -112,6 +112,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     } catch (error) {
       console.error('Error fetching health context from local backend:', error);
       // Fallback to supabase if local fails
+      if (!supabase) return;
       const [metricsRes, appointmentsRes, prescriptionsRes] = await Promise.all([
         supabase.from('health_metrics').select('id', { count: 'exact', head: true }),
         supabase.from('appointments').select('id', { count: 'exact', head: true }).gte('scheduled_at', new Date().toISOString()),

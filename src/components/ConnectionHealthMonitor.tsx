@@ -102,6 +102,7 @@ export default function ConnectionHealthMonitor() {
   }
 
   async function handleRefreshDashboard() {
+    if (!supabase) return;
     try {
       setRefreshing(true);
       await supabase.rpc('refresh_connection_dashboard');
