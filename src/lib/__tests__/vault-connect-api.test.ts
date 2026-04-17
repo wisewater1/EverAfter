@@ -25,6 +25,11 @@ vi.mock('../supabase', () => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+          or: vi.fn(() => ({
+            order: vi.fn(() => ({
+              limit: vi.fn(() => Promise.resolve({ data: [], error: null })),
+            })),
+          })),
           order: vi.fn(() => ({
             limit: vi.fn(() => Promise.resolve({ data: [], error: null })),
           })),
