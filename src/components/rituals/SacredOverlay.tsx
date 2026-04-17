@@ -117,7 +117,7 @@ export default function SacredOverlay() {
         <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
             {/* Edge Glow Pulse */}
             <div
-                className={`absolute inset-0 transition-opacity duration-[2000ms] ease-in-out`}
+                className={`absolute inset-0 transition-opacity [transition-duration:2000ms] ease-in-out`}
                 style={{
                     boxShadow: `inset 0 0 150px var(--sacred-glow, rgba(217, 119, 6, 0.2))`,
                     opacity: state.intensity,
