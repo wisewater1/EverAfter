@@ -10,7 +10,6 @@ import {
   Eye,
   DollarSign,
   TrendingUp,
-  Users,
   Star,
   Package,
   CheckCircle,
