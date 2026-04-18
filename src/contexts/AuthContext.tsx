@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
     if (isDemoAuthEnabled()) {
       const demoState = readDemoAuthState();
+      initDemoInterceptor();
       setSession(demoState.session);
       setUser(demoState.user);
       setIsDemoMode(true);
@@ -126,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setIsDemoMode(false);
-      removeDemoInterceptor();
+        removeDemoInterceptor();
         persistSnapshot(session);
       } catch (err) {
         console.error('AuthContext: Session retrieval crash', err);
@@ -171,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     clearDemoAuth();
+    removeDemoInterceptor();
     setIsDemoMode(false);
     if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     try {
@@ -219,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     clearDemoAuth();
+    removeDemoInterceptor();
     setIsDemoMode(false);
     if (!supabase) return { error: { message: 'Supabase client not initialized', name: 'ConfigError', status: 500 } as AuthError };
     try {
@@ -262,6 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     clearDemoAuth();
+    removeDemoInterceptor();
     setIsDemoMode(false);
     if (isDemoMode) {
       setSession(null);
@@ -292,7 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const startDemoMode = () => {
     const demoState = enableDemoAuth();
-      initDemoInterceptor();
+    initDemoInterceptor();
     setSession(demoState.session);
     setUser(demoState.user);
     setIsDemoMode(true);
