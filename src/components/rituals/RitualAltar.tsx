@@ -237,7 +237,7 @@ export default function RitualAltar() {
         <div className="min-h-screen bg-black text-amber-100 p-6 flex flex-col items-center justify-center relative overflow-hidden font-serif">
             {/* Minimalist Presence Aura Overlay */}
             <div
-                className="absolute inset-0 pointer-events-none transition-colors duration-[10000ms] ease-in-out opacity-[0.15]"
+                className="absolute inset-0 pointer-events-none transition-colors [transition-duration:10000ms] ease-in-out opacity-[0.15]"
                 style={{
                     background: `radial-gradient(circle at 50% 50%, hsla(${activeColor}, 0.8) 0%, transparent 70%)`
                 }}
@@ -251,7 +251,7 @@ export default function RitualAltar() {
                 }}
             >
                 <div
-                    className="w-[100vw] h-[100vw] rounded-full opacity-[0.03] transition-colors duration-[5000ms]"
+                    className="w-[100vw] h-[100vw] rounded-full opacity-[0.03] transition-colors [transition-duration:5000ms]"
                     style={{
                         background: `radial-gradient(circle, hsla(${activeColor}, 1) 0%, transparent 60%)`
                     }}
