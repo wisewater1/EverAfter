@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setIsDemoMode(false);
-      removeDemoInterceptor();
+        removeDemoInterceptor();
         persistSnapshot(session);
       } catch (err) {
         console.error('AuthContext: Session retrieval crash', err);
@@ -292,7 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const startDemoMode = () => {
     const demoState = enableDemoAuth();
-      initDemoInterceptor();
+    initDemoInterceptor();
     setSession(demoState.session);
     setUser(demoState.user);
     setIsDemoMode(true);
