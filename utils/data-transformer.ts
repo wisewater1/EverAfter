@@ -146,10 +146,11 @@ class DataTransformer {
       case '.json':
         fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
         break;
-      case '.csv':
+      case '.csv': {
         const csv = this.convertToCsv(data);
         fs.writeFileSync(outputPath, csv);
         break;
+      }
       default:
         throw new Error(`Unsupported output format: ${ext}`);
     }

@@ -28,6 +28,11 @@ vi.mock('../supabase', () => ({
           order: vi.fn(() => ({
             limit: vi.fn(() => Promise.resolve({ data: [], error: null })),
           })),
+          or: vi.fn(() => ({
+            order: vi.fn(() => ({
+              limit: vi.fn(() => Promise.resolve({ data: [], error: null })),
+            })),
+          })),
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null })),
       })),

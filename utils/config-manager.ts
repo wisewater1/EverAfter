@@ -298,7 +298,7 @@ async function main() {
     case 'remove-schedule':
       configManager.removeSyncSchedule(args[1]);
       break;
-    case 'list-schedules':
+    case 'list-schedules': {
       const schedules = configManager.listSyncSchedules();
       console.log('\nSync Schedules:\n');
       schedules.forEach(s => {
@@ -306,6 +306,7 @@ async function main() {
       });
       console.log();
       break;
+    }
     case 'export':
       configManager.export(args[1]);
       break;
@@ -315,7 +316,7 @@ async function main() {
     case 'reset':
       configManager.reset();
       break;
-    case 'validate':
+    case 'validate': {
       const validation = configManager.validate();
       if (validation.valid) {
         console.log('✓ Configuration is valid');
@@ -324,6 +325,7 @@ async function main() {
         validation.errors.forEach(err => console.log(`  • ${err}`));
       }
       break;
+    }
     default:
       console.log(`
 USAGE:

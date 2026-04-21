@@ -88,7 +88,7 @@ export class CameraHeartRate {
             const track = this.stream.getVideoTracks()[0];
             try {
                 await track.applyConstraints({
-                    // @ts-ignore — torch is a valid constraint but not in TS types
+                    // @ts-expect-error torch is a valid constraint but not in TS types
                     advanced: [{ torch: true }],
                 });
             } catch {

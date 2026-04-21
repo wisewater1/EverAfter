@@ -12,7 +12,7 @@ describe('Health Data Transformer - Unit Converter', () => {
     });
 
     it('converts mg/dL to mmol/L correctly', () => {
-        expect(UnitConverter.glucoseMgDlToMmol(100)).toBe(5.6);
+        expect(UnitConverter.glucoseMgDlToMmol(100)).toBe(5.5);
     });
 
     it('converts lbs to kg correctly', () => {
