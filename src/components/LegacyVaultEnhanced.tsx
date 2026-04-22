@@ -76,7 +76,17 @@ export default function LegacyVaultEnhanced() {
   const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
   const [createPreset, setCreatePreset] = useState<LegacyConceptPreset | null>(null);
 
-
+  useEffect(() => {
+    console.log('Active Section changed to:', activeSection);
+    if (!supabase || !user) return;
+    if (activeSection === 'continuity') {
+      loadVaultItems();
+    } else if (activeSection === 'assurance') {
+      loadAssuranceData();
+    } else if (activeSection === 'shared') {
+      loadSharedItems();
+    }
+  }, [user, activeTab, activeSection]);
 
   if (!supabase) {
     return (
@@ -89,19 +99,6 @@ export default function LegacyVaultEnhanced() {
       </div>
     );
   }
-
-  useEffect(() => {
-    console.log('Active Section changed to:', activeSection);
-    if (user) {
-      if (activeSection === 'continuity') {
-        loadVaultItems();
-      } else if (activeSection === 'assurance') {
-        loadAssuranceData();
-      } else if (activeSection === 'shared') {
-        loadSharedItems();
-      }
-    }
-  }, [user, activeTab, activeSection]);
 
   const loadVaultItems = async () => {
     setLoading(true);
