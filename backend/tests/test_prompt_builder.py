@@ -34,13 +34,16 @@ async def test_build_engram_system_prompt_raphael(mock_session):
         mock_res = MagicMock()
         
         query_str = str(args[0]).lower()
-        if "from engrams" in query_str or "engram.id" in query_str or "engram " in query_str:
+        # Match the engram lookup by its real table name. The Engram model maps to
+        # "archetypal_ais"; filters -> "personality_traits"; responses ->
+        # "daily_question_responses" (the old "engram*" names no longer exist).
+        if "archetypal_ais" in query_str:
             mock_res.scalar_one_or_none.return_value = engram
-        elif "engram_personality_filters" in query_str or "engrampersonalityfilter" in query_str:
+        elif "personality_traits" in query_str:
             mock_res.scalars.return_value.all.return_value = []
-        elif "engram_daily_responses" in query_str or "engramdailyresponse" in query_str:
+        elif "daily_question_responses" in query_str:
             mock_res.scalars.return_value.all.return_value = []
-        elif "engram_assets" in query_str or "engramasset" in query_str:
+        elif "engram_assets" in query_str:
             mock_res.scalars.return_value.all.return_value = []
         else:
             # Fallback

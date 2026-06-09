@@ -1,3 +1,11 @@
+import os
+
+# Provide test-safe defaults BEFORE the app is imported anywhere, so
+# app.core.config's module-level `settings = Settings()` can instantiate without a
+# real environment. The DB engine/session are mocked below, so this URL is never
+# actually connected — it only satisfies the required setting.
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/test")
+
 import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock
