@@ -1,0 +1,399 @@
+from typing import List, Dict, Any, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, text
+from app.engrams.nlp import get_nlp_engine
+
+
+class PromptBuilder:
+    def _map_gabriel_alert_style(self, alert_style: Optional[str]) -> str:
+        if alert_style == "calm":
+            return "calm"
+        if alert_style == "high":
+            return "direct"
+        return "moderate"
+
+    def _gabriel_tone_guidance(self, alert_style: str) -> str:
+        guidance = {
+            "calm": "Use steady, non-alarmist wording. Avoid panic language and keep the advice grounded.",
+            "moderate": "Use balanced language. Be direct about risk but keep the tone measured.",
+            "direct": "Use concise, explicit wording. Surface the risk clearly and do not soften key warnings.",
+        }
+        return guidance.get(alert_style, guidance["moderate"])
+
+    def _gabriel_plan_guidance(self, plan_style: str) -> str:
+        guidance = {
+            "structured": "Present next steps as an ordered plan with explicit priorities.",
+            "exploratory": "Offer a small set of options with clear tradeoffs so the user can choose.",
+            "supportive": "Phrase next steps gently and focus on the smallest high-value action first.",
+        }
+        return guidance.get(plan_style, guidance["structured"])
+
+    async def build_gabriel_communication_context(
+        self,
+        session: AsyncSession,
+        user_id: str,
+    ) -> str:
+        """
+        Builds the DHT/OCEAN-based communication profile for St. Gabriel.
+        This should calibrate tone and phrasing, not turn finance responses into health advice.
+        """
+        from app.services import dht_store
+        from app.services.dht_engine import compute_behavioral_modifiers
+
+        try:
+            dht = dht_store.get_dht(user_id)
+            ocean = dht_store.get_latest_ocean(user_id)
+
+            if not dht and not ocean:
+                return ""
+
+            mods = compute_behavioral_modifiers(ocean.scores) if ocean else None
+            alert_style = self._map_gabriel_alert_style(
+                getattr(mods, "alert_sensitivity", None) if mods else None
+            )
+            plan_style = getattr(mods, "intervention_style", "structured") if mods else "structured"
+
+            lines = [
+                "--- GABRIEL COMMUNICATION PROFILE ---",
+                "Use this profile only to calibrate tone, pacing, and phrasing.",
+                "Do not turn treasury answers into health analysis unless the user explicitly asks for health guidance.",
+                f"- Alert style: {alert_style}",
+                f"- Plan style: {plan_style}",
+                f"- Tone guidance: {self._gabriel_tone_guidance(alert_style)}",
+                f"- Next-step guidance: {self._gabriel_plan_guidance(plan_style)}",
+            ]
+
+            if dht:
+                lines.extend(
+                    [
+                        f"- DHT direction: {getattr(dht, 'overall_direction', 'unknown')}",
+                        f"- DHT confidence: {round(float(getattr(dht, 'confidence', 0.0)) * 100)}%",
+                        f"- Observation count: {getattr(dht, 'observation_count', 0)}",
+                    ]
+                )
+                next_best = getattr(dht, "next_best_measurement", None)
+                if next_best:
+                    label = getattr(next_best, "label", None) or getattr(next_best, "type", "follow-up measurement")
+                    uncertainty = getattr(next_best, "uncertainty_reduction_pct", None)
+                    if uncertainty is not None:
+                        lines.append(
+                            f"- Communication cue: when recommending action, prefer a practical next step similar to '{label}' that reduces uncertainty by about {float(uncertainty):.0f}%."
+                        )
+                    else:
+                        lines.append(
+                            f"- Communication cue: when recommending action, prefer a practical next step similar to '{label}'."
+                        )
+
+            if ocean:
+                scores = ocean.scores
+                lines.append(
+                    f"- OCEAN modifiers available: O={scores.O}, C={scores.C}, E={scores.E}, A={scores.A}, N={scores.N}"
+                )
+
+            lines.extend(
+                [
+                    "- Financial answers should still prioritize exact numbers, tradeoffs, runway, overspending, anomalies, and WGOLD policy.",
+                    "--- END GABRIEL COMMUNICATION PROFILE ---",
+                ]
+            )
+
+            return "\n".join(lines)
+        except Exception as e:
+            print(f"Error building Gabriel communication context: {str(e)}")
+            return ""
+
+    async def build_engram_system_prompt(
+        self,
+        session: AsyncSession,
+        engram_id: str
+    ) -> str:
+        from app.models.engram import Engram, EngramPersonalityFilter, EngramDailyResponse
+
+        engram_query = select(Engram).where(Engram.id == engram_id)
+        result = await session.execute(engram_query)
+        engram = result.scalar_one_or_none()
+
+        if not engram:
+            return "You are a helpful AI assistant."
+
+        filters_query = select(EngramPersonalityFilter).where(
+            EngramPersonalityFilter.ai_id == engram_id,
+            EngramPersonalityFilter.confidence_score >= 0.5
+        ).order_by(EngramPersonalityFilter.confidence_score.desc()).limit(20)
+        filters_result = await session.execute(filters_query)
+        personality_filters = filters_result.scalars().all()
+
+        responses_query = select(EngramDailyResponse).where(
+            EngramDailyResponse.ai_id == engram_id
+        ).order_by(EngramDailyResponse.created_at.desc()).limit(10)
+        responses_result = await session.execute(responses_query)
+        recent_responses = responses_result.scalars().all()
+
+        archetype_str = f", their {engram.archetype}" if getattr(engram, 'archetype', None) else ""
+        prompt_parts = [
+            f"You are an AI representation of {engram.name}{archetype_str}.",
+            f"Description: {engram.description}" if engram.description else "",
+            "",
+            "Your personality has been built from the following information:",
+            ""
+        ]
+
+        if personality_filters:
+            prompt_parts.append("PERSONALITY TRAITS:")
+            for pf in personality_filters:
+                prompt_parts.append(
+                    f"- {pf.filter_category}: {pf.filter_name} - {pf.filter_value} "
+                    f"(confidence: {pf.confidence_score:.2f})"
+                )
+            prompt_parts.append("")
+
+        if recent_responses:
+            prompt_parts.append("RECENT MEMORIES AND RESPONSES:")
+            for response in recent_responses[:5]:
+                prompt_parts.append(f"Q: {response.question_text}")
+                prompt_parts.append(f"A: {response.response_text[:200]}...")
+                prompt_parts.append("")
+
+        prompt_parts.extend([
+            "INSTRUCTIONS:",
+            "- Respond in a way that reflects these personality traits and memories",
+            "- Be warm, authentic, and true to the personality described",
+            "- Draw from the memories and experiences shared",
+            "- Stay in character as this person",
+            "- Be conversational and engaging",
+            "- If asked about something not in your knowledge, acknowledge it honestly",
+        ])
+
+        # Specific instructions for St. Raphael (The Healer)
+        if "raphael" in engram.name.lower():
+            prompt_parts.extend([
+                "",
+                "SPECIAL MISSION: HEALTH & WELL-BEING",
+                "- You are St. Raphael, the Archangel of Healing.",
+                "- Your primary concern is the physical and emotional well-being of the user.",
+                "- You have access to the Delphi Health Trajectory Model, an advanced generative transformer that predicts future health states.",
+                "- When you see 'INSIGHTS FROM DELPHI' in your context, weave these findings into the conversation naturally.",
+                "- If a trajectory shows a risk, provide compassionate guidance and small, actionable steps to mitigate it.",
+                "- Proactively, but naturally, ask how the user is feeling today based on their recent trends.",
+                "- If the user mentions health data (sleep, steps, symptoms), show deep interest and care.",
+                "- Use a warm, comforting, and wise tone."
+            ])
+            
+            # Synchronicity: Inject Delphi predictions
+            user_id = engram.user_id # Assuming we need user_id here
+            health_context = await self.build_health_prediction_context(session, str(user_id))
+            if health_context:
+                prompt_parts.append(health_context)
+
+        # Synchronicity: Inject Rich Media Assets (Available for all Engrams)
+        assets_context = await self.get_engram_assets_context(session, engram_id)
+        if assets_context:
+            prompt_parts.append(assets_context)
+
+        return "\n".join(filter(None, prompt_parts))
+
+    async def get_relevant_context(
+        self,
+        session: AsyncSession,
+        engram_id: str,
+        query: str,
+        limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        from app.models.engram import EngramDailyResponse, DailyQuestionEmbedding
+
+        # Get embedding for the query
+        nlp_engine = get_nlp_engine()
+        query_embedding = await nlp_engine.generate_embedding(query)
+
+        # Vector search using cosine distance (<-> operator) on sidecar table
+        responses_query = select(EngramDailyResponse).join(
+            DailyQuestionEmbedding, EngramDailyResponse.id == DailyQuestionEmbedding.response_id
+        ).where(
+            EngramDailyResponse.ai_id == engram_id
+        ).order_by(
+            DailyQuestionEmbedding.embedding.cosine_distance(query_embedding)
+        ).limit(limit)
+
+        result = await session.execute(responses_query)
+        responses = result.scalars().all()
+
+        relevant_responses: List[Dict[str, Any]] = []
+        for response in responses:
+            relevant_responses.append({
+                "question": response.question_text,
+                "answer": response.response_text,
+                "category": response.question_category,
+                "relevance": 1.0 # Semantic distance is used for sorting
+            })
+
+        return relevant_responses
+
+    async def get_engram_assets_context(
+        self,
+        session: AsyncSession,
+        engram_id: str
+    ) -> str:
+        """
+        Fetches rich media assets (photos, voice notes) and formats them for the prompt.
+        """
+        from app.models.engram import EngramAsset
+        import uuid
+        
+        try:
+            target_id = uuid.UUID(engram_id) if isinstance(engram_id, str) else engram_id
+        except ValueError:
+            target_id = engram_id
+
+        query = select(EngramAsset).where(EngramAsset.ai_id == target_id).limit(10)
+        result = await session.execute(query)
+        assets = result.scalars().all()
+        
+        if not assets:
+            return ""
+            
+        prompt_block = ["\nVISUAL AND AUDIO REFERENCES available in your memory:"]
+        for asset in assets:
+            desc = f" - Description: {asset.description}" if asset.description else ""
+            prompt_block.append(f"- {asset.asset_type.upper()}: {asset.file_url}{desc}")
+            
+        return "\n".join(prompt_block)
+
+    async def build_health_prediction_context(
+        self,
+        session: AsyncSession,
+        user_id: str
+    ) -> str:
+        """
+        Fetches the latest Delphi health predictions and formats them for the prompt.
+        """
+        from app.services.health.service import health_service
+        from app.models.health import Metric, Source
+        from app.services import dht_store
+        from app.services.causal_twin.environmental_matrix import environmental_matrix
+        from app.services.causal_twin.counterfactual_engine import counterfactual_engine
+        from datetime import datetime, timedelta
+
+        try:
+            # 1. Fetch recent history for Delphi (last 30 days)
+            since = datetime.utcnow() - timedelta(days=30)
+            query = select(Metric).join(
+                Source, Metric.sourceId == Source.id
+            ).where(
+                Source.userId == user_id,
+                Metric.ts >= since
+            ).order_by(Metric.ts.asc())
+            
+            result = await session.execute(query)
+            metrics = result.scalars().all()
+            
+            history = [
+                {
+                    "timestamp": m.ts.isoformat(),
+                    "type": m.type,
+                    "value": m.value
+                } for m in metrics
+            ]
+
+            # 2. Get standard predictions
+            predictions = await health_service.get_predictions(user_id, history)
+            
+            # 3. Get Delphi Health Trajectory & Risk Cards
+            dht = dht_store.get_dht(user_id)
+            
+            # 4. Get OCEAN & Behavioral Modifiers
+            ocean = dht_store.get_latest_ocean(user_id)
+            mods = None
+            if ocean:
+                from app.services.dht_engine import compute_behavioral_modifiers
+                mods = compute_behavioral_modifiers(ocean.scores)
+                
+            # 5. Get Environmental Risk Matrix
+            try:
+                env_susceptibility = await environmental_matrix.get_susceptibility_report(user_id, [], "US-Central", {})
+            except Exception:
+                env_susceptibility = None
+                
+            # 6. Get active What-If Simulations
+            try:
+                simulations = await counterfactual_engine.simulate_scenarios(user_id, {}, 30, 0.6)
+            except Exception:
+                simulations = None
+
+            if not predictions and not dht and not ocean:
+                return ""
+
+            prompt_block = ["\n--- ADVANCED MEDICAL TWIN TELEMETRY ---"]
+            
+            if dht:
+                prompt_block.append(f"\n[DELPHI HEALTH TRAJECTORY]")
+                prompt_block.append(f"Direction: {dht.overall_direction.upper()}")
+                prompt_block.append(f"Confidence: {dht.confidence:.2f}")
+                if dht.risk_cards:
+                    prompt_block.append("Active Risk Cards:")
+                    for rc in dht.risk_cards:
+                        prompt_block.append(f"  - {rc.category}: {rc.description} (Urgency: {rc.urgency})")
+            
+            if ocean and mods:
+                prompt_block.append(f"\n[USER PERSONALITY & BEHAVIORAL MODIFIERS]")
+                prompt_block.append(f"O:{ocean.scores.O} C:{ocean.scores.C} E:{ocean.scores.E} A:{ocean.scores.A} N:{ocean.scores.N}")
+                prompt_block.append(f"Nudge frequency: {mods.nudge_frequency}")
+                prompt_block.append(f"Adherence risk: {mods.adherence_risk}")
+                prompt_block.append(f"Intervention style: {mods.intervention_style}")
+            
+            if predictions:
+                prompt_block.append(f"\n[HOLISTIC PREDICTIONS]")
+                for pred in predictions:
+                    prompt_block.append(f"- {pred.prediction_type} (Risk: {pred.risk_level.upper()})")
+                    if pred.contributing_factors:
+                        prompt_block.append(f"  Insight: {pred.contributing_factors[0]}")
+                        
+            if env_susceptibility and "threat_vectors" in env_susceptibility:
+                prompt_block.append(f"\n[ENVIRONMENTAL MATRIX]")
+                for tv in env_susceptibility["threat_vectors"][:3]:
+                    prompt_block.append(f"- {tv.get('pathogen', tv.get('threat', 'Unknown'))}: Level {tv.get('severity_level', 'Moderate')}")
+            
+            if simulations and isinstance(simulations, dict) and simulations.get("scenarios"):
+                prompt_block.append(f"\n[CAUSAL TWIN SIMULATIONS]")
+                for num, sc in enumerate(simulations["scenarios"]):
+                    if isinstance(sc, dict):
+                        prompt_block.append(f"Scenario {num+1}: If they adhere to {list(sc.get('changes', {}).keys())}, projected trajectory is {sc.get('future_trajectory', 'Unknown')}.")
+
+            prompt_block.append("--------------------------------------\n")
+            
+            return "\n".join(prompt_block)
+        except Exception as e:
+            print(f"Error building health context: {str(e)}")
+            return ""
+
+    async def build_finance_treasury_context(
+        self,
+        session: AsyncSession,
+        user_id: str,
+    ) -> str:
+        """
+        Fetches treasury analysis from St. Gabriel's finance stack and formats it for the prompt.
+        """
+        try:
+            from app.services.treasury_analyst_service import TreasuryAnalystService
+
+            service = TreasuryAnalystService(session)
+            return await service.build_prompt_context(user_id)
+        except Exception as e:
+            print(f"Error building treasury context: {str(e)}")
+            return ""
+
+    def format_context_for_prompt(self, context: List[Dict[str, Any]]) -> str:
+        if not context:
+            return ""
+
+        formatted = ["RELEVANT MEMORIES:"]
+        for item in context:
+            formatted.append(f"- Q: {item['question']}")
+            formatted.append(f"  A: {item['answer'][:150]}...")
+            formatted.append("")
+
+        return "\n".join(formatted)
+
+
+def get_prompt_builder() -> PromptBuilder:
+    return PromptBuilder()

@@ -1,0 +1,92 @@
+services:
+  - type: web
+    name: everafter-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        value: https://everafterai.net,https://www.everafterai.net
+      - key: ENABLE_SAINT_EVENT_LISTENER
+        value: false
+      - key: ENABLE_SAINT_BACKGROUND_VIGILS
+        value: false
+      - key: ENABLE_COMPLIANCE_AUTOPILOT
+        value: false
+      - key: ALLOW_DEV_AUTH_FALLBACK
+        value: false
+      # Static demo bypass token must never be enabled in production.
+      - key: ALLOW_PRESENTATION_DEMO_AUTH
+        value: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_ISSUER
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      # REQUIRED: Supabase project JWT secret (dashboard -> Settings -> API ->
+      # JWT Secret). Without it the backend rejects all Supabase tokens.
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      # Dedicated key for encrypting Plaid bank tokens at rest (do NOT reuse the
+      # JWT secret). Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - key: BANK_CONNECTOR_SECRET
+        sync: false
+      - key: PLAID_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      # Wire to the voice service's real Render host instead of a guessed name.
+      - key: VOICE_AI_BASE_URL
+        fromService:
+          type: web
+          name: everafter-voice-ai
+          property: host
+      - key: TERRA_API_KEY
+        sync: false
+      - key: TERRA_DEV_ID
+        sync: false
+      - key: TERRA_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_SERVER
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: PLAID_CLIENT_ID
+        sync: false
+      - key: PLAID_SECRET
+        sync: false
+      - key: WISEGOLD_ORACLE_API_KEY
+        sync: false
+  - type: web
+    name: everafter-voice-ai
+    runtime: python
+    plan: free
+    rootDir: voice-ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: VOICE_AI_PROVIDER
+        value: elevenlabs
+      - key: ELEVENLABS_API_KEY
+        sync: false

@@ -1,0 +1,396 @@
+import logging
+import uuid
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# Core Services
+from app.services.saint_agent_service import saint_agent_service
+from app.services.agent_bus import agent_bus, AgentEvent
+from app.services.mission_board import mission_board
+from app.services.oasis_service import oasis_service
+
+# Deep Integration Modules
+from .memory.stream import MemoryStream
+from .memory.stream import MemoryStream
+from .memory.types import MemoryObject
+from .memory.reflection import ReflectionEngine
+from .cognition.planner import CognitivePlanner
+from .collaboration.consensus import ConsensusEngine
+
+logger = logging.getLogger(__name__)
+
+class SaintRuntime:
+    """
+    The Unified Runtime for Saint Agents (Deep Integration).
+    Merges:
+    1. Generative Agents (Memory, Reflection, Planning)
+    2. Agentic Collaboration (Consensus, Missions)
+    3. Legacy Saint Logic (SaintAgentService)
+    """
+
+    def __init__(self):
+        # 1. Collaboration Layer
+        self.bus = agent_bus
+        self.consensus_engine = ConsensusEngine()
+        
+        # 2. Cognition & Memory Layer (Per-Saint State)
+        # In a real DB-backed impl, we'd load these. For prototype, we keep in-memory.
+        self._saint_memories: Dict[str, MemoryStream] = {}
+        self._saint_reflectors: Dict[str, ReflectionEngine] = {}
+        self._saint_planners: Dict[str, CognitivePlanner] = {}
+
+    def _get_components(self, saint_id: str):
+        """Lazy initialization of components for a saint."""
+        if saint_id not in self._saint_memories:
+            stream = MemoryStream()
+            self._saint_memories[saint_id] = stream
+            self._saint_reflectors[saint_id] = ReflectionEngine(stream)
+            self._saint_planners[saint_id] = CognitivePlanner(stream)
+        
+        return (
+            self._saint_memories[saint_id],
+            self._saint_reflectors[saint_id],
+            self._saint_planners[saint_id]
+        )
+
+    async def chat(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        saint_id: str,
+        message: str,
+        coordination_mode: bool = False,
+        context: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Enhanced Chat Loop:
+        1. Observe (User Message) -> Memory
+        2. Retrieve (Context) -> Stream
+        3. Reflect (Background) -> Engine
+        4. Plan/React -> Planner
+        5. Respond -> LLM (with enriched context)
+        """
+        logger.info(f"SaintRuntime: Chat request for {saint_id} (Coordination: {coordination_mode})")
+        
+        # Get components
+        memory, reflector, planner = self._get_components(saint_id)
+
+        # 1. OBSERVE: Add user message to memory
+        observation = MemoryObject(
+            description=f"User said: {message}",
+            importance=5.0, # Default medium importance
+            type="observation",
+            saint_id=saint_id
+        )
+        await memory.add_memory(observation)
+        
+        # 2. REFLECT: Trigger reflection loop (async)
+        await reflector.on_new_observation(observation)
+        
+        # 3. RETRIEVE: Get relevant context
+        # We retrieve top 3 memories relevant to the user's current message
+        # Use saint_id to filter Akashic records
+        relevant_memories = await memory.get_context(message, limit=3, saint_id=saint_id)
+        context_str = "\n".join([f"- {m.description} (relevance: {m.importance})" for m in relevant_memories])
+        
+        # 4. ENRICH: Inject context into the user message for the LLM
+        # This is the "Deep Integration" - the LLM effectively "remembers"
+        enriched_message = message
+        system_notes = []
+        if context:
+            system_notes.append(f"EXTERNAL CONTEXT:\n{context}")
+        if context_str:
+            system_notes.append(f"RELEVANT MEMORIES:\n{context_str}")
+            
+        if system_notes:
+            notes_str = "\n\n".join(system_notes)
+            enriched_message = (
+                f"SYSTEM NOTE -\n{notes_str}\n\n"
+                f"USER MESSAGE:\n{message}"
+            )
+
+        # 5. PUBLISH EVENT (for Agentic Collab)
+        await self.bus.publish(AgentEvent(
+            type="message",
+            sender="user",
+            payload={
+                "target": saint_id,
+                "content": message,
+                "mode": "coordination" if coordination_mode else "single"
+            }
+        ))
+
+        # 6. COGNITION/REACT
+        # If coordination mode, maybe trigger consensus?
+        if coordination_mode:
+            # Simple heuristic: if message asks for advice, group thought, or 'all of you'
+            if any(word in message.lower() for word in ['council', 'all', 'everyone', 'together', 'agree', 'consensus', 'advice', 'what do you think']):
+                from .collaboration.consensus import DeliberationRequest
+                logger.info(f"SaintRuntime: Triggering Consensus for {message}")
+                request = DeliberationRequest(
+                    query=message,
+                    context=context_str,
+                    participating_saints=[saint_id, "michael", "raphael", "gabriel", "joseph"], # Default core council
+                    coordination_mode=True
+                )
+                try:
+                    # Run deliberation
+                    deliberation_result = await self.consensus_engine.deliberate(request)
+                    
+                    # Inject consensus into the prompt for the primary responding saint
+                    enriched_message += (
+                        f"\n\nCOUNCIL CONSENSUS REACHED:\n"
+                        f"{deliberation_result.consensus}\n\n"
+                        f"ACTION ITEMS:\n"
+                        f"{chr(10).join(deliberation_result.action_items)}\n\n"
+                        f"Please deliver this consensus to the user in your own voice, adopting their recommendations."
+                    )
+                except Exception as e:
+                    logger.error(f"Error during consensus deliberation: {e}")
+
+        # 7. EXECUTE: Call standard Agent Service with ENRICHED context
+        response = await saint_agent_service.chat(session, user_id, saint_id, enriched_message)
+        
+        # 8. OBSERVE: Add own response to memory
+        ai_content = response.get("content", "")
+        await memory.add_memory(MemoryObject(
+            description=f"I responded: {ai_content}",
+            importance=3.0,
+            type="observation",
+            saint_id=saint_id
+        ))
+
+        # 9. PUBLISH RESPONSE
+        await self.bus.publish(AgentEvent(
+            type="message",
+            sender=saint_id,
+            payload={
+                "target": "user",
+                "content": ai_content,
+                "conversation_id": response.get("conversation_id")
+            }
+        ))
+
+        return response
+
+    async def create_coordination_mission(self, title: str, objective: str, initiator: str):
+        """Delegate to MissionBoard."""
+        return await mission_board.create_mission(title, objective, initiator)
+
+    async def get_active_missions(self, user_id: str) -> list[dict]:
+        """Delegate to MissionBoard."""
+        # For prototype, MissionBoard stores all. In real app, filter by user/saint visibility.
+        return [m.dict() for m in mission_board._missions.values()]
+
+    async def listen_for_events(self):
+        """Background listener for AgentBus."""
+        logger.info("SaintRuntime: Started Event Listener")
+        self.bus.subscribe(self._handle_event)
+        await self.bus.listen()
+
+    async def run_vigils(self):
+        """
+        Background analyzer that scans the Neural Graph for dangerous/notable patterns.
+        Proactively triggers 'Intercessions' or system alerts.
+        """
+        import asyncio
+        from app.db.session import async_session_maker
+        logger.info("SaintRuntime: Started Predictive Vigils")
+        while True:
+            try:
+                # Run every 5 minutes for demo purposes (usually would be daily/hourly)
+                await asyncio.sleep(300) 
+                logger.info("SaintRuntime: Executing Predictive Vigils...")
+                
+                async with async_session_maker() as session:
+                    # 1. St. Raphael Health Vigil
+                    await self._run_raphael_vigil(session)
+                    
+                    # 2. St. Michael Security Vigil
+                    await self._run_michael_vigil(session)
+                    
+            except Exception as e:
+                logger.error(f"Error in Predictive Vigils: {e}")
+
+    async def _run_raphael_vigil(self, session: AsyncSession):
+        """Checks for dangerous health anomalies and drafts an intercession."""
+        from sqlalchemy import text
+        from app.models.saint import GuardianIntercession
+        
+        # In a real impl, this would query the Delphi model or recent health engrams.
+        # For Phase 1 prototype, we simulate finding a pattern for a random user if they have health anomalies.
+        # Let's just create a simulated alert for demonstration if we find any users.
+        try:
+            from app.models.engram import ArchetypalAI
+            from sqlalchemy import select
+            
+            # Get a random active user (just for demo purposes)
+            query = select(ArchetypalAI.user_id).limit(1)
+            result = await session.execute(query)
+            user_id = result.scalar_one_or_none()
+            
+            if not user_id:
+                return
+                
+            logger.info(f"SaintRuntime [Vigil]: Checking health baselines for {user_id}")
+            
+            # Check if an intercession was already drafted recently to avoid spam
+            existing_query = select(GuardianIntercession).where(
+                GuardianIntercession.user_id == user_id,
+                GuardianIntercession.saint_id == "raphael",
+                GuardianIntercession.status == "pending"
+            )
+            existing_result = await session.execute(existing_query)
+            if existing_result.first():
+                return # Already has a pending alert
+            
+            # Simulate a detected anomaly
+            logger.warning(f"SaintRuntime [Vigil]: St. Raphael detected elevated stress/HR pattern.")
+            
+            new_intercession = GuardianIntercession(
+                user_id=user_id,
+                saint_id="raphael",
+                description="Detected 3 consecutive days of elevated resting heart rate and poor sleep. Action recommended: reschedule upcoming high-stress meetings.",
+                tool_name="create_calendar_event",
+                tool_kwargs={
+                    "title": "Mandatory Recovery Block",
+                    "date": "2026-03-01",
+                    "time": "12:00"
+                },
+                status="pending"
+            )
+            session.add(new_intercession)
+            await session.commit()
+            
+            # Alert the frontend via AgentBus
+            await self.bus.publish(AgentEvent(
+                type="system_alert",
+                sender="raphael",
+                payload={"content": "I have detected a concerning health pattern and drafted an intervention. Please review your pending intercessions.", "importance": 8.0}
+            ))
+            
+            # EMBODIMENT: Summon Raphael to the Altar
+            try:
+                from app.api.sacred_state import load_state, save_state
+                state = load_state()
+                if user_id in state:
+                    state[user_id]["active_guardian_id"] = "raphael"
+                    state[user_id]["biometric_mode"] = True
+                    state[user_id]["iot_scene_active"] = "healing_sanctuary"
+                    save_state(state)
+                    logger.info(f"SaintRuntime [Embodiment]: Summoned Raphael for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to trigger embodiment for Raphael: {e}")
+            
+        except Exception as e:
+            logger.error(f"Error in Raphael Vigil: {e}")
+
+    async def _run_michael_vigil(self, session: AsyncSession):
+        """Performs a periodic security scan and audits Akashic records."""
+        from app.services.vulnerability_service import vulnerability_service
+        from app.services.ledger_service import LedgerService
+        try:
+            logger.info("SaintRuntime [Vigil]: St. Michael executing security audit...")
+            # We run the scan for a "system context" (user_id=None for now)
+            # In a multi-tenant setup, we'd loop through active users
+            vulnerability_service.session = session
+            scan_results = await vulnerability_service.perform_full_security_scan(user_id=None)
+            
+            # Record verifiable proof of scan execution for Auditor (St. Anthony)
+            ledger = LedgerService(session)
+            await ledger.log_event(
+                action="security/michael_vigil_executed",
+                metadata={
+                    "scan_results": {
+                        "status": scan_results.get("status"),
+                        "findings_count": scan_results.get("findings_count"),
+                        "system_integrity": scan_results.get("system_integrity")
+                    }
+                }
+            )
+            
+            # Record Integrity Dividend (System-wide or specific user if needed)
+            # For the vigil, we might track system integrity, but for monetization,
+            # dividends are usually per-user. The vigil runs system-wide.
+            # We'll record a 'system' entry for now, or record for a default admin user.
+            from app.services.integrity_service import integrity_service
+            # Note: In a real multi-tenant app, you'd iterate active users.
+            # For this demo, we'll record for the "System Guardian" context.
+            await integrity_service.record_daily_score(
+                session, 
+                user_id="00000000-0000-0000-0000-000000000000", # System ID
+                score=scan_results.get("integrity_score", 100),
+                findings_count=scan_results.get("findings_count", 0)
+            )
+
+            if scan_results["findings_count"] > 0:
+                logger.warning(f"SaintRuntime [Vigil]: St. Michael detected {scan_results['findings_count']} security findings!")
+                
+                # Alert the frontend via AgentBus
+                await self.bus.publish(AgentEvent(
+                    type="system_alert",
+                    sender="michael",
+                    payload={
+                        "importance": 9.0
+                    }
+                ))
+
+                # EMBODIMENT: Summon Michael to the Altar
+                try:
+                    from app.api.sacred_state import load_state, save_state
+                    state = load_state()
+                    # For demo, apply to all active user slots found in state
+                    for user_id in state.keys():
+                        state[user_id]["active_guardian_id"] = "michael"
+                        state[user_id]["iot_scene_active"] = "security_shield"
+                        save_state(state)
+                    logger.info(f"SaintRuntime [Embodiment]: Summoned Michael for security vigil.")
+                except Exception as e:
+                    logger.error(f"Failed to trigger embodiment for Michael: {e}")
+        except Exception as e:
+            logger.error(f"Error in Michael Vigil: {e}")
+
+    async def trigger_social(self, session: AsyncSession, initiator_id: str, receiver_id: str):
+        """
+        Trigger an autonomous interaction between two agents using the OASIS Social Engine.
+        """
+        logger.info(f"SaintRuntime: Triggering social interaction between {initiator_id} and {receiver_id} via OASIS")
+        from app.services.interaction_service import interaction_service
+        return await interaction_service.simulate_interaction(session, initiator_id, receiver_id)
+
+    async def _handle_event(self, event: AgentEvent):
+        if event.sender == "system":
+            return
+        # Log or react to events
+        pass
+
+    async def handle_system_event(self, saint_id: str, description: str, importance: float = 10.0):
+        """
+        Injects a high-importance system event into the agent's memory stream.
+        Used for 'Akashic Synthesis' where other Saints trigger cognitive updates.
+        """
+        logger.info(f"SaintRuntime: System Event for {saint_id} - {description}")
+        
+        memory, reflector, _ = self._get_components(saint_id)
+        
+        event_memory = MemoryObject(
+            description=f"SYSTEM ALERT: {description}",
+            importance=importance,
+            type="system_event",
+            saint_id=saint_id
+        )
+        await memory.add_memory(event_memory)
+        
+        # Force a reflection cycle to process this new critical information
+        await reflector.on_new_observation(event_memory)
+        
+        # Publish event for UI socket updates
+        await self.bus.publish(AgentEvent(
+            type="system_alert",
+            sender=saint_id,
+            payload={"content": description, "importance": importance}
+        ))
+
+# Singleton
+saint_runtime = SaintRuntime()

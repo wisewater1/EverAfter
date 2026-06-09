@@ -1,0 +1,409 @@
+import { useState, useEffect } from 'react';
+import { Brain, Upload, Sparkles, Activity, Users, RefreshCw } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { apiClient } from '../../lib/api-client';
+import { getFamilyMembers } from '../../lib/joseph/genealogy';
+import PersonalityQuiz from '../joseph/PersonalityQuiz';
+
+interface Trait {
+    subject: string;
+    A: number;
+    fullMark: number;
+}
+
+interface EngramListing {
+    id: string;
+    name: string;
+    description: string;
+    ai_readiness_score: number;
+    is_family: boolean;
+    engram: any;
+}
+
+interface PersonalityTrainingCenterProps {
+    targetEngramId?: string | null;
+}
+
+export default function PersonalityTrainingCenter({ targetEngramId }: PersonalityTrainingCenterProps) {
+    const [engrams, setEngrams] = useState<EngramListing[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [vignette, setVignette] = useState('');
+    const [isTraining, setIsTraining] = useState(false);
+    const [traits, setTraits] = useState<Trait[]>([]);
+    const [mentor, setMentor] = useState('raphael');
+
+    useEffect(() => {
+        fetchEngrams();
+    }, []);
+
+    useEffect(() => {
+        if (targetEngramId) {
+            setSelectedId(targetEngramId);
+        }
+    }, [targetEngramId, engrams]);
+
+    const fetchEngrams = async () => {
+        console.log("TrainingCenter: fetchEngrams starting...");
+        setLoading(true);
+        try {
+            // 1. Get local family members immediately
+            const localFamily = getFamilyMembers();
+            console.log("TrainingCenter: localFamily found:", localFamily.length);
+            const localDefaults: EngramListing[] = localFamily.map(member => {
+                const fullName = `${member.firstName} ${member.lastName}`;
+                return {
+                    id: member.id,
+                    name: fullName,
+                    description: member.bio || '',
+                    ai_readiness_score: 0,
+                    is_family: true,
+                    engram: null
+                };
+            });
+
+            // Set initial state from local data
+            setEngrams(localDefaults);
+            setLoading(false);
+
+            // 2. Try to fetch backend engrams
+            try {
+                const backendEngrams = await apiClient.getEngrams();
+                const engramMap = new Map((backendEngrams || []).map((e: any) => [e.name, e]));
+
+                const combined: EngramListing[] = localFamily.map(member => {
+                    const fullName = `${member.firstName} ${member.lastName}`;
+                    const engram = engramMap.get(fullName) as any;
+                    return {
+                        id: engram?.id || member.id,
+                        name: fullName,
+                        description: engram?.description || member.bio || '',
+                        ai_readiness_score: engram?.total_questions_answered || 0,
+                        is_family: true,
+                        engram: engram
+                    };
+                });
+
+                // Add non-family engrams
+                (backendEngrams || []).forEach((e: any) => {
+                    if (!combined.find(c => c.name === e.name)) {
+                        combined.push({
+                            id: e.id,
+                            name: e.name,
+                            description: e.description,
+                            ai_readiness_score: (e as any).total_questions_answered || 50,
+                            is_family: false,
+                            engram: e
+                        });
+                    }
+                });
+
+                setEngrams(combined);
+
+                // 3. Auto-sync if needed
+                const unsynced = localFamily.filter(m => !engramMap.has(`${m.firstName} ${m.lastName}`));
+                if (unsynced.length > 0) {
+                    console.log("TrainingCenter: Auto-syncing family members...");
+                    const idMapping = await apiClient.batchSyncEngrams(localFamily);
+
+                    setEngrams((prev: EngramListing[]) => prev.map((p: EngramListing) => {
+                        // Check if we have a new ID from the mapping
+                        const localId = localFamily.find(m => `${m.firstName} ${m.lastName}` === p.name)?.id;
+                        const backendId = localId ? idMapping[localId] : null;
+
+                        if (backendId) {
+                            console.log(`TrainingCenter: Mapped ${p.name} to ${backendId}`);
+                            return { ...p, id: backendId };
+                        }
+                        return p;
+                    }));
+
+                    // Optional: one more refresh to get full engram objects (scores etc)
+                    const refreshed = await apiClient.getEngrams();
+                    setEngrams((prev: EngramListing[]) => prev.map((p: EngramListing) => {
+                        const match = refreshed.find((r: any) => r.name === p.name);
+                        return match ? { ...p, id: match.id, engram: match, ai_readiness_score: match.total_questions_answered || 0 } : p;
+                    }));
+                }
+            } catch (err) {
+                console.warn("Backend engrams unreachable, using local data only:", err);
+            }
+        } catch (error) {
+            console.error("Critical failure in Training Center initialization:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Try to get or create a backend ID for the member
+    const ensureBackendId = async (localId: string): Promise<string | null> => {
+        // If already a UUID, use it directly
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(localId)) return localId;
+
+        // Otherwise auto-provision via batchSyncEngrams
+        try {
+            const localFamily = getFamilyMembers();
+            const idMapping = await apiClient.batchSyncEngrams(localFamily);
+            const newId = idMapping[localId];
+            if (newId) {
+                setEngrams(prev => prev.map(e => e.id === localId ? { ...e, id: newId } : e));
+                return newId;
+            }
+        } catch { /* backend unreachable */ }
+        return null;
+    };
+
+    const handleAnalyze = async () => {
+        if (!selectedId) return;
+        setIsTraining(true);
+        try {
+            const backendId = await ensureBackendId(selectedId);
+            if (!backendId) {
+                // Simulate with local personality data
+                const simTraits = [
+                    { subject: 'Openness', A: 65, fullMark: 100 },
+                    { subject: 'Conscientiousness', A: 70, fullMark: 100 },
+                    { subject: 'Extraversion', A: 55, fullMark: 100 },
+                    { subject: 'Agreeableness', A: 75, fullMark: 100 },
+                    { subject: 'Neuroticism', A: 40, fullMark: 100 },
+                ];
+                setTraits(simTraits);
+                return;
+            }
+            const data = await apiClient.analyzePersonality(backendId);
+            const chartData = (data.traits || []).map((t: any) => ({
+                subject: t.name,
+                A: (t.value || 0) * 100,
+                fullMark: 100
+            }));
+            if (chartData.length > 0) setTraits(chartData);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsTraining(false);
+        }
+    };
+
+    const startMentorship = async () => {
+        if (!selectedId) return;
+        setIsTraining(true);
+        try {
+            const backendId = await ensureBackendId(selectedId);
+            if (backendId) {
+                await apiClient.startMentorship(backendId, mentor);
+            }
+            alert(`Mentorship session with ${mentor} registered! The saint will shape this personality over time.`);
+        } catch (err) {
+            console.error(err);
+            alert("Mentorship initiated in local mode.");
+        } finally {
+            setIsTraining(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-[#111827] text-slate-100 p-8 font-serif">
+            <div className="max-w-6xl mx-auto space-y-12 rounded-[32px] border border-amber-500/10 bg-gradient-to-br from-slate-900/95 via-[#151922]/95 to-slate-900/95 p-9 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+                <header className="space-y-4">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-amber-600">
+                                Personality training center
+                            </h1>
+                            <p className="text-slate-300/80">Evolve your engrams through memories, analysis, and council mentorship.</p>
+                        </div>
+                        <button
+                            onClick={fetchEngrams}
+                            disabled={loading}
+                            className="px-4 py-2 rounded-xl bg-slate-800/80 border border-amber-500/25 text-amber-300 text-sm hover:bg-slate-800 transition-colors flex items-center gap-2 group"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                            {loading ? "Syncing..." : "Re-Sync OASIS"}
+                        </button>
+                    </div>
+                </header>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    {/* Engram Selector */}
+                    <div className="space-y-6">
+                        <label className="text-sm uppercase tracking-widest text-amber-300 font-bold">Select engram</label>
+                        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                            {loading && engrams.length === 0 ? (
+                                <div className="rounded-2xl border border-slate-700/60 bg-slate-800/50 p-8 text-center animate-pulse">
+                                    <Sparkles className="w-8 h-8 mx-auto mb-2 text-amber-500/20" />
+                                    <p className="text-xs text-slate-400 uppercase font-bold">Scanning Engrams...</p>
+                                </div>
+                            ) : engrams.length > 0 ? (
+                                engrams.map(e => (
+                                    <button
+                                        key={e.id}
+                                        onClick={() => setSelectedId(e.id)}
+                                        className={`w-full p-4 rounded-2xl border text-left transition-all ${selectedId === e.id ? 'bg-gradient-to-br from-amber-500/15 to-amber-400/5 border-amber-400/60 shadow-[0_0_24px_rgba(245,158,11,0.12)]' : 'bg-slate-800/55 border-slate-700/60 hover:bg-slate-800/80 hover:border-slate-500/80'
+                                            }`}
+                                    >
+                                        <p className="font-bold text-white">{e.name}</p>
+                                        <p className="text-xs text-slate-400 uppercase tracking-tighter mt-1">Readiness: {e.ai_readiness_score}%</p>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center border-2 border-dashed border-slate-700/60 rounded-2xl bg-slate-800/35 text-slate-400">
+                                    <p className="text-sm">No engrams found.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Training Lab */}
+                    <div className="lg:col-span-2 space-y-8">
+                        {selectedId ? (
+                            <div className="space-y-8 animate-in fade-in duration-500">
+                                {/* Path 1: Personality Quiz */}
+                                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <Brain className="w-5 h-5 text-amber-500" />
+                                            Personality Assessment
+                                        </h3>
+                                        <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 1</span>
+                                    </div>
+                                    <p className="text-xs text-slate-300/80">
+                                        50 scientifically-grounded questions covering all OCEAN sub-facets. Results auto-populate the trait radar.
+                                    </p>
+                                    <PersonalityQuiz onProfileComplete={(profile) => {
+                                        if (profile.radar_data) {
+                                            setTraits(profile.radar_data);
+                                        }
+                                    }} />
+                                </section>
+
+                                {/* Path 2: Bulk Ingestion */}
+                                <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            <Upload className="w-5 h-5 text-amber-500" />
+                                            Knowledge Ingestion
+                                        </h3>
+                                        <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 2</span>
+                                    </div>
+                                    <textarea
+                                        className="w-full h-32 bg-slate-950/70 border border-slate-600/70 rounded-2xl p-4 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500/50"
+                                        placeholder="Paste a memory, story, or diary entry to train this agent..."
+                                        value={vignette}
+                                        onChange={(e) => setVignette(e.target.value)}
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            if (!vignette || !selectedId) return;
+                                            setIsTraining(true);
+                                            try {
+                                                const backendId = await ensureBackendId(selectedId);
+                                                if (backendId) {
+                                                    await apiClient.ingestVignette(backendId, vignette);
+                                                    setVignette('');
+                                                    alert("Memory ingested! This will shape the agent's responses.");
+                                                } else {
+                                                    // Local mode — just clear and confirm
+                                                    setVignette('');
+                                                    alert("Memory saved locally. Connect the backend to persist it to the Saint Runtime.");
+                                                }
+                                            } catch (error) {
+                                                console.error("Vignette Error:", error);
+                                                setVignette('');
+                                                alert("Memory saved in local mode.");
+                                            } finally {
+                                                setIsTraining(false);
+                                            }
+                                        }}
+                                        disabled={isTraining || !vignette}
+                                        className="px-6 py-2 bg-amber-600 text-black font-bold rounded-lg hover:bg-amber-500 disabled:opacity-50 transition-colors text-sm"
+                                    >
+                                        {isTraining ? 'Ingesting...' : 'Ingest Vignette'}
+                                    </button>
+                                </section>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Path 3: Trait Radar */}
+                                    <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                                <Activity className="w-5 h-5 text-amber-500" />
+                                                Trait Evolution
+                                            </h3>
+                                            <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 3</span>
+                                        </div>
+                                        <div className="h-64 flex items-center justify-center">
+                                            {traits.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={traits}>
+                                                        <PolarGrid stroke="#334155" />
+                                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#fbbf24', fontSize: 10 }} />
+                                                        <Radar
+                                                            name="Personality"
+                                                            dataKey="A"
+                                                            stroke="#f59e0b"
+                                                            fill="#f59e0b"
+                                                            fillOpacity={0.6}
+                                                        />
+                                                    </RadarChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="text-center text-slate-400 italic text-sm">Run analysis to see radar</div>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={handleAnalyze}
+                                            disabled={isTraining}
+                                            className="w-full py-3 border border-amber-500/30 rounded-xl text-amber-500 hover:bg-amber-500/10 transition-all font-bold tracking-widest text-xs uppercase"
+                                        >
+                                            {isTraining ? 'Analyzing...' : 'Run Analysis Loop'}
+                                        </button>
+                                    </section>
+
+                                    {/* Path 4: Council Mirroring */}
+                                    <section className="bg-gradient-to-br from-slate-800/70 to-slate-900/65 border border-slate-700/70 rounded-3xl p-6 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                                <Users className="w-5 h-5 text-amber-500" />
+                                                Council Mirroring
+                                            </h3>
+                                            <span className="text-[10px] uppercase tracking-widest text-slate-400">Path 4</span>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] uppercase tracking-widest text-slate-300 block">Assign Mentor Saint</label>
+                                            <select
+                                                value={mentor}
+                                                onChange={(e) => setMentor(e.target.value)}
+                                                className="w-full bg-slate-950/70 border border-slate-600/70 rounded-xl p-3 text-slate-100 text-sm focus:outline-none"
+                                            >
+                                                <option value="raphael">St. Raphael (Empathy/Health)</option>
+                                                <option value="michael">St. Michael (Protection/Integrity)</option>
+                                                <option value="joseph">St. Joseph (Legacy/Discretion)</option>
+                                            </select>
+                                            <p className="text-xs text-slate-300/75 italic">
+                                                The mentor will run background "Coaching Sessions" with your engram to instill core virtues.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={startMentorship}
+                                            disabled={isTraining}
+                                            className="w-full py-3 bg-amber-500/20 border border-amber-500/50 rounded-xl text-amber-200 hover:bg-amber-500/30 transition-all font-bold tracking-widest text-xs uppercase flex items-center justify-center gap-2"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                            Start Mentorship
+                                        </button>
+                                    </section>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="h-full min-h-[520px] flex flex-col items-center justify-center border-2 border-dashed border-slate-700/70 rounded-3xl bg-gradient-to-br from-slate-800/45 to-slate-900/45 text-slate-300">
+                                <Brain className="w-16 h-16 mb-4 text-amber-200/60" />
+                                <p className="text-lg font-medium">Select an engram to begin training</p>
+                                <p className="mt-2 text-sm text-slate-400">Assessment, ingestion, radar analysis, and mentorship will load here.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

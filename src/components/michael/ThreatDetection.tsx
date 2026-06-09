@@ -1,0 +1,183 @@
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Shield, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getLiveThreatEvents, ThreatEvent, ThreatSeverity, MitreCategory } from '../../lib/michael/security';
+
+const SEVERITY_STYLES: Record<ThreatSeverity, { bg: string; border: string; text: string; badge: string }> = {
+    critical: { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', badge: 'bg-rose-500 text-white' },
+    high: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', badge: 'bg-orange-500 text-white' },
+    medium: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', badge: 'bg-amber-500 text-white' },
+    low: { bg: 'bg-sky-500/10', border: 'border-sky-500/20', text: 'text-sky-400', badge: 'bg-sky-500/20 text-sky-300' },
+};
+
+const CATEGORY_LABELS: Record<MitreCategory, string> = {
+    initial_access: 'Initial Access', execution: 'Execution', persistence: 'Persistence',
+    privilege_escalation: 'Priv Escalation', defense_evasion: 'Defense Evasion',
+    credential_access: 'Credential Access', discovery: 'Discovery',
+    lateral_movement: 'Lateral Movement', collection: 'Collection', exfiltration: 'Exfiltration',
+};
+
+export default function ThreatDetection() {
+    const [threats, setThreats] = useState<ThreatEvent[]>([]);
+    const [filterSeverity, setFilterSeverity] = useState<ThreatSeverity | null>(null);
+    const [mitigatingId, setMitigatingId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    const loadThreats = async () => {
+        setLoading(true);
+        try {
+            setThreats(await getLiveThreatEvents());
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadThreats();
+    }, []);
+
+    const filtered = filterSeverity ? threats.filter(t => t.severity === filterSeverity) : threats;
+
+    const handleMitigate = async (id: string) => {
+        setMitigatingId(id);
+        // Signature Michael protection animation delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setThreats(prev => prev.map(t => t.id === id ? { ...t, mitigated: true } : t));
+        setMitigatingId(null);
+    };
+
+    const handleInvestigate = (ruleId: string) => {
+        // Navigate to Anthony with a filter (mock filter param)
+        navigate(`/anthony-dashboard?tab=ledger&filter=${encodeURIComponent(ruleId)}`);
+    };
+
+    // Category distribution
+    const catCounts = new Map<MitreCategory, number>();
+    threats.forEach(t => catCounts.set(t.category, (catCounts.get(t.category) || 0) + 1));
+    const maxCat = Math.max(...catCounts.values(), 1);
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h3 className="text-xl font-light text-white">Threat Detection</h3>
+                    <p className="text-xs text-slate-500 mt-1">Live Michael findings and tracked high-risk vulnerabilities.</p>
+                </div>
+                <button
+                    onClick={loadThreats}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 transition-all hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    {loading ? 'Refreshing...' : 'Refresh Feed'}
+                </button>
+            </div>
+
+            {/* Summary stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {(['critical', 'high', 'medium', 'low'] as ThreatSeverity[]).map(sev => {
+                    const count = threats.filter(t => t.severity === sev).length;
+                    const s = SEVERITY_STYLES[sev];
+                    return (
+                        <button key={sev} onClick={() => setFilterSeverity(filterSeverity === sev ? null : sev)}
+                            className={`${s.bg} border ${s.border} rounded-2xl p-4 transition-all hover:scale-[1.02] ${filterSeverity === sev ? 'ring-2 ring-sky-500/50' : ''}`}>
+                            <div className="text-2xl font-light text-white">{count}</div>
+                            <div className={`text-[10px] uppercase font-bold tracking-widest ${s.text}`}>{sev}</div>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* MITRE ATT&CK Category Distribution */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">MITRE ATT&CK Distribution</h3>
+                <div className="space-y-2">
+                    {[...catCounts.entries()].map(([cat, count]) => (
+                        <div key={cat} className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold w-28 truncate">{CATEGORY_LABELS[cat]}</span>
+                            <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-sky-500 to-blue-500 rounded-full transition-all" style={{ width: `${(count / maxCat) * 100}%` }} />
+                            </div>
+                            <span className="text-xs text-slate-400 w-6 text-right">{count}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Threat Feed */}
+            <div className="space-y-3">
+                {!loading && filtered.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-white/5 bg-slate-900/20 px-6 py-12 text-center text-sm text-slate-500">
+                        No live threats are currently flagged by St. Michael.
+                    </div>
+                )}
+                {filtered.map(threat => {
+                    const s = SEVERITY_STYLES[threat.severity];
+                    const isMitigating = mitigatingId === threat.id;
+
+                    return (
+                        <div key={threat.id} className={`${s.bg} border ${s.border} rounded-2xl p-5 transition-all hover:scale-[1.005] group/item`}>
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-3 flex-1">
+                                    <div className={`p-2 rounded-lg ${s.bg} border ${s.border}`}>
+                                        <AlertTriangle className={`w-4 h-4 ${s.text}`} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <span className="text-sm font-medium text-white">{threat.title}</span>
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${s.badge}`}>{threat.severity}</span>
+                                            <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded font-mono">{threat.ruleId}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mb-2">{threat.description}</p>
+                                        <div className="flex items-center gap-4 text-[10px] text-slate-500">
+                                            <span className="flex items-center gap-1"><Shield className="w-3 h-3" />{threat.source}</span>
+                                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(threat.timestamp).toLocaleTimeString()}</span>
+                                            <span className="uppercase font-bold tracking-wider text-slate-600">{CATEGORY_LABELS[threat.category]}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-end gap-2 shrink-0">
+                                    {threat.mitigated ? (
+                                        <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                                            <CheckCircle className="w-3 h-3" /> Mitigated
+                                        </span>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleInvestigate(threat.ruleId)}
+                                                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg border border-white/5 transition-all"
+                                            >
+                                                Investigate
+                                            </button>
+                                            <button
+                                                onClick={() => handleMitigate(threat.id)}
+                                                disabled={isMitigating}
+                                                className={`px-3 py-1 ${isMitigating ? 'bg-sky-500/50 cursor-wait' : 'bg-sky-600 hover:bg-sky-500'} text-white text-[10px] font-bold rounded-lg shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2`}
+                                            >
+                                                {isMitigating ? (
+                                                    <>
+                                                        <Shield className="w-3 h-3 animate-spin" />
+                                                        Isolating...
+                                                    </>
+                                                ) : (
+                                                    'Mitigate'
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {!threat.mitigated && (
+                                        <span className="flex items-center gap-1 text-rose-400 text-[9px] font-bold px-2">
+                                            <XCircle className="w-2.5 h-2.5" /> High Risk
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}

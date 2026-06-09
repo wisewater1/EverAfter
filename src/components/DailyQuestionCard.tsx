@@ -1,148 +1,536 @@
-import React, { useState, useEffect } from 'react';
-import { Send, BookOpen, Clock, Sparkles } from 'lucide-react';
-import { getCurrentTimeQuestion, getTimeGreeting, getPersonalityAspectDescription } from '../data/questions';
-import type { Question } from '../data/questions';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MessageCircle, Send, SkipForward, Calendar, Sparkles, User, Upload, X, Clock } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { uploadFile, formatFileSize } from '../lib/file-storage';
 
-interface DailyQuestionCardProps {
-  onSubmit?: (questionId: string, response: string) => Promise<void>;
-  onSkip?: () => void;
-  currentDay: number;
+interface ArchetypalAI {
+  id: string;
+  name: string;
+  description: string;
+  total_memories: number;
+  training_status: string;
+  avatar_url?: string;
 }
 
-export default function DailyQuestionCard({ onSubmit, onSkip, currentDay }: DailyQuestionCardProps) {
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+interface DailyQuestion {
+  question_text: string;
+  question_category: string;
+  day_number: number;
+  already_answered_today: boolean;
+}
+
+interface UserProgress {
+  current_day: number;
+  total_responses: number;
+  streak_days: number;
+}
+
+interface DailyQuestionCardProps {
+  userId: string;
+  preselectedAIId?: string;
+}
+
+export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQuestionCardProps) {
+  const [ais, setAIs] = useState<ArchetypalAI[]>([]);
+  const [selectedAI, setSelectedAI] = useState<ArchetypalAI | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [question, setQuestion] = useState<DailyQuestion | null>(null);
   const [response, setResponse] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [greeting, setGreeting] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const loadQuestion = useCallback(async () => {
+    if (!selectedAI) return;
+
+    setLoading(true);
+    try {
+      const { data: progressData } = await supabase
+        .from('user_daily_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (progressData) {
+        setUserProgress(progressData);
+      }
+
+      const { data: questionData, error } = await supabase
+        .from('daily_question_pool')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading question:', error);
+      }
+
+      if (questionData) {
+        const { data: categoryData } = await supabase
+          .from('question_categories')
+          .select('category_name')
+          .eq('id', questionData.category_id)
+          .maybeSingle();
+
+        setQuestion({
+          question_text: questionData.question_text,
+          question_category: categoryData?.category_name || 'general',
+          day_number: progressData?.current_day || 1,
+          already_answered_today: false
+        });
+      } else {
+        setQuestion({
+          question_text: "What's the first thing that brings you joy when you wake up?",
+          question_category: 'values',
+          day_number: progressData?.current_day || 1,
+          already_answered_today: false
+        });
+      }
+    } catch (error) {
+      console.error('Error loading question:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, selectedAI]);
+
+  const loadAIs = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('archetypal_ais')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAIs(data || []);
+
+      if (data && data.length > 0) {
+        if (preselectedAIId) {
+          const selectedFromProps = data.find(ai => ai.id === preselectedAIId);
+          if (selectedFromProps) {
+            setSelectedAI(selectedFromProps);
+          } else {
+            setSelectedAI(data[0]);
+          }
+        } else if (!selectedAI) {
+          setSelectedAI(data[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading AIs:', error);
+    }
+  }, [userId, preselectedAIId, selectedAI]);
 
   useEffect(() => {
-    const question = getCurrentTimeQuestion(currentDay);
-    setCurrentQuestion(question);
-    setGreeting(getTimeGreeting());
-  }, [currentDay]);
+    loadAIs();
+  }, [loadAIs]);
+
+  useEffect(() => {
+    if (selectedAI) {
+      loadQuestion();
+    }
+  }, [selectedAI, loadQuestion]);
+
+  const handleAISelect = (ai: ArchetypalAI) => {
+    setSelectedAI(ai);
+    setResponse('');
+    setAttachedFiles([]);
+    setQuestion(null);
+    setShowSuccess(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
-    if (!currentQuestion || !response.trim()) return;
+    if (!selectedAI || !question || !response.trim()) return;
 
-    setIsSubmitting(true);
+    setSubmitting(true);
+    setUploadProgress(0);
+    setErrorMessage(null);
+
     try {
-      if (onSubmit) {
-        await onSubmit(currentQuestion.id, response);
+      const uploadedFileIds: string[] = [];
+
+      if (attachedFiles.length > 0) {
+        for (let i = 0; i < attachedFiles.length; i++) {
+          const file = attachedFiles[i];
+          try {
+            const { file: uploadedFile } = await uploadFile(file, {
+              category: 'document',
+              description: `Attachment for question response on day ${question.day_number}`,
+              metadata: {
+                ai_id: selectedAI.id,
+                question_text: question.question_text,
+                day_number: question.day_number
+              }
+            });
+            uploadedFileIds.push(uploadedFile.id);
+            setUploadProgress(((i + 1) / attachedFiles.length) * 50);
+          } catch (uploadError) {
+            console.error('File upload error:', uploadError);
+            throw new Error(`Failed to upload file "${file.name}". Please try again.`);
+          }
+        }
       }
+
+      console.log('Submitting response with data:', {
+        user_id: userId,
+        ai_id: selectedAI.id,
+        day_number: question.day_number,
+        response_length: response.length,
+        file_count: uploadedFileIds.length
+      });
+
+      const { data, error } = await supabase
+        .from('daily_question_responses')
+        .insert([{
+          user_id: userId,
+          ai_id: selectedAI.id,
+          question_text: question.question_text,
+          response_text: response,
+          day_number: question.day_number,
+          question_category: question.question_category,
+          attachment_file_ids: uploadedFileIds.length > 0 ? uploadedFileIds : null,
+        }])
+        .select();
+
+      if (error) {
+        console.error('Database insert error:', error);
+
+        let userMessage = 'Failed to save your response. ';
+        if (error.code === '23505') {
+          userMessage += 'You may have already answered this question today.';
+        } else if (error.code === '23503') {
+          userMessage += 'There was a problem linking to your AI profile.';
+        } else if (error.message.includes('permission')) {
+          userMessage += 'Permission denied. Please try logging out and back in.';
+        } else if (error.message.includes('RLS')) {
+          userMessage += 'Security policy error. Please contact support.';
+        } else {
+          userMessage += `Error: ${error.message}`;
+        }
+
+        throw new Error(userMessage);
+      }
+
+      console.log('Response saved successfully:', data);
+
+      setUploadProgress(100);
+      setShowSuccess(true);
       setResponse('');
+      setAttachedFiles([]);
+      setErrorMessage(null);
+
+      setTimeout(() => {
+        loadQuestion();
+        setShowSuccess(false);
+        setUploadProgress(0);
+      }, 2000);
+
+      loadAIs();
     } catch (error) {
       console.error('Error submitting response:', error);
+      const message = error instanceof Error ? error.message : 'Failed to save your response. Please try again.';
+      setErrorMessage(message);
+      setUploadProgress(0);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  const handleSkipClick = () => {
-    setResponse('');
-    if (onSkip) {
-      onSkip();
-    }
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      values: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+      memories: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+      habits: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      preferences: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      beliefs: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      communication_style: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+      humor: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+      relationships: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+      goals: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+      experiences: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+      general: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    };
+    return colors[category] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   };
 
-  if (!currentQuestion) {
-    return null;
+  if (ais.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+        <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <MessageCircle className="w-10 h-10 text-slate-600" />
+        </div>
+        <h3 className="text-2xl font-medium text-white mb-3">No AI Created Yet</h3>
+        <p className="text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
+          Create your first archetypal AI to start answering daily questions and building a digital personality.
+        </p>
+      </div>
+    );
   }
 
-  const difficultyColors = {
-    light: 'bg-green-100 text-green-800',
-    medium: 'bg-yellow-100 text-yellow-800',
-    deep: 'bg-purple-100 text-purple-800'
-  };
+  if (showSuccess) {
+    return (
+      <div className="bg-gradient-to-br from-emerald-900/20 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-16 text-center">
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
+          <Sparkles className="w-10 h-10 text-white animate-pulse" />
+        </div>
+        <h3 className="text-3xl font-light text-white mb-3">Memory Saved!</h3>
+        <p className="text-slate-300 text-lg">
+          Your response has been added to <span className="text-emerald-400 font-medium">{selectedAI?.name}</span>'s personality
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gradient-to-br from-purple-900 to-blue-900 rounded-xl shadow-2xl p-8 border border-purple-700/50">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-700/50 rounded-xl flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-purple-300" />
+    <div className="space-y-6">
+
+      {/* Progress Bar */}
+      {userProgress && (
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-teal-400" />
+              <div>
+                <div className="text-lg font-medium text-white">
+                  Day {userProgress.current_day} of 365
+                </div>
+                <div className="text-sm text-slate-400">
+                  {userProgress.streak_days} day streak • {userProgress.total_responses} total responses
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-semibold text-white">{greeting}</h3>
-              <p className="text-sm text-purple-300">Day {currentDay} of 365</p>
+            <div className="text-right">
+              <div className="text-2xl font-light text-white">
+                {Math.round((userProgress.current_day / 365) * 100)}%
+              </div>
+              <div className="text-xs text-slate-400">Complete</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${difficultyColors[currentQuestion.difficulty]}`}>
-              {currentQuestion.difficulty}
-            </span>
-            <div className="flex items-center gap-1 px-3 py-1 bg-purple-700/30 rounded-full">
-              <Clock className="w-3 h-3 text-purple-300" />
-              <span className="text-xs text-purple-300">{currentQuestion.timeOfDay}</span>
+          <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-sky-500 via-teal-500 to-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${(userProgress.current_day / 365) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Question Card */}
+      {loading ? (
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+          {/* Enhanced skeleton loading state */}
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-8 w-32 bg-slate-700/50 rounded-lg animate-pulse"></div>
+              <div className="h-6 w-24 bg-slate-700/50 rounded-lg animate-pulse"></div>
+            </div>
+            <div className="flex items-start gap-4 mb-8">
+              <div className="w-14 h-14 bg-slate-700/50 rounded-xl animate-pulse flex-shrink-0"></div>
+              <div className="flex-1 space-y-3">
+                <div className="h-6 w-3/4 bg-slate-700/50 rounded animate-pulse"></div>
+                <div className="h-6 w-full bg-slate-700/50 rounded animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-slate-700/50 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-slate-700/50 rounded animate-pulse"></div>
+              <div className="h-4 w-full bg-slate-700/50 rounded animate-pulse"></div>
+              <div className="h-4 w-3/4 bg-slate-700/50 rounded animate-pulse"></div>
+            </div>
+          </div>
+          <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-700/50">
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              <div>
+                <div className="text-emerald-400 font-medium mb-1">Preparing your personalized question...</div>
+                <div className="text-xs text-slate-500">This usually takes 2-3 seconds</div>
+              </div>
             </div>
           </div>
         </div>
+      ) : question ? (
+        <div className="bg-gradient-to-br from-slate-800/40 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+          {/* Question Header */}
+          <div className="p-8 pb-6">
+            <div className="flex items-center justify-between mb-6">
+              <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium border ${getCategoryColor(question.question_category)}`}>
+                <Sparkles className="w-4 h-4" />
+                {question.question_category.replace('_', ' ')}
+              </span>
+              {userProgress && (
+                <div className="text-sm text-slate-400">
+                  Question {userProgress.total_responses + 1}
+                </div>
+              )}
+            </div>
 
-        <div className="p-4 bg-purple-800/30 rounded-lg border border-purple-600/30 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-purple-300" />
-            <span className="text-xs text-purple-300 uppercase tracking-wide">
-              {getPersonalityAspectDescription(currentQuestion.personalityAspect)}
-            </span>
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
+                <MessageCircle className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-medium text-white leading-relaxed mb-2">
+                  {question.question_text}
+                </h3>
+                <p className="text-sm text-slate-300">
+                  Share your thoughts and memories
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-lg text-white leading-relaxed">
-            {currentQuestion.question}
+
+          {/* Response Area */}
+          <div className="px-8 pb-8">
+            <textarea
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder="Share your thoughts, stories, or memories... Take your time and let the words flow naturally."
+              rows={6}
+              className="w-full bg-slate-900/70 border border-slate-700 hover:border-slate-600 focus:border-sky-500 rounded-xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all resize-none leading-relaxed"
+            />
+
+            {/* Attached Files */}
+            {attachedFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {attachedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                    <div className="text-2xl">{file.type.startsWith('image/') ? '🖼️' : '📎'}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white truncate">{file.name}</div>
+                      <div className="text-xs text-slate-400">{formatFileSize(file.size)}</div>
+                    </div>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-200">{errorMessage}</p>
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage(null)}
+                    className="flex-shrink-0 text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Upload Progress */}
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                  <span>Uploading files...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full bg-sky-500 transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-3">
+                <label className="p-3 bg-slate-900/70 border border-slate-700 hover:border-slate-600 rounded-lg transition-all text-slate-400 hover:text-white cursor-pointer">
+                  <Upload className="w-5 h-5" />
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                  />
+                </label>
+                <span className="text-sm text-slate-500">
+                  {response.length} characters
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setResponse('');
+                    setAttachedFiles([]);
+                    loadQuestion();
+                  }}
+                  className="px-5 py-3 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all font-medium flex items-center gap-2"
+                >
+                  <SkipForward className="w-4 h-4" />
+                  Skip for Now
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!response.trim() || submitting}
+                  className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-all shadow-lg shadow-sky-500/20 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Save Memory
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Info Footer */}
+          <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-700/50">
+            <p className="text-xs text-slate-500 text-center leading-relaxed">
+              Your responses are encrypted and secure. You maintain full control over your data at all times.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+          <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-10 h-10 text-slate-600" />
+          </div>
+          <h3 className="text-2xl font-medium text-white mb-3">All Caught Up!</h3>
+          <p className="text-slate-400 leading-relaxed">
+            You've answered today's question. Come back tomorrow for more!
           </p>
         </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-purple-200 mb-2">
-            Your Response
-          </label>
-          <textarea
-            value={response}
-            onChange={(e) => setResponse(e.target.value)}
-            placeholder="Share your thoughts, memories, or stories..."
-            className="w-full px-4 py-3 bg-purple-800/30 border border-purple-600/50 rounded-lg text-white placeholder-purple-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 resize-none transition-all"
-            rows={6}
-            disabled={isSubmitting}
-          />
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-purple-300">
-              {response.length} characters
-            </span>
-            {response.length > 50 && (
-              <span className="text-xs text-green-400 flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                Great detail!
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSkipClick}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-purple-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Skip for now
-          </button>
-
-          <button
-            onClick={handleSubmit}
-            disabled={!response.trim() || isSubmitting}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 transition-all duration-200"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving Memory...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Save Memory
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
