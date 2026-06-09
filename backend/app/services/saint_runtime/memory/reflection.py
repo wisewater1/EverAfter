@@ -39,8 +39,16 @@ class ReflectionEngine:
         
         # Connect to LLM to generate the insightful question and synthesis
         llm = get_llm_client()
-        recent_memories = self.memory_stream.memories[-50:] # Last 50 items
-        
+        # MemoryStream no longer keeps a local list (it is backed by the Akashic
+        # record); retrieve recent salient memories via the async context API
+        # instead of the removed `.memories` attribute, which raised AttributeError
+        # and crashed saint reflection.
+        recent_memories = await self.memory_stream.get_context(
+            query="recent significant observations, events, and changes",
+            limit=50,
+            saint_id=getattr(self, "saint_id", None),
+        )
+
         if not recent_memories:
             return
 

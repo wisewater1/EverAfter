@@ -32,6 +32,23 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Release the microphone if the component unmounts mid-recording (otherwise the
+  // getUserMedia stream stays live and the mic indicator never turns off).
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {
+          /* already stopped */
+        }
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     loadMedia();
@@ -129,6 +146,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -154,6 +172,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
         }
 
         stream.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       };
 
       mediaRecorder.start();

@@ -245,13 +245,12 @@ async def save_credentials(
     current_user: dict = Depends(get_current_user)
 ):
     """Save encrypted credentials for AI agent"""
-    # In production, encrypt password with proper encryption
-    from cryptography.fernet import Fernet
-    import base64
+    # Encrypt with a STABLE, configured key so the credential can actually be
+    # decrypted later. The previous code generated a throwaway key per request
+    # and discarded it, making every stored credential permanently unrecoverable.
+    from app.core.crypto import stable_fernet
 
-    # Simple encryption (in production, use proper key management)
-    key = Fernet.generate_key()
-    cipher = Fernet(key)
+    cipher = stable_fernet("agent-credentials")
     encrypted_password = cipher.encrypt(cred_data.password.encode()).decode()
 
     credential = AgentCredential(

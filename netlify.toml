@@ -23,6 +23,15 @@
   status = 200
   force = true
 
+# The backend governance router is mounted at /governance (not /api/v1), so it
+# must be proxied explicitly — otherwise these calls fall through to the SPA
+# catch-all below and return index.html instead of JSON.
+[[redirects]]
+  from = "/governance/*"
+  to = "https://everafter-api-voac.onrender.com/governance/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/assets/*"
   to = "/404.html"

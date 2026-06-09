@@ -50,11 +50,14 @@ export default function EngramChat({ engrams }: EngramChatProps) {
 
     try {
       const response = await apiClient.sendChatMessage(selectedEngram.id, userMessage);
+      // sendChatMessage returns { data: { message, timestamp, ... }, error }.
+      // The previous code read response.response (which never exists), so every
+      // successful reply fell back to the canned error string.
       const aiMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: response.response || 'I apologize, but I encountered an issue generating a response.',
-        created_at: new Date().toISOString()
+        content: response.data?.message || 'I apologize, but I encountered an issue generating a response.',
+        created_at: response.data?.timestamp || new Date().toISOString()
       };
       setMessages(prev => [...prev, aiMessage]);
     } catch (err) {

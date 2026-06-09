@@ -271,6 +271,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# NOTE: Starlette's add_middleware PREPENDS, so the last-registered middleware is
+# the OUTERMOST. Register auth first and CORS last, so CORS wraps auth and even
+# 401 auth-failure responses carry Access-Control-Allow-Origin (otherwise the
+# browser surfaces an opaque CORS error instead of the real 401).
+app.add_middleware(JWTAuthMiddleware)
+
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
@@ -280,8 +286,6 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-app.add_middleware(JWTAuthMiddleware)
 
 app.include_router(engrams.router)
 app.include_router(chat.router)

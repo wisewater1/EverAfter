@@ -155,6 +155,17 @@ class GoldenSovereignEngine:
             select(RitualBondNFT).where(RitualBondNFT.wallet_id == wallet_id)
         )).scalar_one_or_none()
 
+    async def _ensure_wallet(self, user_id: str) -> WiseGoldWallet:
+        """Find or create a wallet for a user (used to credit heirs)."""
+        wallet = (await self.session.execute(
+            select(WiseGoldWallet).where(WiseGoldWallet.user_id == str(user_id))
+        )).scalar_one_or_none()
+        if wallet is None:
+            wallet = WiseGoldWallet(user_id=str(user_id), balance=0.0)
+            self.session.add(wallet)
+            await self.session.flush()
+        return wallet
+
     async def process_legacy_protocol(self) -> Dict[str, float]:
         one_year_ago = datetime.utcnow() - timedelta(days=365)
         wills = (await self.session.execute(
@@ -198,6 +209,35 @@ class GoldenSovereignEngine:
                     "reserved_for_heirs": heir_return,
                 },
             )
+
+            # Actually distribute the heir half. Previously this value was only
+            # written into metadata while the wallet was zeroed, so heir funds
+            # were silently destroyed. Credit the designated heir(s); if none are
+            # named, return it to the communal pool — value is always conserved.
+            heir_ids = [h.strip() for h in (will.heirs or "").replace(";", ",").split(",") if h.strip()]
+            if heir_ids and heir_return > 0:
+                even_share = round(heir_return / len(heir_ids), 4)
+                for idx, heir_id in enumerate(heir_ids):
+                    is_last = idx == len(heir_ids) - 1
+                    amount = round(heir_return - even_share * (len(heir_ids) - 1), 4) if is_last else even_share
+                    if amount <= 0:
+                        continue
+                    heir_wallet = await self._ensure_wallet(heir_id)
+                    heir_wallet.balance = round(float(heir_wallet.balance or 0.0) + amount, 4)
+                    self.total_circulating += amount
+                    await self._record_entry(
+                        user_id=heir_id,
+                        wallet=heir_wallet,
+                        entry_type="LEGACY_INHERITANCE",
+                        direction="credit",
+                        amount=amount,
+                        balance_after=heir_wallet.balance,
+                        description=f"Inheritance from legacy wallet {wallet.id}.",
+                        metadata={"from_wallet": str(wallet.id), "from_user": str(wallet.user_id)},
+                    )
+            elif heir_return > 0:
+                self.daily_manna_pool += heir_return
+                reclaimed_total += heir_return
 
         return {
             "reclaimed_to_pool": reclaimed_total,
