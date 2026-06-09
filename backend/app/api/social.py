@@ -28,9 +28,11 @@ async def trigger_agent_interaction(
         if not interaction:
             raise HTTPException(status_code=404, detail="One or more engrams not found.")
         return interaction
+    except HTTPException:
+        raise  # preserve intended 404/400 status codes
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Failed to simulate interaction: {str(e)}"
         )
 
@@ -60,9 +62,11 @@ async def trigger_random_agent_interaction(
             session, str(participants[0].id), str(participants[1].id)
         )
         return interaction
+    except HTTPException:
+        raise  # preserve intended 404/400 status codes
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Failed to simulate random interaction: {str(e)}"
         )
 

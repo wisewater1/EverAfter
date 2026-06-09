@@ -323,10 +323,12 @@ class TreasuryAnalystService:
         last_tick_velocity = float(policy.last_tick_velocity or 0.0) if policy else 0.0
         last_gold_delta = float(policy.last_gold_delta or 0.0) if policy else 0.0
 
+        # stress_level is stored on a 0-10 scale (see wisegold_engine), so compare
+        # against 7/4, not 0.7/0.4 (which flagged almost any non-zero stress as high).
         explanation_points: List[str] = []
-        if stress_level >= 0.7:
+        if stress_level >= 7.0:
             explanation_points.append("Treasury stress is elevated, so policy is favoring preservation over emissions.")
-        elif stress_level >= 0.4:
+        elif stress_level >= 4.0:
             explanation_points.append("Treasury stress is moderate; policy is balancing growth with reserve protection.")
         else:
             explanation_points.append("Treasury stress is contained, so policy can remain supportive of emissions.")
@@ -386,7 +388,7 @@ class TreasuryAnalystService:
         if runway_months is not None and runway_months < 6:
             recommendations.append("Build liquid reserves until runway clears six months of burn.")
 
-        if policy_summary["stress_level"] >= 0.7:
+        if policy_summary["stress_level"] >= 7.0:
             recommendations.append("Treat WGOLD policy as defensive right now; prioritize resilience over aggressive expansion.")
         elif not recommendations:
             recommendations.append("Treasury is stable. Focus on steady category discipline and consistent WGOLD heartbeat activity.")

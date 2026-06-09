@@ -25,6 +25,10 @@ from app.services.saint_runtime import saint_runtime
 router = APIRouter(prefix="/api/v1/engrams", tags=["engrams"])
 logger = logging.getLogger(__name__)
 
+# Keep strong references to fire-and-forget background tasks so the event loop
+# does not garbage-collect them mid-flight.
+_background_tasks: set = set()
+
 
 @router.get("/", response_model=List[EngramResponse])
 async def list_engrams(
@@ -354,10 +358,23 @@ async def start_mentorship(
     current_user: dict = Depends(get_current_user)
 ):
     service = get_mentorship_service(saint_runtime)
-    
-    # Run mentorship session in the background
-    asyncio.create_task(service.start_mentorship_session(session, mentor_id, str(engram_id)))
-    
+
+    # Run mentorship in the background with ITS OWN session. The request-scoped
+    # `session` is closed as soon as this handler returns, so passing it into a
+    # create_task() coroutine meant the mentorship work silently failed.
+    async def _run_mentorship() -> None:
+        from app.db.session import get_session_factory
+
+        try:
+            async with get_session_factory()() as bg_session:
+                await service.start_mentorship_session(bg_session, mentor_id, str(engram_id))
+        except Exception as exc:  # background task: log, never crash silently
+            logger.error("Background mentorship session failed: %s", exc, exc_info=True)
+
+    task = asyncio.create_task(_run_mentorship())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
     # Return immediately while training runs in background
     query = select(Engram).where(Engram.id == engram_id)
     result = await session.execute(query)

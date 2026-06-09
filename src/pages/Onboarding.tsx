@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import OnboardingProgress from '../components/onboarding/OnboardingProgress';
@@ -332,12 +332,24 @@ export default function Onboarding() {
     }
   };
 
-  const updateOnboardingData = (updates: Partial<OnboardingData>) => {
+  // Stable identity so children that call onUpdate inside an effect (e.g.
+  // FirstEngramStep) don't see a new function every render and loop forever.
+  const updateOnboardingData = useCallback((updates: Partial<OnboardingData>) => {
     setOnboardingData((prev) => ({
       ...prev,
       ...updates,
     }));
-  };
+  }, []);
+
+  const handleFirstEngramUpdate = useCallback(
+    (firstEngramData: Partial<OnboardingData>) =>
+      updateOnboardingData({
+        firstEngram: firstEngramData.firstEngram,
+        personalityQuiz: firstEngramData.personalityQuiz,
+        familySetup: firstEngramData.familySetup,
+      }),
+    [updateOnboardingData]
+  );
 
   if (authLoading || loading) {
     return (
@@ -451,13 +463,7 @@ export default function Onboarding() {
                 onboardingData.healthProfile.allergies.length > 0 ||
                 onboardingData.healthProfile.healthGoals.length > 0
               }
-              onUpdate={(firstEngramData) =>
-                updateOnboardingData({
-                  firstEngram: firstEngramData.firstEngram,
-                  personalityQuiz: firstEngramData.personalityQuiz,
-                  familySetup: firstEngramData.familySetup,
-                })
-              }
+              onUpdate={handleFirstEngramUpdate}
               userId={user?.id || ''}
               userEmail={user?.email || ''}
               userName={

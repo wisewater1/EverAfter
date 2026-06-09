@@ -25,8 +25,16 @@ PLAID_BASE_URLS = {
 
 def _build_fernet_key() -> bytes:
     configured_secret = settings.BANK_CONNECTOR_SECRET.strip()
-    seed = configured_secret or settings.JWT_SECRET_KEY or "everafter-dev-bank-connector"
-    return base64.urlsafe_b64encode(hashlib.sha256(seed.encode("utf-8")).digest())
+    if not configured_secret:
+        # Never silently reuse the JWT signing secret for data-at-rest encryption
+        # in production — that couples two independent secrets. Fail closed.
+        if settings.is_production:
+            raise RuntimeError(
+                "BANK_CONNECTOR_SECRET must be set in production to encrypt Plaid "
+                "bank tokens; refusing to derive it from the JWT secret."
+            )
+        configured_secret = settings.JWT_SECRET_KEY or "everafter-dev-bank-connector"
+    return base64.urlsafe_b64encode(hashlib.sha256(configured_secret.encode("utf-8")).digest())
 
 
 class PlaidService:

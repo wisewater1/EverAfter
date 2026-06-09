@@ -22,10 +22,9 @@ services:
         value: false
       - key: ALLOW_DEV_AUTH_FALLBACK
         value: false
+      # Static demo bypass token must never be enabled in production.
       - key: ALLOW_PRESENTATION_DEMO_AUTH
-        value: true
-      - key: DEMO_AUTH_TOKEN
-        value: demo-show-token
+        value: false
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL
@@ -38,12 +37,26 @@ services:
         sync: false
       - key: SUPABASE_JWT_AUDIENCE
         value: authenticated
+      # REQUIRED: Supabase project JWT secret (dashboard -> Settings -> API ->
+      # JWT Secret). Without it the backend rejects all Supabase tokens.
+      - key: SUPABASE_JWT_SECRET
+        sync: false
       - key: JWT_SECRET_KEY
         sync: false
+      # Dedicated key for encrypting Plaid bank tokens at rest (do NOT reuse the
+      # JWT secret). Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - key: BANK_CONNECTOR_SECRET
+        sync: false
+      - key: PLAID_ENV
+        value: production
       - key: OPENAI_API_KEY
         sync: false
+      # Wire to the voice service's real Render host instead of a guessed name.
       - key: VOICE_AI_BASE_URL
-        value: https://everafter-voice-ai.onrender.com
+        fromService:
+          type: web
+          name: everafter-voice-ai
+          property: host
       - key: TERRA_API_KEY
         sync: false
       - key: TERRA_DEV_ID

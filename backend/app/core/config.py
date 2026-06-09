@@ -110,6 +110,10 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY"))
     SUPABASE_JWT_ISSUER: str = ""
     SUPABASE_JWT_AUDIENCE: str = "authenticated"
+    # The project's JWT secret (Supabase dashboard -> Settings -> API -> JWT Secret).
+    # Required to cryptographically verify Supabase access tokens; without it the
+    # backend refuses to trust Supabase-issued tokens (fail closed).
+    SUPABASE_JWT_SECRET: str = Field(default="", validation_alias=AliasChoices("SUPABASE_JWT_SECRET", "SUPABASE_JWT_KEY"))
 
     JWT_SECRET_KEY: str = "dev-jwt-secret"
     JWT_ALGORITHM: str = "HS256"
@@ -231,7 +235,13 @@ class Settings(BaseSettings):
 
     @property
     def presentation_demo_auth_enabled(self) -> bool:
-        return self.ALLOW_PRESENTATION_DEMO_AUTH and bool(self.DEMO_AUTH_TOKEN.strip())
+        # Never honor the static presentation/demo bypass token in production —
+        # mirror the dev-auth-fallback gating so it can only work outside prod.
+        return (
+            self.ALLOW_PRESENTATION_DEMO_AUTH
+            and not self.is_production
+            and bool(self.DEMO_AUTH_TOKEN.strip())
+        )
 
     @property
     def dev_voice_provider_enabled(self) -> bool:
@@ -241,6 +251,10 @@ class Settings(BaseSettings):
     def resolved_voice_ai_base_url(self) -> str:
         configured = self.VOICE_AI_BASE_URL.strip().rstrip("/")
         if configured:
+            # Tolerate a bare host (e.g. Render's fromService `host` value) by
+            # defaulting to https so callers always get a usable absolute URL.
+            if not configured.startswith(("http://", "https://")):
+                configured = "https://" + configured
             return configured
         if self.dev_voice_provider_enabled:
             return self.VOICE_AI_DEV_BASE_URL.strip().rstrip("/")

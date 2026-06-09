@@ -87,7 +87,7 @@ class PromptBuilder:
             if ocean:
                 scores = ocean.scores
                 lines.append(
-                    f"- OCEAN modifiers available: O={scores.openness}, C={scores.conscientiousness}, E={scores.extraversion}, A={scores.agreeableness}, N={scores.neuroticism}"
+                    f"- OCEAN modifiers available: O={scores.O}, C={scores.C}, E={scores.E}, A={scores.A}, N={scores.N}"
                 )
 
             lines.extend(
@@ -335,10 +335,10 @@ class PromptBuilder:
             
             if ocean and mods:
                 prompt_block.append(f"\n[USER PERSONALITY & BEHAVIORAL MODIFIERS]")
-                prompt_block.append(f"O:{ocean.scores.openness} C:{ocean.scores.conscientiousness} E:{ocean.scores.extraversion} A:{ocean.scores.agreeableness} N:{ocean.scores.neuroticism}")
-                prompt_block.append(f"Receptivity to nudges: {mods.receptivity_to_nudges}")
-                prompt_block.append(f"Adherence likelihood: {mods.adherence_likelihood}")
-                prompt_block.append(f"Interaction Style: {mods.recommended_interaction_style}")
+                prompt_block.append(f"O:{ocean.scores.O} C:{ocean.scores.C} E:{ocean.scores.E} A:{ocean.scores.A} N:{ocean.scores.N}")
+                prompt_block.append(f"Nudge frequency: {mods.nudge_frequency}")
+                prompt_block.append(f"Adherence risk: {mods.adherence_risk}")
+                prompt_block.append(f"Intervention style: {mods.intervention_style}")
             
             if predictions:
                 prompt_block.append(f"\n[HOLISTIC PREDICTIONS]")

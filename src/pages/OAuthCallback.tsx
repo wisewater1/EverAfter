@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,8 +12,13 @@ export default function OAuthCallback() {
   const [message, setMessage] = useState('Securing your connection...');
   const [progress, setProgress] = useState(0);
 
+  // Guard against running the credential/connection insert twice (React 18
+  // StrictMode double-mounts effects in dev, and `user` can change), which would
+  // create duplicate rows.
+  const hasProcessedRef = useRef(false);
   useEffect(() => {
-    if (user) {
+    if (user && !hasProcessedRef.current) {
+      hasProcessedRef.current = true;
       handleOAuthCallback();
     }
   }, [user]);

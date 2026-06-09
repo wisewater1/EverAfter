@@ -588,7 +588,7 @@ class FinanceService:
                 saint_id="gabriel",
                 related_entities=["finance", "transaction", tx.payee]
             )
-            stream.add_memory(mem)
+            await stream.add_memory(mem)
 
         return tx
 

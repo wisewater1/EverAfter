@@ -36,30 +36,46 @@ def verify_access_token(token: str) -> Dict[str, Any]:
 
 
 def verify_supabase_token(token: str) -> Dict[str, Any]:
+    """Cryptographically verify a Supabase-issued access token.
+
+    Supabase signs access tokens with the project's JWT secret (HS256). We MUST
+    verify that signature — reading unverified claims would let anyone forge a
+    token for any user (total auth bypass). If no secret is configured we fail
+    closed (reject), so an unverifiable token is never trusted.
+    """
+    secret = settings.SUPABASE_JWT_SECRET.strip()
+    if not secret:
+        raise ValueError(
+            "SUPABASE_JWT_SECRET is not configured; refusing to trust an "
+            "unverifiable Supabase token"
+        )
+
+    expected_audience = settings.SUPABASE_JWT_AUDIENCE.strip()
+    decode_kwargs: Dict[str, Any] = {"algorithms": ["HS256"]}
+    options: Dict[str, Any] = {}
+    if expected_audience:
+        decode_kwargs["audience"] = expected_audience
+    else:
+        options["verify_aud"] = False
+
     try:
-        payload = jwt.get_unverified_claims(token)
-
-        issuer = str(payload.get("iss") or "")
-        expected_issuer = settings.SUPABASE_JWT_ISSUER.strip() or settings.SUPABASE_URL.strip()
-        if expected_issuer and issuer and not issuer.startswith(expected_issuer):
-            raise ValueError("Supabase token issuer mismatch")
-
-        expected_audience = settings.SUPABASE_JWT_AUDIENCE.strip()
-        audience = payload.get("aud")
-        if expected_audience and audience:
-            audiences = audience if isinstance(audience, list) else [audience]
-            if expected_audience not in [str(candidate) for candidate in audiences]:
-                raise ValueError("Supabase token audience mismatch")
-
-        expires_at = payload.get("exp")
-        if expires_at is not None:
-            now_ts = datetime.now(timezone.utc).timestamp()
-            if now_ts >= float(expires_at):
-                raise ValueError("Supabase token has expired")
-
-        if "sub" not in payload:
-            raise ValueError("Supabase token is missing sub claim")
-
-        return payload
+        # Verifies the signature + exp (and aud when provided); raises on failure.
+        payload = jwt.decode(token, secret, options=options, **decode_kwargs)
     except JWTError as e:
         raise ValueError(f"Supabase token verification failed: {str(e)}")
+
+    # Issuer check (lenient prefix match: Supabase iss is "<url>/auth/v1").
+    expected_issuer = (
+        settings.SUPABASE_JWT_ISSUER.strip()
+        or (settings.SUPABASE_URL.strip().rstrip("/") + "/auth/v1" if settings.SUPABASE_URL.strip() else "")
+    )
+    if expected_issuer:
+        issuer = str(payload.get("iss") or "")
+        base = expected_issuer.rstrip("/")
+        if issuer and not (issuer.startswith(base) or base.startswith(issuer.rstrip("/"))):
+            raise ValueError("Supabase token issuer mismatch")
+
+    if "sub" not in payload:
+        raise ValueError("Supabase token is missing sub claim")
+
+    return payload
