@@ -394,7 +394,11 @@ For providers that support webhooks, register the webhook URLs in their develope
 - No PHI/credentials logged
 - Rate limiting on sync endpoints
 
-### Known Constraints
+## Guides & Resources
+
+- [Turning Q&A Data into an Interactive AI Hologram](./AI_Hologram_Guide.md) – phased, execution-ready playbook with milestones, RACI, backlog seeds, tooling picks, and validation checkpoints across data, AI, and holographic deployment.
+
+## Support
 
 - **Apple HealthKit**: Requires native iOS app companion
 - **Android Health Connect**: Requires native Android app
