@@ -311,8 +311,17 @@ const SocietyFeed: React.FC = () => {
 
         let frameId: number;
         let time = 0;
+        let lastTick = 0;
+        // ~25fps cap: the O(n²) sim setStates on every pass, so 60fps means 60
+        // React re-renders/sec — and hidden tabs shouldn't simulate at all.
+        const FRAME_MS = 40;
 
-        const tick = () => {
+        const tick = (ts: number = 0) => {
+            if (document.hidden || ts - lastTick < FRAME_MS) {
+                frameId = requestAnimationFrame(tick);
+                return;
+            }
+            lastTick = ts;
             time += 0.02;
             const updated: Record<string, { x: number, y: number }> = {};
             const keys = Object.keys(physicsRef.current);
