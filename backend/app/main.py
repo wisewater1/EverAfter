@@ -174,6 +174,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
     from app.services.health_prediction_runtime_tables import ensure_health_prediction_runtime_tables
     from app.services.time_capsule_runtime_tables import ensure_time_capsule_tables
     from app.services.wisegold_scheduler import ensure_wisegold_tables
+    from app.services.quiz_invite_runtime_tables import ensure_quiz_invite_tables
 
     state = app.state.runtime_status
     component_results = {}
@@ -186,6 +187,7 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
         ("governance", ensure_governance_tables),
         ("time_capsules", ensure_time_capsule_tables),
         ("wisegold", ensure_wisegold_tables),
+        ("quiz_invites", ensure_quiz_invite_tables),
     )
 
     try:

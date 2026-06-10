@@ -363,6 +363,35 @@ function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | nu
   if (path.includes('/personality-quiz/profile')) {
     return mockResponse({});
   }
+  // Shareable friend-quiz invites (demo: tokens are local, questions are the
+  // demo bank, submit scores the real answers).
+  if (path.includes('/personality-quiz/invites') && method === 'POST') {
+    let subjectName = 'a loved one', subjectMemberId: string | undefined;
+    try {
+      const parsed = typeof body === 'string' ? JSON.parse(body) : {};
+      subjectName = parsed.subject_name || subjectName;
+      subjectMemberId = parsed.subject_member_id;
+    } catch { /* ignore */ }
+    const token = `demo-${subjectMemberId || 'quiz'}-${subjectName.replace(/[^a-z0-9]/gi, '').slice(0, 8).toLowerCase()}`;
+    return mockResponse({ token, subject_name: subjectName, subject_member_id: subjectMemberId, status: 'pending', share_path: `/quiz/${token}` });
+  }
+  if (path.includes('/personality-quiz/invites')) {
+    return mockResponse({ invites: [] });
+  }
+  const publicQuizMatch = path.match(/\/personality-quiz\/public\/([^/]+)/);
+  if (publicQuizMatch) {
+    const token = decodeURIComponent(publicQuizMatch[1]);
+    if (path.endsWith('/submit')) {
+      let answers: Record<string, number> = {};
+      try {
+        const parsed = typeof body === 'string' ? JSON.parse(body) : {};
+        answers = parsed.answers || {};
+      } catch { /* ignore */ }
+      const profile = buildDemoProfile(answers, token, 'a loved one');
+      return mockResponse({ ok: true, subject_name: 'a loved one', archetype: profile.archetype });
+    }
+    return mockResponse({ subject_name: 'a loved one', status: 'pending', questions: DEMO_QUIZ_QUESTIONS, total: DEMO_QUIZ_QUESTIONS.length });
+  }
 
   // System Monitor — full SystemMetrics shape with breathing history charts.
   if (path.includes('/monitoring/metrics')) {

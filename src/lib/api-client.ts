@@ -416,6 +416,31 @@ class APIClient {
   /**
    * Get engrams from local backend
    */
+  /**
+   * Create a shareable personality-quiz invite for a subject. Returns the
+   * server token + share path so a friend can answer at /quiz/<token> with no
+   * account. Never throws — callers fall back to a local-only flow.
+   */
+  async createQuizInvite(
+    subjectName: string,
+    subjectMemberId?: string,
+  ): Promise<{ token: string; share_path: string } | null> {
+    try {
+      const headers = await this.buildAuthHeaders({ 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' });
+      const data = await this.requestBackendJson<{ token?: string; share_path?: string }>(
+        `/api/v1/personality-quiz/invites`,
+        { method: 'POST', headers, body: JSON.stringify({ subject_name: subjectName, subject_member_id: subjectMemberId }) },
+        'Could not create quiz invite.',
+      );
+      if (data?.token) {
+        return { token: data.token, share_path: data.share_path || `/quiz/${data.token}` };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   async getEngrams(): Promise<EngramResponse[]> {
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',

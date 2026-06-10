@@ -40,6 +40,7 @@ const DarkGlassCarouselShowcase = lazyWithRetry(() => import('./pages/DarkGlassC
 const DeviceCheck = lazyWithRetry(() => import('./pages/DeviceCheck'), 'pages/DeviceCheck');
 const Career = lazyWithRetry(() => import('./pages/Career'), 'pages/Career');
 const PublicCareerChat = lazyWithRetry(() => import('./pages/PublicCareerChat'), 'pages/PublicCareerChat');
+const PublicPersonalityQuiz = lazyWithRetry(() => import('./pages/PublicPersonalityQuiz'), 'pages/PublicPersonalityQuiz');
 const StMichaelSecurityDashboard = lazyWithRetry(() => import('./components/StMichaelSecurityDashboard'), 'components/StMichaelSecurityDashboard');
 const StJosephFamilyDashboard = lazyWithRetry(() => import('./components/StJosephFamilyDashboard'), 'components/StJosephFamilyDashboard');
 const CouncilOracle = lazyWithRetry(() => import('./components/council/CouncilOracle'), 'components/council/CouncilOracle');
@@ -115,6 +116,8 @@ function App() {
                 <RouteErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Landing />} />
+                  {/* Public, no-account quiz reached via a shared link. */}
+                  <Route path="/quiz/:token" element={<PublicPersonalityQuiz />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route
