@@ -1,0 +1,380 @@
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ARRAY, Float, JSON, ForeignKey, event
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import synonym
+from sqlalchemy.sql import func
+from app.db.session import Base
+from pgvector.sqlalchemy import Vector
+import uuid
+
+
+class ArchetypalAI(Base):
+    __tablename__ = "archetypal_ais"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text, default="My personal AI created from my memories and experiences")
+    personality_traits = Column(JSON, default=dict)
+    total_memories = Column(Integer, default=0)
+    training_status = Column(String, default='untrained')
+    avatar_url = Column(String)
+    archetype = Column(String)
+    dimension_scores = Column(JSON, default=dict)
+    completeness_by_category = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    @hybrid_property
+    def is_ai_active(self) -> bool:
+        return (self.training_status or 'untrained') in {'active', 'ready', 'trained'}
+
+    @is_ai_active.setter
+    def is_ai_active(self, value: bool) -> None:
+        if value:
+            if self.training_status in {None, "", "inactive", "untrained"}:
+                self.training_status = "active"
+        else:
+            self.training_status = "inactive"
+
+    @hybrid_property
+    def ai_readiness_score(self) -> int:
+        scores = self.dimension_scores or {}
+        return int(scores.get("ai_readiness_score", 0))
+
+    @ai_readiness_score.setter
+    def ai_readiness_score(self, value: int) -> None:
+        scores = dict(self.dimension_scores or {})
+        scores["ai_readiness_score"] = int(value or 0)
+        self.dimension_scores = scores
+
+
+class DailyQuestionResponse(Base):
+    __tablename__ = "daily_question_responses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    question_id = Column(UUID(as_uuid=True))
+    question_text = Column(Text, nullable=False)
+    response_text = Column(Text, nullable=False)
+    day_number = Column(Integer, nullable=False)
+    mood = Column(String)
+    dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="SET NULL"))
+    category_id = Column(UUID(as_uuid=True), ForeignKey("question_categories.id", ondelete="SET NULL"))
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"))
+    engram_id = synonym("ai_id")
+    question_category = Column(String)
+    embedding_generated = Column(Boolean, default=False)
+    training_permitted = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+def _normalize_training_status_for_db(target: ArchetypalAI) -> None:
+    if target.training_status in {"active", "trained"}:
+        target.training_status = "ready"
+    elif target.training_status == "inactive":
+        target.training_status = "untrained"
+
+
+@event.listens_for(ArchetypalAI, "before_insert")
+def _normalize_training_status_before_insert(mapper, connection, target) -> None:
+    _normalize_training_status_for_db(target)
+
+
+@event.listens_for(ArchetypalAI, "before_update")
+def _normalize_training_status_before_update(mapper, connection, target) -> None:
+    _normalize_training_status_for_db(target)
+
+
+class DailyQuestionEmbedding(Base):
+    __tablename__ = "daily_question_embeddings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    response_id = Column(UUID(as_uuid=True), ForeignKey("daily_question_responses.id", ondelete="CASCADE"), nullable=False, unique=True)
+    embedding = Column(Vector(384), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EngramAsset(Base):
+    __tablename__ = "engram_assets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    engram_id = synonym("ai_id")
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    asset_type = Column(String) # photo, video, voice_note, etc.
+    file_url = Column(String, nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Removed - replaced by personality_traits table
+
+
+class UserDailyProgress(Base):
+    __tablename__ = "user_daily_progress"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), unique=True, nullable=False)
+    current_day = Column(Integer, default=1)
+    total_responses = Column(Integer, default=0)
+    streak_days = Column(Integer, default=0)
+    last_response_date = Column(DateTime(timezone=True))
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AIConversation(Base):
+    __tablename__ = "ai_conversations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    engram_id = synonym("ai_id")
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    title = Column(String, default="New Conversation")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AIMessage(Base):
+    __tablename__ = "ai_messages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(UUID(as_uuid=True), ForeignKey("ai_conversations.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AITask(Base):
+    __tablename__ = "ai_tasks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    engram_id = synonym("ai_id")
+    task_name = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    task_description = synonym("description")
+    frequency = Column(String, default="on_demand")
+    is_active = Column(Boolean, default=True)
+    last_executed = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def task_type(self) -> str:
+        return self.__dict__.get("_task_type", "custom")
+
+    @task_type.setter
+    def task_type(self, value: str) -> None:
+        self.__dict__["_task_type"] = value or "custom"
+
+    @property
+    def execution_log(self) -> list[dict]:
+        return self.__dict__.setdefault("_execution_log", [])
+
+    @execution_log.setter
+    def execution_log(self, value: list[dict]) -> None:
+        self.__dict__["_execution_log"] = list(value or [])
+
+
+# New models for multi-layer personality system
+
+class PersonalityDimension(Base):
+    __tablename__ = "personality_dimensions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dimension_name = Column(Text, nullable=False, unique=True)
+    display_name = Column(Text, nullable=False)
+    description = Column(Text)
+    parent_dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="CASCADE"))
+    depth_level = Column(Integer, nullable=False, default=0)
+    dimension_order = Column(Integer, nullable=False, default=0)
+    affects_task_types = Column(ARRAY(Text), default=list)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PersonalityTrait(Base):
+    __tablename__ = "personality_traits"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ai_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="CASCADE"), nullable=False)
+    trait_name = Column(Text, nullable=False)
+    trait_value = Column(Text, nullable=False)
+    confidence_score = Column(Float, default=0.0)
+    supporting_responses = Column(ARRAY(UUID(as_uuid=True)), default=list)
+    extracted_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    is_verified = Column(Boolean, default=False)
+
+
+class QuestionCategory(Base):
+    __tablename__ = "question_categories"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    category_name = Column(Text, nullable=False, unique=True)
+    display_name = Column(Text, nullable=False)
+    description = Column(Text)
+    dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="SET NULL"))
+    parent_category_id = Column(UUID(as_uuid=True), ForeignKey("question_categories.id", ondelete="CASCADE"))
+    question_count = Column(Integer, default=0)
+    depth_level = Column(Integer, default=0)
+    category_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DailyQuestionPool(Base):
+    __tablename__ = "daily_question_pool"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_text = Column(Text, nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("question_categories.id", ondelete="SET NULL"))
+    dimension_id = Column(UUID(as_uuid=True), ForeignKey("personality_dimensions.id", ondelete="SET NULL"))
+    difficulty_level = Column(Integer, default=1)
+    requires_deep_thought = Column(Boolean, default=False)
+    follow_up_questions = Column(ARRAY(Text), default=list)
+    day_range_start = Column(Integer, default=1)
+    day_range_end = Column(Integer, default=365)
+    is_active = Column(Boolean, default=True)
+    usage_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FamilyMemberInvitation(Base):
+    __tablename__ = "family_member_invitations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False)
+    inviter_user_id = Column(UUID(as_uuid=True), nullable=False)
+    invitee_email = Column(String, nullable=False, index=True)
+    invitee_name = Column(String, nullable=False)
+    invitation_token = Column(String, nullable=False, unique=True, index=True)
+    invitation_message = Column(Text, nullable=False)
+    status = Column(String, default="pending", nullable=False)
+    delivery_status = Column(String, default="pending", nullable=False)
+    delivery_error = Column(Text)
+    questions_to_answer = Column(Integer, default=365, nullable=False)
+    questions_answered = Column(Integer, default=0, nullable=False)
+    sent_at = Column(DateTime(timezone=True))
+    accepted_at = Column(DateTime(timezone=True))
+    last_response_at = Column(DateTime(timezone=True))
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ExternalResponse(Base):
+    __tablename__ = "external_responses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    invitation_id = Column(UUID(as_uuid=True), ForeignKey("family_member_invitations.id", ondelete="CASCADE"), nullable=False, index=True)
+    engram_id = Column(UUID(as_uuid=True), ForeignKey("archetypal_ais.id", ondelete="CASCADE"), nullable=False, index=True)
+    question_text = Column(Text, nullable=False)
+    response_text = Column(Text, nullable=False)
+    question_category = Column(String)
+    dimension_id = Column(UUID(as_uuid=True))
+    day_number = Column(Integer, nullable=False)
+    response_length = Column(Integer, default=0)
+    is_processed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class VoiceProfile(Base):
+    __tablename__ = "voice_profiles"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_user_id = Column(String, nullable=False, index=True)
+    family_member_id = Column(String, nullable=False, index=True)
+    engram_id = Column(String, index=True)
+    status = Column(String, default="collecting", nullable=False)
+    consent_status = Column(String, default="pending", nullable=False)
+    training_status = Column(String, default="collecting", nullable=False)
+    sample_count = Column(Integer, default=0, nullable=False)
+    approved_seconds = Column(Float, default=0.0, nullable=False)
+    model_ref = Column(String)
+    voice_style_notes = Column(Text)
+    guided_sample_progress = Column(JSON, default=dict)
+    consent_snapshot_json = Column(JSON, default=dict)
+    last_trained_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VoiceSample(Base):
+    __tablename__ = "voice_samples"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    voice_profile_id = Column(UUID(as_uuid=True), ForeignKey("voice_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, nullable=False, index=True)
+    family_member_id = Column(String, nullable=False, index=True)
+    clip_type = Column(String, nullable=False)
+    prompt_text = Column(Text)
+    storage_path = Column(String, nullable=False)
+    transcript = Column(Text)
+    transcript_confidence = Column(Float, default=0.0, nullable=False)
+    duration_seconds = Column(Float, default=0.0, nullable=False)
+    quality_json = Column(JSON, default=dict)
+    approved = Column(Boolean, default=False, nullable=False)
+    review_status = Column(String, default="pending", nullable=False)
+    derived_quiz_question_id = Column(String)
+    consent_snapshot_json = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VoiceTrainingRun(Base):
+    __tablename__ = "voice_training_runs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    voice_profile_id = Column(UUID(as_uuid=True), ForeignKey("voice_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, nullable=False, index=True)
+    status = Column(String, default="queued", nullable=False)
+    sample_count = Column(Integer, default=0, nullable=False)
+    approved_seconds = Column(Float, default=0.0, nullable=False)
+    sidecar_job_ref = Column(String)
+    request_payload = Column(JSON, default=dict)
+    result_json = Column(JSON, default=dict)
+    error_text = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VoiceSynthSession(Base):
+    __tablename__ = "voice_synth_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    voice_profile_id = Column(UUID(as_uuid=True), ForeignKey("voice_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_user_id = Column(String, nullable=False, index=True)
+    family_member_id = Column(String, nullable=False, index=True)
+    engram_id = Column(String, index=True)
+    text_content = Column(Text, nullable=False)
+    status = Column(String, default="pending", nullable=False)
+    sidecar_request_json = Column(JSON, default=dict)
+    result_json = Column(JSON, default=dict)
+    output_ref = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TraitTaskAssociation(Base):
+    __tablename__ = "trait_task_associations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    trait_id = Column(UUID(as_uuid=True), ForeignKey("personality_traits.id", ondelete="CASCADE"), nullable=False)
+    task_type = Column(Text, nullable=False)
+    relevance_score = Column(Float, default=0.5)
+    affects_execution = Column(Boolean, default=True)
+    execution_modifier = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Aliases for backward compatibility with API
+Engram = ArchetypalAI
+EngramDailyResponse = DailyQuestionResponse
+EngramPersonalityFilter = PersonalityTrait
+EngramAITask = AITask
+EngramAssetModel = EngramAsset
+
+

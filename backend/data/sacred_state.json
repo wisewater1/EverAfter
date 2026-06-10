@@ -1,0 +1,13 @@
+{
+  "demo-user-001": {
+    "is_candle_lit": true,
+    "atmosphere": "tranquil",
+    "active_shroud": "none",
+    "active_guardian_id": null,
+    "biometric_mode": false,
+    "iot_scene_active": "none",
+    "glow_intensity": 0.5,
+    "transition_speed": 10.0,
+    "metadata": {}
+  }
+}

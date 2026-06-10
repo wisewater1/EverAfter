@@ -1,6 +1,14 @@
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Logs
 logs
 *.log
+backend/*.txt
+!backend/requirements-ml.txt
+backend/*.log
+*.tmp
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -23,3 +31,32 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Virtual Environments
+venv/
+venv_new/
+venv_stable/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.mypy_cache/
+backend/models/
+*.gguf
+
+# Local Netlify folder
+.netlify
+
+# Local runtime artifacts
+output/
+backend/storage/
+voice-ai-service/storage/
+.playwright-cli/
+playwright-report/
+test-results/

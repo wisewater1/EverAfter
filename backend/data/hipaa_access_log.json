@@ -1,0 +1,56 @@
+[
+  {
+    "event_id": "phi-000001",
+    "timestamp": "2026-02-26T21:18:06.518319+00:00",
+    "user_id": "system",
+    "saint_id": "joseph",
+    "action": "minimum_necessary_violation:Checking on Grandma",
+    "data_types": [
+      "diagnosis",
+      "medication"
+    ],
+    "context": "Requested ['diagnosis', 'medication']",
+    "outcome": "flagged",
+    "hipaa_rule": "\u00a7164.312(b) Audit Controls"
+  },
+  {
+    "event_id": "phi-000002",
+    "timestamp": "2026-02-26T21:18:06.520463+00:00",
+    "user_id": "afd5becb-4385-4939-b925-76a57f1bd853",
+    "saint_id": "raphael",
+    "action": "read_vitals",
+    "data_types": [
+      "biometrics"
+    ],
+    "context": "User asked for daily summary",
+    "outcome": "allowed",
+    "hipaa_rule": "\u00a7164.312(b) Audit Controls"
+  },
+  {
+    "event_id": "phi-000003",
+    "timestamp": "2026-02-26T21:20:56.544553+00:00",
+    "user_id": "system",
+    "saint_id": "joseph",
+    "action": "minimum_necessary_violation:Checking on Grandma",
+    "data_types": [
+      "diagnosis",
+      "medication"
+    ],
+    "context": "Requested ['diagnosis', 'medication']",
+    "outcome": "flagged",
+    "hipaa_rule": "\u00a7164.312(b) Audit Controls"
+  },
+  {
+    "event_id": "phi-000004",
+    "timestamp": "2026-02-26T21:20:56.545807+00:00",
+    "user_id": "67fc4961-9baf-4812-b70e-ee0592aefb0f",
+    "saint_id": "raphael",
+    "action": "read_vitals",
+    "data_types": [
+      "biometrics"
+    ],
+    "context": "User asked for daily summary",
+    "outcome": "allowed",
+    "hipaa_rule": "\u00a7164.312(b) Audit Controls"
+  }
+]

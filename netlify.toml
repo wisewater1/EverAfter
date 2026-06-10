@@ -1,0 +1,43 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  SECRETS_SCAN_ENABLED = "false"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+    Pragma = "no-cache"
+
+[[redirects]]
+  from = "/api/v1/*"
+  to = "https://everafter-api-voac.onrender.com/api/v1/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://everafter-api-voac.onrender.com/health"
+  status = 200
+  force = true
+
+# The backend governance router is mounted at /governance (not /api/v1), so it
+# must be proxied explicitly — otherwise these calls fall through to the SPA
+# catch-all below and return index.html instead of JSON.
+[[redirects]]
+  from = "/governance/*"
+  to = "https://everafter-api-voac.onrender.com/governance/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/assets/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
