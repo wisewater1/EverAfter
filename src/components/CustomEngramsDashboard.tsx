@@ -187,7 +187,9 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
   const loadAIs = useCallback(async () => {
     try {
       const data = await apiClient.getEngrams();
-      setAIs(data || []);
+      // Demo/proxy layers have returned object payloads here; a non-array
+      // poisons every `ais.filter(...)` below and hard-crashes the page.
+      setAIs(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading AIs:', error);
     } finally {

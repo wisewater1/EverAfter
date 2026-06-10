@@ -398,6 +398,13 @@ function matchEndpoint(url: string): Response | null {
     });
   }
 
+  // Engrams list — the real endpoint returns a bare array (List[EngramResponse]).
+  // Returning an object here crashes every caller that does data.filter(...)
+  // (e.g. CustomEngramsDashboard's "c.filter is not a function").
+  if (/\/api\/v1\/engrams\/?($|\?)/.test(path)) {
+    return mockResponse([]);
+  }
+
   // Engram / personality endpoints
   if (path.includes('/engram') || path.includes('/personality')) {
     return mockResponse({
