@@ -1,2 +1,5 @@
- /assets/* /404.html 404
+/api/v1/*  https://everafter-api-voac.onrender.com/api/v1/:splat  200!
+/health  https://everafter-api-voac.onrender.com/health  200!
+/governance/*  https://everafter-api-voac.onrender.com/governance/:splat  200!
+/assets/* /404.html 404
 /* /index.html 200
