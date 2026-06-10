@@ -17,6 +17,7 @@
  */
 
 import { isDemoAuthEnabled } from '../demo-auth';
+import { DEMO_QUIZ_QUESTIONS, buildDemoProfile } from './demoPersonalityQuiz';
 
 // ============================================================
 // MOCK DATA: Runtime Readiness (unlocks ALL saints)
@@ -323,8 +324,45 @@ function mockResponse(data: any, status = 200): Response {
   });
 }
 
-function matchEndpoint(url: string, method: string = 'GET'): Response | null {
+function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
   const path = new URL(url, window.location.origin).pathname;
+
+  // Personality quiz — MUST come before the generic `/personality` matcher
+  // below, which would otherwise swallow these and return a stub with no
+  // questions/scores (that's why demo quizzes loaded nothing and produced an
+  // "analysis" disconnected from the answers). Here the profile is computed
+  // from the actual submitted answers.
+  if (path.includes('/personality-quiz/questions')) {
+    return mockResponse({ questions: DEMO_QUIZ_QUESTIONS, total: DEMO_QUIZ_QUESTIONS.length });
+  }
+  if (path.includes('/personality-quiz/start')) {
+    let memberId = '', memberName = '';
+    try {
+      const parsed = typeof body === 'string' ? JSON.parse(body) : {};
+      memberId = parsed.member_id || '';
+      memberName = parsed.member_name || '';
+    } catch { /* ignore */ }
+    return mockResponse({
+      session_id: `demo-quiz-${memberId || 'session'}`,
+      member_id: memberId,
+      member_name: memberName,
+      total_questions: DEMO_QUIZ_QUESTIONS.length,
+      questions: DEMO_QUIZ_QUESTIONS,
+    });
+  }
+  if (path.includes('/personality-quiz/submit')) {
+    let answers: Record<string, number> = {}, memberId = '', memberName = '';
+    try {
+      const parsed = typeof body === 'string' ? JSON.parse(body) : {};
+      answers = parsed.answers || {};
+      memberId = parsed.member_id || '';
+      memberName = parsed.member_name || '';
+    } catch { /* ignore */ }
+    return mockResponse(buildDemoProfile(answers, memberId, memberName));
+  }
+  if (path.includes('/personality-quiz/profile')) {
+    return mockResponse({});
+  }
 
   // System Monitor — full SystemMetrics shape with breathing history charts.
   if (path.includes('/monitoring/metrics')) {
@@ -549,7 +587,7 @@ export function initDemoInterceptor(): void {
 
     // Only intercept API calls
     if (url.includes('/api/') || url.includes('supabase')) {
-      const mockResp = matchEndpoint(url, (init?.method || 'GET').toUpperCase());
+      const mockResp = matchEndpoint(url, (init?.method || 'GET').toUpperCase(), init?.body);
       if (mockResp) {
         // Small delay to simulate network latency
         await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
