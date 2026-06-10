@@ -463,6 +463,33 @@ export function initDemoInterceptor(): void {
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
+    // Never fake auth — supabase-js manages demo-less sessions locally.
+    if (url.includes('.supabase.co/auth/v1/')) {
+      return originalFetch.call(window, input, init);
+    }
+
+    // Supabase PostgREST speaks its own shapes: list selects return a BARE
+    // ARRAY of rows, .single()/.maybeSingle() (Accept: vnd.pgrst.object) a
+    // lone object or a PGRST116 error. Feeding these callers the generic
+    // backend mocks (objects) crashed them ("data.map is not a function").
+    if (url.includes('.supabase.co/rest/v1/')) {
+      await new Promise(r => setTimeout(r, 80));
+      let accept = '';
+      try {
+        accept = new Headers((init?.headers ?? {}) as HeadersInit).get('accept') || '';
+      } catch { /* keep '' */ }
+      if (accept.includes('vnd.pgrst.object')) {
+        return new Response(
+          JSON.stringify({ message: 'JSON object requested, multiple (or no) rows returned', code: 'PGRST116', details: 'Results contain 0 rows', hint: null }),
+          { status: 406, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Content-Range': '*/0' },
+      });
+    }
+
     // Only intercept API calls
     if (url.includes('/api/') || url.includes('supabase')) {
       const mockResp = matchEndpoint(url);

@@ -134,7 +134,7 @@ export default function FamilyEngrams() {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (members) {
+      if (Array.isArray(members)) {
         const membersWithData = await Promise.all(
           members.map(async (member) => {
             const { data: engram } = await supabase

@@ -99,7 +99,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (data) setFamilyMembers(data.map(mapFamilyMember));
+    if (Array.isArray(data)) setFamilyMembers(data.map(mapFamilyMember));
   }, [userId]);
 
   const loadQuestionResponses = useCallback(async () => {
