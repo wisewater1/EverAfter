@@ -422,9 +422,15 @@ class APIClient {
     });
 
     try {
-      return await this.requestBackendJson<EngramResponse[]>(`/api/v1/engrams/`, {
+      const data = await this.requestBackendJson<EngramResponse[]>(`/api/v1/engrams/`, {
         headers
       }, 'Engrams API Error');
+      // Every caller does array ops on this. Demo/proxy layers have returned
+      // object payloads ({ engrams: [...] }) here, which hard-crashed pages
+      // ("c.filter is not a function") — normalize instead of trusting the wire.
+      if (Array.isArray(data)) return data;
+      const nested = (data as { engrams?: unknown } | null)?.engrams;
+      return Array.isArray(nested) ? (nested as EngramResponse[]) : [];
     } catch (error) {
       console.error("Engrams API Error:", error);
       throw error;
