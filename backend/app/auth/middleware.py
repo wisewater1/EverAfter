@@ -10,6 +10,10 @@ from app.db.session import get_session_factory
 
 DEFAULT_DEMO_USER_ID = "00000000-0000-0000-0000-000000000001"
 PUBLIC_PATHS = {"/", "/docs", "/redoc", "/openapi.json", "/api/v1/openapi.json", "/health"}
+# Unauthenticated-by-design prefixes: a friend without an account answers a
+# tokenized quiz here. Access is gated by the high-entropy share token, not a
+# session. Keep this list tiny and strictly token-scoped.
+PUBLIC_PATH_PREFIXES = ("/api/v1/personality-quiz/public/",)
 _demo_user_id_cache: Optional[str] = None
 
 
@@ -67,7 +71,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         if request.method.upper() == "OPTIONS":
             return await call_next(request)
 
-        if request.url.path in PUBLIC_PATHS:
+        if request.url.path in PUBLIC_PATHS or request.url.path.startswith(PUBLIC_PATH_PREFIXES):
             return await call_next(request)
 
         authorization = (request.headers.get("Authorization") or "").strip()

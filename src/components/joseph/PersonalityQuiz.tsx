@@ -289,7 +289,18 @@ export default function PersonalityQuiz({
         const session = await ensureQuizSession(member);
         if (!session) return;
 
-        const { subject, body, link } = buildQuizShareMessage(`${member.firstName} ${member.lastName}`, member.id);
+        const fullName = `${member.firstName} ${member.lastName}`;
+        // Prefer a real server invite → a public /quiz/<token> link a friend can
+        // answer with no account, on any device. Fall back to the local link if
+        // the backend is unavailable (demo/offline).
+        const invite = await apiClient.createQuizInvite(fullName, member.id);
+        const { subject, body, link } = invite
+            ? {
+                subject: `EverAfter personality questions for ${fullName}`,
+                body: `Please answer a few quick questions about ${fullName} here (no account needed): ${window.location.origin}${invite.share_path}`,
+                link: `${window.location.origin}${invite.share_path}`,
+              }
+            : buildQuizShareMessage(fullName, member.id);
         const shareText = `${subject}\n\n${body}`;
 
         try {

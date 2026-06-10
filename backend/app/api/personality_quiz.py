@@ -5,8 +5,18 @@ Router prefix: /api/v1/personality-quiz
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Body
-from typing import Dict, Any
+import secrets
+from datetime import datetime, timezone
+from typing import Any, Dict
+from uuid import UUID
+
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.dependencies import get_current_user
+from app.db.session import get_async_session
+from app.models.quiz_invite import QuizInvite
 
 router = APIRouter(prefix="/api/v1/personality-quiz", tags=["Personality Quiz"])
 
@@ -58,3 +68,120 @@ async def get_profile(member_id: str):
     if not profile:
         return {"error": "No profile found. Complete the quiz first."}
     return profile
+
+
+# ── Shareable friend-quiz invites ────────────────────────────────────────────
+# An owner mints a tokenized link; a friend (no account, any device) answers it
+# at /quiz/<token>; the profile is stored back against the invite.
+
+def _public_invite_view(invite: QuizInvite) -> Dict[str, Any]:
+    return {
+        "token": invite.token,
+        "subject_name": invite.subject_name,
+        "subject_member_id": invite.subject_member_id,
+        "status": invite.status,
+        "share_path": f"/quiz/{invite.token}",
+        "created_at": invite.created_at.isoformat() if invite.created_at else None,
+        "completed_at": invite.completed_at.isoformat() if invite.completed_at else None,
+        "profile": invite.profile,
+    }
+
+
+@router.post("/invites")
+async def create_invite(
+    payload: Dict[str, Any] = Body(default={}),
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """Owner: create a shareable quiz invite, returns the token + share path."""
+    sub = current_user.get("sub") or current_user.get("id")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+    try:
+        owner_uuid = UUID(str(sub))
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id")
+
+    invite = QuizInvite(
+        token=secrets.token_urlsafe(24),
+        owner_user_id=owner_uuid,
+        subject_name=(payload.get("subject_name") or "a loved one")[:120],
+        subject_member_id=payload.get("subject_member_id"),
+        status="pending",
+    )
+    session.add(invite)
+    await session.commit()
+    return _public_invite_view(invite)
+
+
+@router.get("/invites")
+async def list_invites(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """Owner: list their invites and any completed results."""
+    sub = current_user.get("sub") or current_user.get("id")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+    try:
+        owner_uuid = UUID(str(sub))
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id")
+
+    try:
+        rows = (
+            await session.execute(
+                select(QuizInvite).where(QuizInvite.owner_user_id == owner_uuid).order_by(QuizInvite.created_at.desc())
+            )
+        ).scalars().all()
+    except Exception:
+        return {"invites": []}
+    return {"invites": [_public_invite_view(r) for r in rows]}
+
+
+@router.get("/public/{token}")
+async def get_public_invite(token: str, session: AsyncSession = Depends(get_async_session)):
+    """Public (no auth): a friend loads the quiz questions for a token."""
+    invite = await session.get(QuizInvite, token)
+    if not invite:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This quiz link is invalid or has expired.")
+    return {
+        "subject_name": invite.subject_name,
+        "status": invite.status,
+        "questions": _engine().get_questions(),
+        "total": 50,
+    }
+
+
+@router.post("/public/{token}/submit")
+async def submit_public_invite(
+    token: str,
+    payload: Dict[str, Any] = Body(...),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Public (no auth): a friend submits answers for a tokenized invite."""
+    invite = await session.get(QuizInvite, token)
+    if not invite:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This quiz link is invalid or has expired.")
+
+    answers = payload.get("answers", {})
+    if not isinstance(answers, dict) or not answers:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No answers submitted.")
+
+    profile = _engine().submit_answers(
+        session_id=f"invite-{token}",
+        answers=answers,
+        member_id=invite.subject_member_id or token,
+        member_name=invite.subject_name,
+    )
+
+    invite.answers = answers
+    invite.profile = profile
+    invite.status = "completed"
+    invite.completed_at = datetime.now(timezone.utc)
+    await session.commit()
+
+    # The friend gets a gracious confirmation + the headline archetype, not the
+    # full profile (that belongs to the owner).
+    archetype = (profile or {}).get("archetype") if isinstance(profile, dict) else None
+    return {"ok": True, "subject_name": invite.subject_name, "archetype": archetype}
