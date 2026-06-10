@@ -133,7 +133,8 @@ export default function CreatorDashboard() {
         }
       });
       if (mineableRes.ok) {
-        setMineableEngrams(await mineableRes.json());
+        const mineable = await mineableRes.json();
+        setMineableEngrams(Array.isArray(mineable) ? mineable : []);
       }
     } catch (error) {
       console.warn('Creator dashboard degraded to local fallback:', error);
