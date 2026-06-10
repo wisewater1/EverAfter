@@ -543,7 +543,7 @@ class APIClient {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       logger.error('Failed to list tasks', error, { engramId });
       throw error;
@@ -612,7 +612,8 @@ class APIClient {
       });
 
       try {
-        return await this.requestBackendJson('/api/v1/saints/status', { headers }, 'Unable to load saints status');
+        const data = await this.requestBackendJson('/api/v1/saints/status', { headers }, 'Unable to load saints status');
+        return Array.isArray(data) ? data : [];
       } catch (error) {
         console.error("Get Saints Status Error:", error);
         throw error;
@@ -683,7 +684,8 @@ class APIClient {
     }
 
     try {
-      return await this.requestBackendJson(endpoint, { headers }, `Unable to load saint knowledge for ${saintId}`);
+      const data = await this.requestBackendJson(endpoint, { headers }, `Unable to load saint knowledge for ${saintId}`);
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Get Saint Knowledge Error:", error);
       throw error;
@@ -720,7 +722,8 @@ class APIClient {
     });
 
     try {
-      return await this.requestBackendJson(`/api/v1/saints/${saintId}/history`, { headers }, `Unable to load saint chat history for ${saintId}`);
+      const data = await this.requestBackendJson(`/api/v1/saints/${saintId}/history`, { headers }, `Unable to load saint chat history for ${saintId}`);
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Get Chat History Error:", error);
       throw error;
@@ -749,7 +752,8 @@ class APIClient {
     const headers = await this.buildAuthHeaders();
 
     try {
-      return await this.requestBackendJson(`/api/v1/saints/missions/active`, { headers }, 'Unable to load active missions');
+      const data = await this.requestBackendJson(`/api/v1/saints/missions/active`, { headers }, 'Unable to load active missions');
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Get Missions Error:", error);
       // Return empty array on error to prevent UI crash
@@ -761,7 +765,8 @@ class APIClient {
     const headers = await this.buildAuthHeaders();
 
     try {
-      return await this.requestBackendJson(`/api/v1/saints/intercessions/pending`, { headers }, 'Unable to load pending intercessions');
+      const data = await this.requestBackendJson(`/api/v1/saints/intercessions/pending`, { headers }, 'Unable to load pending intercessions');
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Get Pending Intercessions Error:", error);
       return [];
@@ -854,7 +859,8 @@ class APIClient {
       });
 
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      const data = await response.json();
+      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
     } catch (error) {
       console.error("Get Social Clusters Error:", error);
       return {};
