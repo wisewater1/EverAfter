@@ -262,11 +262,11 @@ npm install -g vercel
 vercel --prod
 ```
 
-### Alternative: Netlify
-```bash
-npm install -g netlify-cli
-netlify deploy --prod
-```
+## Additional Documentation
+
+- [Ghost-Cone Volumetric Apparition with AI Personality Integration](./docs/ghost-cone-volumetric-apparition.md): Research synthesis covering volumetric display foundations, subsystem design, and AI personality integration for mid-air memorial projections.
+
+## Contributing
 
 ## Health Connectors Setup
 
