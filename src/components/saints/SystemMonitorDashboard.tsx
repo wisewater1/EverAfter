@@ -54,8 +54,9 @@ export default function SystemMonitorDashboard() {
 
             if (response.ok) {
                 const data = await response.json();
-                // Process history to friendly time format
-                if (data.history) {
+                // The JSX dereferences resources/history unconditionally — only
+                // accept payloads that actually have the metrics shape.
+                if (data?.resources && Array.isArray(data?.history?.cpu) && Array.isArray(data?.history?.memory)) {
                     data.history.cpu = data.history.cpu.map((p: any) => ({
                         ...p,
                         time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -64,9 +65,9 @@ export default function SystemMonitorDashboard() {
                         ...p,
                         time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
                     }));
+                    setMetrics(data);
+                    setLastUpdated(new Date());
                 }
-                setMetrics(data);
-                setLastUpdated(new Date());
             }
         } catch (err) {
             console.error("Failed to fetch metrics", err);

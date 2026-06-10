@@ -43,7 +43,7 @@ export default function TimeCapsuleVault() {
                 { headers },
                 'Failed to load time capsules.',
             );
-            setCapsules(data);
+            setCapsules(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error(error);
         } finally {
