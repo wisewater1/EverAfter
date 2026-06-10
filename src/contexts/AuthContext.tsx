@@ -86,6 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
     if (isDemoAuthEnabled()) {
       const demoState = readDemoAuthState();
+      // Reloads must re-install the fetch interceptor, or every API call goes
+      // to the real backend with the fake demo token (401 "Not enough
+      // segments" storms, cold-start hangs, empty dashboards).
+      initDemoInterceptor();
       setSession(demoState.session);
       setUser(demoState.user);
       setIsDemoMode(true);
