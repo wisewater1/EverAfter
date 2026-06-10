@@ -398,6 +398,22 @@ function matchEndpoint(url: string): Response | null {
     });
   }
 
+  // Elohim sealed-status — in the demo, every requested artifact reads as
+  // sealed so the St Joseph permanence badge is visible.
+  if (path.includes('/api/v1/elohim/anchors')) {
+    const rawIds = (path.split('ref_ids=')[1] || '').split('&')[0];
+    const ids = decodeURIComponent(rawIds).split(',').filter(Boolean);
+    const anchors: Record<string, { ref_type: string; sigil: string; sealed_at: string }> = {};
+    ids.forEach((id, i) => {
+      anchors[id] = {
+        ref_type: 'soul',
+        sigil: `d3a0${(i + 1).toString(16).padStart(12, '0')}`,
+        sealed_at: new Date().toISOString(),
+      };
+    });
+    return mockResponse({ anchors });
+  }
+
   // Engrams list — the real endpoint returns a bare array (List[EngramResponse]).
   // Returning an object here crashes every caller that does data.filter(...)
   // (e.g. CustomEngramsDashboard's "c.filter is not a function").

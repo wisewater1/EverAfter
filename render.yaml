@@ -75,6 +75,37 @@ services:
         sync: false
       - key: WISEGOLD_ORACLE_API_KEY
         sync: false
+
+  # Elohim anchor worker — seals engrams (souls), daily responses (memories)
+  # and St Joseph family relationships (bonds) into the signed, post-quantum
+  # ledger. One cursor-incremental single writer, looping every 20s
+  # (near-real-time). The ledger + keyring MUST live on the persistent disk —
+  # losing the keyring means the ledger can never be extended as that keeper.
+  # NOTE: persistent disks require a paid instance (starter) — not free tier.
+  - type: worker
+    name: everafter-elohim-anchor
+    runtime: docker
+    plan: starter
+    rootDir: backend
+    dockerfilePath: ./Dockerfile.elohim
+    autoDeploy: true
+    disk:
+      name: elohim-ledger
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ELOHIM_LEDGER
+        value: /data/everafter.ledger.json
+      - key: ELOHIM_KEEPER
+        value: everafter
+      # Build-time only: fine-grained GitHub token with read-only Contents
+      # access to the private wisewater1/Elohim repo (the image build clones
+      # and compiles the CLI). Not used at runtime.
+      - key: ELOHIM_REPO_TOKEN
+        sync: false
+
   - type: web
     name: everafter-voice-ai
     runtime: python

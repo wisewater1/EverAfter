@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+# Elohim anchor worker image.
+#
+# Stage 1 builds the private Elohim CLI (github.com/wisewater1/Elohim, Crystal)
+# as a static musl binary; stage 2 is the Python worker that runs the
+# cursor-incremental anchor loop. The private source never lands in the public
+# repo — only this build, inside your Render account, ever sees it.
+#
+# Required build-time env (Render exposes service env vars to Docker builds):
+#   ELOHIM_REPO_TOKEN  fine-grained GitHub token, read-only Contents access to
+#                      wisewater1/Elohim only. Rotate it freely; it is not
+#                      needed at runtime.
+
+FROM crystallang/crystal:1.14-alpine AS elohim-build
+ARG ELOHIM_REPO_TOKEN
+RUN test -n "$ELOHIM_REPO_TOKEN" || (echo "ELOHIM_REPO_TOKEN is required (read-only token for the private Elohim repo)" && exit 1)
+RUN apk add --no-cache git
+RUN git clone --depth 1 "https://x-access-token:${ELOHIM_REPO_TOKEN}@github.com/wisewater1/Elohim" /elohim
+WORKDIR /elohim
+RUN if [ -f shard.yml ]; then shards install --production; fi
+RUN crystal build --release --static src/elohim.cr -o /elohim/elohim && /elohim/elohim --help >/dev/null 2>&1 || true
+
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+COPY --from=elohim-build /elohim/elohim /usr/local/bin/elohim
+ENV ELOHIM_BIN=/usr/local/bin/elohim
+# Near-real-time anchoring: the same single writer, every 20 seconds.
+CMD ["python", "-m", "app.workers.elohim_anchor", "--loop", "--interval", "20"]

@@ -438,6 +438,31 @@ class APIClient {
   }
 
   /**
+   * Which of the given artifacts are sealed in the Elohim ledger.
+   * Sealed-status is decorative — this never throws; absence means "not sealed
+   * (or status unavailable)".
+   */
+  async getElohimAnchors(
+    refIds: string[],
+  ): Promise<Record<string, { ref_type: string; sigil: string; sealed_at: string | null }>> {
+    if (!refIds.length) return {};
+    try {
+      const headers = await this.buildAuthHeaders({ 'Bypass-Tunnel-Reminder': 'true' });
+      const data = await this.requestBackendJson<{ anchors?: unknown }>(
+        `/api/v1/elohim/anchors?ref_ids=${encodeURIComponent(refIds.slice(0, 200).join(','))}`,
+        { headers },
+        'Elohim Anchors API Error',
+      );
+      const anchors = (data as { anchors?: unknown } | null)?.anchors;
+      return anchors && typeof anchors === 'object' && !Array.isArray(anchors)
+        ? (anchors as Record<string, { ref_type: string; sigil: string; sealed_at: string | null }>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Get time capsules from local backend
    */
   async getTimeCapsules(): Promise<any[]> {
