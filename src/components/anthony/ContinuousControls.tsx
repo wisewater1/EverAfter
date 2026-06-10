@@ -40,8 +40,8 @@ export default function ContinuousControls() {
                 const res = await fetch(buildApiUrl('/api/v1/audit/controls/readiness'));
                 if (res.ok) {
                     const data = await res.json();
-                    setScore(data.readiness_score);
-                    setControls(data.controls);
+                    setScore(Number.isFinite(data?.readiness_score) ? data.readiness_score : 100);
+                    setControls(Array.isArray(data?.controls) ? data.controls : FALLBACK_CONTROLS);
                 } else {
                     setScore(100);
                     setControls(FALLBACK_CONTROLS);

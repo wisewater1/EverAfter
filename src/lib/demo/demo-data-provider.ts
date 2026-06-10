@@ -442,9 +442,12 @@ function matchEndpoint(url: string): Response | null {
     return mockResponse({ complete: true, progress: 100, current_step: null, skipped: false });
   }
 
-  // Catch-all for any /api/v1/ endpoint — return empty success
+  // Catch-all for any unmocked /api/v1/ endpoint — fail like a real 404.
+  // A 200 with a generic object here poisons callers that expect endpoint
+  // shapes (arrays, metrics, controls): they crash on success but handle
+  // failure gracefully (fallback data / empty states). Let them fail.
   if (path.includes('/api/v1/')) {
-    return mockResponse({ status: 'ok', demo: true });
+    return mockResponse({ detail: 'Demo: endpoint not mocked' }, 404);
   }
 
   return null; // Not an API call — pass through
