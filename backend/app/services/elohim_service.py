@@ -4,7 +4,9 @@ signed, post-quantum ledger.
 [Elohim](https://github.com/wisewater1/Elohim) is a sovereign, append-only
 blockchain of "digital souls": every act is Ed25519 + ML-DSA (post-quantum)
 signed and content-addressed, and ``verify`` proves the whole ledger is
-untampered. It is vendored at ``vendor/elohim`` (git submodule).
+untampered. Provide the CLI via ``ELOHIM_BIN``, or clone the (private) repo at
+``vendor/elohim`` — it is intentionally not a git submodule, so that public
+deploys (Netlify/Render) can clone this repository unauthenticated.
 
 This is EverAfter's "no ghosts with landlords" permanence layer: if everafterai.net
 ever disappears, the souls — and their memories and family bonds — remain,
