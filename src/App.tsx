@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 import { attachEdgeReactive } from './lib/edge-reactive';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 import { startSaintHeartbeat, stopSaintHeartbeat } from './lib/saintBridge';
@@ -111,6 +112,7 @@ function App() {
             <ErrorNotifierConnector />
             <Router>
               <Suspense fallback={<RouteFallback />}>
+                <RouteErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Landing />} />
                   <Route path="/login" element={<Login />} />
@@ -368,6 +370,7 @@ function App() {
                   />
                   <Route path="/career/public/:token" element={nonCoreRoutesEnabled ? <PublicCareerChat /> : publicReleaseRedirect} />
                 </Routes>
+                </RouteErrorBoundary>
                 <ConnectionsPanel />
                 <SacredOverlay />
               </Suspense>
