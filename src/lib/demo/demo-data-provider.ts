@@ -323,8 +323,67 @@ function mockResponse(data: any, status = 200): Response {
   });
 }
 
-function matchEndpoint(url: string): Response | null {
+function matchEndpoint(url: string, method: string = 'GET'): Response | null {
   const path = new URL(url, window.location.origin).pathname;
+
+  // System Monitor — full SystemMetrics shape with breathing history charts.
+  if (path.includes('/monitoring/metrics')) {
+    const now = Date.now();
+    const points = (base: number, swing: number) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        time: new Date(now - (23 - i) * 60_000).toISOString(),
+        value: Math.round((base + Math.sin(i / 3) * swing + Math.random() * swing * 0.4) * 10) / 10,
+      }));
+    return mockResponse({
+      uptime_seconds: 86_400 * 3 + 4_523,
+      resources: { cpu_current: 23.4, memory_current: 41.7, disk_usage: 18.2 },
+      throughput: { total_requests: 48_213, error_rate: 0.4, error_count: 193 },
+      history: { cpu: points(22, 9), memory: points(40, 6) },
+    });
+  }
+
+  // Time capsules — GET lists sample capsules; POST echoes a created one.
+  if (/\/api\/v1\/time-capsules\/?($|\?)/.test(path)) {
+    const now = Date.now();
+    if (method === 'POST') {
+      return mockResponse({
+        id: `demo-capsule-${now}`,
+        title: 'New Capsule (demo)',
+        sender_saint_id: 'user',
+        is_unlocked: false,
+        unlock_date: new Date(now + 30 * 86_400_000).toISOString(),
+        created_at: new Date(now).toISOString(),
+      });
+    }
+    return mockResponse([
+      {
+        id: 'demo-capsule-1',
+        title: 'For your 30th birthday',
+        sender_saint_id: 'user',
+        is_unlocked: false,
+        unlock_date: new Date(now + 180 * 86_400_000).toISOString(),
+        created_at: new Date(now - 90 * 86_400_000).toISOString(),
+      },
+      {
+        id: 'demo-capsule-2',
+        title: 'The kitchen on Sunday mornings',
+        sender_saint_id: 'joseph',
+        is_unlocked: true,
+        unlock_date: new Date(now - 5 * 86_400_000).toISOString(),
+        created_at: new Date(now - 200 * 86_400_000).toISOString(),
+        content: 'Bread rising by the window, cardamom in the air — remember it exactly like this.',
+      },
+      {
+        id: 'demo-capsule-3',
+        title: 'Advice for hard seasons',
+        sender_saint_id: 'raphael',
+        is_unlocked: true,
+        unlock_date: new Date(now - 40 * 86_400_000).toISOString(),
+        created_at: new Date(now - 320 * 86_400_000).toISOString(),
+        content: 'Sleep first. Decide tomorrow. Walk before you write back.',
+      },
+    ]);
+  }
 
   // Runtime readiness — this is the KEY endpoint that unlocks everything
   if (path.includes('/runtime/readiness')) {
@@ -373,16 +432,11 @@ function matchEndpoint(url: string): Response | null {
   }
 
   // Trinity endpoints
-  if (path.includes('/trinity/vitality') || path.includes('/family-vitality')) {
-    return mockResponse(MOCK_TRINITY_DATA.family_vitality);
-  }
-  if (path.includes('/trinity/nudges') || path.includes('/nudges')) {
-    return mockResponse({ nudges: MOCK_TRINITY_DATA.smart_nudges });
-  }
-  if (path.includes('/trinity/goals') || path.includes('/cross-saint-goals')) {
-    return mockResponse({ goals: MOCK_TRINITY_DATA.cross_saint_goals });
-  }
-  if (path.includes('/trinity')) return mockResponse(MOCK_TRINITY_DATA);
+  // Trinity: deliberately NOT mocked. trinityApi calls /api/v1/trinity/synapse
+  // and, on failure, computes a full wire-compatible local model per action
+  // (vitality, calendar, chronicle, nudges, what-if…). Answering here with a
+  // generic shape used to feed the dashboard zeros; the 404 catch-all below
+  // routes it into that far richer fallback instead.
 
   // Saint AI Chat endpoints
   if (path.includes('/chat') || path.includes('/ai/') || path.includes('/council')) {
@@ -495,7 +549,7 @@ export function initDemoInterceptor(): void {
 
     // Only intercept API calls
     if (url.includes('/api/') || url.includes('supabase')) {
-      const mockResp = matchEndpoint(url);
+      const mockResp = matchEndpoint(url, (init?.method || 'GET').toUpperCase());
       if (mockResp) {
         // Small delay to simulate network latency
         await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
