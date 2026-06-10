@@ -12,6 +12,7 @@ from app.api import (
     causal_twin,
     chat,
     council,
+    elohim,
     engrams,
     finance,
     governance,
@@ -287,6 +288,7 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+app.include_router(elohim.router)
 app.include_router(engrams.router)
 app.include_router(chat.router)
 app.include_router(tasks.router)

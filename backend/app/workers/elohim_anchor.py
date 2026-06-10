@@ -11,10 +11,14 @@ It is incremental: a cursor sidecar (``<ledger>.cursor.json``) tracks the last
 sealed ``created_at`` per kind, so re-runs only seal new rows. It is the *only*
 process that should write the ledger (the Elohim CLI is single-writer).
 
-Run:
+Run once (cron) or continuously (worker dyno; still the single writer):
     DATABASE_URL=postgresql+asyncpg://... \
     ELOHIM_LEDGER=/data/everafter.ledger.json \
-        python -m app.workers.elohim_anchor [--limit N] [--reset]
+        python -m app.workers.elohim_anchor [--limit N] [--reset] [--loop [--interval S]]
+
+Each seal is also recorded in the ``elohim_anchors`` Postgres table so the web
+API (``GET /api/v1/elohim/anchors``) and the St Joseph UI can show sealed
+status without reading the ledger files on this worker's disk.
 
 Put the ledger on a persistent volume (not an ephemeral dyno) and back up its
 keyring (``<ledger-dir>/keyring.json``, mode 0600) — it signs every act.
@@ -80,6 +84,10 @@ def _iso(dt) -> Optional[str]:
 
 async def run(limit: int = 0, reset: bool = False) -> int:
     # Import models lazily so importing this module never drags in the ORM.
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    from app.db.session import Base
+    from app.models.elohim import ElohimAnchor
     from app.models.engram import Engram, EngramDailyResponse
     from app.models.genealogy import FamilyNode, FamilyRelationship
 
@@ -90,19 +98,36 @@ async def run(limit: int = 0, reset: bool = False) -> int:
     engine = create_async_engine(_database_url(), pool_pre_ping=True)
     Session = async_sessionmaker(engine, expire_on_commit=False)
 
+    async def record_anchor(session, ref_type: str, ref_id: str, user_id, sigil: str) -> None:
+        if user_id is None:
+            return  # can't scope the row to an owner; skip the status record
+        stmt = pg_insert(ElohimAnchor).values(
+            ref_type=ref_type, ref_id=ref_id, user_id=user_id, sigil=sigil,
+        ).on_conflict_do_nothing(index_elements=["ref_type", "ref_id"])
+        await session.execute(stmt)
+
     souls = 0
     memories = 0
     bonds = 0
     try:
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                lambda sync_conn: Base.metadata.create_all(
+                    sync_conn, tables=[ElohimAnchor.__table__],
+                )
+            )
         async with Session() as session:
             # 1) engrams -> souls (idempotent via the subject map); track a primary
             #    soul per user for attaching family bonds.
             primary_soul_by_user: Dict[str, str] = {}
+            engram_user_by_id: Dict[str, object] = {}
             engrams = (await session.execute(select(Engram).order_by(Engram.created_at))).scalars().all()
             for e in engrams:
                 soul_id = elohim.ensure_soul(str(e.id), name=e.name or f"Engram {e.id}")
                 souls += 1
                 primary_soul_by_user.setdefault(str(e.user_id), soul_id)
+                engram_user_by_id[str(e.id)] = e.user_id
+                await record_anchor(session, "soul", str(e.id), e.user_id, soul_id)
 
             # 2) responses -> memories (incremental by created_at)
             q = select(EngramDailyResponse).order_by(EngramDailyResponse.created_at)
@@ -124,6 +149,7 @@ async def run(limit: int = 0, reset: bool = False) -> int:
                 )
                 memories += 1
                 cur["memories_after"] = _iso(r.created_at)
+                await record_anchor(session, "memory", str(r.id), getattr(r, "user_id", None) or engram_user_by_id.get(str(r.engram_id)), soul_id)
 
             # 3) family relationships -> bonds (St Joseph / genealogy quadrant)
             try:
@@ -151,8 +177,10 @@ async def run(limit: int = 0, reset: bool = False) -> int:
                     )
                     bonds += 1
                     cur["relationships_after"] = _iso(rel.created_at)
+                    await record_anchor(session, "bond", str(rel.id), src.user_id, soul_id)
             except Exception as e:  # genealogy is optional; never fail the whole run
                 print(f"[elohim] genealogy skipped: {type(e).__name__}: {e}")
+            await session.commit()
     finally:
         await engine.dispose()
 
@@ -162,11 +190,34 @@ async def run(limit: int = 0, reset: bool = False) -> int:
     return 0 if ok else 1
 
 
+async def run_forever(interval: float, limit: int = 0) -> None:
+    """Near-real-time mode: the same single writer, on a short cadence.
+
+    One process, one loop — creation latency becomes ~interval seconds without
+    introducing a second writer against the single-writer ledger.
+    """
+    while True:
+        try:
+            await run(limit=limit)
+        except SystemExit:
+            raise
+        except Exception as e:  # keep the worker alive across transient DB/CLI errors
+            print(f"[elohim] anchor pass failed: {type(e).__name__}: {e}")
+        await asyncio.sleep(interval)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Anchor EverAfter into the Elohim ledger.")
     ap.add_argument("--limit", type=int, default=0, help="max rows per kind this run (0 = all)")
     ap.add_argument("--reset", action="store_true", help="ignore the cursor; re-seal from the start")
+    ap.add_argument("--loop", action="store_true", help="run continuously (near-real-time anchoring)")
+    ap.add_argument("--interval", type=float, default=20.0, help="seconds between passes in --loop mode")
     args = ap.parse_args()
+    if args.loop:
+        if args.reset:
+            raise SystemExit(asyncio.run(run(limit=args.limit, reset=True)))
+        asyncio.run(run_forever(interval=max(args.interval, 5.0), limit=args.limit))
+        return
     raise SystemExit(asyncio.run(run(limit=args.limit, reset=args.reset)))
 
 

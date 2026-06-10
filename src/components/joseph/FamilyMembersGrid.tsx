@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna } from 'lucide-react';
+import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import {
     getFamilyMembers, FamilyMember, getSpouse,
@@ -98,6 +98,21 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     const [personalityMember, setPersonalityMember] = useState<FamilyMember | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
     const [societyEvents, setSocietyEvents] = useState<InteractionEvent[]>([]);
+    // Elohim permanence: engramId -> sealed-anchor info (empty until the anchor
+    // worker has sealed the relative's soul into the ledger).
+    const [elohimAnchors, setElohimAnchors] = useState<Record<string, { sigil: string; sealed_at: string | null }>>({});
+
+    useEffect(() => {
+        const ids = members
+            .map(m => m.engramId)
+            .filter((id): id is string => Boolean(id));
+        if (!ids.length) return;
+        let cancelled = false;
+        apiClient.getElohimAnchors(ids).then(anchors => {
+            if (!cancelled) setElohimAnchors(anchors);
+        });
+        return () => { cancelled = true; };
+    }, [members]);
 
     useEffect(() => {
         const fetchFeed = async () => {
@@ -259,6 +274,15 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                                     <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
                                                         <span className="w-1 h-1 rounded-full bg-emerald-400 mr-1 animate-pulse" />
                                                         Active
+                                                    </span>
+                                                )}
+                                                {member.engramId && elohimAnchors[member.engramId] && (
+                                                    <span
+                                                        className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-tighter"
+                                                        title={`Sealed in the Elohim ledger — sigil ${elohimAnchors[member.engramId].sigil}`}
+                                                    >
+                                                        <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
+                                                        Sealed
                                                     </span>
                                                 )}
                                                 {isDeceased && <span className="ml-1 text-slate-600">†</span>}

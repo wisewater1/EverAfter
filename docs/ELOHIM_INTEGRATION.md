@@ -39,6 +39,30 @@ ELOHIM_LEDGER=/data/everafter.ledger.json \
 - The worker is the **only** writer — never anchor the same ledger from two
   processes at once.
 
+## Production go-live (Render) — checklist
+
+The repo declares everything (`render.yaml`: worker `everafter-elohim-anchor`,
+Docker build `backend/Dockerfile.elohim`, persistent disk at `/data`). To turn
+it on:
+
+1. **Fix the backend env first** (the worker reads the same Postgres):
+   `DATABASE_URL` current (Supabase → Connect, pooler string) and
+   `SUPABASE_JWT_SECRET` set on `everafter-api`; restart it.
+2. **Sync the Blueprint** (Render dashboard → Blueprints → sync this repo) so
+   the new worker + disk are created. Persistent disks need a paid instance.
+3. **Set the worker's secrets**: `DATABASE_URL` (same as the API) and
+   `ELOHIM_REPO_TOKEN` — a fine-grained GitHub token, read-only Contents
+   access, scoped to `wisewater1/Elohim` only (used at image build to compile
+   the CLI; rotate freely).
+4. Deploy. First pass back-fills: every existing engram is inscribed as a
+   soul, responses become memories, St Joseph relationships become bonds.
+   Each seal is recorded in the `elohim_anchors` table.
+5. **See it**: relatives in the St Joseph tab show a "Sealed" badge
+   (via `GET /api/v1/elohim/anchors`); worker logs print
+   `souls=… memories+=… bonds+=… verified=True` every pass.
+6. **Back up the keyring** (`/data/keyring.json`) once created — losing it
+   means the ledger can never be extended as that keeper.
+
 ## Verify / audit
 
 ```bash
