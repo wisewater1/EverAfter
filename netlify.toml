@@ -3,7 +3,11 @@
   publish = "dist"
 
 [build.environment]
-  SECRETS_SCAN_ENABLED = "false"
+  # Secret scanning stays ON (public repo — it's the safety net that fails the
+  # build if a real key is about to ship in the bundle). The only secrets that
+  # legitimately appear in the build are the publishable Supabase client values,
+  # which are safe to expose and are allowlisted here.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
 
 [[headers]]
   for = "/*"
