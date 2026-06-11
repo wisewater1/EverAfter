@@ -9,20 +9,22 @@
   # which are safe to expose and are allowlisted here.
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
 
-# Content-hashed build assets are safe to cache forever — the filename changes
-# whenever the content does. (More specific path wins over the /* rule below.)
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Everything else (notably the SPA shell index.html) must never be cached, so a
-# new deploy is picked up immediately and points at the latest hashed assets.
+# Default: never cache (the SPA shell index.html must update instantly on deploy).
+# NOTE: Netlify applies the LAST matching [[headers]] rule for a conflicting
+# header, so this broad rule MUST come before the /assets/* rule below — else
+# it clobbers the immutable caching.
 [[headers]]
   for = "/*"
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate"
     Pragma = "no-cache"
+
+# Content-hashed build assets are safe to cache forever — the filename changes
+# whenever the content does. Listed last so it wins over /* for /assets/*.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[redirects]]
   from = "/api/v1/*"
