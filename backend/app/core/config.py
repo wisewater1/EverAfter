@@ -172,7 +172,11 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8010
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5000,http://127.0.0.1:5000,https://everafterai.net,https://www.everafterai.net"
-    CORS_ORIGIN_REGEX: str = r"^https://.*\.netlify\.app$"
+    # Scope to THIS site's Netlify subdomains only (production alias, dev, and
+    # deploy-preview-N--everafterai). The previous `.*\.netlify\.app` matched
+    # ANY netlify site with allow_credentials=true — an attacker could deploy
+    # anything.netlify.app and make credentialed calls as a logged-in user.
+    CORS_ORIGIN_REGEX: str = r"^https://([a-z0-9-]+--)?everafterai\.netlify\.app$"
 
     ENVIRONMENT: str = "development"
     ALLOW_DEV_AUTH_FALLBACK: bool = True
