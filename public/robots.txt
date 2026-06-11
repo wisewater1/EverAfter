@@ -1,0 +1,17 @@
+# EverAfter AI
+User-agent: *
+Allow: /
+
+# Keep tokenized share links and authenticated app surfaces out of search
+# indexes — they're private to the people who hold the link / account.
+Disallow: /quiz/
+Disallow: /dashboard
+Disallow: /family-dashboard
+Disallow: /finance-dashboard
+Disallow: /health-dashboard
+Disallow: /my-ais
+Disallow: /legacy-vault
+Disallow: /portal
+Disallow: /oauth/
+Disallow: /reset-password
+Disallow: /career/public/
