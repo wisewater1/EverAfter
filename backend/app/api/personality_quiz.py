@@ -6,17 +6,46 @@ Router prefix: /api/v1/personality-quiz
 from __future__ import annotations
 
 import secrets
+import time
+from collections import deque
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Deque, Dict, Tuple
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.db.session import get_async_session
 from app.models.quiz_invite import QuizInvite
+
+# Lightweight, dependency-free per-IP sliding-window limiter for the public
+# (unauthenticated) quiz endpoints. In-process only — adequate as an abuse
+# guard on Render's single instance; resets on restart. Not a substitute for a
+# real WAF/slowapi if this scales out.
+_RATE_BUCKETS: Dict[Tuple[str, str], Deque[float]] = {}
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _enforce_rate_limit(request: Request, scope: str, limit: int, window_s: float) -> None:
+    key = (scope, _client_ip(request))
+    now = time.monotonic()
+    bucket = _RATE_BUCKETS.setdefault(key, deque())
+    while bucket and now - bucket[0] > window_s:
+        bucket.popleft()
+    if len(bucket) >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please slow down and try again shortly.",
+        )
+    bucket.append(now)
 
 router = APIRouter(prefix="/api/v1/personality-quiz", tags=["Personality Quiz"])
 
@@ -140,8 +169,9 @@ async def list_invites(
 
 
 @router.get("/public/{token}")
-async def get_public_invite(token: str, session: AsyncSession = Depends(get_async_session)):
+async def get_public_invite(token: str, request: Request, session: AsyncSession = Depends(get_async_session)):
     """Public (no auth): a friend loads the quiz questions for a token."""
+    _enforce_rate_limit(request, "quiz_public_get", limit=60, window_s=60)
     invite = await session.get(QuizInvite, token)
     if not invite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This quiz link is invalid or has expired.")
@@ -156,10 +186,12 @@ async def get_public_invite(token: str, session: AsyncSession = Depends(get_asyn
 @router.post("/public/{token}/submit")
 async def submit_public_invite(
     token: str,
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     session: AsyncSession = Depends(get_async_session),
 ):
     """Public (no auth): a friend submits answers for a tokenized invite."""
+    _enforce_rate_limit(request, "quiz_public_submit", limit=10, window_s=60)
     invite = await session.get(QuizInvite, token)
     if not invite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This quiz link is invalid or has expired.")
