@@ -13,7 +13,7 @@ def _extract_supabase_project_ref(supabase_url: str) -> str:
     return host.split(".")[0] if host else ""
 
 
-def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_host: bool = False) -> str:
+def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_host: bool = False, pooler_host: str = "") -> str:
     database_url = str(raw_url or "").strip()
     if not database_url:
         return database_url
@@ -27,6 +27,24 @@ def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_hos
     hostname = parsed.hostname or ""
     if not hostname.endswith(".pooler.supabase.com"):
         return database_url
+
+    # Correct a stale pooler host (wrong region/generation) to the known-good
+    # one for this project, preserving user:password and port from the env. A
+    # hostname is not a secret; the credential stays in DATABASE_URL. This is
+    # what lets a misconfigured DATABASE_URL connect without dashboard access.
+    if pooler_host and not force_direct_host and hostname != pooler_host:
+        userinfo = parsed.netloc.rsplit("@", 1)[0] if "@" in parsed.netloc else ""
+        port = parsed.port or 6543
+        new_netloc = f"{userinfo}@{pooler_host}:{port}" if userinfo else f"{pooler_host}:{port}"
+        database_url = urlunsplit((
+            parsed.scheme or "postgresql+asyncpg",
+            new_netloc,
+            parsed.path or "/postgres",
+            parsed.query,
+            parsed.fragment,
+        ))
+        parsed = urlsplit(database_url)
+        hostname = pooler_host
 
     username = unquote(parsed.username or "")
     password = unquote(parsed.password or "")
@@ -108,6 +126,19 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = Field(default="", validation_alias=AliasChoices("SUPABASE_URL", "VITE_SUPABASE_URL"))
     SUPABASE_ANON_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"))
     SUPABASE_SERVICE_ROLE_KEY: str = Field(default="", validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY"))
+    # Publishable (anon) key — safe to ship publicly; used as the apikey header
+    # for remote token verification when no JWT secret is configured. Default is
+    # this project's published key (it's already in the public frontend bundle).
+    SUPABASE_PUBLISHABLE_KEY: str = Field(
+        default="sb_publishable_8zJBVg9w0218A-40VG9FHg_Png8iHZo",
+        validation_alias=AliasChoices("SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_ANON_KEY"),
+    )
+    # Correct Supabase transaction-pooler host for this project (us-east-2 /
+    # aws-1). A stale DATABASE_URL pointing at the wrong pooler region yields
+    # "tenant/user ... not found"; the normalizer below rewrites the host to
+    # this (the password stays in DATABASE_URL — only the hostname is corrected,
+    # and a hostname is not a secret). Override via env if the project moves.
+    SUPABASE_POOLER_HOST: str = "aws-1-us-east-2.pooler.supabase.com"
     SUPABASE_JWT_ISSUER: str = ""
     SUPABASE_JWT_AUDIENCE: str = "authenticated"
     # The project's JWT secret (Supabase dashboard -> Settings -> API -> JWT Secret).
@@ -217,12 +248,14 @@ class Settings(BaseSettings):
                 raw_url,
                 self.SUPABASE_URL,
                 force_direct_host=self.SUPABASE_DB_FORCE_DIRECT_HOST,
+                pooler_host=self.SUPABASE_POOLER_HOST,
             )
 
         return _normalize_database_url(
             self.DATABASE_URL,
             self.SUPABASE_URL,
             force_direct_host=self.SUPABASE_DB_FORCE_DIRECT_HOST,
+            pooler_host=self.SUPABASE_POOLER_HOST,
         )
 
     @property
