@@ -190,48 +190,60 @@ async def _bootstrap_runtime(app: FastAPI) -> None:
         ("quiz_invites", ensure_quiz_invite_tables),
     )
 
-    try:
-        bootstrap_errors = []
-        for component_name, bootstrapper in bootstrappers:
-            try:
-                await asyncio.wait_for(bootstrapper(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
-                component_results[component_name] = {"ready": True, "error": None}
-            except Exception as exc:
-                component_results[component_name] = {"ready": False, "error": str(exc)}
-                bootstrap_errors.append(f"{component_name}: {exc}")
+    # Self-heal: retry the DB bootstrap until it's healthy. Previously this ran
+    # exactly once at startup, so a transient DB outage (or a wrong env at boot)
+    # left the backend degraded until a manual redeploy. Now it re-attempts every
+    # REBOOTSTRAP_INTERVAL seconds while degraded, and recovers on its own.
+    REBOOTSTRAP_INTERVAL = 45
+    while True:
+        component_results = {}
+        try:
+            bootstrap_errors = []
+            for component_name, bootstrapper in bootstrappers:
+                try:
+                    await asyncio.wait_for(bootstrapper(), timeout=settings.STARTUP_BOOTSTRAP_TIMEOUT_SECONDS)
+                    component_results[component_name] = {"ready": True, "error": None}
+                except Exception as exc:
+                    component_results[component_name] = {"ready": False, "error": str(exc)}
+                    bootstrap_errors.append(f"{component_name}: {exc}")
 
-        app.state.bootstrap_components = component_results
-        all_components_ready = all(result["ready"] for result in component_results.values())
-        state.update(
-            {
-                "status": "healthy" if all_components_ready else "degraded",
-                "db_ready": all_components_ready,
-                "bootstrap_complete": True,
-                "last_error": None if all_components_ready else "; ".join(bootstrap_errors),
-                "bootstrap_components": component_results,
-            }
-        )
-        _refresh_subsystem_status(app)
-        if all_components_ready:
-            app.state.optional_runtime_task = asyncio.create_task(
-                _start_optional_runtime(app),
-                name="optional-runtime-bootstrap",
+            app.state.bootstrap_components = component_results
+            all_components_ready = all(result["ready"] for result in component_results.values())
+            state.update(
+                {
+                    "status": "healthy" if all_components_ready else "degraded",
+                    "db_ready": all_components_ready,
+                    "bootstrap_complete": True,
+                    "last_error": None if all_components_ready else "; ".join(bootstrap_errors),
+                    "bootstrap_components": component_results,
+                }
             )
-    except asyncio.CancelledError:
-        raise
-    except Exception as exc:
-        logger.exception("Runtime bootstrap failed")
-        app.state.bootstrap_components = component_results
-        state.update(
-            {
-                "status": "degraded",
-                "db_ready": False,
-                "bootstrap_complete": True,
-                "last_error": str(exc),
-                "bootstrap_components": component_results,
-            }
-        )
-        _refresh_subsystem_status(app)
+            _refresh_subsystem_status(app)
+            if all_components_ready:
+                app.state.optional_runtime_task = asyncio.create_task(
+                    _start_optional_runtime(app),
+                    name="optional-runtime-bootstrap",
+                )
+                return  # healthy — stop retrying
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("Runtime bootstrap failed")
+            app.state.bootstrap_components = component_results
+            state.update(
+                {
+                    "status": "degraded",
+                    "db_ready": False,
+                    "bootstrap_complete": True,
+                    "last_error": str(exc),
+                    "bootstrap_components": component_results,
+                }
+            )
+            _refresh_subsystem_status(app)
+
+        # Degraded — wait, then re-attempt (cancelled cleanly on shutdown).
+        logger.warning("Runtime bootstrap degraded; re-attempting in %ss", REBOOTSTRAP_INTERVAL)
+        await asyncio.sleep(REBOOTSTRAP_INTERVAL)
 
 
 @asynccontextmanager
@@ -369,7 +381,7 @@ async def health_check():
         "version": "1.0.0",
         # Build marker — lets us confirm which code revision is actually live
         # (vs. a stale deploy). Bump when verifying a deploy landed.
-        "build": "selfheal-2",
+        "build": "selfheal-3",
         "bootstrap": runtime_status,
         "subsystems": getattr(app.state, "subsystem_status", _default_subsystem_status()),
         "capabilities": probe_safe_readiness["capabilities"],
