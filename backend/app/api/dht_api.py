@@ -121,13 +121,13 @@ async def get_dht(
     dht = dht_store.get_dht(person_id) if not force_recompute else None
 
     # Recompute if missing or stale (>6 hours)
-    if dht is None or (datetime.utcnow() - dht.computed_at).seconds > 21600:
+    if dht is None or (datetime.utcnow() - dht.computed_at).total_seconds() > 21600:
         dht = await _recompute_dht(person_id)
 
     if dht is None:
         raise HTTPException(status_code=404, detail="No DHT data found for this person.")
 
-    stale = (datetime.utcnow() - dht.computed_at).seconds > 21600
+    stale = (datetime.utcnow() - dht.computed_at).total_seconds() > 21600
     obs = dht_store.get_observations(person_id, days=1)
     last_obs_at = max((o.recorded_at for o in obs), default=None) if obs else None
 

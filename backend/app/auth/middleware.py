@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -102,7 +104,10 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 return await call_next(request)
 
             try:
-                payload = verify_supabase_token(token)
+                # verify_supabase_token may do a blocking httpx call (remote
+                # verification when no JWT secret is set) — run it off the event
+                # loop so it can't stall other concurrent requests.
+                payload = await asyncio.to_thread(verify_supabase_token, token)
             except ValueError:
                 payload = verify_access_token(token)
 

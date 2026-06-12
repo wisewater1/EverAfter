@@ -98,7 +98,14 @@ export default function EternalCareInsurance() {
         }
       });
       if (dividendRes.ok) {
-        setDividendData(await dividendRes.json());
+        // Normalize: the endpoint can return an error/empty/wrong-shaped body;
+        // the Dividends tab does recent_history.length/.map unconditionally, so
+        // guarantee the shape here to avoid a render crash.
+        const raw = await dividendRes.json().catch(() => ({}));
+        setDividendData({
+          total_accumulated: typeof raw?.total_accumulated === 'number' ? raw.total_accumulated : 0,
+          recent_history: Array.isArray(raw?.recent_history) ? raw.recent_history : [],
+        });
       }
 
       if (policiesRes.error) throw policiesRes.error;
