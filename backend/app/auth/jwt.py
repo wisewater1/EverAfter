@@ -1,3 +1,4 @@
+import hashlib
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
@@ -7,8 +8,13 @@ from jose import JWTError, jwt
 from app.core.config import settings
 
 # Short-lived cache for remote token verification so we don't call Supabase on
-# every request for the same token. token -> (payload, expiry_monotonic).
+# every request for the same token. Keyed by a hash of the token (never store
+# raw bearer tokens at rest). hash -> (payload, expiry_monotonic).
 _REMOTE_VERIFY_CACHE: Dict[str, tuple] = {}
+
+
+def _token_cache_key(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def _verify_supabase_token_remote(token: str) -> Dict[str, Any]:
@@ -25,7 +31,8 @@ def _verify_supabase_token_remote(token: str) -> Dict[str, Any]:
         raise ValueError("SUPABASE_URL is not configured; cannot verify token")
 
     now = time.monotonic()
-    cached = _REMOTE_VERIFY_CACHE.get(token)
+    cache_key = _token_cache_key(token)
+    cached = _REMOTE_VERIFY_CACHE.get(cache_key)
     if cached and cached[1] > now:
         return cached[0]
 
@@ -61,7 +68,7 @@ def _verify_supabase_token_remote(token: str) -> Dict[str, Any]:
     }
     if len(_REMOTE_VERIFY_CACHE) > 500:  # bound memory
         _REMOTE_VERIFY_CACHE.clear()
-    _REMOTE_VERIFY_CACHE[token] = (payload, now + 60)
+    _REMOTE_VERIFY_CACHE[cache_key] = (payload, now + 60)
     return payload
 
 

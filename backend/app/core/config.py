@@ -33,9 +33,16 @@ def _normalize_database_url(raw_url: str, supabase_url: str, *, force_direct_hos
     # hostname is not a secret; the credential stays in DATABASE_URL. This is
     # what lets a misconfigured DATABASE_URL connect without dashboard access.
     if pooler_host and not force_direct_host and hostname != pooler_host:
-        userinfo = parsed.netloc.rsplit("@", 1)[0] if "@" in parsed.netloc else ""
         port = parsed.port or 6543
-        new_netloc = f"{userinfo}@{pooler_host}:{port}" if userinfo else f"{pooler_host}:{port}"
+        # Rebuild userinfo from DECODED parts and re-encode, so passwords with
+        # URL-special chars (@ / # % +) aren't corrupted by reusing raw netloc.
+        if parsed.username:
+            userinfo = quote(unquote(parsed.username), safe="")
+            if parsed.password:
+                userinfo += ":" + quote(unquote(parsed.password), safe="")
+            new_netloc = f"{userinfo}@{pooler_host}:{port}"
+        else:
+            new_netloc = f"{pooler_host}:{port}"
         database_url = urlunsplit((
             parsed.scheme or "postgresql+asyncpg",
             new_netloc,
