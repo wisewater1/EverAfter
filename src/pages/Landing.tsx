@@ -108,7 +108,7 @@ export default function Landing() {
               }}
               className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
             >
-              Demo for Show
+              Fiesta
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
