@@ -299,6 +299,13 @@ class Settings(BaseSettings):
             # defaulting to https so callers always get a usable absolute URL.
             if not configured.startswith(("http://", "https://")):
                 configured = "https://" + configured
+            # A bare Render service NAME (e.g. "everafter-voice-ai", no dot in
+            # host) isn't a resolvable domain — expand it to <name>.onrender.com.
+            # This is what reconnects the API to the live voice sidecar; the
+            # hostname is not a secret. (localhost/IPs are left untouched.)
+            host = urlsplit(configured).hostname or ""
+            if "." not in host and host not in ("localhost",) and not host.replace(":", "").isdigit():
+                configured = configured.replace(host, f"{host}.onrender.com", 1)
             return configured
         if self.dev_voice_provider_enabled:
             return self.VOICE_AI_DEV_BASE_URL.strip().rstrip("/")
