@@ -45,7 +45,7 @@ _predictor = SharedHealthPredictor()
 #    for BackgroundSimulator to bias its Monte Carlo initial conditions.
 # ─────────────────────────────────────────────────────────────────────────────
 
-def ancestry_priors(
+async def ancestry_priors(
     member_id: str,
     birth_year: Optional[int],
     metrics_history: List[Dict[str, Any]],
@@ -56,11 +56,17 @@ def ancestry_priors(
     Returns a dict that BackgroundSimulator.set_ancestry_priors() consumes.
     """
     age = age_from_birth_year(birth_year)
-    epigenetic_report = _epigenetic.get_epigenetic_risk(
+    # get_epigenetic_risk is async with signature (member_id, member, ancestors).
+    epigenetic_report = await _epigenetic.get_epigenetic_risk(
         member_id=member_id,
-        birth_year=birth_year,
-        current_metrics=metrics_history,
-        family_data=family_members,
+        member={
+            "id": member_id,
+            "birth_year": birth_year,
+            "birthYear": birth_year,
+            "metrics": metrics_history,
+            "traits": [],
+        },
+        ancestors=family_members,
     )
 
     # Build metric-level priors from hereditary condition patterns
@@ -114,7 +120,7 @@ def ancestry_priors(
 #    and Gabriel's health-spend ratio. Joseph's FamilyHealthHeatmap consumes this.
 # ─────────────────────────────────────────────────────────────────────────────
 
-def live_family_heatmap(
+async def live_family_heatmap(
     members: List[Dict[str, Any]],
     budget_envelopes: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
@@ -142,12 +148,12 @@ def live_family_heatmap(
 
         # Get live prediction from shared predictor
         try:
-            pred = _predictor.predict(
+            pred = await _predictor.predict_user(
                 user_id=member_id,
                 metrics_history=metrics,
                 profile={"age": age, "traits": member.get("traits", [])},
             )
-            raw_score = pred.get("predicted_value", 50.0)
+            raw_score = pred.get("predicted_value", pred.get("aggregate_score", 50.0))
             trend = pred.get("trend", "stable")
             risk_factors = pred.get("risk_factors", [])
         except Exception:

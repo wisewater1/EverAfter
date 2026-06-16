@@ -56,18 +56,22 @@ class RitualEngine:
 
         return personas
 
-    def _get_ancestor_context(self, ancestor_id: Optional[str]) -> str:
+    async def _get_ancestor_context(self, ancestor_id: Optional[str]) -> str:
         if not ancestor_id:
             return ""
         try:
             from app.services.akashic_service import akashic
-            engrams = akashic.search(
+            engrams = await akashic.search(
                 query=f"memories of {ancestor_id}",
                 filters={"ancestor_id": ancestor_id},
-                limit=3
+                limit=3,
             )
-            if engrams:
-                lines = [f"- {e['content']}" for e in engrams]
+            lines = [
+                f"- {e['content']}"
+                for e in (engrams or [])
+                if isinstance(e, dict) and e.get("content")
+            ]
+            if lines:
                 return "\nRelevant Ancestral Memories:\n" + "\n".join(lines)
         except Exception:
             pass
@@ -170,7 +174,7 @@ class RitualEngine:
         pre-written templates if LLM is unavailable.
         """
         saint_personas = self._get_saint_personas(participants)
-        ancestor_context = self._get_ancestor_context(ancestor_id)
+        ancestor_context = await self._get_ancestor_context(ancestor_id)
         health_insight = self._get_health_insight()
 
         llm = self._get_llm()

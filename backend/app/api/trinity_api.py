@@ -131,7 +131,7 @@ async def trinity_synapse(req: TrinitySynapseRequest) -> Dict[str, Any]:
     try:
         # ── Original 6 actions ──────────────────────────────────────────
         if action == "ancestry_priors":
-            return ancestry_priors(
+            return await ancestry_priors(
                 member_id=req.member_id or "unknown",
                 birth_year=req.birth_year,
                 metrics_history=req.metrics_history or [],
@@ -139,7 +139,7 @@ async def trinity_synapse(req: TrinitySynapseRequest) -> Dict[str, Any]:
             )
 
         elif action == "family_heatmap":
-            return live_family_heatmap(
+            return await live_family_heatmap(
                 members=req.members or req.family_members or [],
                 budget_envelopes=req.budget_envelopes,
             )
