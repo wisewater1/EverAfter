@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Brain, Heart, Shield, Crown, Star, ArrowRight, LogIn, Sparkles } from 'lucide-react';
+import StarfieldBackground from '../components/StarfieldBackground';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -42,7 +43,10 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-[#06080c] via-[#0a0f15] to-[#0a1626]">
+      {/* Moving starfield behind the dark glass — parallaxes with cursor + scroll */}
+      <StarfieldBackground />
+      <div className="relative z-10">
       {/* Header */}
       <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -77,26 +81,26 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
+      <section className="max-w-7xl mx-auto px-4 py-12 sm:py-20">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm mb-6">
             <Sparkles className="w-4 h-4" />
             Autonomous AI Agents for Your Life
           </div>
-          <h2 className="text-6xl font-light text-white mb-6">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-light leading-tight text-white mb-6">
             Your Digital Legacy,<br />
             <span className="bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text text-transparent">
               Managed by Saints
             </span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
+          <p className="text-base sm:text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
             EverAfter AI creates autonomous AI agents that work in the background to manage your health,
             protect your legacy, and support your loved ones — today and after you're gone.
           </p>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={() => navigate(user ? '/dashboard' : '/signup')}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
             >
               {user ? 'Go to Dashboard' : 'Start Free'}
               <ArrowRight className="w-5 h-5" />
@@ -106,7 +110,7 @@ export default function Landing() {
                 startDemoMode();
                 navigate('/dashboard');
               }}
-              className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
             >
               Fiesta
               <ArrowRight className="w-5 h-5" />
@@ -121,7 +125,7 @@ export default function Landing() {
             return (
               <div
                 key={saint.name}
-                className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-6 backdrop-blur-sm hover:scale-105 transition-all"
+                className="bg-gradient-to-br from-gray-800/70 to-gray-900/70 rounded-2xl shadow-2xl border border-gray-700/50 p-6 backdrop-blur-md hover:scale-105 transition-all"
               >
                 <div className={`w-16 h-16 bg-gradient-to-br ${saint.color} rounded-xl flex items-center justify-center mb-4 shadow-lg`}>
                   <Icon className="w-8 h-8 text-white" />
@@ -144,9 +148,9 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
+      <section className="max-w-7xl mx-auto px-4 py-12 sm:py-20">
         <div className="text-center mb-16">
-          <h3 className="text-4xl font-light text-white mb-4">How It Works</h3>
+          <h3 className="text-3xl sm:text-4xl font-light text-white mb-4">How It Works</h3>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             Build AI personalities through daily questions, then let them work autonomously
           </p>
@@ -183,12 +187,12 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-4xl mx-auto px-4 py-20">
-        <div className="bg-gradient-to-br from-blue-600 to-teal-600 rounded-3xl shadow-2xl p-12 text-center">
-          <h3 className="text-4xl font-light text-white mb-4">
+      <section className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
+        <div className="bg-gradient-to-br from-blue-600 to-teal-600 rounded-3xl shadow-2xl p-8 sm:p-12 text-center">
+          <h3 className="text-3xl sm:text-4xl font-light text-white mb-4">
             Start Building Your Digital Legacy Today
           </h3>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-lg sm:text-xl text-blue-100 mb-8">
             St. Raphael is completely free. Try health management automation now.
           </p>
           <button
@@ -204,7 +208,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-gray-800 mt-20">
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
@@ -215,6 +219,7 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
