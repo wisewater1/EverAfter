@@ -4,6 +4,13 @@ import { apiClient, type SaintBootstrapResult, type SaintChatResult } from '../l
 import { useAuth } from '../contexts/AuthContext';
 import { getCapability, getRuntimeReadiness } from '../lib/runtime-readiness';
 import { getDemoChatResponse } from '../lib/demo/demo-data-provider';
+import {
+    isWebGPUAvailable,
+    ensureEngine,
+    generateOnDevice,
+    ON_DEVICE_MODEL_LABEL,
+    ON_DEVICE_DOWNLOAD_NOTE,
+} from '../lib/llm/onDeviceLLM';
 import FeatureBlockedState from './FeatureBlockedState';
 
 interface SaintChatProps {
@@ -133,7 +140,29 @@ export default function SaintChat({
     const [availability, setAvailability] = useState<SaintAvailabilityState>(DEFAULT_SAINT_AVAILABILITY);
     const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
     const [showKnowledge, setShowKnowledge] = useState(false);
+    // On-device AI (runs the model in the user's browser via WebGPU).
+    const [onDeviceMode, setOnDeviceMode] = useState(false);
+    const [onDeviceStatus, setOnDeviceStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    const [onDeviceProgress, setOnDeviceProgress] = useState(0);
+    const [onDeviceError, setOnDeviceError] = useState<string | null>(null);
+    const webgpuAvailable = isWebGPUAvailable();
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const enableOnDevice = async () => {
+        setOnDeviceStatus('loading');
+        setOnDeviceError(null);
+        setOnDeviceProgress(0);
+        try {
+            await ensureEngine((p) => setOnDeviceProgress(p.progress));
+            setOnDeviceMode(true);
+            setOnDeviceStatus('ready');
+            setBlockedReason(null);
+            setError(null);
+        } catch (e) {
+            setOnDeviceStatus('error');
+            setOnDeviceError(e instanceof Error ? e.message : 'Could not start on-device AI.');
+        }
+    };
 
     const buildInitialAssistantMessage = (): Message => ({
         id: 'init',
@@ -266,6 +295,21 @@ export default function SaintChat({
         setError(null);
 
         try {
+            if (onDeviceMode) {
+                // Generate the reply entirely in the user's browser — no server,
+                // no key, fully private. Takes precedence over demo/backend.
+                const history = [...messages, userMsg]
+                    .filter((m) => m.id !== 'init' && (m.role === 'user' || m.role === 'assistant'))
+                    .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+                const reply = await generateOnDevice(saintId, history, (p) => setOnDeviceProgress(p.progress));
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: reply || '…',
+                    timestamp: new Date().toISOString(),
+                }]);
+                return;
+            }
             if (isDemoMode) {
                 // Demo mode: realistic canned reply, no backend call.
                 await new Promise(r => setTimeout(r, 500));
@@ -329,6 +373,9 @@ export default function SaintChat({
     };
 
     const knowledgeDisabled = Boolean(blockedReason) || !availability.knowledgeAvailable && knowledge.length === 0;
+    // On-device mode keeps the chat usable even if the backend is unavailable —
+    // it runs entirely in the browser, so a blocked backend shouldn't lock input.
+    const chatBlocked = Boolean(blockedReason) && !onDeviceMode;
 
     return (
         <div className="flex h-full bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
@@ -386,7 +433,7 @@ export default function SaintChat({
                             </div>
                         )}
 
-                        {blockedReason && !bootstrapping ? (
+                        {chatBlocked && !bootstrapping ? (
                             <div className="mx-4">
                                 <FeatureBlockedState
                                     title={`${saintName} Is Unavailable`}
@@ -437,6 +484,59 @@ export default function SaintChat({
                     </>
                 </div>
 
+                {/* On-device AI: private, in-browser model. Opt-in, runs on the user's
+                    own hardware, with a clear heads-up about what that means. */}
+                {onDeviceMode ? (
+                    <div className="px-4 pt-3">
+                        <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                            <span aria-hidden className="mt-0.5">⚡</span>
+                            <span>
+                                <strong>On-device AI active.</strong> {saintName} is running privately in your browser
+                                ({ON_DEVICE_MODEL_LABEL}) using this device's own compute — your conversation never leaves this device.
+                            </span>
+                        </div>
+                    </div>
+                ) : webgpuAvailable ? (
+                    <div className="px-4 pt-3">
+                        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-xs text-indigo-900">
+                            <div className="flex items-start gap-2">
+                                <span aria-hidden className="mt-0.5">🔒</span>
+                                <div className="flex-1">
+                                    <p className="font-semibold">Run {saintName} privately on your device</p>
+                                    <p className="mt-0.5 leading-relaxed text-indigo-800/90">
+                                        No account, no server — the AI ({ON_DEVICE_MODEL_LABEL}) runs entirely in your
+                                        browser and nothing you type leaves your device. Heads-up: it runs on your own
+                                        device's compute and needs {ON_DEVICE_DOWNLOAD_NOTE} the first time, on a modern computer.
+                                    </p>
+                                    {onDeviceStatus === 'loading' ? (
+                                        <div className="mt-2">
+                                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-indigo-100">
+                                                <div
+                                                    className="h-full rounded-full bg-indigo-500 transition-all"
+                                                    style={{ width: `${Math.max(3, Math.round(onDeviceProgress * 100))}%` }}
+                                                />
+                                            </div>
+                                            <p className="mt-1 text-[11px] text-indigo-600">
+                                                Loading model… {Math.round(onDeviceProgress * 100)}% (one-time download, then cached)
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={enableOnDevice}
+                                            className="mt-2 rounded-md bg-indigo-600 px-3 py-1 font-medium text-white hover:bg-indigo-700 transition-colors"
+                                        >
+                                            Enable on-device AI
+                                        </button>
+                                    )}
+                                    {onDeviceStatus === 'error' && onDeviceError && (
+                                        <p className="mt-1.5 text-[11px] text-red-600">{onDeviceError}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+
                 {/* Input Area */}
                 <div className="p-4 bg-white border-t border-slate-100">
                     <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-50 transition-all shadow-sm">
@@ -445,14 +545,14 @@ export default function SaintChat({
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                            placeholder={blockedReason ? `${saintName} is unavailable until runtime dependencies recover.` : `Ask ${saintName} for guidance...`}
+                            placeholder={chatBlocked ? `${saintName} is unavailable until runtime dependencies recover.` : `Ask ${saintName} for guidance...`}
                             className="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm"
-                            disabled={loading || bootstrapping || Boolean(blockedReason)}
-                            aria-disabled={loading || bootstrapping || Boolean(blockedReason)}
+                            disabled={loading || bootstrapping || chatBlocked}
+                            aria-disabled={loading || bootstrapping || chatBlocked}
                         />
                         <button
                             onClick={handleSend}
-                            disabled={!input.trim() || loading || bootstrapping || Boolean(blockedReason)}
+                            disabled={!input.trim() || loading || bootstrapping || chatBlocked}
                             className={`p-2 rounded-lg bg-${primaryColor}-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-${primaryColor}-700 transition-colors shadow-sm`}
                         >
                             <Send className="w-4 h-4" />

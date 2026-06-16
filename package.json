@@ -27,6 +27,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.84",
     "@netlify/neon": "^0.1.2",
     "@prisma/client": "^6.0.0",
     "@supabase/supabase-js": "^2.57.4",
