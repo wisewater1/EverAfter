@@ -12,7 +12,20 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'esnext'
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        // Split stable, heavy vendor libs into their own long-cached chunks so
+        // the core app bundle is smaller and repeat visits re-download less.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'react-vendor';
+          if (/[\\/]node_modules[\\/](recharts|d3-|victory|internmap)/.test(id)) return 'charts';
+          if (/[\\/]node_modules[\\/]@supabase[\\/]/.test(id)) return 'supabase';
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     port: 5000,
