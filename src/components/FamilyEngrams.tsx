@@ -25,6 +25,7 @@ interface FamilyMember {
   created_at: string;
   moments_count: number;
   last_interaction?: string;
+  interactions_count?: number;
 }
 
 interface Moment {
@@ -180,6 +181,7 @@ export default function FamilyEngrams() {
             personality_traits: engram?.personality_traits || [],
             moments_count: momentCount.get(member.id) || 0,
             last_interaction: engram?.user_interactions?.[0]?.created_at,
+            interactions_count: engram?.user_interactions?.length || 0,
           };
         }));
       } else if (Array.isArray(members)) {
@@ -251,7 +253,9 @@ export default function FamilyEngrams() {
             <MessageSquare className="w-5 h-5 text-purple-400 relative z-10" />
             <span className="text-sm text-slate-400">Interactions</span>
           </div>
-          <p className="text-3xl font-bold text-white">0</p>
+          <p className="text-3xl font-bold text-white">
+            {familyMembers.reduce((acc, m) => acc + (m.interactions_count || 0), 0)}
+          </p>
         </div>
       </div>
 
@@ -842,12 +846,34 @@ function EngramDetailView({ member, onBack, onRefresh }: EngramDetailViewProps) 
         </button>
 
         <div className="glass-card p-8">
-          <h2 className="text-3xl font-bold text-white mb-4">{member.name}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{member.name}</h2>
           <p className="text-slate-400 capitalize mb-6">{member.relationship}</p>
 
-          <div className="text-center py-12 text-slate-400">
-            Detail view coming soon...
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Moments</p>
+              <p className="text-2xl font-bold text-white">{member.moments_count ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Interactions</p>
+              <p className="text-2xl font-bold text-white">{member.interactions_count ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Status</p>
+              <p className="text-2xl font-bold text-emerald-400">{member.last_interaction ? 'Active' : 'Training'}</p>
+            </div>
           </div>
+
+          {member.personality_traits && member.personality_traits.length > 0 && (
+            <div>
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-3">Personality</p>
+              <div className="flex flex-wrap gap-2">
+                {member.personality_traits.map((trait) => (
+                  <span key={trait} className="px-3 py-1 rounded-full text-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">{trait}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

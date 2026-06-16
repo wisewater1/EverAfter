@@ -242,8 +242,8 @@ export default function Pricing() {
       <div className="max-w-7xl mx-auto py-12 px-4">
         {/* Title */}
         <div className="text-center mb-16">
-          <h2 className="text-5xl font-light text-white mb-4">Choose Your Plan</h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light text-white mb-4">Choose Your Plan</h2>
+          <p className="text-base sm:text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto">
             Start building your AI personality today. Upgrade anytime as your needs grow.
           </p>
         </div>

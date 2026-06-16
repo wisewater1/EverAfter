@@ -384,7 +384,7 @@ export default function StMichaelSecurityDashboard() {
                                 </div>
                                 <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-6">Integrity Score</h3>
                                 <div className="flex items-baseline gap-4">
-                                    <span className="text-6xl font-extralight text-white tabular-nums">{report?.overallScore || 100}%</span>
+                                    <span className="text-4xl sm:text-5xl lg:text-6xl font-extralight text-white tabular-nums">{report?.overallScore || 100}%</span>
                                     <div className="flex flex-col">
                                         <span className="text-emerald-400 text-sm font-bold flex items-center gap-1">
                                             <CheckCircle className="w-3 h-3" /> VERIFIED

@@ -168,7 +168,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="absolute top-0 right-0 -m-8 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl group-hover:bg-cyan-500/30 transition-all duration-700"></div>
                 <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:items-start relative z-10">
                     <div>
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">Delphi Health Trajectory</h1>
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">Delphi Health Trajectory</h1>
                         <p className="text-zinc-400 font-medium">Predictive AI-derived physiological insights</p>
                         <div className="flex flex-wrap items-center gap-3 mt-3">
                             {prediction?.data_source !== 'live' ? (

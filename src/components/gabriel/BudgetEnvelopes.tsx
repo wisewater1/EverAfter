@@ -49,7 +49,7 @@ export default function BudgetEnvelopes() {
 
                 try {
                     const recovered = await liveRequest;
-                    setEnvelopes(recovered);
+                    setEnvelopes(Array.isArray(recovered) ? recovered : ((recovered as any)?.envelopes ?? []));
                     setError(null);
                     setDegradedMode(false);
                 } catch (err: any) {
@@ -62,7 +62,7 @@ export default function BudgetEnvelopes() {
                 return;
             }
 
-            setEnvelopes(timeoutResult.data);
+            setEnvelopes(Array.isArray(timeoutResult.data) ? timeoutResult.data : ((timeoutResult.data as any)?.envelopes ?? []));
             setError(null);
         } catch (err: any) {
             console.error('Failed to load budget:', err);
@@ -75,7 +75,7 @@ export default function BudgetEnvelopes() {
         }
     }
 
-    const groupedEnvelopes = envelopes.reduce((groups, envelope) => {
+    const groupedEnvelopes = (Array.isArray(envelopes) ? envelopes : []).reduce((groups, envelope) => {
         const group = envelope.group || 'Uncategorized';
         if (!groups[group]) {
             groups[group] = [];
