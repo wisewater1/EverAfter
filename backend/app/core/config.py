@@ -162,6 +162,11 @@ class Settings(BaseSettings):
 
     HF_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
     OPENAI_API_KEY: str = ""
+    # OpenAI-compatible provider overrides — set these to use a different
+    # backend (e.g. Groq: OPENAI_BASE_URL=https://api.groq.com/openai/v1,
+    # OPENAI_MODEL=llama-3.3-70b-versatile) with OPENAI_API_KEY as that key.
+    OPENAI_BASE_URL: str = ""
+    OPENAI_MODEL: str = ""
     CHAINLINK_RPC_URL: str = ""
     CHAINLINK_XAU_USD_FEED: str = ""
     PLAID_CLIENT_ID: str = ""
