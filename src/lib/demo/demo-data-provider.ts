@@ -104,6 +104,15 @@ const MOCK_HEALTH_SUMMARY = {
   },
   status_aura: 'stable',
   last_updated: new Date().toISOString(),
+  // Flat fields the StRaphaelHealthHub reads directly via raphaelSummaryHasData /
+  // mapRaphaelSummaryToVitals (without these the hub renders its empty state).
+  metrics: 9,
+  resting_heart_rate: 72,
+  hrv_avg: 45,
+  activity_score: 84,
+  sleep_score: 78,
+  readiness_score: 82,
+  last_sync_at: new Date().toISOString(),
 };
 
 const MOCK_HEALTH_PREDICTIONS = {
@@ -324,6 +333,76 @@ function mockResponse(data: any, status = 200): Response {
   });
 }
 
+// ============================================================
+// DEMO SEED DATA — keeps every screen full & alive on stage (no zeros)
+// ============================================================
+const DEMO_NOW = Date.now();
+const isoDaysAgo = (d: number) => new Date(DEMO_NOW - d * 86400000).toISOString();
+
+// ~30 days of realistic, smoothly-trending biometrics so the Delphi trajectory
+// renders "live" (TrajectoryDashboard) and the coverage tiles fill in.
+function buildDemoHealthMetrics() {
+  const defs = [
+    { type: 'heart_rate', unit: 'bpm', base: 66, amp: 5 },
+    { type: 'blood_pressure_systolic', unit: 'mmHg', base: 117, amp: 5 },
+    { type: 'blood_pressure_diastolic', unit: 'mmHg', base: 75, amp: 4 },
+    { type: 'glucose', unit: 'mg/dL', base: 93, amp: 7 },
+    { type: 'weight', unit: 'lbs', base: 164, amp: 1.5, fixed: 1 },
+    { type: 'sleep_duration', unit: 'hours', base: 7.4, amp: 0.7, fixed: 1 },
+    { type: 'steps', unit: 'steps', base: 8800, amp: 1800 },
+    { type: 'oxygen_saturation', unit: '%', base: 98, amp: 1 },
+  ];
+  const points: Array<Record<string, unknown>> = [];
+  for (let day = 29; day >= 0; day--) {
+    for (const def of defs) {
+      const wave = Math.sin(((29 - day) / 29) * Math.PI * 1.5) * def.amp;
+      const v = def.base + wave * 0.5 + def.amp * 0.2 * Math.sin(day * 1.7);
+      points.push({
+        metric_type: def.type,
+        value: (def as { fixed?: number }).fixed != null ? Number(v.toFixed((def as { fixed?: number }).fixed)) : Math.round(v),
+        unit: def.unit,
+        recorded_at: isoDaysAgo(day),
+        source: 'demo',
+      });
+    }
+  }
+  return points;
+}
+const MOCK_HEALTH_METRICS = buildDemoHealthMetrics();
+
+// Supabase-table seeds (FamilyEngrams reads these directly via supabase-js).
+const DEMO_FAMILY_MEMBERS = [
+  { id: 'dm-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', avatar_url: null, created_at: isoDaysAgo(120) },
+  { id: 'dm-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', avatar_url: null, created_at: isoDaysAgo(96) },
+  { id: 'dm-susan', user_id: 'demo-user', name: 'Susan Anderson', relationship: 'Mother', avatar_url: null, created_at: isoDaysAgo(96) },
+  { id: 'dm-alice', user_id: 'demo-user', name: 'Alice Anderson', relationship: 'Sister', avatar_url: null, created_at: isoDaysAgo(58) },
+  { id: 'dm-lily', user_id: 'demo-user', name: 'Lily Chen', relationship: 'Niece', avatar_url: null, created_at: isoDaysAgo(24) },
+];
+const DEMO_ENGRAM_ROWS = [
+  { family_member_id: 'dm-margaret', personality_traits: ['Warm', 'Wise', 'Nurturing', 'Patient'], user_interactions: [{ created_at: isoDaysAgo(1) }, { created_at: isoDaysAgo(3) }, { created_at: isoDaysAgo(6) }, { created_at: isoDaysAgo(10) }] },
+  { family_member_id: 'dm-james', personality_traits: ['Steady', 'Practical', 'Devoted'], user_interactions: [{ created_at: isoDaysAgo(2) }, { created_at: isoDaysAgo(7) }] },
+  { family_member_id: 'dm-susan', personality_traits: ['Caring', 'Energetic', 'Organized'], user_interactions: [{ created_at: isoDaysAgo(1) }, { created_at: isoDaysAgo(4) }, { created_at: isoDaysAgo(9) }] },
+];
+const DEMO_FAMILY_MOMENTS = [
+  ...Array.from({ length: 6 }, () => ({ family_member_id: 'dm-margaret' })),
+  ...Array.from({ length: 4 }, () => ({ family_member_id: 'dm-james' })),
+  ...Array.from({ length: 5 }, () => ({ family_member_id: 'dm-susan' })),
+  ...Array.from({ length: 2 }, () => ({ family_member_id: 'dm-alice' })),
+];
+const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
+  family_members: DEMO_FAMILY_MEMBERS,
+  engrams: DEMO_ENGRAM_ROWS,
+  family_moments: DEMO_FAMILY_MOMENTS,
+};
+
+// Populated engram list for the Engram Training Center (bare array — callers .map/.filter).
+const DEMO_ENGRAMS_LIST = [
+  { id: 'eng-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', engram_type: 'family', archetype: 'The Matriarch', description: "Keeper of the family's stories, recipes, and quiet wisdom.", avatar_url: null, personality_summary: { ocean: { O: 74, C: 88, E: 62, A: 90, N: 28 } }, total_questions_answered: 48, ai_readiness_score: 92, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(120), updated_at: isoDaysAgo(1) },
+  { id: 'eng-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', engram_type: 'family', archetype: 'The Builder', description: 'Steady, practical, and endlessly devoted to the family.', avatar_url: null, personality_summary: { ocean: { O: 58, C: 86, E: 54, A: 80, N: 30 } }, total_questions_answered: 36, ai_readiness_score: 78, is_ai_active: true, training_status: 'active', voice_enabled: false, voice_status: 'pending', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(2) },
+  { id: 'eng-susan', user_id: 'demo-user', name: 'Susan Anderson', relationship: 'Mother', engram_type: 'family', archetype: 'The Caregiver', description: 'Warm, organized, and the heart of every gathering.', avatar_url: null, personality_summary: { ocean: { O: 70, C: 82, E: 72, A: 88, N: 32 } }, total_questions_answered: 41, ai_readiness_score: 85, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(1) },
+  { id: 'eng-alice', user_id: 'demo-user', name: 'Alice Anderson', relationship: 'Sister', engram_type: 'family', archetype: 'The Explorer', description: 'Curious, creative, and always chasing the next horizon.', avatar_url: null, personality_summary: { ocean: { O: 90, C: 64, E: 80, A: 72, N: 40 } }, total_questions_answered: 15, ai_readiness_score: 34, is_ai_active: false, training_status: 'training', voice_enabled: false, voice_status: 'none', created_at: isoDaysAgo(58), updated_at: isoDaysAgo(5) },
+];
+
 export function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
   const path = new URL(url, window.location.origin).pathname;
 
@@ -458,6 +537,10 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   }
 
   // St. Raphael Health endpoints
+  if (path.includes('/health/metrics')) {
+    if (method === 'POST') return mockResponse({ stored: MOCK_HEALTH_METRICS.length });
+    return mockResponse({ metrics: MOCK_HEALTH_METRICS });
+  }
   if (path.includes('/health/summary')) return mockResponse(MOCK_HEALTH_SUMMARY);
   if (path.includes('/health-predictions/predict') || path.includes('/causal-twin/predictions')) {
     return mockResponse(MOCK_HEALTH_PREDICTIONS);
@@ -545,7 +628,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   // Returning an object here crashes every caller that does data.filter(...)
   // (e.g. CustomEngramsDashboard's "c.filter is not a function").
   if (/\/api\/v1\/engrams\/?($|\?)/.test(path)) {
-    return mockResponse([]);
+    return mockResponse(DEMO_ENGRAMS_LIST);
   }
 
   // Engram / personality endpoints
@@ -614,9 +697,13 @@ export function initDemoInterceptor(): void {
           { status: 406, headers: { 'Content-Type': 'application/json' } },
         );
       }
-      return new Response(JSON.stringify([]), {
+      // Seed the few tables our flagship demo screens read directly; every
+      // other table still returns [] (unchanged), so this can't break callers.
+      const restTable = (url.split('/rest/v1/')[1] || '').split('?')[0].split('/')[0];
+      const seededRows = DEMO_SUPABASE_TABLES[restTable] || [];
+      return new Response(JSON.stringify(seededRows), {
         status: 200,
-        headers: { 'Content-Type': 'application/json', 'Content-Range': '*/0' },
+        headers: { 'Content-Type': 'application/json', 'Content-Range': seededRows.length ? `0-${seededRows.length - 1}/${seededRows.length}` : '*/0' },
       });
     }
 

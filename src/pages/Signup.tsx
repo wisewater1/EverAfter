@@ -89,12 +89,12 @@ export default function Signup() {
           <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
             <Brain className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-light text-white mb-2">Create Account</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-white mb-2">Create Account</h1>
           <p className="text-gray-400">Start building your personal AI today</p>
         </div>
 
         {/* Signup Form */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-8">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 p-5 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
