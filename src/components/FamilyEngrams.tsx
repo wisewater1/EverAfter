@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Users, Plus, Heart, Image, Video, MessageSquare, Sparkles, Settings, ChevronRight, Upload, X, Camera, Brain, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/api-client';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
+
+// Loaded on demand when the questionnaire modal opens (keeps it out of the main chunk).
+const PersonalityQuiz = lazy(() => import('./joseph/PersonalityQuiz'));
 import {
   QUIZ_SESSIONS_UPDATED_EVENT,
   buildQuizShareMessage,
@@ -38,10 +41,11 @@ type ViewMode = 'grid' | 'create' | 'detail' | 'interact';
 
 export default function FamilyEngrams() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [quizActivities, setQuizActivities] = useState<QuizProgressSnapshot[]>([]);
+  // memberId whose questionnaire is open in the in-place modal (null = closed)
+  const [quizMemberId, setQuizMemberId] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -82,7 +86,17 @@ export default function FamilyEngrams() {
   }, []);
 
   async function shareQuizLink(activity: QuizProgressSnapshot) {
-    const { subject, body, link } = buildQuizShareMessage(activity.memberName, activity.memberId);
+    // Mint a real server invite → a public /quiz/<token> link the family member
+    // can answer with NO account, on any device. Fall back to the local link
+    // only if the backend invite can't be created (offline/demo).
+    const invite = await apiClient.createQuizInvite(activity.memberName, activity.memberId);
+    const { subject, body, link } = invite
+      ? {
+          subject: `EverAfter personality questions for ${activity.memberName}`,
+          body: `Please answer a few quick questions about ${activity.memberName} here (no account needed): ${window.location.origin}${invite.share_path}`,
+          link: `${window.location.origin}${invite.share_path}`,
+        }
+      : buildQuizShareMessage(activity.memberName, activity.memberId);
     const shareText = `${subject}\n\n${body}`;
 
     try {
@@ -116,7 +130,9 @@ export default function FamilyEngrams() {
   }
 
   function openQuizActivity(memberId: string) {
-    navigate(`/family-dashboard?tab=quiz&memberId=${encodeURIComponent(memberId)}`);
+    // Open the questionnaire right here on the engram page instead of bouncing
+    // the user over to the St Joseph dashboard.
+    setQuizMemberId(memberId);
   }
 
   async function loadFamilyMembers() {
@@ -317,6 +333,30 @@ export default function FamilyEngrams() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* In-place personality questionnaire — Continue Here / Answer on Their Behalf
+          open it here rather than navigating away to the St Joseph dashboard. */}
+      {quizMemberId && (
+        <div
+          className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-6"
+          onClick={() => setQuizMemberId(null)}
+        >
+          <div className="relative my-6 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setQuizMemberId(null)}
+              aria-label="Close questionnaire"
+              className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-slate-800/90 p-2 text-slate-300 shadow-lg transition-colors hover:bg-slate-700 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="rounded-3xl border border-white/10 bg-slate-900/95 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
+              <Suspense fallback={<div className="py-16 text-center text-slate-400">Loading questionnaire…</div>}>
+                <PersonalityQuiz initialMemberId={quizMemberId} />
+              </Suspense>
+            </div>
           </div>
         </div>
       )}
