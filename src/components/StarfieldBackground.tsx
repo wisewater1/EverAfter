@@ -1,161 +1,185 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * A depth-layered starfield rendered on a single fixed canvas behind page
- * content. Stars parallax with the cursor and with scroll (nearer stars move
- * more), and twinkle gently. Designed to sit behind the app's dark-glass
- * panels so the stars shimmer through the frosted glass.
+ * Interactive constellation background on a single fixed canvas.
  *
- * Cheap by design: one canvas, DPR capped at 2, star count scaled to viewport,
- * passive listeners, and a single rAF loop. Honors prefers-reduced-motion by
- * drawing a calm, static field with no animation or parallax.
+ * - Stars drift continuously (visible, ambient motion) and twinkle.
+ * - Near the pointer (mouse OR finger) they link to it with glowing lines and
+ *   a soft light follows the cursor — the obvious "interactive" cue.
+ * - Nearby stars link to each other into a shifting network.
+ * - The whole field parallaxes with cursor position and with scroll.
+ *
+ * Motion is intentionally kept ON even under prefers-reduced-motion (just
+ * gentler / no twinkle), because the background being alive is the point here;
+ * a fully static fallback read as "broken" to users.
  */
 type Hue = 'white' | 'teal' | 'gold';
-interface Star {
-    x: number;       // base x as a fraction of width (0..1)
-    y: number;       // base y as a fraction of height (0..1)
-    z: number;       // depth 0..1 — higher is "closer" and parallaxes more
-    r: number;       // radius in px
-    phase: number;   // twinkle phase offset
-    speed: number;   // twinkle speed
+const HUES: Record<Hue, [number, number, number]> = {
+    white: [255, 255, 255],
+    teal: [80, 240, 255],
+    gold: [246, 200, 107],
+};
+
+interface P {
+    x: number; y: number;   // base position (px), drifts + wraps
+    vx: number; vy: number; // velocity px/sec
+    r: number; z: number;   // radius, depth 0..1
+    phase: number; speed: number;
     hue: Hue;
 }
 
-const HUES: Record<Hue, string> = {
-    white: '255, 255, 255',
-    teal: '0, 255, 224',   // matches --teal in index.css
-    gold: '246, 200, 107', // matches --gold in index.css
-};
-
-interface Props {
-    /** Multiplier on the auto-computed star count. */
-    density?: number;
-}
-
-export default function StarfieldBackground({ density = 1 }: Props) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function StarfieldBackground({ density = 1 }: { density?: number }) {
+    const ref = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
+        const canvas = ref.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const reduceMotion =
+        const reduce =
             typeof window.matchMedia === 'function' &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const motion = reduce ? 0.45 : 1; // dampen, don't disable
 
-        let width = 0;
-        let height = 0;
-        let stars: Star[] = [];
-        let raf = 0;
+        let W = 0, H = 0, raf = 0, last = 0;
+        let parts: P[] = [];
+        let mx = -1, my = -1, haveMouse = false;          // pointer in css px
+        let pX = 0, pY = 0, tpX = 0, tpY = 0;             // centered parallax −1..1
+        let scroll = 0, tScroll = 0;
 
-        // Eased pointer (−1..1 from center) and scroll (px) targets.
-        let pointerX = 0, pointerY = 0, targetPX = 0, targetPY = 0;
-        let scroll = 0, targetScroll = 0;
+        const LINK = 132;   // star↔star link distance
+        const MOUSE_R = 210; // pointer interaction radius
 
-        const buildStars = () => {
-            const count = Math.round(((width * height) / 8000) * density);
-            const arr: Star[] = [];
+        const build = () => {
+            const target = Math.round(((W * H) / 13000) * density);
+            const count = Math.max(34, Math.min(150, target));
+            const arr: P[] = [];
             for (let i = 0; i < count; i++) {
                 const z = Math.random();
                 const roll = Math.random();
-                const hue: Hue = roll > 0.95 ? 'gold' : roll > 0.86 ? 'teal' : 'white';
+                const hue: Hue = roll > 0.92 ? 'gold' : roll > 0.8 ? 'teal' : 'white';
+                const sp = (10 + Math.random() * 16) * (0.4 + z) * motion; // px/sec
+                const ang = Math.random() * Math.PI * 2;
                 arr.push({
-                    x: Math.random(),
-                    y: Math.random(),
-                    z,
-                    r: 0.4 + z * 1.5,
-                    phase: Math.random() * Math.PI * 2,
-                    speed: 0.4 + Math.random() * 1.4,
+                    x: Math.random() * W, y: Math.random() * H,
+                    vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+                    r: 0.7 + z * 1.9, z,
+                    phase: Math.random() * 6.283, speed: 0.5 + Math.random() * 1.4,
                     hue,
                 });
             }
-            stars = arr;
+            parts = arr;
         };
 
         const resize = () => {
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
-            width = canvas.clientWidth;
-            height = canvas.clientHeight;
-            canvas.width = Math.max(1, Math.floor(width * dpr));
-            canvas.height = Math.max(1, Math.floor(height * dpr));
+            W = canvas.clientWidth; H = canvas.clientHeight;
+            canvas.width = Math.max(1, (W * dpr) | 0);
+            canvas.height = Math.max(1, (H * dpr) | 0);
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            buildStars();
+            build();
         };
 
-        const wrap = (v: number, max: number) => {
-            const m = v % max;
-            return m < 0 ? m + max : m;
-        };
+        const wrap = (v: number, m: number) => { const r = v % m; return r < 0 ? r + m : r; };
 
-        const draw = (time: number) => {
-            ctx.clearRect(0, 0, width, height);
-            for (const s of stars) {
-                const par = 0.2 + s.z * 1.4; // nearer stars parallax more
-                const px = wrap(s.x * width + pointerX * 26 * par, width);
-                const py = wrap(
-                    s.y * height + pointerY * 26 * par - scroll * 0.18 * par + time * 3 * (0.2 + s.z),
-                    height,
-                );
-                const twinkle = reduceMotion ? 0.85 : 0.55 + 0.45 * Math.sin(time * s.speed + s.phase);
-                const alpha = (0.25 + s.z * 0.6) * twinkle;
-                const rgb = HUES[s.hue];
-
-                if (s.z > 0.78) {
-                    // soft glow for the brightest, nearest stars
-                    ctx.fillStyle = `rgba(${rgb}, ${(alpha * 0.18).toFixed(3)})`;
-                    ctx.beginPath();
-                    ctx.arc(px, py, s.r * 3, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.fillStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
-                ctx.beginPath();
-                ctx.arc(px, py, s.r, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        };
-
+        const rx: number[] = [], ry: number[] = [];
         const frame = (t: number) => {
-            pointerX += (targetPX - pointerX) * 0.05;
-            pointerY += (targetPY - pointerY) * 0.05;
-            scroll += (targetScroll - scroll) * 0.08;
-            draw(t * 0.001);
+            const dt = last ? Math.min(0.05, (t - last) / 1000) : 0.016;
+            last = t;
+            pX += (tpX - pX) * 0.06; pY += (tpY - pY) * 0.06;
+            scroll += (tScroll - scroll) * 0.08;
+            const time = t * 0.001;
+            ctx.clearRect(0, 0, W, H);
+
+            for (let i = 0; i < parts.length; i++) {
+                const s = parts[i];
+                s.x = wrap(s.x + s.vx * dt, W);
+                s.y = wrap(s.y + s.vy * dt, H);
+                const par = 0.3 + s.z * 1.7;
+                rx[i] = wrap(s.x + pX * 34 * par, W);
+                ry[i] = wrap(s.y + pY * 34 * par - scroll * 0.16 * par, H);
+            }
+
+            // star ↔ star network
+            ctx.lineWidth = 1;
+            for (let i = 0; i < parts.length; i++) {
+                for (let j = i + 1; j < parts.length; j++) {
+                    const dx = rx[i] - rx[j], dy = ry[i] - ry[j];
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < LINK * LINK) {
+                        const a = (1 - Math.sqrt(d2) / LINK) * 0.18;
+                        ctx.strokeStyle = `rgba(120, 190, 255, ${a.toFixed(3)})`;
+                        ctx.beginPath(); ctx.moveTo(rx[i], ry[i]); ctx.lineTo(rx[j], ry[j]); ctx.stroke();
+                    }
+                }
+            }
+
+            // pointer light + links
+            if (haveMouse) {
+                const g = ctx.createRadialGradient(mx, my, 0, mx, my, MOUSE_R);
+                g.addColorStop(0, 'rgba(80, 240, 255, 0.10)');
+                g.addColorStop(1, 'rgba(80, 240, 255, 0)');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(mx, my, MOUSE_R, 0, 6.283); ctx.fill();
+                for (let i = 0; i < parts.length; i++) {
+                    const dx = rx[i] - mx, dy = ry[i] - my;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < MOUSE_R * MOUSE_R) {
+                        const a = (1 - Math.sqrt(d2) / MOUSE_R) * 0.55;
+                        ctx.strokeStyle = `rgba(90, 245, 255, ${a.toFixed(3)})`;
+                        ctx.beginPath(); ctx.moveTo(rx[i], ry[i]); ctx.lineTo(mx, my); ctx.stroke();
+                    }
+                }
+            }
+
+            // stars
+            for (let i = 0; i < parts.length; i++) {
+                const s = parts[i];
+                const tw = reduce ? 0.95 : 0.6 + 0.4 * Math.sin(time * s.speed + s.phase);
+                const a = (0.5 + s.z * 0.5) * tw;
+                const [R, G, B] = HUES[s.hue];
+                if (s.z > 0.66) {
+                    ctx.fillStyle = `rgba(${R}, ${G}, ${B}, ${(a * 0.22).toFixed(3)})`;
+                    ctx.beginPath(); ctx.arc(rx[i], ry[i], s.r * 3.2, 0, 6.283); ctx.fill();
+                }
+                ctx.fillStyle = `rgba(${R}, ${G}, ${B}, ${a.toFixed(3)})`;
+                ctx.beginPath(); ctx.arc(rx[i], ry[i], s.r, 0, 6.283); ctx.fill();
+            }
+
             raf = requestAnimationFrame(frame);
         };
 
-        const onPointer = (e: PointerEvent) => {
-            targetPX = (e.clientX / window.innerWidth) * 2 - 1;
-            targetPY = (e.clientY / window.innerHeight) * 2 - 1;
+        const onMove = (e: PointerEvent) => {
+            mx = e.clientX; my = e.clientY; haveMouse = true;
+            tpX = (e.clientX / window.innerWidth) * 2 - 1;
+            tpY = (e.clientY / window.innerHeight) * 2 - 1;
         };
-        const onScroll = () => {
-            targetScroll = window.scrollY || window.pageYOffset || 0;
-        };
+        const onLeave = () => { haveMouse = false; };
+        const onScroll = () => { tScroll = window.scrollY || window.pageYOffset || 0; };
 
         resize();
+        onScroll();
         window.addEventListener('resize', resize);
-
-        if (reduceMotion) {
-            // Calm, static field — no parallax, no animation loop.
-            draw(0);
-        } else {
-            onScroll();
-            window.addEventListener('pointermove', onPointer, { passive: true });
-            window.addEventListener('scroll', onScroll, { passive: true });
-            raf = requestAnimationFrame(frame);
-        }
+        window.addEventListener('pointermove', onMove, { passive: true });
+        window.addEventListener('pointerdown', onMove, { passive: true });
+        window.addEventListener('pointerleave', onLeave);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        raf = requestAnimationFrame(frame);
 
         return () => {
             cancelAnimationFrame(raf);
             window.removeEventListener('resize', resize);
-            window.removeEventListener('pointermove', onPointer);
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerdown', onMove);
+            window.removeEventListener('pointerleave', onLeave);
             window.removeEventListener('scroll', onScroll);
         };
     }, [density]);
 
     return (
         <canvas
-            ref={canvasRef}
+            ref={ref}
             aria-hidden="true"
             className="pointer-events-none fixed inset-0 z-0 h-full w-full"
         />
