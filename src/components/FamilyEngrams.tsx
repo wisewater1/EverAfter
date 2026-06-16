@@ -134,30 +134,40 @@ export default function FamilyEngrams() {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (Array.isArray(members)) {
-        const membersWithData = await Promise.all(
-          members.map(async (member) => {
-            const { data: engram } = await supabase
-              .from('engrams')
-              .select('personality_traits, user_interactions(created_at)')
-              .eq('family_member_id', member.id)
-              .single();
+      if (Array.isArray(members) && members.length > 0) {
+        // Batch instead of N+1: two bulk .in() queries for ALL members'
+        // engrams + moment counts, rather than 2 queries per member.
+        const ids = members.map((m) => m.id);
+        const [engramsRes, momentsRes] = await Promise.all([
+          supabase
+            .from('engrams')
+            .select('family_member_id, personality_traits, user_interactions(created_at)')
+            .in('family_member_id', ids),
+          supabase
+            .from('family_moments')
+            .select('family_member_id')
+            .in('family_member_id', ids),
+        ]);
 
-            const { count: momentsCount } = await supabase
-              .from('family_moments')
-              .select('*', { count: 'exact', head: true })
-              .eq('family_member_id', member.id);
-
-            return {
-              ...member,
-              personality_traits: engram?.personality_traits || [],
-              moments_count: momentsCount || 0,
-              last_interaction: engram?.user_interactions?.[0]?.created_at,
-            };
-          })
+        const engramByMember = new Map(
+          (Array.isArray(engramsRes.data) ? engramsRes.data : []).map((e: any) => [e.family_member_id, e])
         );
+        const momentCount = new Map<string, number>();
+        (Array.isArray(momentsRes.data) ? momentsRes.data : []).forEach((m: any) => {
+          momentCount.set(m.family_member_id, (momentCount.get(m.family_member_id) || 0) + 1);
+        });
 
-        setFamilyMembers(membersWithData);
+        setFamilyMembers(members.map((member) => {
+          const engram: any = engramByMember.get(member.id);
+          return {
+            ...member,
+            personality_traits: engram?.personality_traits || [],
+            moments_count: momentCount.get(member.id) || 0,
+            last_interaction: engram?.user_interactions?.[0]?.created_at,
+          };
+        }));
+      } else if (Array.isArray(members)) {
+        setFamilyMembers([]);
       }
     } catch (error) {
       console.error('Error loading family members:', error);
