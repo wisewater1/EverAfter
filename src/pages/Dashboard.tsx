@@ -4,6 +4,7 @@ import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2 } f
 import { useAuth } from '../contexts/AuthContext';
 import MobileMenu from '../components/MobileMenu';
 import SaintsNavigation from '../components/SaintsNavigation';
+import StarfieldBackground from '../components/StarfieldBackground';
 import { lazyWithRetry } from '../lib/lazyWithRetry';
 import { loadStarterEngramDraft } from '../lib/onboardingDraft';
 import { getOnboardingStatus } from '../lib/onboardingApi';
@@ -212,7 +213,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+    <div className="relative min-h-[100dvh] overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+      {/* Interactive constellation backdrop (shows behind the engram tabs and the rest of the dashboard) */}
+      <StarfieldBackground />
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
@@ -382,7 +385,7 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[250px] safe-bottom w-full">
+      <main className="relative z-10 flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-[250px] safe-bottom w-full">
         <div className="space-y-8">
           {!loadingOnboardingResume && onboardingResume.visible && (
             <section className="relative overflow-hidden rounded-3xl border border-cyan-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-2xl">

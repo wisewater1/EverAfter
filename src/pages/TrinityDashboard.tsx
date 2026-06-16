@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, MessageSquare, Target, Shield, AlertTriangle, Calendar, BookOpen, Users, Zap, FileText, Beaker, ArrowLeft } from 'lucide-react';
+import StarfieldBackground from '../components/StarfieldBackground';
 import SaintsQuickNav from '../components/shared/SaintsQuickNav';
 import TrinityCouncilChat from '../components/trinity/TrinityCouncilChat';
 import CrossSaintGoalEngine from '../components/trinity/CrossSaintGoalEngine';
@@ -40,7 +41,10 @@ export default function TrinityDashboard() {
     const activeTabConfig = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
 
     return (
-        <div className="min-h-screen bg-[#0c0c12] text-white">
+        <div className="relative min-h-screen overflow-x-hidden bg-[#0c0c12] text-white">
+            {/* Interactive constellation backdrop */}
+            <StarfieldBackground />
+            <div className="relative z-10">
             {/* Header */}
             <header className="sticky top-0 z-40 bg-[#0c0c12]/80 backdrop-blur-xl border-b border-white/5">
                 <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
@@ -160,6 +164,7 @@ export default function TrinityDashboard() {
                 {activeTab === 'inheritance' && <InheritanceDirective />}
                 {activeTab === 'whatif' && <CrossSaintWhatIf />}
             </main>
+            </div>
         </div>
     );
 }
