@@ -324,7 +324,7 @@ function mockResponse(data: any, status = 200): Response {
   });
 }
 
-function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
+export function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
   const path = new URL(url, window.location.origin).pathname;
 
   // Personality quiz — MUST come before the generic `/personality` matcher
