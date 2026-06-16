@@ -3,6 +3,7 @@ import { Send, User, Book, Brain, X, Sparkles } from 'lucide-react';
 import { apiClient, type SaintBootstrapResult, type SaintChatResult } from '../lib/api-client';
 import { useAuth } from '../contexts/AuthContext';
 import { getCapability, getRuntimeReadiness } from '../lib/runtime-readiness';
+import { getDemoChatResponse } from '../lib/demo/demo-data-provider';
 import FeatureBlockedState from './FeatureBlockedState';
 
 interface SaintChatProps {
@@ -169,7 +170,14 @@ export default function SaintChat({
                 setAvailability(DEFAULT_SAINT_AVAILABILITY);
                 setMessages([buildInitialAssistantMessage()]);
 
-                if (isDemoMode || !session?.access_token) {
+                if (isDemoMode) {
+                    // Demo mode: self-contained canned conversation, no backend
+                    // or session required — leave the chat usable (no blocker).
+                    setKnowledge([]);
+                    setBootstrapping(false);
+                    return;
+                }
+                if (!session?.access_token) {
                     setKnowledge([]);
                     setBlockedReason('Your Saint session is not authorized. Please sign in again.');
                     setBootstrapping(false);
@@ -258,7 +266,19 @@ export default function SaintChat({
         setError(null);
 
         try {
-            if (isDemoMode || !session?.access_token || blockedReason) {
+            if (isDemoMode) {
+                // Demo mode: realistic canned reply, no backend call.
+                await new Promise(r => setTimeout(r, 500));
+                const demoMsg: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: getDemoChatResponse(saintId, userMsg.content),
+                    timestamp: new Date().toISOString(),
+                };
+                setMessages(prev => [...prev, demoMsg]);
+                return;
+            }
+            if (!session?.access_token || blockedReason) {
                 setError(blockedReason || 'Your Saint session is not authorized. Please sign in again.');
                 return;
             }
