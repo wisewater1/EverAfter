@@ -381,7 +381,7 @@ async def health_check():
         "version": "1.0.0",
         # Build marker — lets us confirm which code revision is actually live
         # (vs. a stale deploy). Bump when verifying a deploy landed.
-        "build": "voice-reconnect-1",
+        "build": "llm-flex-1",
         "bootstrap": runtime_status,
         "subsystems": getattr(app.state, "subsystem_status", _default_subsystem_status()),
         "capabilities": probe_safe_readiness["capabilities"],

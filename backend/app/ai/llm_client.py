@@ -12,8 +12,12 @@ _native_model_lock = asyncio.Lock()
 class LLMClient:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.OPENAI_API_KEY
-        self.base_url = "https://api.openai.com/v1"
-        self.model = "gpt-3.5-turbo"
+        # Provider-flexible: any OpenAI-compatible endpoint works. Keep the
+        # OpenAI defaults, but allow overriding base URL + model via env so a
+        # free/cheaper provider (e.g. Groq: https://api.groq.com/openai/v1) can
+        # be used by setting OPENAI_API_KEY + OPENAI_BASE_URL + OPENAI_MODEL.
+        self.base_url = (settings.OPENAI_BASE_URL or "https://api.openai.com/v1").rstrip("/")
+        self.model = settings.OPENAI_MODEL or "gpt-3.5-turbo"
         self.max_tokens = 500
         self.temperature = 0.7
 
