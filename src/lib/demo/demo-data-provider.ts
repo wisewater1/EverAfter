@@ -511,10 +511,16 @@ function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | nu
       .find(s => path.toLowerCase().includes(s)) || 'trinity';
     const responses = SAINT_CHAT_RESPONSES[saint] || SAINT_CHAT_RESPONSES.trinity;
     const response = responses[Math.floor(Math.random() * responses.length)];
+    const ts = new Date().toISOString();
+    // Include every shape the various chat consumers read: top-level `message`,
+    // `content` (saint chat), and `data.message` (EngramChat) — otherwise some
+    // fall back to the canned "I apologize…" error string.
     return mockResponse({
       message: response,
+      content: response,
+      data: { message: response, timestamp: ts },
       saint,
-      timestamp: new Date().toISOString(),
+      timestamp: ts,
       confidence: 0.85 + Math.random() * 0.1,
     });
   }
