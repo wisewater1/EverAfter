@@ -97,6 +97,32 @@ const TrendIcon = ({ trend }: { trend: string }) => {
 
 /* ═══════════════════════════════════════════════════════════════ */
 
+// Some prediction sources (and demo mocks) return partial payloads. Fill in
+// every field the render reads so the panel can never crash on missing data.
+function normalizePrediction(raw: unknown): PredictionBundle | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Partial<PredictionBundle> & { uncertainty?: Partial<UncertaintyMeta> };
+    return {
+        user_id: r.user_id ?? '',
+        metric: r.metric ?? 'health',
+        predicted_value: Number(r.predicted_value ?? 0),
+        risk_level: r.risk_level ?? 'moderate',
+        trend: r.trend ?? 'stable',
+        risk_factors: Array.isArray(r.risk_factors) ? r.risk_factors : [],
+        trajectory: Array.isArray(r.trajectory) ? r.trajectory : [],
+        uncertainty: {
+            confidence_score: Number(r.uncertainty?.confidence_score ?? 0),
+            confidence_level: r.uncertainty?.confidence_level ?? 'low',
+            evidence_type: r.uncertainty?.evidence_type ?? 'limited_data',
+            data_days: Number(r.uncertainty?.data_days ?? 0),
+            data_completeness: Number(r.uncertainty?.data_completeness ?? 0),
+            explanation: r.uncertainty?.explanation ?? '',
+        },
+        recommendations: Array.isArray(r.recommendations) ? r.recommendations : [],
+        generated_at: r.generated_at ?? new Date().toISOString(),
+    };
+}
+
 export default function SharedPredictionPanel({
     saint,
     metricsHistory = [],
@@ -145,7 +171,7 @@ export default function SharedPredictionPanel({
                 ),
             ]);
             if (predResult.status === 'fulfilled') {
-                setPrediction(predResult.value);
+                setPrediction(normalizePrediction(predResult.value));
                 setError(null);
             } else {
                 setPrediction(null);
