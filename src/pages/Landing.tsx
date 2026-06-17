@@ -98,13 +98,7 @@ export default function Landing() {
             protect your legacy, and support your loved ones — today and after you're gone.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <button
-              onClick={() => navigate(user ? '/dashboard' : '/signup')}
-              className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
-            >
-              {user ? 'Go to Dashboard' : 'Start Free'}
-              <ArrowRight className="w-5 h-5" />
-            </button>
+            {/* Fiesta — instant demo, no login. The on-stage show. */}
             <button
               onClick={() => {
                 startDemoMode();
@@ -113,6 +107,14 @@ export default function Landing() {
               className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
             >
               Fiesta
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            {/* The real product — actual sign-up / dashboard (no demo mode). */}
+            <button
+              onClick={() => navigate(user ? '/dashboard' : '/signup')}
+              className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2"
+            >
+              {user ? 'Go to Dashboard' : 'The Real Deal'}
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
