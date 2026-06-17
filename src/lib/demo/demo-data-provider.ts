@@ -721,7 +721,7 @@ export function initDemoInterceptor(): void {
     return originalFetch.call(window, input, init);
   };
 
-  console.log('[EverAfter Demo] Data interceptor active — all saints running on mock data');
+  if (import.meta.env.DEV) console.log('[EverAfter Demo] Data interceptor active — all saints running on mock data');
 }
 
 /**

@@ -111,7 +111,7 @@ function App() {
         <AuthProvider>
           <ConnectionsProvider>
             <ErrorNotifierConnector />
-            <Router>
+            <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
               <Suspense fallback={<RouteFallback />}>
                 <RouteErrorBoundary>
                 <Routes>
