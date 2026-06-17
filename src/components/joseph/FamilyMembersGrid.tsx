@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck } from 'lucide-react';
+import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck, Send } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
+import { sendPersonalityQuestions } from '../../lib/joseph/sendQuestions';
 import {
     getFamilyMembers, FamilyMember, getSpouse,
     getChildren, formatDate, getGenerationLabel,
@@ -35,6 +36,18 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [ancestryTarget, setAncestryTarget] = useState<FamilyMember | null>(null);
+    const [sentId, setSentId] = useState<string | null>(null);
+
+    // Seamless "send the personality questionnaire to this person" — mints a
+    // public link and hands it off (share sheet / clipboard), with quick feedback.
+    const handleSendQuestions = async (member: FamilyMember) => {
+        const name = `${member.firstName} ${member.lastName}`.trim() || 'your family member';
+        const res = await sendPersonalityQuestions(name, member.id);
+        if (res.ok) {
+            setSentId(member.id);
+            setTimeout(() => setSentId((cur) => (cur === member.id ? null : cur)), 2200);
+        }
+    };
 
     const syncEngrams = async () => {
         setIsSyncing(true);
@@ -371,6 +384,15 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                             >
                                                 <Activity className="w-3 h-3" />
                                                 <span>Stats</span>
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); void handleSendQuestions(member); }}
+                                                title="Send the personality questionnaire to this person — no account needed"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-[10px] font-bold uppercase tracking-wider transition-all border border-cyan-500/20"
+                                            >
+                                                <Send className="w-3 h-3" />
+                                                <span>{sentId === member.id ? 'Sent ✓' : 'Send Questions'}</span>
                                             </button>
 
                                             {member.aiPersonality?.isActive ? (

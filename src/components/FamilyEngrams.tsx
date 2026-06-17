@@ -15,6 +15,7 @@ import {
   markQuizInviteSent,
   type QuizProgressSnapshot,
 } from '../lib/joseph/quizSessions';
+import { sendPersonalityQuestions } from '../lib/joseph/sendQuestions';
 
 interface FamilyMember {
   id: string;
@@ -421,6 +422,11 @@ function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
   const timeSinceInteraction = member.last_interaction
     ? Math.floor((Date.now() - new Date(member.last_interaction).getTime()) / (1000 * 60 * 60 * 24))
     : null;
+  const [sent, setSent] = useState(false);
+  const handleSend = async () => {
+    const res = await sendPersonalityQuestions(member.name, member.id);
+    if (res.ok) { setSent(true); setTimeout(() => setSent(false), 2200); }
+  };
 
   return (
     <div
@@ -465,6 +471,15 @@ function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
           </div>
         )}
       </div>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); void handleSend(); }}
+        title="Send the personality questionnaire to this person — no account needed"
+        className="mb-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-semibold uppercase tracking-wider transition-all border border-cyan-500/20"
+      >
+        <Send className="w-3.5 h-3.5" />
+        {sent ? 'Sent ✓' : 'Send Questions'}
+      </button>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div className="flex items-center gap-4 text-xs text-slate-500">
