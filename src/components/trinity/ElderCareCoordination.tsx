@@ -288,7 +288,10 @@ export default function ElderCareCoordination() {
           loadEmergencyContacts((await supabase.auth.getUser()).data.user?.id || ''),
         ]);
 
-        const budgetEnvelopes = budgetResult.status === 'fulfilled' ? budgetResult.value : [];
+        // getBudget() resolves to the envelopes array (real backend) OR a budget
+        // object { envelopes: [...] } (demo mock) — normalize so .reduce can't crash.
+        const budgetRaw: any = budgetResult.status === 'fulfilled' ? budgetResult.value : [];
+        const budgetEnvelopes = Array.isArray(budgetRaw) ? budgetRaw : (budgetRaw?.envelopes ?? []);
         const emergencyContacts = contactsResult.status === 'fulfilled' ? contactsResult.value : [];
         const monthlyIncome = Math.max(
           budgetEnvelopes.reduce((sum, env) => sum + Number(env.assigned || 0), 0) * 1.4,
