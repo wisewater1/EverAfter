@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
-    console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
+    if (import.meta.env.DEV) console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
     if (isDemoAuthEnabled()) {
       const demoState = readDemoAuthState();
       // Reloads must re-install the fetch interceptor, or every API call goes
