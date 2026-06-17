@@ -198,10 +198,10 @@ export default function FamilyEngrams() {
     <div className="space-y-6">
       {/* Header */}
       <div className="ea-panel p-4 sm:p-6" data-variant="teal">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-              <Users className="w-8 h-8 text-cyan-400" />
+              <Users className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 text-cyan-400" />
               Family Engrams
             </h2>
             <p className="text-slate-400">
@@ -210,7 +210,7 @@ export default function FamilyEngrams() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="ea-btn flex items-center justify-center gap-2 font-medium whitespace-nowrap relative z-10 text-xs sm:text-sm"
+            className="ea-btn flex flex-shrink-0 items-center justify-center gap-2 font-medium whitespace-nowrap relative z-10 text-xs sm:text-sm"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 relative z-10" />
             <span className="relative z-10">Create</span>

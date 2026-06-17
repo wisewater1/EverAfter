@@ -113,8 +113,8 @@ export default function ContinuousControls() {
                                         <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
                                     )}
                                     <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-xs font-mono text-amber-500/80 uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded">
+                                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                                            <span className="text-xs font-mono text-amber-500/80 uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0">
                                                 {control.controlId}
                                             </span>
                                             <span className="text-slate-200 text-sm">{control.description}</span>

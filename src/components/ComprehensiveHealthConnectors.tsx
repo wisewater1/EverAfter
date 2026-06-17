@@ -552,13 +552,13 @@ export default function ComprehensiveHealthConnectors() {
     <div className="space-y-6">
       {/* Header */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Health Device Connections</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">Health Device Connections</h2>
             <p className="text-slate-400 text-sm">Connect your wearables, CGM devices, and fitness trackers to sync health data automatically.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border border-teal-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border border-teal-500/20 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] whitespace-nowrap">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-teal-400" />
                 <span className="text-teal-400 font-medium text-sm">{connectedCount} Connected</span>
