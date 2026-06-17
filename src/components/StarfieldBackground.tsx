@@ -108,7 +108,7 @@ export default function StarfieldBackground({ density = 1 }: { density?: number 
                     const dx = rx[i] - rx[j], dy = ry[i] - ry[j];
                     const d2 = dx * dx + dy * dy;
                     if (d2 < LINK * LINK) {
-                        const a = (1 - Math.sqrt(d2) / LINK) * 0.18;
+                        const a = (1 - Math.sqrt(d2) / LINK) * 0.22;
                         ctx.strokeStyle = `rgba(120, 190, 255, ${a.toFixed(3)})`;
                         ctx.beginPath(); ctx.moveTo(rx[i], ry[i]); ctx.lineTo(rx[j], ry[j]); ctx.stroke();
                     }
@@ -118,7 +118,7 @@ export default function StarfieldBackground({ density = 1 }: { density?: number 
             // pointer light + links
             if (haveMouse) {
                 const g = ctx.createRadialGradient(mx, my, 0, mx, my, MOUSE_R);
-                g.addColorStop(0, 'rgba(80, 240, 255, 0.10)');
+                g.addColorStop(0, 'rgba(80, 240, 255, 0.13)');
                 g.addColorStop(1, 'rgba(80, 240, 255, 0)');
                 ctx.fillStyle = g;
                 ctx.beginPath(); ctx.arc(mx, my, MOUSE_R, 0, 6.283); ctx.fill();
@@ -137,10 +137,14 @@ export default function StarfieldBackground({ density = 1 }: { density?: number 
             for (let i = 0; i < parts.length; i++) {
                 const s = parts[i];
                 const tw = reduce ? 0.95 : 0.6 + 0.4 * Math.sin(time * s.speed + s.phase);
-                const a = (0.5 + s.z * 0.5) * tw;
+                const a = Math.min(1, (0.58 + s.z * 0.5) * tw);
                 const [R, G, B] = HUES[s.hue];
-                if (s.z > 0.66) {
-                    ctx.fillStyle = `rgba(${R}, ${G}, ${B}, ${(a * 0.22).toFixed(3)})`;
+                // Soft two-layer bloom around the nearer stars — gives the whole
+                // app a gentle ambient glow (kept subtle so it never overwhelms).
+                if (s.z > 0.5) {
+                    ctx.fillStyle = `rgba(${R}, ${G}, ${B}, ${(a * 0.10).toFixed(3)})`;
+                    ctx.beginPath(); ctx.arc(rx[i], ry[i], s.r * 5.2, 0, 6.283); ctx.fill();
+                    ctx.fillStyle = `rgba(${R}, ${G}, ${B}, ${(a * 0.26).toFixed(3)})`;
                     ctx.beginPath(); ctx.arc(rx[i], ry[i], s.r * 3.2, 0, 6.283); ctx.fill();
                 }
                 ctx.fillStyle = `rgba(${R}, ${G}, ${B}, ${a.toFixed(3)})`;
