@@ -105,7 +105,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 <TraitBadges traits={member.aiPersonality?.traits} limit={1} className="inline-flex ml-2 !mt-0 align-middle" />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider whitespace-nowrap">
                                     {getGenerationLabel(member.generation)}
                                 </span>
                                 {member.occupation && (
@@ -173,7 +173,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                         {spouse.deathDate && <span className="ml-1 text-slate-600">†</span>}
                                         <TraitBadges traits={spouse.aiPersonality?.traits} limit={1} className="inline-flex ml-2 !mt-0 align-middle" />
                                     </div>
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider whitespace-nowrap">
                                         {getGenerationLabel(spouse.generation)}
                                     </div>
                                 </div>
@@ -254,7 +254,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             <div>
                                 <h3 className="text-lg font-light text-white">{selectedMember.firstName} {selectedMember.lastName}</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">{getGenerationLabel(selectedMember.generation)}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider whitespace-nowrap">{getGenerationLabel(selectedMember.generation)}</p>
                                     {selectedMember.aiPersonality?.familyRole && (
                                         <span className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
                                             {selectedMember.aiPersonality.familyRole}

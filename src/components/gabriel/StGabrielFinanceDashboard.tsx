@@ -470,14 +470,14 @@ export default function StGabrielFinanceDashboard() {
                         {activeView === 'reports' && 'Financial Health Check'}
                         {activeView === 'wisegold' && 'WiseGold Network'}
                     </h2>
-                    <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                         <SecurityIntegrityBadge />
                         <button className="p-2 text-slate-400 transition-colors hover:text-white">
                             <Plus className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setShowCouncil(!showCouncil)}
-                            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${showCouncil ? 'border border-indigo-500/30 bg-indigo-500/20 text-indigo-300' : 'border border-slate-700 bg-slate-800 text-slate-400'}`}
+                            className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all ${showCouncil ? 'border border-indigo-500/30 bg-indigo-500/20 text-indigo-300' : 'border border-slate-700 bg-slate-800 text-slate-400'}`}
                         >
                             <MessageSquare className="w-3.5 h-3.5" />
                             <span className="sm:hidden">{showCouncil ? 'Hide' : 'Council'}</span>

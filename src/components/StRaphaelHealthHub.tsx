@@ -90,17 +90,17 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
     <div className="space-y-6">
       {/* Header */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-teal-500/30">
-              <Heart className="w-7 h-7 text-teal-400" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 rounded-2xl bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)] border border-teal-500/30">
+              <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-teal-400" />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">St. Raphael Health Hub</h2>
-              <p className="text-slate-400 text-sm">Comprehensive health tracking and management</p>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">St. Raphael Health Hub</h2>
+              <p className="text-slate-400 text-xs sm:text-sm">Comprehensive health tracking and management</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => openConnectionsPanel('health')}
               className="relative px-5 py-3 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 hover:from-teal-500/20 hover:to-cyan-500/20 text-teal-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-teal-500/20 backdrop-blur-xl group"

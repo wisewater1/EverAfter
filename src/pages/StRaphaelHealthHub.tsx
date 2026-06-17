@@ -274,7 +274,7 @@ export default function StRaphaelHealthHub() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <SecurityIntegrityBadge />
                             <button
                                 onClick={() => openConnectionsPanel('health')}
@@ -289,11 +289,11 @@ export default function StRaphaelHealthHub() {
                             </button>
                             <button
                                 onClick={() => navigate('/dashboard')}
-                                className="group flex items-center gap-2 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-2.5 text-slate-300 transition-all hover:text-white sm:px-5"
+                                className="group flex flex-shrink-0 items-center gap-2 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-2.5 text-slate-300 transition-all hover:text-white sm:px-5"
                             >
-                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                                <span className="font-medium sm:hidden">Back</span>
-                                <span className="hidden font-medium sm:inline">Exit</span>
+                                <ArrowLeft className="w-4 h-4 flex-shrink-0 group-hover:-translate-x-1 transition-transform" />
+                                <span className="font-medium whitespace-nowrap sm:hidden">Back</span>
+                                <span className="hidden font-medium whitespace-nowrap sm:inline">Exit</span>
                             </button>
                         </div>
                     </div>
@@ -541,9 +541,9 @@ function VitalDisplay({ icon: Icon, label, value, unit }: any) {
                 </div>
                 <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{label}</span>
             </div>
-            <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-white tracking-tight">{typeof value === 'number' ? value.toFixed(1) : value}</span>
-                <span className="text-xs text-slate-500 font-medium">{unit}</span>
+            <div className="flex items-baseline gap-1 min-w-0">
+                <span className="text-xl sm:text-2xl font-bold text-white tracking-tight tabular-nums whitespace-nowrap truncate">{typeof value === 'number' ? value.toFixed(1) : value}</span>
+                <span className="text-xs text-slate-500 font-medium whitespace-nowrap flex-shrink-0">{unit}</span>
             </div>
         </div>
     );

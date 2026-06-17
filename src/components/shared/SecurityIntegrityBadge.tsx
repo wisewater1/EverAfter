@@ -55,7 +55,7 @@ export default function SecurityIntegrityBadge({ className = '' }: { className?:
     };
 
     return (
-        <div className={`flex items-center gap-3 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-1.5 shadow-sm whitespace-nowrap ${className}`}>
+        <div className={`flex flex-shrink-0 items-center gap-3 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-full px-4 py-1.5 shadow-sm whitespace-nowrap ${className}`}>
 
             {/* Michael Section */}
             <button
@@ -64,7 +64,7 @@ export default function SecurityIntegrityBadge({ className = '' }: { className?:
                 title="St. Michael Status: Active Protection"
             >
                 <Shield className={`w-3.5 h-3.5 ${getSecurityColor()}`} />
-                <div className="flex flex-col items-start leading-none">
+                <div className="flex flex-col items-start leading-none whitespace-nowrap">
                     <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Security</span>
                     <span className={`text-xs font-semibold ${getSecurityColor()}`}>{getSecurityText()}</span>
                 </div>
@@ -79,7 +79,7 @@ export default function SecurityIntegrityBadge({ className = '' }: { className?:
                 title={`St. Anthony Audit: Last check ${new Date(lastAudit).toLocaleTimeString()}`}
             >
                 <Search className="w-3.5 h-3.5 text-amber-400" />
-                <div className="flex flex-col items-start leading-none">
+                <div className="flex flex-col items-start leading-none whitespace-nowrap">
                     <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Integrity</span>
                     <span className="text-xs font-semibold text-slate-300">{integrityScore}%</span>
                 </div>

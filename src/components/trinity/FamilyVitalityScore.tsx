@@ -38,7 +38,7 @@ export default function FamilyVitalityScore() {
                 <button onClick={load} className="p-1 text-slate-600 hover:text-slate-400"><RefreshCw className="w-3.5 h-3.5" /></button>
             </div>
 
-            <div className="flex items-center gap-8">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                 {/* Circular gauge */}
                 <div className="relative w-36 h-36">
                     <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
