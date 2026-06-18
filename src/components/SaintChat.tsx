@@ -294,6 +294,36 @@ export default function SaintChat({
         setLoading(true);
         setError(null);
 
+        // Fail-safe: when the server AI is unavailable / blocked / errors, generate
+        // the reply ON-DEVICE (keyless, in the browser). Returns true if it did.
+        // Once it succeeds we stay in on-device mode for the rest of the session.
+        const tryOnDeviceFallback = async (): Promise<boolean> => {
+            if (!isWebGPUAvailable()) return false;
+            try {
+                setOnDeviceStatus('loading');
+                const history = [...messages, userMsg]
+                    .filter((m) => m.id !== 'init' && (m.role === 'user' || m.role === 'assistant'))
+                    .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+                const reply = await generateOnDevice(saintId, history, (p) => setOnDeviceProgress(p.progress));
+                if (!reply || !reply.trim()) { setOnDeviceStatus('error'); return false; }
+                setOnDeviceMode(true);
+                setOnDeviceStatus('ready');
+                setBlockedReason(null);
+                setError(null);
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: reply,
+                    timestamp: new Date().toISOString(),
+                }]);
+                return true;
+            } catch (e) {
+                console.warn('On-device AI fallback failed:', e);
+                setOnDeviceStatus('error');
+                return false;
+            }
+        };
+
         try {
             if (onDeviceMode) {
                 // Generate the reply entirely in the user's browser — no server,
@@ -323,6 +353,7 @@ export default function SaintChat({
                 return;
             }
             if (!session?.access_token || blockedReason) {
+                if (await tryOnDeviceFallback()) return;
                 setError(blockedReason || 'Your Saint session is not authorized. Please sign in again.');
                 return;
             }
@@ -331,19 +362,25 @@ export default function SaintChat({
             const nextAvailability = deriveAvailabilityFromChat(response);
             setAvailability(nextAvailability);
             if (!nextAvailability.persistenceAvailable || !nextAvailability.historyAvailable || !nextAvailability.knowledgeAvailable) {
-                const unavailableReason = 'This Saint became unavailable because backend storage or history is no longer healthy.';
                 setKnowledge([]);
+                if (await tryOnDeviceFallback()) return;
+                const unavailableReason = 'This Saint became unavailable because backend storage or history is no longer healthy.';
                 setBlockedReason(unavailableReason);
                 setError(unavailableReason);
                 return;
             }
             // specific cast to handle extra properties
             const responseData = response as any;
+            const serverContent = responseData.message || responseData.content;
+            // Server replied but with no usable AI content (e.g. no LLM key) → fail over.
+            if (!serverContent || !String(serverContent).trim()) {
+                if (await tryOnDeviceFallback()) return;
+            }
 
             const aiMsg: Message = {
                 id: responseData.id || Date.now().toString(),
                 role: 'assistant',
-                content: responseData.message || responseData.content,
+                content: serverContent || '…',
                 timestamp: responseData.timestamp || new Date().toISOString()
             };
 
@@ -366,6 +403,7 @@ export default function SaintChat({
 
         } catch (err) {
             console.error('Chat error:', err);
+            if (await tryOnDeviceFallback()) return;
             setError(formatSaintError('chat', err));
         } finally {
             setLoading(false);
@@ -375,7 +413,9 @@ export default function SaintChat({
     const knowledgeDisabled = Boolean(blockedReason) || !availability.knowledgeAvailable && knowledge.length === 0;
     // On-device mode keeps the chat usable even if the backend is unavailable —
     // it runs entirely in the browser, so a blocked backend shouldn't lock input.
-    const chatBlocked = Boolean(blockedReason) && !onDeviceMode;
+    // Don't hard-block the chat when the backend is degraded if we can still
+    // answer on-device — let the input through so the fail-safe can kick in.
+    const chatBlocked = Boolean(blockedReason) && !onDeviceMode && !webgpuAvailable;
 
     return (
         <div className="flex h-full bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
