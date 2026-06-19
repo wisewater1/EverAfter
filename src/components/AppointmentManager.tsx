@@ -675,7 +675,7 @@ export default function AppointmentManager() {
         {/* Empty State */}
         {appointments.length === 0 && (
           <div className="bg-slate-900/40 backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-700/50 p-8 sm:p-12 md:p-16 text-center min-h-[400px] flex flex-col items-center justify-center">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-6 animate-pulse">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-6 motion-safe:animate-pulse">
               <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600" />
             </div>
             <h3 className="text-xl sm:text-2xl font-semibold text-white mb-3">No appointments scheduled</h3>

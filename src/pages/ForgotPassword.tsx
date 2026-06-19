@@ -32,7 +32,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-3 sm:p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-6 sm:mb-8">

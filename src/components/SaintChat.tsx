@@ -513,7 +513,7 @@ export default function SaintChat({
                                 {loading && (
                                     <div className="flex justify-start">
                                         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3">
-                                            <Icon className={`w-4 h-4 text-${primaryColor}-500 animate-bounce`} />
+                                            <Icon className={`w-4 h-4 text-${primaryColor}-500 motion-safe:animate-bounce`} />
                                             <span className="text-sm text-slate-500">Thinking...</span>
                                         </div>
                                     </div>

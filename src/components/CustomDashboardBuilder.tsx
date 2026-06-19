@@ -371,7 +371,7 @@ export default function CustomDashboardBuilder() {
 
   if (viewMode === 'view' && selectedDashboard) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-700/50 shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -445,7 +445,7 @@ export default function CustomDashboardBuilder() {
 
   if (viewMode === 'edit' && selectedDashboard) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-700/50 shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -509,7 +509,7 @@ export default function CustomDashboardBuilder() {
             <div>
               <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
                 Custom Health Plugin Builder
-                <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
+                <Sparkles className="w-5 h-5 text-violet-400 motion-safe:animate-pulse" />
               </h3>
               <p className="text-violet-200 text-sm">
                 Build custom dashboards combining multiple data sources

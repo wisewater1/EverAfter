@@ -122,7 +122,7 @@ export default function DeviceCheck() {
 
   if (!metrics) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#0a0a0f] flex items-center justify-center">
         <div className="text-white">Loading device metrics...</div>
       </div>
     );

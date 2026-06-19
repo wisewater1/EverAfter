@@ -9,7 +9,7 @@ export default function DarkGlassPanelShowcase() {
   }, []);
 
   return (
-    <div className="min-h-screen p-6 sm:p-8 space-y-8">
+    <div className="min-h-[100dvh] p-6 sm:p-8 space-y-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -130,7 +130,7 @@ export default function DarkGlassPanelShowcase() {
                 Your data is encrypted and protected with advanced security.
               </p>
               <div className="flex items-center gap-2 text-sm text-emerald-400">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-emerald-400 motion-safe:animate-pulse" />
                 <span>Secure Connection</span>
               </div>
             </div>

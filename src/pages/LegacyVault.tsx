@@ -7,7 +7,7 @@ export default function LegacyVault() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="relative">
         <button
           onClick={() => navigate('/dashboard')}

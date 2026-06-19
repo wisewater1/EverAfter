@@ -291,7 +291,7 @@ export default function StJosephFamilyDashboard() {
 
     if (authLoading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <div className="min-h-[100dvh] bg-slate-950 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
                     <p className="text-slate-400 font-light">Calling St. Joseph...</p>
@@ -304,7 +304,7 @@ export default function StJosephFamilyDashboard() {
     const activeTabConfig = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
 
     return (
-        <div className="min-h-screen bg-slate-950 px-4 py-4 text-slate-200 sm:py-6 md:p-8">
+        <div className="min-h-[100dvh] bg-slate-950 px-4 py-4 text-slate-200 sm:py-6 md:p-8">
             {/* Header */}
             <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
                 <button

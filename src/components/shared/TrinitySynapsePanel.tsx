@@ -208,7 +208,7 @@ export default function TrinitySynapsePanel({
 
     if (loading) {
         return (
-            <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-4 animate-pulse">
+            <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-4 motion-safe:animate-pulse">
                 <div className="flex items-center gap-2 text-slate-500 text-xs">
                     <Sparkles className="w-4 h-4" />
                     Trinity Synapse connecting Saints…

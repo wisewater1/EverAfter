@@ -67,7 +67,7 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
                 </div>
                 <div className="flex items-center gap-2">
                     {totalAlerts > 0 ? (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 motion-safe:animate-pulse">
                             {totalAlerts} ACTIVE
                         </span>
                     ) : (

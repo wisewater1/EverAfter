@@ -154,7 +154,7 @@ export default function CompliancePanel() {
                         disabled={exporting}
                         className={`flex items-center gap-2 rounded-xl px-6 py-2.5 font-bold transition-all shadow-lg ${exporting ? 'cursor-wait bg-slate-800 text-slate-500' : 'border border-white/10 bg-white/5 text-white shadow-black/20 hover:bg-white/10'}`}
                     >
-                        <Shield className={`h-4 w-4 ${exporting ? 'animate-pulse' : ''}`} />
+                        <Shield className={`h-4 w-4 ${exporting ? 'motion-safe:animate-pulse' : ''}`} />
                         {exporting ? 'Exporting...' : 'Export Evidence Package'}
                     </button>
                 </div>

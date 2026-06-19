@@ -41,7 +41,7 @@ export default function TrinityDashboard() {
     const activeTabConfig = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
 
     return (
-        <div className="relative min-h-screen overflow-x-hidden bg-[#0c0c12] text-white">
+        <div className="relative min-h-[100dvh] overflow-x-hidden bg-[#0c0c12] text-white">
             {/* Interactive constellation backdrop */}
             <StarfieldBackground />
             <div className="relative z-10">

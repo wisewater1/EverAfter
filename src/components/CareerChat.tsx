@@ -396,9 +396,9 @@ export default function CareerChat({ publicToken }: CareerChatProps) {
               </div>
               <div className="rounded-2xl p-4 bg-indigo-500/20 border border-indigo-500/30">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-indigo-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-indigo-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-indigo-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>

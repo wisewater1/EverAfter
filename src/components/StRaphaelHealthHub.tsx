@@ -108,7 +108,7 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
               <Link2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
               <span className="hidden sm:inline font-medium">Connections</span>
               {activeConnectionsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg shadow-emerald-500/50 animate-pulse">
+                <span className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg shadow-emerald-500/50 motion-safe:animate-pulse">
                   {activeConnectionsCount}
                 </span>
               )}

@@ -43,10 +43,10 @@ export default function RaphaelCinematicPrototype() {
           phase !== 'intro' ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse"
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl motion-safe:animate-pulse"
           style={{ animationDuration: '4s' }}
         />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl animate-pulse"
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl motion-safe:animate-pulse"
           style={{ animationDuration: '5s', animationDelay: '1s' }}
         />
       </div>
@@ -95,7 +95,7 @@ export default function RaphaelCinematicPrototype() {
           }`}
         >
           {/* Angel Glow Aura */}
-          <div className="absolute inset-0 bg-gradient-to-b from-teal-500/20 via-emerald-500/20 to-amber-500/10 rounded-full blur-3xl animate-pulse"
+          <div className="absolute inset-0 bg-gradient-to-b from-teal-500/20 via-emerald-500/20 to-amber-500/10 rounded-full blur-3xl motion-safe:animate-pulse"
             style={{ animationDuration: '3s' }}
           />
 
@@ -112,7 +112,7 @@ export default function RaphaelCinematicPrototype() {
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400/30 to-amber-400/30 mb-4
                   border border-teal-300/40 backdrop-blur-sm"
                 >
-                  <div className="absolute -inset-2 border border-amber-400/20 rounded-full animate-ping"
+                  <div className="absolute -inset-2 border border-amber-400/20 rounded-full motion-safe:animate-ping"
                     style={{ animationDuration: '3s' }}
                   />
                 </div>
@@ -126,11 +126,11 @@ export default function RaphaelCinematicPrototype() {
                 {(phase === 'whisper' || phase === 'vault') && (
                   <div className="relative">
                     <Heart
-                      className="w-12 h-12 text-emerald-400/60 animate-pulse"
+                      className="w-12 h-12 text-emerald-400/60 motion-safe:animate-pulse"
                       style={{ animationDuration: '1.5s' }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 border-2 border-emerald-400/30 rounded-full animate-ping"
+                      <div className="w-16 h-16 border-2 border-emerald-400/30 rounded-full motion-safe:animate-ping"
                         style={{ animationDuration: '1.5s' }}
                       />
                     </div>
@@ -211,7 +211,7 @@ export default function RaphaelCinematicPrototype() {
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="w-3 h-3 rounded-full bg-emerald-400/60 animate-pulse"
+                      className="w-3 h-3 rounded-full bg-emerald-400/60 motion-safe:animate-pulse"
                       style={{ animationDelay: `${i * 0.2}s`, animationDuration: '2s' }}
                     />
                   ))}

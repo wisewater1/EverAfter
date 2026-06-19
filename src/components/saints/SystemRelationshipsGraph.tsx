@@ -173,7 +173,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                                 r={isSelected ? "35" : "30"}
                                 fill={node.color}
                                 fillOpacity={isIsolating ? "0.4" : "0.1"}
-                                className={isIsolating ? "animate-ping" : "animate-pulse"}
+                                className={isIsolating ? "motion-safe:animate-ping" : "motion-safe:animate-pulse"}
                             />
                             <circle
                                 r="20"
@@ -216,7 +216,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
             {/* Legend / Stats overlay */}
             <div className="absolute bottom-6 right-6 flex gap-4 text-[10px] text-slate-500 uppercase tracking-wider font-mono">
                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-sky-500 motion-safe:animate-pulse" />
                     Archive Active
                 </div>
                 <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                                 }}
                                 disabled={!!isolatingId && isolatingId !== activeDetailId}
                                 className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isolatingId === activeDetailId
-                                    ? 'bg-rose-500 text-white animate-pulse'
+                                    ? 'bg-rose-500 text-white motion-safe:animate-pulse'
                                     : 'bg-slate-800 hover:bg-rose-900/40 text-rose-400 border border-rose-500/20'
                                     }`}
                             >

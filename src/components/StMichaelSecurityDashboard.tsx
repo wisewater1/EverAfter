@@ -260,9 +260,9 @@ export default function StMichaelSecurityDashboard() {
 
     if (loading && !scanning) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <div className="min-h-[100dvh] bg-slate-950 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
-                    <Shield className="w-12 h-12 text-sky-500 animate-pulse" />
+                    <Shield className="w-12 h-12 text-sky-500 motion-safe:animate-pulse" />
                     <p className="text-sky-400 font-medium tracking-widest uppercase text-xs">Initializing Guardian...</p>
                 </div>
             </div>
@@ -270,7 +270,7 @@ export default function StMichaelSecurityDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0f15] text-slate-200">
+        <div className="min-h-[100dvh] bg-[#0a0f15] text-slate-200">
             {/* Dynamic Background */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 right-0 -m-32 w-96 h-96 bg-sky-500/10 rounded-full blur-[120px]"></div>
@@ -298,7 +298,7 @@ export default function StMichaelSecurityDashboard() {
                         </div>
                     </div>
                     <button onClick={handleManualScan} disabled={scanning}
-                        className={`flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-white transition-all shadow-lg shadow-sky-500/20 hover:bg-sky-500 disabled:bg-slate-800 sm:px-6 ${scanning ? 'animate-pulse' : ''}`}>
+                        className={`flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-white transition-all shadow-lg shadow-sky-500/20 hover:bg-sky-500 disabled:bg-slate-800 sm:px-6 ${scanning ? 'motion-safe:animate-pulse' : ''}`}>
                         {scanning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                         <span className="sm:hidden">{scanning ? 'Scanning...' : 'Scan'}</span>
                         <span className="hidden sm:inline">{scanning ? 'Scanning...' : 'Full Scan'}</span>

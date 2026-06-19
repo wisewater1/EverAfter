@@ -103,14 +103,14 @@ export default function DevicesDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f]">
+      <div className="flex items-center justify-center min-h-[100dvh] bg-[#0a0a0f]">
         <RefreshCw className="w-8 h-8 text-teal-400 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-[#0a0a0f] relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -360,7 +360,7 @@ function RealTimeMonitoringCard({ connections }: { connections: Connection[] }) 
 
       <div className="mt-4 p-3 rounded-xl bg-white/5">
         <div className="flex items-center gap-2 text-sm text-slate-400">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-emerald-400 motion-safe:animate-pulse" />
           <span>Monitoring active</span>
         </div>
       </div>

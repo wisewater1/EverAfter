@@ -104,7 +104,7 @@ export default function PublicPersonalityQuiz() {
   }, [answers, token]);
 
   const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
       <div className="max-w-lg w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8">
         {children}
       </div>

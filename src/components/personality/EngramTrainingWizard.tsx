@@ -449,7 +449,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                         )}
 
                         <div className="text-center space-y-3">
-                            <div className="w-16 h-16 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto animate-pulse">
+                            <div className="w-16 h-16 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto motion-safe:animate-pulse">
                                 <BarChart3 className="w-8 h-8 text-violet-400" />
                             </div>
                             <h3 className="text-xl font-bold text-white">50-Question Personality Assessment</h3>

@@ -90,7 +90,7 @@ export default function LegacyVaultEnhanced() {
 
   if (!supabase) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-slate-950 flex items-center justify-center p-4">
         <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">Configuration Error</h2>
@@ -256,7 +256,7 @@ export default function LegacyVaultEnhanced() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 isolation-isolate">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 isolation-isolate">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>

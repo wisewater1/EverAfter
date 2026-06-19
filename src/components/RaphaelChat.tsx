@@ -350,9 +350,9 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
               </div>
               <div className="rounded-2xl p-4 bg-emerald-500/20 border border-emerald-500/30">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
@@ -363,7 +363,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
 
       {/* Health data notification */}
       {healthDataNotice && (
-        <div className="mx-3 sm:mx-6 mb-0 px-3 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-xs text-cyan-400 flex items-center gap-2 animate-pulse">
+        <div className="mx-3 sm:mx-6 mb-0 px-3 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-xs text-cyan-400 flex items-center gap-2 motion-safe:animate-pulse">
           <CheckCircle className="w-3 h-3" />
           {healthDataNotice}
         </div>

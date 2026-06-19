@@ -66,7 +66,7 @@ const protectedReleaseRedirect = (
 
 function RouteFallback() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 flex items-center justify-center">
+    <div className="min-h-[100dvh] bg-slate-900 text-slate-300 flex items-center justify-center">
       <div className="text-center">
         <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-cyan-500/20 border-t-cyan-400" />
         <p className="text-sm tracking-wide text-slate-400">Loading...</p>

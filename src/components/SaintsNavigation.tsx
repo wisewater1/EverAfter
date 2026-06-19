@@ -158,7 +158,7 @@ export default function SaintsNavigation() {
                     <div className={`glass-card relative w-full h-full rounded-2xl overflow-hidden transition-all duration-500 ${saint.available ? `bg-gradient-to-br ${saint.gradient} opacity-90` : 'opacity-50'}`}>
                       {saint.available && (
                         <div className="absolute inset-0 opacity-10">
-                          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 group-hover:animate-pulse" />
+                          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 group-hover:motion-safe:animate-pulse" />
                         </div>
                       )}
 
@@ -178,7 +178,7 @@ export default function SaintsNavigation() {
                       {/* Active dot */}
                       {saint.available && isCenter && (
                         <div className="absolute top-2 right-2">
-                          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50" />
+                          <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-pulse shadow-lg shadow-emerald-400/50" />
                         </div>
                       )}
 

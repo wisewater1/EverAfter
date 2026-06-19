@@ -152,9 +152,9 @@ export default function CouncilRoom() {
 
             {/* Animated Stars/Particles (CSS only implementation) */}
             <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden z-0">
-                <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDuration: '3s' }} />
-                <div className="absolute top-3/4 left-2/3 w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" style={{ animationDuration: '5s' }} />
-                <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-violet-400 rounded-full animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-white rounded-full motion-safe:animate-pulse" style={{ animationDuration: '3s' }} />
+                <div className="absolute top-3/4 left-2/3 w-1.5 h-1.5 bg-indigo-400 rounded-full motion-safe:animate-pulse" style={{ animationDuration: '5s' }} />
+                <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-violet-400 rounded-full motion-safe:animate-pulse" style={{ animationDuration: '4s' }} />
             </div>
 
             {/* --- Header --- */}
@@ -167,7 +167,7 @@ export default function CouncilRoom() {
                         <h2 className="text-lg font-medium text-slate-100 tracking-wide">High Council Chamber</h2>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isDeliberating ? 'bg-indigo-500 animate-pulse' : 'bg-slate-600'}`} />
+                                <span className={`w-1.5 h-1.5 rounded-full ${isDeliberating ? 'bg-indigo-500 motion-safe:animate-pulse' : 'bg-slate-600'}`} />
                                 <p className="text-[10px] text-indigo-400/80 uppercase tracking-widest hidden sm:block">
                                     {isDeliberating ? 'Session Active' : 'Awaiting Inquiry'}
                                 </p>
@@ -243,7 +243,7 @@ export default function CouncilRoom() {
                             ) : (
                                 <div className={`relative transition-all duration-1000 scale-110`}>
                                     <div className={`w-24 h-24 rounded-full bg-black/60 border border-indigo-500/30 flex items-center justify-center backdrop-blur-xl z-20 relative overflow-hidden`}>
-                                        <Brain className={`w-10 h-10 text-indigo-400 transition-all duration-500 animate-pulse drop-shadow-[0_0_10px_rgba(129,140,248,0.8)]`} />
+                                        <Brain className={`w-10 h-10 text-indigo-400 transition-all duration-500 motion-safe:animate-pulse drop-shadow-[0_0_10px_rgba(129,140,248,0.8)]`} />
 
                                         {/* Holographic Scanline */}
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent animate-[scan_2s_linear_infinite]" />
@@ -297,7 +297,7 @@ export default function CouncilRoom() {
                                             {/* Speaking Wave Animation */}
                                             {isActive && (
                                                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-${saint.color.split('-')[1]}-400`}></span>
+                                                    <span className={`motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-${saint.color.split('-')[1]}-400`}></span>
                                                     <span className={`relative inline-flex rounded-full h-3 w-3 bg-${saint.color.split('-')[1]}-500`}></span>
                                                 </span>
                                             )}

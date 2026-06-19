@@ -59,7 +59,7 @@ export default function ContinuousControls() {
     }, []);
 
     if (loading) {
-        return <div className="p-8 text-center text-slate-500 animate-pulse">Running autonomous audits...</div>;
+        return <div className="p-8 text-center text-slate-500 motion-safe:animate-pulse">Running autonomous audits...</div>;
     }
 
     return (

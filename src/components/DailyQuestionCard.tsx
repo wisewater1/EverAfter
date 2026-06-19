@@ -286,7 +286,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
     return (
       <div className="bg-gradient-to-br from-emerald-900/20 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-16 text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
-          <Sparkles className="w-10 h-10 text-white animate-pulse" />
+          <Sparkles className="w-10 h-10 text-white motion-safe:animate-pulse" />
         </div>
         <h3 className="text-3xl font-light text-white mb-3">Memory Saved!</h3>
         <p className="text-slate-300 text-lg">
@@ -336,21 +336,21 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           {/* Enhanced skeleton loading state */}
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
-              <div className="h-8 w-32 bg-slate-700/50 rounded-lg animate-pulse"></div>
-              <div className="h-6 w-24 bg-slate-700/50 rounded-lg animate-pulse"></div>
+              <div className="h-8 w-32 bg-slate-700/50 rounded-lg motion-safe:animate-pulse"></div>
+              <div className="h-6 w-24 bg-slate-700/50 rounded-lg motion-safe:animate-pulse"></div>
             </div>
             <div className="flex items-start gap-4 mb-8">
-              <div className="w-14 h-14 bg-slate-700/50 rounded-xl animate-pulse flex-shrink-0"></div>
+              <div className="w-14 h-14 bg-slate-700/50 rounded-xl motion-safe:animate-pulse flex-shrink-0"></div>
               <div className="flex-1 space-y-3">
-                <div className="h-6 w-3/4 bg-slate-700/50 rounded animate-pulse"></div>
-                <div className="h-6 w-full bg-slate-700/50 rounded animate-pulse"></div>
-                <div className="h-4 w-1/2 bg-slate-700/50 rounded animate-pulse"></div>
+                <div className="h-6 w-3/4 bg-slate-700/50 rounded motion-safe:animate-pulse"></div>
+                <div className="h-6 w-full bg-slate-700/50 rounded motion-safe:animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-slate-700/50 rounded motion-safe:animate-pulse"></div>
               </div>
             </div>
             <div className="space-y-2">
-              <div className="h-4 w-full bg-slate-700/50 rounded animate-pulse"></div>
-              <div className="h-4 w-full bg-slate-700/50 rounded animate-pulse"></div>
-              <div className="h-4 w-3/4 bg-slate-700/50 rounded animate-pulse"></div>
+              <div className="h-4 w-full bg-slate-700/50 rounded motion-safe:animate-pulse"></div>
+              <div className="h-4 w-full bg-slate-700/50 rounded motion-safe:animate-pulse"></div>
+              <div className="h-4 w-3/4 bg-slate-700/50 rounded motion-safe:animate-pulse"></div>
             </div>
           </div>
           <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-700/50">

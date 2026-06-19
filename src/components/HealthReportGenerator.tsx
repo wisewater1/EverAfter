@@ -497,7 +497,7 @@ export default function HealthReportGenerator() {
           </>
         ) : (
           <>
-            <Download className="w-6 h-6 group-hover:animate-bounce" />
+            <Download className="w-6 h-6 group-hover:motion-safe:animate-bounce" />
             Generate & {saveToCloud ? 'Save' : 'Download'} Report
           </>
         )}

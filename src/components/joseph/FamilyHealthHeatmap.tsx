@@ -119,7 +119,7 @@ export default function FamilyHealthHeatmap({ onSelectMember }: Props) {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-8 gap-2 text-slate-500">
-                <Activity className="w-4 h-4 animate-pulse" />
+                <Activity className="w-4 h-4 motion-safe:animate-pulse" />
                 <span className="text-xs">Analysing family health...</span>
             </div>
         );

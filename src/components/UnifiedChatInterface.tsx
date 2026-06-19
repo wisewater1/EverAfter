@@ -341,7 +341,7 @@ export default function UnifiedChatInterface() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <h3 className="text-white font-semibold truncate">{session.name}</h3>
                   {session.isActive && (
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0 shadow-lg shadow-emerald-400/50 animate-pulse"></div>
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0 shadow-lg shadow-emerald-400/50 motion-safe:animate-pulse"></div>
                   )}
                 </div>
                 <p className="text-xs text-slate-400 truncate">{session.archetype}</p>

@@ -669,7 +669,7 @@ export default function RaphaelConnectors() {
               <div>
                 <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
                   Create Your Own Health Plugin
-                  <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
+                  <Sparkles className="w-5 h-5 text-violet-400 motion-safe:animate-pulse" />
                 </h3>
                 <p className="text-violet-200 text-sm">
                   Build custom dashboards combining multiple data sources
@@ -758,13 +758,13 @@ export default function RaphaelConnectors() {
 
       {showCustomDashboard && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-auto">
-          <div className="min-h-screen p-4">
+          <div className="min-h-[100dvh] p-4">
             <div className="max-w-7xl mx-auto">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   <LayoutDashboard className="w-7 h-7 text-violet-400" />
                   Custom Health Plugin Builder
-                  <Sparkles className="w-6 h-6 text-violet-400 animate-pulse" />
+                  <Sparkles className="w-6 h-6 text-violet-400 motion-safe:animate-pulse" />
                 </h2>
                 <button
                   onClick={() => setShowCustomDashboard(false)}

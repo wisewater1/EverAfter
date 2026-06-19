@@ -23,7 +23,7 @@ export default function OnboardingComplete({ onFinish, saving }: OnboardingCompl
         <div className="w-24 h-24 mx-auto bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl flex items-center justify-center">
           <CheckCircle className="w-12 h-12 text-white" />
         </div>
-        <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center animate-bounce">
+        <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center motion-safe:animate-bounce">
           <PartyPopper className="w-4 h-4 text-yellow-900" />
         </div>
       </div>

@@ -43,7 +43,7 @@ export default function StAnthonyAuditDashboard() {
     }, [searchParams]);
 
     return (
-        <div className="min-h-screen space-y-6 bg-slate-950 p-4 text-slate-200 sm:space-y-8 sm:p-6">
+        <div className="min-h-[100dvh] space-y-6 bg-slate-950 p-4 text-slate-200 sm:space-y-8 sm:p-6">
             {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-3 sm:gap-4">

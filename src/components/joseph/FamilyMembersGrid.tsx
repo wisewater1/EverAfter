@@ -281,7 +281,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                     {isLive && (
                                         <div className="absolute -top-2 -right-2 z-10">
                                             <span className="relative flex h-4 w-4">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                                                 <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500 border-2 border-slate-900"></span>
                                             </span>
                                         </div>
@@ -303,7 +303,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                                 {member.firstName} {member.lastName}
                                                 {member.aiPersonality?.isActive && (
                                                     <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
-                                                        <span className="w-1 h-1 rounded-full bg-emerald-400 mr-1 animate-pulse" />
+                                                        <span className="w-1 h-1 rounded-full bg-emerald-400 mr-1 motion-safe:animate-pulse" />
                                                         Active
                                                     </span>
                                                 )}

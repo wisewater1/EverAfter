@@ -348,7 +348,7 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                             onClick={handleActivate}
                             disabled={activating}
                             className={`w-full py-3.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg ${activating
-                                ? 'bg-violet-900/50 text-violet-300 animate-pulse'
+                                ? 'bg-violet-900/50 text-violet-300 motion-safe:animate-pulse'
                                 : 'bg-gradient-to-r from-violet-600 to-amber-500 hover:from-violet-500 hover:to-amber-400 text-white shadow-violet-500/20'
                                 }`}
                         >

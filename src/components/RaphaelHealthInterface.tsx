@@ -104,7 +104,7 @@ export default function RaphaelHealthInterface() {
             </div>
           </div>
             <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 uppercase tracking-wider animate-pulse">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 uppercase tracking-wider motion-safe:animate-pulse">
                 <Zap className="w-3 h-3" />
                 Native Engine: ONLINE
               </div>
