@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import DHTScorePanel from '../dht/DHTScorePanel';
-import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import StarfieldBackground from '../StarfieldBackground';
 import {
     buildFamilyTree, FamilyTreeNode, FamilyMember,
     getSpouse, getChildren, getParents, formatDate, getGenerationLabel
@@ -25,6 +26,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
     const [showAddModal, setShowAddModal] = useState(false);
     const [agentTarget, setAgentTarget] = useState<FamilyMember | null>(null);
     const [personalityTarget, setPersonalityTarget] = useState<FamilyMember | null>(null);
+    const [zoom, setZoom] = useState(1);
 
     const refreshTree = useCallback(() => setTree(buildFamilyTree()), []);
 
@@ -219,20 +221,31 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                 </div>
             </div>
 
-            {/* Tree */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
-                {tree.length > 0 ? (
-                    <div className="space-y-2">
-                        {tree.map(root => renderNode(root))}
-                    </div>
-                ) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                        <div className="text-sm text-slate-300">No family members are visible yet.</div>
-                        <div className="mt-2 text-xs text-slate-500">
-                            Seeded demo relatives or your saved family records should appear here. If they do not, refresh the page or add a member to initialize the tree.
+            {/* Tree — cinematic, explorable stage over the living starfield */}
+            <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-[#0a0f15] via-[#0b0e14] to-[#0d0d12]">
+                <StarfieldBackground density={0.6} contained />
+                <div className="pointer-events-none absolute left-4 top-4 z-20 hidden items-center gap-1.5 rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-slate-400 backdrop-blur sm:flex">
+                    <Sparkles className="h-3 w-3 text-amber-400" /> Family Tree · scroll to roam, zoom to explore
+                </div>
+                <div className="absolute right-4 top-4 z-20 flex flex-col gap-1.5">
+                    <button onClick={() => setZoom(z => Math.min(1.6, +(z + 0.15).toFixed(2)))} title="Zoom in" className="rounded-lg border border-white/10 bg-slate-900/80 p-2 text-slate-300 backdrop-blur transition-colors hover:bg-slate-800 hover:text-white"><ZoomIn className="h-4 w-4" /></button>
+                    <button onClick={() => setZoom(z => Math.max(0.5, +(z - 0.15).toFixed(2)))} title="Zoom out" className="rounded-lg border border-white/10 bg-slate-900/80 p-2 text-slate-300 backdrop-blur transition-colors hover:bg-slate-800 hover:text-white"><ZoomOut className="h-4 w-4" /></button>
+                    <button onClick={() => setZoom(1)} title="Reset zoom" className="rounded-lg border border-white/10 bg-slate-900/80 p-2 text-slate-300 backdrop-blur transition-colors hover:bg-slate-800 hover:text-white"><Maximize2 className="h-4 w-4" /></button>
+                </div>
+                <div className="relative z-10 max-h-[64vh] min-h-[420px] overflow-auto p-6 md:p-8">
+                    {tree.length > 0 ? (
+                        <div className="space-y-2 origin-top-left transition-[zoom] duration-200" style={{ zoom }}>
+                            {tree.map(root => renderNode(root))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
+                            <div className="text-sm text-slate-300">No family members are visible yet.</div>
+                            <div className="mt-2 text-xs text-slate-500">
+                                Seeded demo relatives or your saved family records should appear here. If they do not, refresh the page or add a member to initialize the tree.
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Member Detail Panel */}

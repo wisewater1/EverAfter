@@ -28,7 +28,7 @@ interface P {
     hue: Hue;
 }
 
-export default function StarfieldBackground({ density = 1 }: { density?: number }) {
+export default function StarfieldBackground({ density = 1, contained = false }: { density?: number; contained?: boolean }) {
     const ref = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -185,7 +185,7 @@ export default function StarfieldBackground({ density = 1 }: { density?: number 
         <canvas
             ref={ref}
             aria-hidden="true"
-            className="pointer-events-none fixed inset-0 z-0 h-full w-full"
+            className={`pointer-events-none ${contained ? 'absolute' : 'fixed'} inset-0 z-0 h-full w-full`}
         />
     );
 }
