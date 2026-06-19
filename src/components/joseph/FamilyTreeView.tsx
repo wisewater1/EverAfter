@@ -48,24 +48,28 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
         const hasAI = member.aiPersonality?.isActive;
 
         return (
-            <div key={member.id} className="relative" style={{ marginLeft: depth * 24 }}>
-                {/* Person card */}
-                <div className="flex items-center gap-2 mb-2 group">
+            <div
+                key={member.id}
+                className="relative ml-[var(--joseph-indent)]"
+                style={{ ['--joseph-indent' as string]: `${depth * 12}px` }}
+            >
+                {/* Person card row — wraps so spouse drops below on mobile */}
+                <div className="flex flex-wrap items-center gap-2 mb-2 group">
                     {hasChildren && (
-                        <button onClick={() => toggle(member.id)} className="p-1 text-slate-600 hover:text-amber-400 transition-colors">
+                        <button onClick={() => toggle(member.id)} className="p-1 text-slate-600 hover:text-amber-400 transition-colors shrink-0">
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                     )}
-                    {!hasChildren && <div className="w-6" />}
+                    {!hasChildren && <div className="w-6 shrink-0" />}
 
                     <button
                         onClick={() => setSelectedMember(member)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${isDeceased
+                        className={`min-w-0 max-w-full flex items-center gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border transition-colors sm:transition-all sm:duration-200 sm:hover:scale-[1.02] sm:hover:shadow-lg ${isDeceased
                             ? 'bg-slate-800/20 border-slate-700/30 hover:border-slate-600'
                             : 'bg-slate-800/50 border-white/5 hover:border-amber-500/30 hover:shadow-amber-500/5'
                             }`}
                     >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold relative ${member.gender === 'male'
+                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-bold relative ${member.gender === 'male'
                             ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                             : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                             }`}>
@@ -76,16 +80,18 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 </div>
                             )}
                             {member.aiPersonality?.archetypeEmoji && (
-                                <div className="absolute -bottom-2 -left-2 text-[15px] filter drop-shadow animate-float">
+                                <div className="absolute -bottom-2 -left-2 text-[15px] filter drop-shadow motion-safe:animate-float">
                                     {member.aiPersonality.archetypeEmoji}
                                 </div>
                             )}
                         </div>
-                        <div className="text-left">
-                            <div className={`text-sm font-medium ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
-                                {member.firstName} {member.lastName}
+                        <div className="text-left min-w-0 flex-1">
+                            <div className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
+                                <span className="truncate max-w-[60vw] sm:max-w-none">
+                                    {member.firstName} {member.lastName}
+                                </span>
                                 {hasAI && (
-                                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
                                         Active
                                     </span>
                                 )}
@@ -95,21 +101,21 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                             e.stopPropagation();
                                             onTrainMember?.(member.engramId!);
                                         }}
-                                        className="ml-2 inline-flex items-center p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
+                                        className="inline-flex items-center p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
                                         title="Train Engram"
                                     >
                                         <Brain className="w-3 h-3" />
                                     </button>
                                 )}
-                                {isDeceased && <span className="ml-1 text-slate-600">†</span>}
-                                <TraitBadges traits={member.aiPersonality?.traits} limit={1} className="inline-flex ml-2 !mt-0 align-middle" />
+                                {isDeceased && <span className="text-slate-600">†</span>}
+                                <TraitBadges traits={member.aiPersonality?.traits} limit={1} className="inline-flex !mt-0 align-middle" />
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider">
                                     {getGenerationLabel(member.generation)}
                                 </span>
                                 {member.occupation && (
-                                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400/70 rounded-md border border-amber-500/10">
+                                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400/70 rounded-md border border-amber-500/10 truncate max-w-[40vw] sm:max-w-none">
                                         {member.occupation}
                                     </span>
                                 )}
@@ -122,19 +128,19 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                         </div>
                     </button>
 
-                    {/* Spouse connector */}
+                    {/* Spouse connector — wraps under the person on narrow screens */}
                     {spouse && (
                         <>
-                            <div className="flex items-center gap-1 text-rose-500/40">
+                            <div className="flex items-center gap-1 text-rose-500/40 basis-full sm:basis-auto sm:flex-initial pl-8 sm:pl-0">
                                 <div className="w-4 h-px bg-rose-500/30" />
                                 <Heart className="w-3 h-3" />
                                 <div className="w-4 h-px bg-rose-500/30" />
                             </div>
                             <button
                                 onClick={() => setSelectedMember(spouse)}
-                                className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800/50 border border-white/5 hover:border-rose-500/30 transition-all duration-200 hover:scale-[1.02]"
+                                className="min-w-0 max-w-full flex items-center gap-2 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 rounded-2xl bg-slate-800/50 border border-white/5 hover:border-rose-500/30 transition-colors sm:transition-all sm:duration-200 sm:hover:scale-[1.02]"
                             >
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold relative ${spouse.gender === 'male'
+                                <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-bold relative ${spouse.gender === 'male'
                                     ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                                     : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                                     }`}>
@@ -145,16 +151,18 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                         </div>
                                     )}
                                     {spouse.aiPersonality?.archetypeEmoji && (
-                                        <div className="absolute -bottom-2 -left-2 text-[15px] filter drop-shadow animate-float">
+                                        <div className="absolute -bottom-2 -left-2 text-[15px] filter drop-shadow motion-safe:animate-float">
                                             {spouse.aiPersonality.archetypeEmoji}
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-left">
-                                    <div className={`text-sm font-medium ${spouse.deathDate ? 'text-slate-400' : 'text-white'}`}>
-                                        {spouse.firstName} {spouse.lastName}
+                                <div className="text-left min-w-0 flex-1">
+                                    <div className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${spouse.deathDate ? 'text-slate-400' : 'text-white'}`}>
+                                        <span className="truncate max-w-[60vw] sm:max-w-none">
+                                            {spouse.firstName} {spouse.lastName}
+                                        </span>
                                         {spouse.aiPersonality?.isActive && (
-                                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
                                                 Active
                                             </span>
                                         )}
@@ -164,14 +172,14 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                                     e.stopPropagation();
                                                     onTrainMember?.(spouse.engramId!);
                                                 }}
-                                                className="ml-2 inline-flex items-center p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
+                                                className="inline-flex items-center p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 transition-all"
                                                 title="Train Engram"
                                             >
                                                 <Brain className="w-3 h-3" />
                                             </button>
                                         )}
-                                        {spouse.deathDate && <span className="ml-1 text-slate-600">†</span>}
-                                        <TraitBadges traits={spouse.aiPersonality?.traits} limit={1} className="inline-flex ml-2 !mt-0 align-middle" />
+                                        {spouse.deathDate && <span className="text-slate-600">†</span>}
+                                        <TraitBadges traits={spouse.aiPersonality?.traits} limit={1} className="inline-flex !mt-0 align-middle" />
                                     </div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">
                                         {getGenerationLabel(spouse.generation)}
@@ -220,9 +228,9 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
             </div>
 
             {/* Tree */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+            <div className="bg-slate-900/60 sm:bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-3 sm:p-6 md:p-8 overflow-x-hidden">
                 {tree.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-w-0">
                         {tree.map(root => renderNode(root))}
                     </div>
                 ) : (
