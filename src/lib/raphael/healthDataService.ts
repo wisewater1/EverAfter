@@ -23,6 +23,9 @@ export interface HealthDataPoint {
 export interface TrajectoryPoint {
     timestamp: string;
     value: number;
+    /** Forecast uncertainty cone (0..1), widening with the horizon. */
+    lower?: number;
+    upper?: number;
 }
 
 export interface DelphiPrediction {
@@ -227,7 +230,7 @@ export async function fetchHealthMetrics(
             unit: row.unit,
             recorded_at: row.recorded_at,
             source: row.source,
-        }));
+        })).filter((p) => Number.isFinite(p.value));
     } catch (error) {
         console.warn('Health metrics unavailable:', error);
         return [];
@@ -309,83 +312,77 @@ export async function fetchTrajectoryHistory(
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
 function generatePredictionFromMetrics(metrics: HealthDataPoint[]): DelphiPrediction {
-    // Group metrics by type
+    // Group by type, each sorted oldest → newest.
     const grouped: Record<string, HealthDataPoint[]> = {};
-    metrics.forEach(m => {
-        if (!grouped[m.metric_type]) grouped[m.metric_type] = [];
-        grouped[m.metric_type].push(m);
-    });
+    for (const m of metrics) (grouped[m.metric_type] ||= []).push(m);
+    for (const k in grouped) {
+        grouped[k].sort((a, b) => +new Date(a.recorded_at) - +new Date(b.recorded_at));
+    }
 
-    // Calculate a composite health score from available metrics
-    const scores: number[] = [];
+    // Human-readable per-metric factors (average + observed direction).
     const factors: string[] = [];
+    const describe = (type: string, label: string, unit: string, fmt: (n: number) => string) => {
+        const arr = grouped[type];
+        if (!arr?.length) return;
+        const avg = arr.reduce((s, m) => s + m.value, 0) / arr.length;
+        const sub = metricSubScore(type, avg) ?? 0.65;
+        const delta = arr.length > 1 ? arr[arr.length - 1].value - arr[0].value : 0;
+        const dir = Math.abs(delta) < 1e-6 ? 'stable' : delta > 0 ? 'trending up' : 'trending down';
+        const quality = sub > 0.8 ? 'optimal range' : sub > 0.55 ? 'acceptable' : 'warrants monitoring';
+        factors.push(`${label} avg ${fmt(avg)}${unit ? ' ' + unit : ''} — ${quality} (${dir})`);
+    };
+    describe('heart_rate', 'Heart rate', 'bpm', (n) => `${Math.round(n)}`);
+    describe('blood_pressure_systolic', 'Systolic BP', 'mmHg', (n) => `${Math.round(n)}`);
+    describe('glucose', 'Glucose', 'mg/dL', (n) => `${Math.round(n)}`);
+    describe('sleep_duration', 'Sleep', 'h', (n) => n.toFixed(1));
+    describe('steps', 'Daily steps', '', (n) => `${Math.round(n)}`);
+    describe('oxygen_saturation', 'SpO₂', '%', (n) => `${Math.round(n)}`);
 
-    // Heart rate scoring
-    if (grouped.heart_rate?.length) {
-        const avg = grouped.heart_rate.reduce((s, m) => s + m.value, 0) / grouped.heart_rate.length;
-        const hrScore = avg >= 60 && avg <= 80 ? 0.9 : avg >= 50 && avg <= 100 ? 0.7 : 0.4;
-        scores.push(hrScore);
-        const trend = grouped.heart_rate.length > 1
-            ? grouped.heart_rate[grouped.heart_rate.length - 1].value - grouped.heart_rate[0].value
-            : 0;
-        factors.push(
-            `Heart rate avg ${Math.round(avg)} bpm — ${hrScore > 0.8 ? 'optimal range' : 'slightly outside optimal'}${trend > 5 ? ' (trending up)' : trend < -5 ? ' (trending down)' : ' (stable)'
-            }`
-        );
+    // Build a daily composite sub-score series so we can fit a *real* trend
+    // (not just averages) and project it forward.
+    const t0 = Math.min(...metrics.map((m) => +new Date(m.recorded_at)));
+    const byDay = new Map<number, number[]>();
+    for (const m of metrics) {
+        const s = metricSubScore(m.metric_type, m.value);
+        if (s == null || !Number.isFinite(s)) continue;
+        const day = Math.floor((+new Date(m.recorded_at) - t0) / 86400000);
+        let bucket = byDay.get(day);
+        if (!bucket) { bucket = []; byDay.set(day, bucket); }
+        bucket.push(s);
     }
+    const series = [...byDay.entries()]
+        .map(([x, arr]) => ({ x, y: arr.reduce((a, b) => a + b, 0) / arr.length }))
+        .sort((a, b) => a.x - b.x);
 
-    // Blood pressure scoring
-    if (grouped.blood_pressure_systolic?.length) {
-        const latest = grouped.blood_pressure_systolic[grouped.blood_pressure_systolic.length - 1].value;
-        const bpScore = latest >= 110 && latest <= 130 ? 0.9 : latest >= 90 && latest <= 140 ? 0.7 : 0.4;
-        scores.push(bpScore);
-        factors.push(`Systolic BP ${latest} mmHg — ${bpScore > 0.8 ? 'within normal range' : 'warrants monitoring'}`);
+    const level = clamp(series.length ? series[series.length - 1].y : 0.65, 0.05, 0.99);
+    const { slope: slopePerDay, residualStd } = leastSquaresSlope(series);
+
+    // Confidence = data density × trend stability (a steadier history earns more trust).
+    const density = clamp(0.45 + (metrics.length / 120) * 0.45, 0.3, 0.9);
+    const stability = 1 - clamp(residualStd / 0.25, 0, 1) * 0.4;
+    const confidence = clamp(density * (0.7 + 0.3 * stability), 0.3, 0.95);
+
+    const trajectory = forecastTrajectory(level, slopePerDay, residualStd, seedFromMetrics(metrics), confidence);
+    const projected = trajectory[trajectory.length - 1].value;
+    const band = Math.round(((trajectory[trajectory.length - 1].upper ?? projected) - projected) * 100);
+
+    if (factors.length === 0) {
+        factors.push('Limited data — continue logging for more accurate predictions');
     }
+    // Lead with the directional forecast so "Primary Insight" is genuinely predictive.
+    const dirWord = Math.round(level * 100) === Math.round(projected * 100) ? 'holding steady' : projected > level ? 'improving' : 'easing lower';
+    factors.unshift(
+        `Composite health ${dirWord}: ${Math.round(level * 100)}% now → ${Math.round(projected * 100)}% in 24h ` +
+        `(${series.length}-day trend, ±${band}%).`,
+    );
 
-    // Glucose scoring
-    if (grouped.glucose?.length) {
-        const avg = grouped.glucose.reduce((s, m) => s + m.value, 0) / grouped.glucose.length;
-        const glucScore = avg >= 70 && avg <= 110 ? 0.9 : avg >= 60 && avg <= 140 ? 0.7 : 0.4;
-        scores.push(glucScore);
-        factors.push(`Glucose avg ${Math.round(avg)} mg/dL — ${glucScore > 0.8 ? 'well controlled' : 'variable'}`);
-    }
-
-    // Sleep scoring
-    if (grouped.sleep_duration?.length) {
-        const avg = grouped.sleep_duration.reduce((s, m) => s + m.value, 0) / grouped.sleep_duration.length;
-        const sleepScore = avg >= 7 ? 0.9 : avg >= 5 ? 0.65 : 0.3;
-        scores.push(sleepScore);
-        factors.push(`Sleep avg ${avg.toFixed(1)}h — ${sleepScore > 0.8 ? 'adequate recovery' : 'below recommended 7h'}`);
-    }
-
-    // Steps scoring
-    if (grouped.steps?.length) {
-        const avg = grouped.steps.reduce((s, m) => s + m.value, 0) / grouped.steps.length;
-        const stepsScore = avg >= 8000 ? 0.9 : avg >= 5000 ? 0.7 : 0.5;
-        scores.push(stepsScore);
-        factors.push(`Daily steps avg ${Math.round(avg)} — ${stepsScore > 0.8 ? 'active lifestyle' : 'consider more movement'}`);
-    }
-
-    // If no meaningful scores, add a generic factor
-    if (scores.length === 0) {
-        scores.push(0.65);
-        factors.push('Limited data available — continue logging for more accurate predictions');
-    }
-
-    const compositeScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-    const confidence = Math.min(0.95, 0.5 + (metrics.length / 100) * 0.45);
-
-    // Generate 24-hour trajectory
-    const trajectory = generate24hTrajectory(compositeScore, metrics);
-
+    // risk_level reflects the CURRENT composite (present-state band); predicted_value is the 24h forecast.
     const riskLevel: DelphiPrediction['risk_level'] =
-        compositeScore >= 0.8 ? 'low' :
-            compositeScore >= 0.6 ? 'moderate' :
-                compositeScore >= 0.4 ? 'high' : 'critical';
+        level >= 0.8 ? 'low' : level >= 0.6 ? 'moderate' : level >= 0.4 ? 'high' : 'critical';
 
     return {
         prediction_type: 'composite_health',
-        predicted_value: compositeScore,
+        predicted_value: projected,
         confidence,
         horizon: '24h',
         risk_level: riskLevel,
@@ -396,56 +393,119 @@ function generatePredictionFromMetrics(metrics: HealthDataPoint[]): DelphiPredic
     };
 }
 
-function generate24hTrajectory(baseScore: number, metrics: HealthDataPoint[]): TrajectoryPoint[] {
-    const now = new Date();
+/**
+ * Deterministic PRNG (mulberry32). Same seed → same sequence, so a trajectory
+ * built from the same metrics is reproducible across refreshes. This is what
+ * makes the forecast "predictable" instead of a fresh random walk each time.
+ */
+function mulberry32(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/** Stable FNV-1a hash of the observation values → PRNG seed. */
+function seedFromMetrics(metrics: HealthDataPoint[]): number {
+    let h = 2166136261;
+    for (const m of metrics) {
+        const token = `${m.metric_type}:${Math.round(m.value * 10)}`;
+        for (let i = 0; i < token.length; i++) {
+            h ^= token.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+    }
+    return h >>> 0;
+}
+
+/**
+ * Map one observation to a 0..1 health sub-score (higher = healthier) using
+ * clinically-motivated comfort bands. Returns null for metrics we don't score
+ * (e.g. raw weight) so they never distort the composite.
+ */
+function metricSubScore(type: string, value: number): number | null {
+    if (!Number.isFinite(value)) return null; // drop malformed observations
+    const band = (v: number, lo: number, hi: number, soft: number): number => {
+        if (v >= lo && v <= hi) return 1;
+        const d = v < lo ? lo - v : v - hi;
+        return Math.max(0.2, 1 - d / soft);
+    };
+    switch (type) {
+        case 'heart_rate': return band(value, 55, 80, 40);
+        case 'blood_pressure_systolic': return band(value, 105, 125, 35);
+        case 'blood_pressure_diastolic': return band(value, 65, 85, 30);
+        case 'glucose': return band(value, 70, 110, 60);
+        case 'sleep_duration': return band(value, 7, 9, 4);
+        case 'steps': return Math.max(0.3, Math.min(1, value / 10000));
+        case 'oxygen_saturation': return band(value, 96, 100, 6);
+        case 'temperature': return band(value, 97, 99.3, 3);
+        case 'stress_level': return Math.max(0.2, 1 - value / 10);
+        default: return null;
+    }
+}
+
+/** Ordinary least-squares slope of y over x, plus residual std-dev. */
+function leastSquaresSlope(pts: Array<{ x: number; y: number }>): { slope: number; residualStd: number } {
+    const n = pts.length;
+    if (n < 2) return { slope: 0, residualStd: 0 };
+    let sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (const p of pts) { sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; }
+    const denom = n * sxx - sx * sx;
+    const slope = denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
+    const intercept = (sy - slope * sx) / n;
+    let ss = 0;
+    for (const p of pts) { const e = p.y - (slope * p.x + intercept); ss += e * e; }
+    return { slope, residualStd: Math.sqrt(ss / n) };
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+    if (!Number.isFinite(v)) return lo; // NaN/Infinity backstop — never poison the trajectory
+    return Math.max(lo, Math.min(hi, v));
+}
+
+/**
+ * Deterministic 24h forecast: damped-trend projection (Holt-style) + circadian
+ * modulation + a reproducible seeded micro-texture, with an uncertainty cone
+ * that widens with the horizon. Same inputs → identical curve, every time.
+ */
+function forecastTrajectory(
+    level: number,
+    slopePerDay: number,
+    residualStd: number,
+    seed: number,
+    confidence: number,
+): TrajectoryPoint[] {
+    const rand = mulberry32(seed);
+    const startedAt = Date.now();
+    const slopePerHour = slopePerDay / 24;
+    const phi = 0.92; // per-hour trend damping → projection stays bounded
+    const baseSigma = clamp(0.03 + residualStd * 0.6 + (1 - confidence) * 0.05, 0.02, 0.14);
     const points: TrajectoryPoint[] = [];
 
-    // Use actual recent data for the first few hours if available
-    const recentMetrics = metrics.slice(-12); // Last 12 data points
-
+    let dampedTrend = 0;
+    let phiPow = 1;
     for (let hour = 0; hour < 24; hour++) {
-        const time = new Date(now.getTime() + hour * 3600000);
-
-        // Circadian rhythm modulator
-        const circadian = Math.sin((hour - 6) * Math.PI / 12) * 0.06;
-
-        // Gradual trend based on existing data direction
-        const recentValues = recentMetrics.map(m => m.value);
-        let trend = 0;
-        if (recentValues.length >= 2) {
-            const first = recentValues[0];
-            const last = recentValues[recentValues.length - 1];
-            trend = ((last - first) / first) * 0.001 * hour; // Very subtle trend projection
-        }
-
-        // Small natural variation
-        const noise = (Math.random() - 0.5) * 0.02;
-
-        const value = Math.max(0.15, Math.min(0.98, baseScore + circadian + trend + noise));
-
+        if (hour > 0) { phiPow *= phi; dampedTrend += slopePerHour * phiPow; }
+        const circadian = Math.sin(hour * Math.PI / 12) * 0.04; // 0 at "now", gentle ripple
+        const micro = (rand() - 0.5) * 0.012; // deterministic, seeded
+        const value = clamp(level + dampedTrend + circadian + micro, 0.05, 0.99);
+        const sigma = baseSigma * Math.sqrt(hour / 6); // cone pinched at "now", fanning out with the horizon
         points.push({
-            timestamp: time.toISOString(),
+            timestamp: new Date(startedAt + hour * 3600000).toISOString(),
             value,
+            lower: clamp(value - sigma, 0.02, 0.99),
+            upper: clamp(value + sigma, 0.02, 0.99),
         });
     }
-
     return points;
 }
 
 export function generateSimulatedPrediction(): DelphiPrediction {
-    const now = new Date();
-    const trajectory: TrajectoryPoint[] = [];
-    let value = 0.65;
-
-    for (let i = 0; i < 24; i++) {
-        const time = new Date(now.getTime() + i * 3600000);
-        const circadian = Math.sin((i - 6) * Math.PI / 12) * 0.08;
-        const noise = (Math.random() - 0.5) * 0.04;
-        const trend = i * 0.002;
-        value = Math.max(0.3, Math.min(0.95, 0.65 + circadian + noise + trend));
-        trajectory.push({ timestamp: time.toISOString(), value });
-    }
-
+    // Deterministic baseline (fixed seed) so even the no-data view is reproducible.
+    const trajectory = forecastTrajectory(0.65, 0, 0.04, 0x5eed51, 0.42);
     return {
         prediction_type: 'metabolic_trend',
         predicted_value: trajectory[trajectory.length - 1].value,
@@ -454,7 +514,7 @@ export function generateSimulatedPrediction(): DelphiPrediction {
         risk_level: 'low',
         contributing_factors: [
             'No health data recorded yet — start logging vitals for personalized predictions',
-            'Simulated trajectory based on population health averages',
+            'Baseline trajectory from population health averages (no live signal)',
             'Talk to St. Raphael or log vitals to improve accuracy',
         ],
         trajectory,
