@@ -284,7 +284,7 @@ export default function Pricing() {
                 key={plan.id}
                 className={`relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl border ${
                   plan.popular ? 'border-amber-500/50 ring-2 ring-amber-500/20' : 'border-slate-700/50'
-                } p-6 backdrop-blur-sm transition-all hover:scale-105 ${plan.id === 'ultimate' ? 'md:col-span-2 lg:col-span-1' : ''}`}
+                } p-6 backdrop-blur-sm transition-transform duration-200 lg:hover:scale-105 ${plan.id === 'ultimate' ? 'md:col-span-2 lg:col-span-1' : ''}`}
               >
                 {(plan.popular || badge) && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -366,7 +366,7 @@ export default function Pricing() {
         {/* Trust Badges */}
         <div className="mt-16 text-center">
           <p className="text-gray-500 text-sm mb-4">Trusted by thousands of users worldwide</p>
-          <div className="flex items-center justify-center gap-8 text-gray-600">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:gap-8 text-gray-600">
             <span>🔒 256-bit SSL</span>
             <span>✓ PCI Compliant</span>
             <span>🛡️ SOC 2 Certified</span>

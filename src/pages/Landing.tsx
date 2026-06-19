@@ -135,7 +135,7 @@ export default function Landing() {
             return (
               <div
                 key={saint.name}
-                className="bg-gradient-to-br from-gray-800/70 to-gray-900/70 rounded-2xl shadow-2xl border border-gray-700/50 p-6 backdrop-blur-md hover:scale-105 transition-all"
+                className="bg-gradient-to-br from-gray-800/70 to-gray-900/70 rounded-2xl shadow-2xl border border-gray-700/50 p-6 backdrop-blur-md transition-transform duration-200 lg:hover:scale-105"
               >
                 <div className={`w-16 h-16 bg-gradient-to-br ${saint.color} rounded-xl flex items-center justify-center mb-4 shadow-lg`}>
                   <Icon className="w-8 h-8 text-white" />

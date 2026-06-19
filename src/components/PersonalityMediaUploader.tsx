@@ -342,6 +342,8 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
                     <img
                       src={getMediaUrl(media.file_path)}
                       alt={media.file_name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   )}

@@ -564,7 +564,7 @@ const SocietyFeed: React.FC = () => {
                             >
                                 <div className="w-full h-full rounded-full overflow-hidden bg-slate-800 flex items-center justify-center">
                                     {agent.avatar_url ? (
-                                        <img src={agent.avatar_url} alt={agent.name} className="w-full h-full object-cover" />
+                                        <img src={agent.avatar_url} alt={agent.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-white text-xs font-bold">{agent.name.charAt(0)}</span>
                                     )}

@@ -255,8 +255,8 @@ export default function StRaphaelHealthHub() {
         <div className="min-h-[100dvh] bg-[#0a0a0f] relative overflow-hidden pb-32">
             {/* Dynamic Status Aura */}
             <div className="fixed inset-0 pointer-events-none transition-colors duration-1000">
-                <div className={`absolute top-0 right-1/4 w-[500px] h-[500px] ${auraStyles[statusAura]} rounded-full blur-[120px] transition-all duration-1000`}></div>
-                <div className={`absolute bottom-0 left-1/4 w-[500px] h-[500px] ${auraStyles[statusAura]} rounded-full blur-[120px] transition-all duration-1000`}></div>
+                <div className={`absolute top-0 right-1/4 w-72 h-72 sm:w-[500px] sm:h-[500px] ${auraStyles[statusAura]} rounded-full blur-3xl sm:blur-[120px] transition-colors duration-1000`}></div>
+                <div className={`absolute bottom-0 left-1/4 w-72 h-72 sm:w-[500px] sm:h-[500px] ${auraStyles[statusAura]} rounded-full blur-3xl sm:blur-[120px] transition-colors duration-1000`}></div>
             </div>
 
             <div className="relative mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">

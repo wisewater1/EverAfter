@@ -88,7 +88,7 @@ export default function Modal({
           </div>
         )}
 
-        <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+        <div className="overflow-y-auto overscroll-contain flex-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
           {children}
         </div>
       </div>

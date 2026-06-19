@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Heart, LogOut, Brain, ChevronRight, Sparkles } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -16,6 +16,20 @@ export default function MobileMenu({
     onNavigateToTrinity,
     onSignOut,
 }: MobileMenuProps) {
+    // Lock background scroll while the drawer is open (mirrors ModalManager's
+    // enableScrollLock, so the dashboard behind the drawer can't scroll on touch).
+    useEffect(() => {
+        if (!isOpen) return;
+        const scrollY = window.scrollY;
+        document.body.classList.add('modal-open');
+        document.body.style.top = `-${scrollY}px`;
+        return () => {
+            document.body.classList.remove('modal-open');
+            document.body.style.top = '';
+            window.scrollTo(0, scrollY);
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     return (
@@ -46,7 +60,7 @@ export default function MobileMenu({
                 </div>
 
                 {/* Menu Items */}
-                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+                <div className="flex-1 overflow-y-auto overscroll-contain py-6 px-4 space-y-2">
                     <MenuItem
                         icon={Heart}
                         label="Legacy Vault"
