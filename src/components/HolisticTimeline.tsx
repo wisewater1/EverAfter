@@ -29,10 +29,11 @@ export default function HolisticTimeline() {
 
                 if (!res.ok) throw new Error('Failed to fetch Akashic records');
 
-                const data = await res.json();
+                const raw = await res.json();
+                const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.events) ? raw.events : []);
 
                 // Filter and map out Neural Graph Events
-                const globalEvents: TimelineEvent[] = data
+                const globalEvents: TimelineEvent[] = list
                     .map((item: any) => ({
                         id: item.id,
                         type: item.metadata?.type || 'observation',

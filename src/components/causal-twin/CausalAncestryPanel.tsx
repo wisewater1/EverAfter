@@ -223,7 +223,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
                                     <span className="text-sm font-semibold text-white">Risk Factors</span>
                                 </div>
                                 <div className="space-y-2">
-                                    {result.risk_factors.map((rf, i) => (
+                                    {(result.risk_factors ?? []).map((rf, i) => (
                                         <div key={i} className="flex items-center gap-2">
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${IMPACT_COLORS[rf.impact] || IMPACT_COLORS.low}`}>
                                                 {rf.impact}
@@ -244,7 +244,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
                                     <span className="text-sm font-semibold text-white">Suggested Interventions</span>
                                 </div>
                                 <div className="space-y-2">
-                                    {result.interventions.map((iv, i) => (
+                                    {(result.interventions ?? []).map((iv, i) => (
                                         <div key={i} className="flex items-start gap-2">
                                             <ChevronRight className="w-3.5 h-3.5 text-teal-400 mt-0.5 flex-shrink-0" />
                                             <div>

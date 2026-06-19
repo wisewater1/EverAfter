@@ -119,10 +119,10 @@ export default function SaintsNavigation() {
       {/* Backdrop */}
       <div className="absolute inset-0 glass-strong" style={{ background: 'linear-gradient(180deg, transparent 0%, var(--glass-strong) 40%)' }} />
 
-      <div className="relative px-3 pb-6 pt-6 sm:px-4 sm:pt-8">
+      <div className="relative px-3 pb-3 pt-3 sm:px-4 sm:pb-6 sm:pt-8">
         <div className="max-w-4xl mx-auto">
-          {/* Title */}
-          <div className="text-center mb-4 sm:mb-6">
+          {/* Title — hidden on phones to reclaim vertical space */}
+          <div className="hidden sm:block text-center mb-4 sm:mb-6">
             <h2 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">
               Your Saints
             </h2>
@@ -202,11 +202,11 @@ export default function SaintsNavigation() {
 
                   {/* Name + Role — normal flow, always visible at every screen size */}
                   <div className="text-center w-full px-0.5">
-                    <p className={`font-semibold leading-tight truncate ${isCenter ? 'text-[10px] sm:text-xs' : 'text-[9px] sm:text-[10px]'
+                    <p className={`font-semibold leading-tight truncate ${isCenter ? 'text-[11px] sm:text-xs' : 'text-[10px] sm:text-[11px]'
                       } ${saint.available ? 'text-white' : 'text-slate-400'}`}>
                       {saint.name}
                     </p>
-                    <p className={`leading-tight mt-0.5 truncate ${isCenter ? 'text-[8px] sm:text-[9px]' : 'text-[7px] sm:text-[8px]'
+                    <p className={`hidden sm:block leading-tight mt-0.5 truncate ${isCenter ? 'text-[9px] sm:text-[10px]' : 'text-[9px]'
                       } ${saint.available ? 'text-emerald-400 font-medium' : 'text-slate-600'}`}>
                       {saint.role}
                     </p>
@@ -216,8 +216,8 @@ export default function SaintsNavigation() {
             })}
           </div>
 
-          {/* Footer hint */}
-          <div className="text-center mt-2 sm:mt-4">
+          {/* Footer hint — hidden on phones to keep the bar compact */}
+          <div className="hidden sm:block text-center mt-2 sm:mt-4">
             <p className="text-[10px] sm:text-xs text-slate-500">
               Tap <span className="text-emerald-400 font-medium">St. Raphael Hub</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features
             </p>

@@ -90,8 +90,12 @@ export default function UnifiedChatInterface() {
 
   const loadFavorites = () => {
     const stored = localStorage.getItem(`chat-favorites-${user?.id}`);
-    if (stored) {
-      setFavorites(new Set(JSON.parse(stored)));
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      setFavorites(new Set(Array.isArray(parsed) ? parsed : []));
+    } catch {
+      setFavorites(new Set());
     }
   };
 

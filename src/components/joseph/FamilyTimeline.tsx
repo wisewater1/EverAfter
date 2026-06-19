@@ -851,7 +851,7 @@ export default function FamilyTimeline() {
 
                                                 {event.mediaUrl && (
                                                     <div className="w-full h-32 rounded-lg my-3 overflow-hidden relative group/media border border-white/5 shadow-inner">
-                                                        <img src={event.mediaUrl} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-110" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                        <img src={event.mediaUrl} alt={event.title} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-110" onError={(e) => { const el = e.target as HTMLImageElement; (el.closest('div') as HTMLElement | null)?.style.setProperty('display', 'none'); }} />
                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/media:opacity-100 transition-opacity flex items-end p-2 text-white/80">
                                                             <ImageIcon className="w-4 h-4" />
                                                         </div>

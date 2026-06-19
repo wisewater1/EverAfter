@@ -510,7 +510,7 @@ function TemplateCard({ template, navigate }: TemplateCardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <div>
           <p className="text-xs text-slate-500 mb-1">Sales</p>
           <p className="text-lg font-medium text-white">{template.total_purchases}</p>
