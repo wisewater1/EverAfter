@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import DHTScorePanel from '../dht/DHTScorePanel';
-import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar } from 'lucide-react';
 import StarfieldBackground from '../StarfieldBackground';
+import SaintChat from '../SaintChat';
+import MemberCalendarPanel from './MemberCalendarPanel';
 import {
     buildFamilyTree, FamilyTreeNode, FamilyMember,
     getSpouse, getChildren, getParents, formatDate, getGenerationLabel
@@ -27,6 +29,8 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
     const [agentTarget, setAgentTarget] = useState<FamilyMember | null>(null);
     const [personalityTarget, setPersonalityTarget] = useState<FamilyMember | null>(null);
     const [zoom, setZoom] = useState(1);
+    const [calMember, setCalMember] = useState<FamilyMember | null>(null);
+    const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
 
     const refreshTree = useCallback(() => setTree(buildFamilyTree()), []);
 
@@ -282,6 +286,23 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                     </div>
 
                     <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 pb-8">
+                        {/* Quick actions — converse with them, manage their calendar */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setChatMember(selectedMember)}
+                                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-400"
+                            >
+                                <Sparkles className="w-4 h-4" /> Talk to {selectedMember.firstName}
+                            </button>
+                            <button
+                                onClick={() => setCalMember(selectedMember)}
+                                title="Calendar — birthday & their events"
+                                className="flex items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2.5 text-amber-200 transition-colors hover:bg-amber-500/20"
+                            >
+                                <Calendar className="w-4 h-4" />
+                            </button>
+                        </div>
+
                         {selectedMember.birthDate && (
                             <p className="text-sm text-slate-300">
                                 <span className="text-slate-500">Born:</span> {formatDate(selectedMember.birthDate)}
@@ -293,6 +314,15 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 <span className="text-slate-500">Passed:</span> {formatDate(selectedMember.deathDate)}
                             </p>
                         )}
+                        {selectedMember.birthDate && (() => {
+                            const b = new Date(selectedMember.birthDate);
+                            const end = selectedMember.deathDate ? new Date(selectedMember.deathDate) : new Date();
+                            let y = end.getFullYear() - b.getFullYear();
+                            const mm = end.getMonth() - b.getMonth();
+                            if (mm < 0 || (mm === 0 && end.getDate() < b.getDate())) y--;
+                            if (y < 0 || isNaN(y)) return null;
+                            return <p className="text-xs font-medium text-amber-300/80">{selectedMember.deathDate ? `Lived ${y} years` : `${y} years old`}</p>;
+                        })()}
                         {selectedMember.bio && (
                             <p className="text-sm text-slate-400 bg-white/5 p-4 rounded-xl border border-white/5 leading-relaxed">
                                 {selectedMember.bio}
@@ -417,6 +447,29 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                     memberName={`${personalityTarget.firstName} ${personalityTarget.lastName}`}
                     onClose={() => setPersonalityTarget(null)}
                 />
+            )}
+
+            {/* Talk to this family member (AI failover: server → on-device → graceful) */}
+            {chatMember && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+                    <div className="relative h-[80vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
+                        <button onClick={() => setChatMember(null)} className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white">
+                            <X className="w-5 h-5" />
+                        </button>
+                        <SaintChat
+                            saintId={chatMember.id}
+                            saintName={`${chatMember.firstName} ${chatMember.lastName}`}
+                            saintTitle="Family Member"
+                            saintIcon={User}
+                            onClose={() => setChatMember(null)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Their calendar — birthday + add-to-any-calendar + connect their feed */}
+            {calMember && (
+                <MemberCalendarPanel member={calMember} onClose={() => setCalMember(null)} onSaved={refreshTree} />
             )}
         </div>
     );
