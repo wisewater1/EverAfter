@@ -65,6 +65,9 @@ export interface FamilyMember {
     // Media Intelligence
     infoStack?: InfoStackEntry[];
     mediaPermissions?: MediaPermissions;
+    // Calendar integration — an iCal/ICS feed URL (Google "secret iCal address",
+    // Apple/Outlook published calendar). Keyless: any provider that exports iCal.
+    calendarUrl?: string;
 }
 
 export interface Relationship {

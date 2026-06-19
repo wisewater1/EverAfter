@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck, Send } from 'lucide-react';
+import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck, Send, Calendar, CalendarPlus } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import { sendPersonalityQuestions } from '../../lib/joseph/sendQuestions';
+import MemberCalendarPanel from './MemberCalendarPanel';
+import { familyDateEvents, downloadICS } from '../../lib/joseph/familyCalendar';
 import {
     getFamilyMembers, FamilyMember, getSpouse,
     getChildren, formatDate, getGenerationLabel,
@@ -37,6 +39,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     const [isSyncing, setIsSyncing] = useState(false);
     const [ancestryTarget, setAncestryTarget] = useState<FamilyMember | null>(null);
     const [sentId, setSentId] = useState<string | null>(null);
+    const [calendarMember, setCalendarMember] = useState<FamilyMember | null>(null);
 
     // Seamless "send the personality questionnaire to this person" — mints a
     // public link and hands it off (share sheet / clipboard), with quick feedback.
@@ -47,6 +50,13 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
             setSentId(member.id);
             setTimeout(() => setSentId((cur) => (cur === member.id ? null : cur)), 2200);
         }
+    };
+
+    // Whole-family connection win: one .ics with every birthday & remembrance,
+    // recurring yearly — imports into Google, Apple, or Outlook in one tap.
+    const downloadAllBirthdays = () => {
+        const events = familyDateEvents(members).map((x) => x.event);
+        if (events.length) downloadICS(events, 'everafter-family-birthdays.ics');
     };
 
     const syncEngrams = async () => {
@@ -203,6 +213,14 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                             />
                         </div>
+                        <button
+                            onClick={downloadAllBirthdays}
+                            title="Download every family birthday & remembrance as one calendar file — imports into Google, Apple, or Outlook"
+                            className="flex flex-shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-amber-200 transition-all hover:bg-amber-500/25"
+                        >
+                            <CalendarPlus className="w-4 h-4" />
+                            <span>Add family birthdays</span>
+                        </button>
                         <div className="flex items-center gap-2 overflow-x-auto">
                             <button
                                 onClick={() => setFilterGen(null)}
@@ -395,6 +413,15 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                                 <span>{sentId === member.id ? 'Sent ✓' : 'Send Questions'}</span>
                                             </button>
 
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setCalendarMember(member); }}
+                                                title="Calendar — add their birthday to any calendar, or connect theirs"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-wider transition-all border border-amber-500/20"
+                                            >
+                                                <Calendar className="w-3 h-3" />
+                                                <span>Calendar</span>
+                                            </button>
+
                                             {member.aiPersonality?.isActive ? (
                                                 <button
                                                     onClick={(e) => {
@@ -558,6 +585,15 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                 <CausalAncestryPanel
                     member={ancestryTarget}
                     onClose={() => setAncestryTarget(null)}
+                />
+            )}
+
+            {/* Per-member calendar — add their dates to any calendar, or connect theirs */}
+            {calendarMember && (
+                <MemberCalendarPanel
+                    member={calendarMember}
+                    onClose={() => setCalendarMember(null)}
+                    onSaved={() => setMembers(getFamilyMembers())}
                 />
             )}
         </>
