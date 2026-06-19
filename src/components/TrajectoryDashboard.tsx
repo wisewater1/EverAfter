@@ -202,7 +202,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
                         </div>
                     </div>
                 )}
-                <div className="mt-12 h-64 w-full relative">
+                <div className="mt-12 h-64 w-full relative pl-7">
                     <svg className="w-full h-full overflow-visible" viewBox="0 0 1000 200" preserveAspectRatio="none">
                         {[0, 25, 50, 75, 100].map((y) => <line key={y} x1="0" y1={200 - y * 2} x2="1000" y2={200 - y * 2} stroke="white" strokeOpacity="0.05" strokeDasharray="4 4" />)}
                         {[0, 25, 50, 75, 100].map((y) => <text key={`label-${y}`} x="-5" y={200 - y * 2 + 4} fill="white" fillOpacity="0.3" fontSize="10" textAnchor="end">{y}%</text>)}
@@ -213,12 +213,17 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
                         </defs>
                         {prediction?.trajectory && (
                             <>
+                                {(() => {
+                                    const t = prediction.trajectory;
+                                    if (!t.some((p) => p.lower != null && p.upper != null)) return null;
+                                    const n = t.length;
+                                    const xy = (i: number, v: number) => `${(i / (n - 1)) * 1000},${200 - v * 200}`;
+                                    const up = t.map((p, i) => xy(i, p.upper ?? p.value));
+                                    const lo = t.map((p, i) => xy(i, p.lower ?? p.value)).reverse();
+                                    return <path d={`M ${up.join(' L ')} L ${lo.join(' L ')} Z`} fill="#06b6d4" fillOpacity="0.12" />;
+                                })()}
                                 <path d={`M 0,200 L ${prediction.trajectory.map((point, index) => `${(index / (prediction.trajectory.length - 1)) * 1000},${200 - point.value * 200}`).join(' L ')} L 1000,200 Z`} fill="url(#areaGradient)" />
                                 <path d={`M ${prediction.trajectory.map((point, index) => `${(index / (prediction.trajectory.length - 1)) * 1000},${200 - point.value * 200}`).join(' L ')}`} fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
-                                {prediction.trajectory.filter((_, index) => index % 4 === 0 || index === prediction.trajectory.length - 1).map((point, idx) => {
-                                    const index = prediction.trajectory.indexOf(point);
-                                    return <circle key={idx} cx={(index / (prediction.trajectory.length - 1)) * 1000} cy={200 - point.value * 200} r="4" fill="#06b6d4" stroke="#0a0f15" strokeWidth="2" className="drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]" />;
-                                })}
                             </>
                         )}
                     </svg>
@@ -323,7 +328,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
 
             <div className="flex items-center justify-between text-zinc-600 text-[10px] uppercase tracking-widest px-2">
                 <span>Horizon: {prediction?.horizon || '24h'}</span>
-                <span>Model: Delphi v1 Transformer</span>
+                <span>Model: Delphi v2 · damped-trend forecast</span>
                 <span>Type: {prediction?.prediction_type || 'composite_health'}</span>
             </div>
         </div>
