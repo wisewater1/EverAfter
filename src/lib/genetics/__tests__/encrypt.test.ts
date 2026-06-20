@@ -65,7 +65,7 @@ describe('encryptBytes / decryptBytes round-trip', () => {
         const enc = await encryptBytes(plain, key);
         const dec = await decryptBytes(enc.ciphertext, key);
         expect(dec).toEqual(plain);
-    });
+    }, 30_000);  // 1 MB through AES-GCM in jsdom takes ~4-5s; give CI 30s headroom.
 
     it('round-trips with a custom chunk size (clamped down)', async () => {
         const key = await generateTestKey();
