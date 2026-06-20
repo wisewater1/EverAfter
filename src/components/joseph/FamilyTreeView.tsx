@@ -16,6 +16,7 @@ import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
 import MemberGeneticsPanel from './MemberGeneticsPanel';
+import MemberGeneticsFindings from './MemberGeneticsFindings';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface FamilyTreeViewProps {
@@ -392,6 +393,16 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 Analyze Personality
                             </button>
                         </div>
+
+                        {/* Genetic trait map — placed directly under the personality section
+                            so genetic traits sit alongside personality traits in the panel */}
+                        {user?.id && (
+                            <MemberGeneticsFindings
+                                userId={user.id}
+                                member={selectedMember}
+                                familyMemberDbId={null}
+                            />
+                        )}
 
                         {/* AI Agent Section */}
                         <div className="border-t border-white/5 pt-5">
