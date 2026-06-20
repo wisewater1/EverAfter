@@ -307,9 +307,82 @@ export default function JosephVoiceAnswerPanel({
           )}
 
           {!canUseVoiceFlow && !loadingHealth && (
-            <div className="flex items-start gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-xs text-slate-400">
-              <AlertCircle className="mt-0.5 h-4 w-4 text-slate-500" />
-              This voice flow only activates when Joseph voice is fully healthy and the selected family member has an explicitly consented voice profile. It stays disabled instead of falling back to mock voice analysis.
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5 text-xs text-slate-300 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                <span className="font-medium text-amber-200">
+                  Voice recording is disabled. Sanity checks:
+                </span>
+              </div>
+              {/* Each row shows exactly which precondition failed so the user
+                  can act, instead of staring at a button that won't react. */}
+              <ul className="space-y-1 pl-1">
+                <li className="flex items-center gap-2">
+                  {recorder.isSupported ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+                  )}
+                  <span className={recorder.isSupported ? 'text-slate-300' : 'text-rose-200'}>
+                    Browser microphone API available
+                    {!recorder.isSupported && (
+                      <span className="text-slate-500"> — try Chrome, Edge, or Safari 14+ on HTTPS</span>
+                    )}
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {liveVoiceAvailable ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+                  )}
+                  <span className={liveVoiceAvailable ? 'text-slate-300' : 'text-rose-200'}>
+                    Voice runtime enabled
+                    {!liveVoiceAvailable && (
+                      <span className="text-slate-500"> — VITE_JOSEPH_VOICE_API_URL not set in this environment</span>
+                    )}
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {voiceHealth?.available ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+                  )}
+                  <span className={voiceHealth?.available ? 'text-slate-300' : 'text-rose-200'}>
+                    Joseph voice sidecar reachable
+                    {voiceHealth && !voiceHealth.available && (
+                      <span className="text-slate-500"> — {voiceHealth.message || 'service unreachable'}</span>
+                    )}
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {!voiceCapability?.blocking ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+                  )}
+                  <span className={!voiceCapability?.blocking ? 'text-slate-300' : 'text-rose-200'}>
+                    Voice capability not blocked
+                    {voiceCapability?.blocking && (
+                      <span className="text-slate-500"> — {voiceCapability.message || 'blocked'}</span>
+                    )}
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  {hasVoiceConsent ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+                  )}
+                  <span className={hasVoiceConsent ? 'text-slate-300' : 'text-rose-200'}>
+                    This family member has opted in to voice
+                    {!hasVoiceConsent && (
+                      <span className="text-slate-500"> — open the voice profile to toggle consent</span>
+                    )}
+                  </span>
+                </li>
+              </ul>
             </div>
           )}
         </div>
