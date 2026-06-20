@@ -24,7 +24,8 @@
     "smoke:backends": "node scripts/smoke-backends.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,css,json}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "audit:rls": "node scripts/audit-rls-gap.mjs"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.84",
