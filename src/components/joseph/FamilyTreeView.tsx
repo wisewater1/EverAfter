@@ -18,6 +18,8 @@ import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
 import FamilyTrajectoryMini from './FamilyTrajectoryMini';
 import MemberVaultPanel from './MemberVaultPanel';
+import EngramReadinessChip from './EngramReadinessChip';
+import { computeEngramReadiness } from '../../lib/joseph/engramReadiness';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -56,6 +58,8 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
         const hasChildren = children.length > 0;
         const isDeceased = !!member.deathDate;
         const hasAI = member.aiPersonality?.isActive;
+        const readiness = computeEngramReadiness(member);
+        const spouseReadiness = spouse ? computeEngramReadiness(spouse) : null;
 
         return (
             <div key={member.id} className="relative" style={{ marginLeft: depth * 24 }}>
@@ -97,6 +101,22 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 {hasAI && (
                                     <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
                                         Active
+                                    </span>
+                                )}
+                                {!hasAI && readiness.score > 0 && (
+                                    <span className="ml-2 inline-flex">
+                                        <EngramReadinessChip
+                                            readiness={readiness}
+                                            compact
+                                            onClick={() => {
+                                                if (member.engramId) {
+                                                    onTrainMember?.(member.engramId);
+                                                } else {
+                                                    onStartPersonalityQuiz?.(member.id);
+                                                }
+                                            }}
+                                            actionLabel={`Continue training ${member.firstName}`}
+                                        />
                                     </span>
                                 )}
                                 {member.engramId && (
@@ -166,6 +186,22 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                         {spouse.aiPersonality?.isActive && (
                                             <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
                                                 Active
+                                            </span>
+                                        )}
+                                        {!spouse.aiPersonality?.isActive && spouseReadiness && spouseReadiness.score > 0 && (
+                                            <span className="ml-2 inline-flex">
+                                                <EngramReadinessChip
+                                                    readiness={spouseReadiness}
+                                                    compact
+                                                    onClick={() => {
+                                                        if (spouse.engramId) {
+                                                            onTrainMember?.(spouse.engramId);
+                                                        } else {
+                                                            onStartPersonalityQuiz?.(spouse.id);
+                                                        }
+                                                    }}
+                                                    actionLabel={`Continue training ${spouse.firstName}`}
+                                                />
                                             </span>
                                         )}
                                         {spouse.engramId && (
@@ -353,6 +389,20 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                         </div>
 
                         <RelationshipInsight member={selectedMember} />
+
+                        {/* Engram readiness — full version with next step + continue */}
+                        <EngramReadinessChip
+                            readiness={computeEngramReadiness(selectedMember)}
+                            onClick={() => {
+                                if (selectedMember.engramId) {
+                                    onTrainMember?.(selectedMember.engramId);
+                                } else {
+                                    setSelectedMember(null);
+                                    onStartPersonalityQuiz?.(selectedMember.id);
+                                }
+                            }}
+                            actionLabel="Continue training"
+                        />
 
                         {/* DHT Score Panel */}
                         <DHTScorePanel
