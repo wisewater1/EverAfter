@@ -109,7 +109,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                     </span>
                                 )}
                                 {!hasAI && readiness.score > 0 && (
-                                    <span className="ml-2 inline-flex">
+                                    <span className="ml-2 hidden sm:inline-flex">
                                         <EngramReadinessChip
                                             readiness={readiness}
                                             compact
@@ -194,7 +194,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                             </span>
                                         )}
                                         {!spouse.aiPersonality?.isActive && spouseReadiness && spouseReadiness.score > 0 && (
-                                            <span className="ml-2 inline-flex">
+                                            <span className="ml-2 hidden sm:inline-flex">
                                                 <EngramReadinessChip
                                                     readiness={spouseReadiness}
                                                     compact
@@ -533,9 +533,9 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
 
             {/* Talk to this family member (AI failover: server → on-device → graceful) */}
             {chatMember && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
-                    <div className="relative h-[80vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
-                        <button onClick={() => setChatMember(null)} className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-3 sm:p-4 backdrop-blur-md">
+                    <div className="relative h-[85dvh] sm:h-[80dvh] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
+                        <button onClick={() => setChatMember(null)} className="absolute right-3 top-3 sm:right-4 sm:top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white">
                             <X className="w-5 h-5" />
                         </button>
                         <SaintChat
@@ -551,11 +551,11 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
 
             {/* Ask Saint Joseph ABOUT this member — Joseph speaks, with member context injected */}
             {askAboutMember && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
-                    <div className="relative h-[80vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-amber-500/20 bg-slate-900 shadow-2xl">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-3 sm:p-4 backdrop-blur-md">
+                    <div className="relative h-[85dvh] sm:h-[80dvh] w-full max-w-3xl overflow-hidden rounded-3xl border border-amber-500/20 bg-slate-900 shadow-2xl">
                         <button
                             onClick={() => setAskAboutMember(null)}
-                            className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white"
+                            className="absolute right-3 top-3 sm:right-4 sm:top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white"
                         >
                             <X className="w-5 h-5" />
                         </button>
