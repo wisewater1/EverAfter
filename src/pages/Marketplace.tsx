@@ -419,7 +419,7 @@ interface TemplateCardProps {
 
 function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onViewDetails, purchasing }: TemplateCardProps) {
   return (
-    <div className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300">
+    <div className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -535,9 +535,9 @@ interface TemplateDetailsModalProps {
 function TemplateDetailsModal({ template, isPurchased, onClose, onPurchase, onAddToEngrams, purchasing }: TemplateDetailsModalProps) {
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 p-6 flex items-start justify-between">
+        <div className="sticky top-0 bg-slate-900/95 sm:backdrop-blur-xl border-b border-slate-700/50 p-6 flex items-start justify-between">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
               {template.avatar_url ? (
@@ -622,7 +622,7 @@ function TemplateDetailsModal({ template, isPurchased, onClose, onPurchase, onAd
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 p-6 flex items-center justify-between">
+        <div className="sticky bottom-0 bg-slate-900/95 sm:backdrop-blur-xl border-t border-slate-700/50 p-6 flex items-center justify-between">
           <div className="text-3xl font-light text-white">
             ${template.price_usd.toFixed(2)}
           </div>

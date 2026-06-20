@@ -14,7 +14,11 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
-import Onboarding from './pages/Onboarding';
+// Onboarding pulls in a tree of step components (FirstEngramStep alone is
+// ~930 lines), so it's lazy. Users either go straight to /dashboard if
+// they've already onboarded or they're on /onboarding; either way the page
+// shell + login/signup load first.
+const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'), 'pages/Onboarding');
 
 const Landing = lazyWithRetry(() => import('./pages/Landing'), 'pages/Landing');
 const StRaphaelHealthHub = lazyWithRetry(() => import('./pages/StRaphaelHealthHub'), 'pages/StRaphaelHealthHub');

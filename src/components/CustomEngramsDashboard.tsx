@@ -493,7 +493,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
       {/* Enhanced Create Modal with Multi-Step Wizard */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-6 sm:p-8 max-w-3xl w-full my-8">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-6 sm:p-8 max-w-3xl w-full my-8">
             {/* Header with Progress */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-6">
@@ -684,7 +684,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
       {/* Onboarding Modal - Mobile Optimized */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full my-4 relative">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full my-4 relative">
             {/* Close Button - Top Right */}
             <button
               onClick={dismissOnboarding}
@@ -770,7 +770,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
       {/* Fast-Track Upgrade Modal */}
       {showFastTrackModal && selectedEngramForUpgrade && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-amber-500/30 p-8 max-w-lg w-full">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-amber-500/30 p-8 max-w-lg w-full">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
                 <Zap className="w-7 h-7 text-white" />

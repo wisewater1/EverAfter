@@ -321,7 +321,7 @@ export default function HealthReportGenerator() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50 shadow-2xl">
+    <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 sm:backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50 shadow-2xl">
       <div className="flex items-start justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">

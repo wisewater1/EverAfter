@@ -225,7 +225,7 @@ export default function Dashboard() {
       />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-2xl border-b border-slate-800/50">
+      <header className="sticky top-0 z-50 bg-slate-950/80 sm:backdrop-blur-2xl border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -252,7 +252,7 @@ export default function Dashboard() {
             <div className="hidden lg:flex items-center gap-2">
               <button
                 onClick={() => navigate('/legacy-vault')}
-                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-purple-500/30 hover:border-purple-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-purple-500/10 hover:shadow-purple-500/30 hover:bg-slate-900/60 group overflow-hidden"
+                className="relative px-4 py-2 bg-slate-900/40 sm:backdrop-blur-xl border border-purple-500/30 hover:border-purple-400/50 text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-purple-500/10 hover:shadow-purple-500/30 hover:bg-slate-900/60 group overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <Heart className="w-4 h-4 relative z-10 text-purple-400 group-hover:text-purple-300" />
@@ -260,7 +260,7 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={handleSignOut}
-                className="relative px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-slate-600/30 hover:border-slate-500/50 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-slate-900/20 hover:shadow-slate-700/30 hover:bg-slate-900/60 group overflow-hidden"
+                className="relative px-4 py-2 bg-slate-900/40 sm:backdrop-blur-xl border border-slate-600/30 hover:border-slate-500/50 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-slate-900/20 hover:shadow-slate-700/30 hover:bg-slate-900/60 group overflow-hidden"
               >
                 <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <LogOut className="w-4 h-4 relative z-10" />
@@ -272,7 +272,7 @@ export default function Dashboard() {
       </header>
 
       {/* Navigation - Minimalistic & Responsive */}
-      <nav className="sticky top-[73px] z-40 bg-black/40 backdrop-blur-xl border-b border-slate-800/30 shadow-lg shadow-black/50">
+      <nav className="sticky top-[73px] z-40 bg-black/40 sm:backdrop-blur-xl border-b border-slate-800/30 shadow-lg shadow-black/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile & Tablet: Horizontal Scroll */}
           <div className="lg:hidden flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-4 px-4 snap-x snap-mandatory">
@@ -388,7 +388,7 @@ export default function Dashboard() {
       <main className="relative z-10 flex-1 overflow-y-auto max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-36 sm:pb-[250px] safe-bottom w-full">
         <div className="space-y-8">
           {!loadingOnboardingResume && onboardingResume.visible && (
-            <section className="relative overflow-hidden rounded-3xl border border-cyan-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
+            <section className="relative overflow-hidden rounded-3xl border border-cyan-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] sm:backdrop-blur-2xl">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.14),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(129,140,248,0.12),_transparent_28%)]" />
               <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-4">
@@ -464,7 +464,7 @@ export default function Dashboard() {
           )}
 
           {!loadingOnboardingResume && !onboardingResume.visible && personalityResume.visible && personalityResume.memberId && (
-            <section className="relative overflow-hidden rounded-3xl border border-violet-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
+            <section className="relative overflow-hidden rounded-3xl border border-violet-400/15 bg-slate-950/65 px-6 py-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_80px_rgba(2,6,23,0.55)] sm:backdrop-blur-2xl">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(168,85,247,0.14),_transparent_32%),radial-gradient(circle_at_bottom_left,_rgba(34,211,238,0.1),_transparent_28%)]" />
               <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-3">

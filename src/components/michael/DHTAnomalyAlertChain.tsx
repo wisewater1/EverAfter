@@ -53,7 +53,7 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
     const totalAlerts = anomalies.length + riskCards.length;
 
     return (
-        <div className="rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-white/5 overflow-hidden">
+        <div className="rounded-3xl bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-white/5">
                 <div className="flex items-center gap-3">

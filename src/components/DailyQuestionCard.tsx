@@ -270,7 +270,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
   if (ais.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
         <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <MessageCircle className="w-10 h-10 text-slate-600" />
         </div>
@@ -284,7 +284,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
   if (showSuccess) {
     return (
-      <div className="bg-gradient-to-br from-emerald-900/20 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-16 text-center">
+      <div className="bg-gradient-to-br from-emerald-900/20 via-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/30 p-16 text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
           <Sparkles className="w-10 h-10 text-white animate-pulse" />
         </div>
@@ -301,7 +301,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       {/* Progress Bar */}
       {userProgress && (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-teal-400" />
@@ -332,7 +332,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       {/* Question Card */}
       {loading ? (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
           {/* Enhanced skeleton loading state */}
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
@@ -364,7 +364,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           </div>
         </div>
       ) : question ? (
-        <div className="bg-gradient-to-br from-slate-800/40 via-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-800/40 via-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
           {/* Question Header */}
           <div className="p-8 pb-6">
             <div className="flex items-center justify-between mb-6">
@@ -521,7 +521,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-16 text-center">
           <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Calendar className="w-10 h-10 text-slate-600" />
           </div>

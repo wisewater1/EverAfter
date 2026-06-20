@@ -14,7 +14,7 @@ export default function SafetyDisclaimer({ compact = false }: { compact?: boolea
     }
 
     return (
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 backdrop-blur-xl">
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 sm:backdrop-blur-xl">
             <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0 border border-amber-500/20">
                     <Shield className="w-5 h-5 text-amber-400" />

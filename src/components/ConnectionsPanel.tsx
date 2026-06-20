@@ -49,7 +49,7 @@ export default function ConnectionsPanel() {
         aria-labelledby="connections-panel-title"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 p-4 sm:p-6 z-10">
+        <div className="sticky top-0 bg-slate-900/95 sm:backdrop-blur-xl border-b border-slate-700/50 p-4 sm:p-6 z-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-teal-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">

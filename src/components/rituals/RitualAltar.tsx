@@ -550,7 +550,7 @@ export default function RitualAltar() {
                 <div className="relative group">
                     <button
                         onClick={() => setIsInvocationOpen(true)}
-                        className="bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-xl px-6 py-3 rounded-full text-[10px] uppercase tracking-[0.3em] font-bold text-amber-500/60 hover:text-amber-400 transition-all duration-700 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(245,158,11,0.1)]"
+                        className="bg-white/5 hover:bg-white/10 border border-white/10 sm:backdrop-blur-xl px-6 py-3 rounded-full text-[10px] uppercase tracking-[0.3em] font-bold text-amber-500/60 hover:text-amber-400 transition-all duration-700 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(245,158,11,0.1)]"
                     >
                         <div className={`w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse`} />
                         Invoke Council Presence
@@ -563,7 +563,7 @@ export default function RitualAltar() {
 
             {/* Invocation Overlay (Sacred Gate) */}
             {isInvocationOpen && (
-                <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-1000">
+                <div className="fixed inset-0 z-[110] bg-black/90 sm:backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-1000">
                     <div className="max-w-2xl w-full space-y-12 text-center">
                         <div className="space-y-4">
                             <h2 className="text-sm uppercase tracking-[0.5em] text-amber-500/40">Council Consensus</h2>
@@ -595,7 +595,7 @@ export default function RitualAltar() {
 
             {/* Akashic Record Sidebar/Modal */}
             {showAkashic && (
-                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex justify-end p-4 animate-in slide-in-from-right duration-500">
+                <div className="fixed inset-0 z-[100] bg-black/80 sm:backdrop-blur-xl flex justify-end p-4 animate-in slide-in-from-right duration-500">
                     <div className="w-full max-w-md h-full relative">
                         <button
                             onClick={() => setShowAkashic(false)}

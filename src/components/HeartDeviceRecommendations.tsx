@@ -507,7 +507,7 @@ function ProfileSetupModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-[#1a1a24]/95 to-[#13131a]/95 backdrop-blur-xl rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+      <div className="bg-gradient-to-br from-[#1a1a24]/95 to-[#13131a]/95 sm:backdrop-blur-xl rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-auto p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl flex items-center justify-center border border-pink-500/30">

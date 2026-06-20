@@ -100,7 +100,7 @@ export default function HolisticTimeline() {
 
     if (events.length === 0) {
         return (
-            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 text-center backdrop-blur-xl">
+            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 text-center sm:backdrop-blur-xl">
                 <Sparkles className="w-8 h-8 text-slate-500 mx-auto mb-3" />
                 <h3 className="text-lg font-medium text-slate-300">The Neural Graph is quiet</h3>
                 <p className="text-slate-500 text-sm mt-1">Cross-domain intersections will appear here once significant events occur.</p>
@@ -109,7 +109,7 @@ export default function HolisticTimeline() {
     }
 
     return (
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                     <Activity className="w-5 h-5 text-white" />

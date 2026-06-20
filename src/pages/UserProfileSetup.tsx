@@ -236,7 +236,7 @@ export default function UserProfileSetup() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
             <h2 className="text-xl font-medium text-white mb-6">Basic Information</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -307,7 +307,7 @@ export default function UserProfileSetup() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
             <h2 className="text-xl font-medium text-white mb-6">Interests & Skills</h2>
 
             <div className="space-y-6">
@@ -383,7 +383,7 @@ export default function UserProfileSetup() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
             <h2 className="text-xl font-medium text-white mb-6">Privacy Settings</h2>
 
             <div className="space-y-4">

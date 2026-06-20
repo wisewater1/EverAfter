@@ -357,7 +357,7 @@ export default function FamilyEngrams() {
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="rounded-3xl border border-white/10 bg-slate-900/95 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
+            <div className="rounded-3xl border border-white/10 bg-slate-900/95 p-4 shadow-2xl sm:backdrop-blur-xl sm:p-6">
               <Suspense fallback={<div className="py-16 text-center text-slate-400">Loading questionnaire…</div>}>
                 <PersonalityQuiz initialMemberId={quizMemberId} />
               </Suspense>
@@ -577,7 +577,7 @@ function CreateEngramModal({ onClose, onSuccess }: CreateEngramModalProps) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="glass-card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-white/10 flex items-center justify-between sticky top-0 bg-slate-900/90 backdrop-blur-xl z-10">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between sticky top-0 bg-slate-900/90 sm:backdrop-blur-xl z-10">
           <div>
             <h3 className="text-2xl font-bold text-white">Create Family Engram</h3>
             <p className="text-sm text-slate-400 mt-1">Step {step} of 3</p>
@@ -807,7 +807,7 @@ function CreateEngramModal({ onClose, onSuccess }: CreateEngramModalProps) {
           )}
         </div>
 
-        <div className="p-6 border-t border-white/10 flex items-center justify-between sticky bottom-0 bg-slate-900/90 backdrop-blur-xl">
+        <div className="p-6 border-t border-white/10 flex items-center justify-between sticky bottom-0 bg-slate-900/90 sm:backdrop-blur-xl">
           <button
             onClick={() => {
               if (step === 1) {

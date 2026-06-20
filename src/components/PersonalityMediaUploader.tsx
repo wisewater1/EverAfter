@@ -224,7 +224,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
   return (
     <div className="space-y-6">
       {/* Upload Controls */}
-      <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+      <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5 text-cyan-400" />
           Add Personality Media
@@ -335,7 +335,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {mediaFiles.map((media) => (
-              <div key={media.id} className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden group">
+              <div key={media.id} className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden group">
                 {/* Media Preview */}
                 <div className="relative aspect-video bg-slate-800/50 flex items-center justify-center">
                   {media.media_type === 'photo' && (

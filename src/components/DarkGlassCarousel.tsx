@@ -124,7 +124,7 @@ export default function DarkGlassCarousel({
       {/* Main Glass Container */}
       <div className="relative overflow-hidden rounded-3xl">
         {/* Glass Background with Gradient Border */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-3xl" />
 
         {/* Animated Gradient Border Effect */}
         <div className="absolute inset-0 rounded-3xl opacity-50">
