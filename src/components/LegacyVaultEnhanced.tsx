@@ -10,54 +10,23 @@ import {
 } from 'lucide-react';
 import FileUploadZone from './FileUploadZone';
 import { generateVaultKey, exportKey, importKey, encryptVaultData, decryptVaultData } from '../lib/vault-encryption';
-
-interface VaultItem {
-  id: string;
-  user_id: string;
-  type: 'CAPSULE' | 'MEMORIAL' | 'WILL' | 'MESSAGE';
-  title: string;
-  slug?: string;
-  status: 'DRAFT' | 'SCHEDULED' | 'LOCKED' | 'PUBLISHED' | 'PAUSED' | 'SENT' | 'ARCHIVED';
-  payload: any;
-  is_encrypted: boolean;
-  encryption_key_id?: string;
-  unlock_at?: string;
-  unlock_rule?: 'DATE' | 'DEATH_CERT' | 'CUSTODIAN_APPROVAL' | 'HEARTBEAT_TIMEOUT';
-  heartbeat_timeout_days?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Beneficiary {
-  id: string;
-  email: string;
-  name?: string;
-  phone?: string;
-  relationship?: string;
-  created_at?: string;
-}
-
-interface Receipt {
-  id: string;
-  vault_item_id?: string;
-  receipt_type: string;
-  snapshot_id: string;
-  sha256: string;
-  created_at: string;
-  download_count: number;
-  file_url?: string;
-}
-
-type ItemStatusFilter = 'ALL' | VaultItem['status'];
-
-interface LegacyConceptPreset {
-  type: VaultItem['type'];
-  title: string;
-  payload: Record<string, any>;
-  unlock_rule: NonNullable<VaultItem['unlock_rule']>;
-  heartbeat_timeout_days?: number;
-  is_encrypted?: boolean;
-}
+import type {
+  VaultItem,
+  Beneficiary,
+  Receipt,
+  ItemStatusFilter,
+  LegacyConceptPreset,
+} from '../lib/vault/types';
+import {
+  fetchVaultItems,
+  fetchSharedVaultItems,
+  fetchAssuranceData,
+  createBeneficiary as createBeneficiaryRow,
+  deleteBeneficiary as deleteBeneficiaryRow,
+  deleteVaultItem,
+  runIntegrityCheck,
+  exportVault,
+} from '../lib/vault/data';
 
 export default function LegacyVaultEnhanced() {
   const { user } = useAuth();
@@ -101,17 +70,11 @@ export default function LegacyVaultEnhanced() {
   }
 
   const loadVaultItems = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('vault_items')
-        .select('*')
-        .eq('type', activeTab)
-        .eq('user_id', user?.id) // Explicitly only own items
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setItems(data || []);
+      const data = await fetchVaultItems(user, activeTab);
+      setItems(data);
     } catch (error) {
       console.error('Error loading vault items:', error);
     } finally {
@@ -123,24 +86,8 @@ export default function LegacyVaultEnhanced() {
     if (!user) return;
     setLoading(true);
     try {
-      // Query items where current user is a beneficiary via email match
-      const { data, error } = await supabase
-        .from('vault_items')
-        .select(`
-          *,
-          beneficiary_links!inner (
-            role,
-            beneficiaries!inner (
-              email
-            )
-          )
-        `)
-        .neq('user_id', user.id)
-        .eq('beneficiary_links.beneficiaries.email', user.email)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-      setItems(data || []);
+      const data = await fetchSharedVaultItems(user);
+      setItems(data);
     } catch (error) {
       console.error('Error loading shared items:', error);
     } finally {
@@ -149,14 +96,11 @@ export default function LegacyVaultEnhanced() {
   };
 
   const loadAssuranceData = async () => {
+    if (!user) return;
     try {
-      const [beneficiariesRes, receiptsRes] = await Promise.all([
-        supabase.from('beneficiaries').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }),
-        supabase.from('vault_receipts').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(20)
-      ]);
-
-      if (beneficiariesRes.data) setBeneficiaries(beneficiariesRes.data);
-      if (receiptsRes.data) setReceipts(receiptsRes.data);
+      const { beneficiaries: bens, receipts: rcs } = await fetchAssuranceData(user);
+      setBeneficiaries(bens);
+      setReceipts(rcs);
     } catch (error) {
       console.error('Error loading assurance data:', error);
     } finally {
@@ -166,36 +110,20 @@ export default function LegacyVaultEnhanced() {
 
   const handleCreateBeneficiary = async (payload: { name?: string; email: string; phone?: string; relationship?: string }) => {
     if (!user) return;
-    const { error } = await supabase
-      .from('beneficiaries')
-      .insert({
-        user_id: user.id,
-        name: payload.name || null,
-        email: payload.email,
-        phone: payload.phone || null,
-        relationship: payload.relationship || null,
-      });
-
-    if (error) throw error;
+    await createBeneficiaryRow(user, payload);
     await loadAssuranceData();
   };
 
   const handleDeleteBeneficiary = async (beneficiaryId: string) => {
-    const { error } = await supabase
-      .from('beneficiaries')
-      .delete()
-      .eq('id', beneficiaryId)
-      .eq('user_id', user?.id);
-
-    if (error) throw error;
+    if (!user) return;
+    await deleteBeneficiaryRow(user, beneficiaryId);
     await loadAssuranceData();
   };
 
   const handleDeleteItem = async (id: string) => {
     if (!confirm('Are you sure you want to remove this item? This action cannot be undone.')) return;
     try {
-      const { error } = await supabase.from('vault_items').delete().eq('id', id);
-      if (error) throw error;
+      await deleteVaultItem(id);
       setSelectedItem(null);
       loadVaultItems();
     } catch (err) {
@@ -207,8 +135,7 @@ export default function LegacyVaultEnhanced() {
   const handleIntegrityCheck = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('vault-integrity-check');
-      if (error) throw error;
+      const data = await runIntegrityCheck();
       alert('Integrity check completed successfully: ' + (data?.message || 'All items verified'));
       loadAssuranceData();
     } catch (err) {
@@ -222,8 +149,7 @@ export default function LegacyVaultEnhanced() {
   const handleExport = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('vault-export');
-      if (error) throw error;
+      const data = await exportVault();
       if (data?.downloadUrl) {
         window.open(data.downloadUrl, '_blank');
       } else {
