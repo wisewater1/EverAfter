@@ -3,12 +3,15 @@ import {
     AlertTriangle,
     CheckCircle2,
     Dna,
+    Hourglass,
     Loader2,
     ShieldCheck,
     Trash2,
     Upload,
     X,
 } from 'lucide-react';
+import PosthumousDirectiveEditor from './PosthumousDirectiveEditor';
+import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import {
     deleteGeneticProfile,
     GeneticStorageError,
@@ -93,6 +96,20 @@ export default function MemberGeneticsPanel({
     const [progress, setProgress] = useState<UploadProgress | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
+    const [directiveProfileId, setDirectiveProfileId] = useState<string | null>(null);
+
+    // Living family members make decent PDG candidates — the editor shows
+    // them as checkboxes when the policy is ask_pdg or release_to_pdg.
+    const pdgCandidates = useMemo(
+        () =>
+            getFamilyMembers()
+                .filter((m) => !m.deathDate && m.id !== member.id)
+                .map((m) => ({
+                    id: m.id,
+                    name: `${m.firstName} ${m.lastName}`,
+                })),
+        [member.id],
+    );
 
     // ─── Load existing profiles ─────────────────────────────────────────────
     useEffect(() => {
@@ -282,6 +299,24 @@ export default function MemberGeneticsPanel({
                         </span>
                         <button
                             type="button"
+                            onClick={() =>
+                                setDirectiveProfileId((current) =>
+                                    current === p.id ? null : p.id,
+                                )
+                            }
+                            className={`p-1 rounded-md transition-colors shrink-0 ${
+                                directiveProfileId === p.id
+                                    ? 'text-amber-300 bg-amber-500/15'
+                                    : 'text-slate-500 hover:text-amber-300 hover:bg-amber-500/10'
+                            }`}
+                            aria-label="Edit posthumous directive"
+                            aria-pressed={directiveProfileId === p.id}
+                            title="What happens to this DNA file after you're gone"
+                        >
+                            <Hourglass className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => handleDelete(p.id)}
                             className="p-1 rounded-md text-slate-500 hover:text-rose-300 hover:bg-rose-500/10 transition-colors shrink-0"
                             aria-label="Delete DNA file"
@@ -291,6 +326,24 @@ export default function MemberGeneticsPanel({
                         </button>
                     </div>
                 ))}
+
+                {/* Inline directive editor — opens for the profile whose
+                    hourglass button was clicked above. */}
+                {directiveProfileId && (
+                    <PosthumousDirectiveEditor
+                        userId={userId}
+                        profileId={directiveProfileId}
+                        profileLabel={
+                            profiles.find((p) => p.id === directiveProfileId)
+                                ? `${FORMAT_LABEL[profiles.find((p) => p.id === directiveProfileId)!.format] ?? 'DNA file'}`
+                                : 'DNA file'
+                        }
+                        pdgCandidates={pdgCandidates}
+                        onSaved={() => {
+                            setReloadKey((k) => k + 1);
+                        }}
+                    />
+                )}
             </div>
 
             {/* First-time disclosure */}
