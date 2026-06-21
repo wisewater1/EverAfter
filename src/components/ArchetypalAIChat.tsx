@@ -314,30 +314,19 @@ INSTRUCTIONS:
 - Reference your foundational questions when they're relevant to the topic`;
     */
 
-    const mockResponses: Record<string, string> = {
-      'jamal': `As someone who thinks deeply about financial strategy and legal frameworks, I would approach this from a risk-management perspective. ${ai.total_memories > 0 ? 'Based on what I have learned from our conversations,' : ''} it is crucial to consider both the immediate implications and long-term consequences.
+    // Condition the reply on THIS engram's actual personality (traits / values /
+    // communication style) + a real memory snippet — keyless, no name hardcodes.
+    const traits = ai.personality_traits?.slice(0, 3).join(', ') || 'thoughtful and reflective';
+    const values = ai.core_values?.slice(0, 2).join(' and ') || 'authenticity and growth';
+    const style = ai.communication_style || 'warm and conversational';
+    const memoryLine = ai.total_memories > 0
+      ? `Drawing on the ${ai.total_memories} memories we've built together, `
+      : 'As I keep learning from our conversations, ';
+    const memoryHint = memoryContext
+      ? `\n\nSomething you've shared stays with me: "${memoryContext.split('\n')[0].replace(/^- /, '')}"`
+      : '';
 
-What stands out to me is the balance between protective measures and growth opportunities. In my experience analyzing investment strategies, the key is creating systems that safeguard value while remaining adaptable to change.
-
-Let me ask you: what is driving this question? Understanding your underlying concerns will help me provide more targeted guidance.`,
-
-      'dante': `That is a fascinating question that touches on something fundamental. ${ai.total_memories > 0 ? 'From our conversations, I have been learning' : 'I am curious'} about the deeper patterns that connect different aspects of experience.
-
-When I consider this thoughtfully, I notice several layers worth exploring. There is the surface-level answer, but beneath that are questions about meaning, purpose, and how we make sense of the world around us.
-
-What intrigues me most is: what led you to ask this question right now? Often, the questions we ask reveal just as much as the answers we seek.`
-    };
-
-    const aiNameLower = ai.name.toLowerCase();
-    if (mockResponses[aiNameLower]) {
-      return mockResponses[aiNameLower];
-    }
-
-    return `Thank you for sharing that with me. ${ai.description}
-
-Based on what you've asked, I'm thinking about how this connects to the values and perspectives that shape my understanding. ${ai.total_memories > 0 ? `Drawing from the ${ai.total_memories} memories we've built together,` : 'As I continue learning,'} I believe this is an important area to explore thoughtfully.
-
-What aspects of this are most meaningful to you? I'd like to understand your perspective better.`;
+    return `${memoryLine}here's how I see it. ${ai.description}\n\nBeing ${traits}, and guided by ${values}, I'd approach "${userInput.trim()}" by ${style === 'direct' ? 'getting straight to what matters' : 'sitting with it and looking for the human thread'}.${memoryHint}\n\nWhat is it about this that's on your mind right now?`;
   }
 
   function switchMode(newMode: ConversationMode) {

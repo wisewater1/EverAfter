@@ -346,7 +346,8 @@ export default function EmergencyAlertChain() {
         }
 
         if (chainData?.cascade?.raphael) {
-          chainData.cascade.raphael.message = `${METRIC_LABELS[normalized.criticalMetric] || normalized.criticalMetric} at ${normalized.detail} — risk level: ${chainData.cascade.raphael.risk_level}`;
+          const raphaelRisk = chainData.cascade.raphael.risk_level || chainData.alert_level || 'elevated';
+          chainData.cascade.raphael.message = `${METRIC_LABELS[normalized.criticalMetric] || normalized.criticalMetric} at ${normalized.detail} — risk level: ${raphaelRisk}`;
         }
 
         if (mounted) {

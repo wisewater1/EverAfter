@@ -376,6 +376,9 @@ function App() {
                     }
                   />
                   <Route path="/career/public/:token" element={nonCoreRoutesEnabled ? <PublicCareerChat /> : publicReleaseRedirect} />
+                  {/* Catch-all: unknown URLs (typos, stale links, removed routes) → dashboard.
+                      ProtectedRoute sends logged-out users on to /login. */}
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
                 </RouteErrorBoundary>
                 <ConnectionsPanel />
