@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import DHTScorePanel from '../dht/DHTScorePanel';
 import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar } from 'lucide-react';
 import StarfieldBackground from '../StarfieldBackground';
@@ -15,6 +16,7 @@ import TraitBadges from './TraitBadges';
 import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
+import FamilyTrajectoryMini from './FamilyTrajectoryMini';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -22,6 +24,7 @@ interface FamilyTreeViewProps {
 }
 
 export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }: FamilyTreeViewProps) {
+    const { user } = useAuth();
     const [tree, setTree] = useState<FamilyTreeNode[]>(() => buildFamilyTree());
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(['gp1', 'gp3', 'p1']));
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -355,6 +358,15 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             personId={selectedMember.id}
                             memberName={`${selectedMember.firstName} ${selectedMember.lastName}`}
                         />
+
+                        {/* Inline Delphi trajectory: this member's line overlaid with yours */}
+                        {user?.id && (
+                            <FamilyTrajectoryMini
+                                userId={user.id}
+                                userName={user.email?.split('@')[0] || 'You'}
+                                member={selectedMember}
+                            />
+                        )}
 
                         <JosephVoiceProfileCard
                             familyMemberId={selectedMember.id}
