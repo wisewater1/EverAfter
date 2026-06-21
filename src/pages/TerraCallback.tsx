@@ -156,7 +156,7 @@ export default function TerraCallback() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-8">
       <div className="max-w-md w-full">
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700 p-8">
+        <div className="bg-gray-800/50 sm:backdrop-blur-xl rounded-2xl border border-gray-700 p-8">
           {status === 'processing' && (
             <div className="text-center space-y-6">
               <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto">

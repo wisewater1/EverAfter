@@ -237,7 +237,7 @@ export default function UnifiedActivityCenter() {
 
   if (loading) {
     return (
-      <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
+      <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
         <div className="relative p-6">
           <div className="flex items-center justify-center py-12">
             <RotateCw className="w-8 h-8 text-slate-400 animate-spin" />
@@ -248,7 +248,7 @@ export default function UnifiedActivityCenter() {
   }
 
   return (
-    <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
+    <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/20 to-transparent pointer-events-none" />
 
       <div className="relative p-4 sm:p-6">

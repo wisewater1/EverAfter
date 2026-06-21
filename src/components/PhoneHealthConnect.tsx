@@ -290,7 +290,7 @@ export default function PhoneHealthConnect() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="backdrop-blur-xl bg-gradient-to-br from-slate-900/80 to-zinc-900/80 border border-white/10 rounded-3xl p-8 relative overflow-hidden">
+            <div className="sm:backdrop-blur-xl bg-gradient-to-br from-slate-900/80 to-zinc-900/80 border border-white/10 rounded-3xl p-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 -m-12 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl" />
                 <div className="absolute bottom-0 left-0 -m-12 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl" />
                 <div className="relative z-10">

@@ -135,7 +135,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'signin', cont
         className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/50 p-4 sm:p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-gray-900/95 sm:backdrop-blur-xl border-b border-gray-700/50 p-4 sm:p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
               <Brain className="w-5 h-5 text-white" />

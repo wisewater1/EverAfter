@@ -248,7 +248,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
           </div>
           <button
             onClick={() => window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host'}
-            className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 border border-emerald-500/20 backdrop-blur-xl group"
+            className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 border border-emerald-500/20 sm:backdrop-blur-xl group"
           >
             <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span className="hidden sm:inline text-sm font-medium">Production AI</span>

@@ -674,7 +674,7 @@ function ContinuityPlansSection({
             <span className="text-sm">{statusFilter === 'ALL' ? 'All statuses' : statusFilter}</span>
           </button>
           {showFilterMenu && (
-            <div className="absolute right-0 top-14 z-20 w-48 rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-xl overflow-hidden">
+            <div className="absolute right-0 top-14 z-20 w-48 rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl sm:backdrop-blur-xl overflow-hidden">
               {statusOptions.map(option => (
                 <button
                   key={option}

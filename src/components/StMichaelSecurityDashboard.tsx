@@ -404,7 +404,7 @@ export default function StMichaelSecurityDashboard() {
                         {/* Main Security Stats Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             {/* Integrity Score */}
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Fingerprint className="w-24 h-24 text-sky-400" />
                                 </div>
@@ -424,7 +424,7 @@ export default function StMichaelSecurityDashboard() {
                             </div>
 
                             {/* Raphael Watch */}
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Eye className="w-24 h-24 text-rose-400" />
                                 </div>
@@ -446,7 +446,7 @@ export default function StMichaelSecurityDashboard() {
                             </div>
 
                             {/* Privacy Status */}
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Lock className="w-24 h-24 text-emerald-400" />
                                 </div>
@@ -469,7 +469,7 @@ export default function StMichaelSecurityDashboard() {
                         </div>
 
                         {/* CAI Audit */}
-                        <div className="bg-slate-900/40 backdrop-blur-xl border border-sky-500/20 rounded-3xl p-8 mb-8 relative overflow-hidden">
+                        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-sky-500/20 rounded-3xl p-8 mb-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
                                 <Search className="w-48 h-48 text-sky-400" />
                             </div>
@@ -510,7 +510,7 @@ export default function StMichaelSecurityDashboard() {
                         {/* Alerts & Audit Trail */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Security Alerts */}
-                            <div className="bg-slate-900/20 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
+                            <div className="bg-slate-900/20 sm:backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
                                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-white uppercase tracking-widest">Guardian Actions</h3>
                                     <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold">{alerts.length} LOGGED</span>
@@ -544,7 +544,7 @@ export default function StMichaelSecurityDashboard() {
                             </div>
 
                             {/* Audit Trail */}
-                            <div className="bg-slate-900/20 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
+                            <div className="bg-slate-900/20 sm:backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
                                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-white uppercase tracking-widest">Integrity Audit Trail</h3>
                                     <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-1 rounded font-bold uppercase">Real-Time</span>
@@ -586,7 +586,7 @@ export default function StMichaelSecurityDashboard() {
                 )}
 
                 {activeTab === 'chat' && (
-                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden h-[600px]">
+                    <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden h-[600px]">
                         <SaintChat saintId="michael" saintName="St. Michael" saintTitle="The Guardian" saintIcon={Shield} primaryColor="sky" />
                     </div>
                 )}

@@ -302,7 +302,7 @@ export default function CareerChat({ publicToken }: CareerChatProps) {
           {!isPublicMode && profile?.public_chat_enabled && profile?.public_chat_token && (
             <button
               onClick={copyShareLink}
-              className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 text-indigo-400 transition-all duration-300 flex items-center gap-2 border border-indigo-500/20 backdrop-blur-xl group"
+              className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 text-indigo-400 transition-all duration-300 flex items-center gap-2 border border-indigo-500/20 sm:backdrop-blur-xl group"
             >
               {copied ? (
                 <>

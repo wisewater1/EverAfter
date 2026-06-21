@@ -326,7 +326,7 @@ export default function MedicationTracker() {
         </div>
       )}
 
-      <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
+      <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -384,7 +384,7 @@ export default function MedicationTracker() {
             prescriptions.map((prescription) => (
               <div
                 key={prescription.id}
-                className="bg-slate-900/60 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200"
+                className="bg-slate-900/60 sm:backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">

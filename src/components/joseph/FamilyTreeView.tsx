@@ -269,7 +269,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
 
             {/* Member Detail Panel */}
             {selectedMember && (
-                <div className="fixed inset-y-0 right-0 w-full max-w-md z-50 bg-slate-900/98 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <div className="fixed inset-y-0 right-0 w-full max-w-md z-50 bg-slate-900/98 sm:backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                     <div className="flex items-center justify-between p-6 border-b border-white/5">
                         <div className="flex items-center gap-3">
                             <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold ${selectedMember.gender === 'male'

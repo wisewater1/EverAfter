@@ -170,7 +170,7 @@ export default function CompactSaintsOverlay() {
     <div className="relative">
       {/* Compact Header Bar - Always Visible */}
       <div
-        className="bg-gradient-to-r from-slate-900/95 via-emerald-900/20 to-slate-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-xl shadow-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:border-emerald-500/40"
+        className="bg-gradient-to-r from-slate-900/95 via-emerald-900/20 to-slate-900/95 sm:backdrop-blur-xl border border-emerald-500/20 rounded-xl shadow-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:border-emerald-500/40"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between">
@@ -225,7 +225,7 @@ export default function CompactSaintsOverlay() {
       </div>
 
       {isExpanded && (
-        <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown max-h-[40vh] sm:max-h-[50vh] overflow-y-auto">
+        <div className="mt-2 bg-gradient-to-br from-slate-900/98 to-slate-800/98 sm:backdrop-blur-2xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-slideDown max-h-[40vh] sm:max-h-[50vh] overflow-y-auto">
           <div className="border-b border-slate-800/50 bg-slate-900/50">
             <div className="px-3 py-2 sm:px-4 sm:py-3 grid grid-cols-3 gap-2 sm:gap-3">
               <div className="flex items-center gap-2">

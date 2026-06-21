@@ -429,7 +429,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       <div className="ea-panel p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black/60 backdrop-blur-xl border border-slate-700/50 rounded-xl flex items-center justify-center shadow-lg relative z-10">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black/60 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl flex items-center justify-center shadow-lg relative z-10">
               <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
@@ -549,7 +549,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           {familyMembers.map((member) => (
             <div
               key={member.id}
-              className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 hover:border-slate-700/50 transition-all"
+              className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 hover:border-slate-700/50 transition-all"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -652,7 +652,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           {questionResponses.map((response) => (
             <div
               key={response.id}
-              className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 sm:p-6 touch-manipulation"
+              className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 sm:p-6 touch-manipulation"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -693,7 +693,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       {/* Media Tab */}
       {activeTab === 'media' && (
         <div className="space-y-6">
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
+          <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
             <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
               <Image className="w-6 h-6 text-purple-400" />
               Personality Media Library
@@ -718,7 +718,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       {activeTab === 'export' && (
         <div className="space-y-6">
           {/* Export Configuration */}
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
+          <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-400" />
               Select Data to Export
@@ -748,7 +748,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
           </div>
 
           {/* Export Format */}
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
+          <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-400" />
               Export Format

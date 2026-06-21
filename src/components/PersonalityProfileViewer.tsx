@@ -332,7 +332,7 @@ export default function PersonalityProfileViewer({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 max-w-6xl w-full my-8">
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-600/20 via-teal-600/20 to-sky-600/20 backdrop-blur-xl border-b border-slate-700/50 p-6 rounded-t-3xl">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-600/20 via-teal-600/20 to-sky-600/20 sm:backdrop-blur-xl border-b border-slate-700/50 p-6 rounded-t-3xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg">

@@ -18,7 +18,7 @@ export default function ConfidenceBadge({ score, level, label, showScore = true 
     const c = colors[level];
 
     return (
-        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${c.bg} border ${c.border} backdrop-blur-xl`}>
+        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${c.bg} border ${c.border} sm:backdrop-blur-xl`}>
             <div className={`w-2 h-2 rounded-full ${c.dot} animate-pulse`} />
             <span className={`text-xs font-semibold ${c.text} uppercase tracking-wider`}>
                 {label || level}

@@ -43,7 +43,7 @@ export default function MemberCalendarPanel({ member, onClose, onSaved }: Props)
                 <button onClick={onClose} aria-label="Close" className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-slate-800/90 p-2 text-slate-300 shadow-lg transition-colors hover:bg-slate-700 hover:text-white">
                     <X className="w-5 h-5" />
                 </button>
-                <div className="rounded-3xl border border-white/10 bg-slate-900/95 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
+                <div className="rounded-3xl border border-white/10 bg-slate-900/95 p-5 shadow-2xl sm:backdrop-blur-xl sm:p-6">
                     <div className="mb-5 flex items-center gap-3">
                         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/20 to-teal-500/20 border border-amber-500/20">
                             <Calendar className="h-5 w-5 text-amber-300" />

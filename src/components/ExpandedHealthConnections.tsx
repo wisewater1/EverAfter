@@ -397,7 +397,7 @@ export default function ExpandedHealthConnections() {
       </div>
 
       {/* Create Your Own Plugin Section */}
-      <div className="relative bg-gradient-to-br from-purple-500/10 via-violet-500/5 to-purple-600/10 backdrop-blur-xl rounded-3xl border border-purple-500/20 p-8 overflow-hidden shadow-2xl">
+      <div className="relative bg-gradient-to-br from-purple-500/10 via-violet-500/5 to-purple-600/10 sm:backdrop-blur-xl rounded-3xl border border-purple-500/20 p-8 overflow-hidden shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-violet-500/5"></div>
 
         <div className="relative space-y-6">

@@ -94,7 +94,7 @@ export default function CouncilOracle() {
                                         }`}
                                 >
                                     <div className={`
-                                        h-full p-6 rounded-2xl border backdrop-blur-xl transition-all duration-500
+                                        h-full p-6 rounded-2xl border sm:backdrop-blur-xl transition-all duration-500
                                         flex flex-col items-center text-center gap-4
                                         ${isActive
                                             ? `${saint.bg} ${saint.border} shadow-lg shadow-${saint.color.split('-')[1]}-500/20 ring-1 ring-${saint.color.split('-')[1]}-400/50`
