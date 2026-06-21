@@ -49,7 +49,7 @@ export default function MemberCalendarPanel({ member, onClose, onSaved }: Props)
                             <Calendar className="h-5 w-5 text-amber-300" />
                         </div>
                         <div className="min-w-0">
-                            <h3 className="text-lg font-bold text-white truncate">{name}'s Calendar</h3>
+                            <h3 className="text-lg font-bold text-white break-words">{name}'s Calendar</h3>
                             <p className="text-xs text-slate-400">Add their dates to any calendar — or connect theirs.</p>
                         </div>
                     </div>
@@ -109,7 +109,7 @@ export default function MemberCalendarPanel({ member, onClose, onSaved }: Props)
                             <div className="mt-3 space-y-1.5">
                                 {events.map((e, i) => (
                                     <div key={i} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.03] px-3 py-2">
-                                        <span className="truncate text-xs text-slate-200">{e.title}</span>
+                                        <span className="break-words text-xs text-slate-200">{e.title}</span>
                                         <span className="flex-shrink-0 text-[11px] text-slate-500">
                                             {e.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                         </span>

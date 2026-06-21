@@ -160,7 +160,7 @@ export default function GeneWebTools() {
                                                 {m.firstName[0]}{m.lastName[0]}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="text-sm text-white font-medium truncate">
+                                                <div className="text-sm text-white font-medium break-words">
                                                     {m.firstName} {m.lastName}
                                                     {m.deathDate && <span className="text-slate-600 ml-1">†</span>}
                                                 </div>

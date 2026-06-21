@@ -28,6 +28,7 @@ import FamilyPredictionIntelligencePanel from './joseph/FamilyPredictionIntellig
 import CustomEngramsDashboard from './CustomEngramsDashboard';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DelphiView from './dht/DelphiView';
+import FamilyTrajectoryCompare from './joseph/FamilyTrajectoryCompare';
 import OceanBehavioralLayer from './dht/OceanBehavioralLayer';
 import TellMyStoryPartnerCard from './joseph/TellMyStoryPartnerCard';
 import { buildTellMyStoryReferralCode, buildTellMyStoryUrl } from '../lib/tellMyStory';
@@ -141,6 +142,7 @@ export default function StJosephFamilyDashboard() {
     const [degradedMode, setDegradedMode] = useState(false);
     const [loadWarning, setLoadWarning] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabKey>('tree');
+    const [delphiMode, setDelphiMode] = useState<'single' | 'compare'>('single');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
     const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
     const [activeQuizMemberId, setActiveQuizMemberId] = useState<string | null>(null);
@@ -476,8 +478,49 @@ export default function StJosephFamilyDashboard() {
                         </div>
                     )}
                     {activeTab === 'delphi' && user?.id && (
-                        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
-                            <DelphiView personId={user.id} memberName={user.email?.split('@')[0] || 'You'} />
+                        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+                            <div
+                                role="tablist"
+                                aria-label="Delphi view mode"
+                                className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1"
+                            >
+                                <button
+                                    role="tab"
+                                    aria-selected={delphiMode === 'single'}
+                                    onClick={() => setDelphiMode('single')}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                        delphiMode === 'single'
+                                            ? 'bg-white/10 text-white'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
+                                    Your trajectory
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={delphiMode === 'compare'}
+                                    onClick={() => setDelphiMode('compare')}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                        delphiMode === 'compare'
+                                            ? 'bg-white/10 text-white'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
+                                    Compare with family
+                                </button>
+                            </div>
+
+                            {delphiMode === 'single' ? (
+                                <DelphiView
+                                    personId={user.id}
+                                    memberName={user.email?.split('@')[0] || 'You'}
+                                />
+                            ) : (
+                                <FamilyTrajectoryCompare
+                                    userId={user.id}
+                                    userName={user.email?.split('@')[0] || 'You'}
+                                />
+                            )}
                         </div>
                     )}
                     {activeTab === 'create-ai' && (

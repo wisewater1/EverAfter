@@ -135,19 +135,52 @@ export default function StMichaelSecurityDashboard() {
         if (user) loadData();
     }, [user]);
 
+    /**
+     * Race a promise against a timeout so a slow / hung backend can't
+     * leave the whole dashboard stuck on the spinner. Returns null if
+     * the promise doesn't resolve in time — caller handles the gap.
+     */
+    function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T | null> {
+        return new Promise<T | null>((resolve) => {
+            const timer = window.setTimeout(() => {
+                console.warn(`Michael: ${label} timed out after ${ms}ms; rendering without it`);
+                resolve(null);
+            }, ms);
+            p.then((value) => {
+                window.clearTimeout(timer);
+                resolve(value);
+            }).catch((error) => {
+                window.clearTimeout(timer);
+                console.warn(`Michael: ${label} failed:`, error);
+                resolve(null);
+            });
+        });
+    }
+
     const loadData = async () => {
         if (!user) return;
         setLoading(true);
-        try {
-            const [integrityData, auditData, caiAudit] = await Promise.all([
-                getSecurityIntegrity(user.id),
-                getAuditHistory(user.id),
-                runCAIAudit(user.id)
-            ]);
+        // Per-call 8-second timeout. allSettled so one slow / failing
+        // backend doesn't poison the others — each section updates as
+        // its own fetch resolves.
+        const [integrityData, auditData, caiAudit] = await Promise.all([
+            withTimeout(getSecurityIntegrity(user.id), 8000, 'getSecurityIntegrity'),
+            withTimeout(getAuditHistory(user.id), 8000, 'getAuditHistory'),
+            withTimeout(runCAIAudit(user.id), 8000, 'runCAIAudit'),
+        ]);
+
+        if (integrityData) {
             setReport(integrityData);
-            setAudits(auditData);
             setAlerts(integrityData.alerts);
+        }
+        if (auditData) {
+            setAudits(auditData);
+        }
+        if (caiAudit) {
             setCaiData(caiAudit);
+        }
+
+        if (integrityData && auditData) {
             const latestRecordedScan = auditData.find((entry) => entry.action === 'security/michael_full_scan_completed');
             if (latestRecordedScan) {
                 const metadata = latestRecordedScan.metadata && typeof latestRecordedScan.metadata === 'object'
@@ -179,11 +212,8 @@ export default function StMichaelSecurityDashboard() {
             } else {
                 setLastScanHandoff((current) => current ?? null);
             }
-        } catch (err) {
-            console.error('Failed to load security data:', err);
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     };
 
     const handleManualScan = async () => {
@@ -258,16 +288,12 @@ export default function StMichaelSecurityDashboard() {
         }
     };
 
-    if (loading && !scanning) {
-        return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Shield className="w-12 h-12 text-sky-500 animate-pulse" />
-                    <p className="text-sky-400 font-medium tracking-widest uppercase text-xs">Initializing Guardian...</p>
-                </div>
-            </div>
-        );
-    }
+    // Used to live as a blocking full-screen spinner that held the whole
+    // dashboard until every fetch finished. That meant a slow backend
+    // (Render free-tier cold-start, ~30-60s) made Michael feel broken.
+    // Now: render the shell immediately; the per-section components
+    // either show their data or their own internal skeleton if it's not
+    // here yet. We keep `loading` for the inline banner below.
 
     return (
         <div className="min-h-screen bg-[#0a0f15] text-slate-200">
