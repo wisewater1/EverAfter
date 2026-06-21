@@ -429,6 +429,73 @@ export function getTrinitySummarySnapshot() {
     };
 }
 
+export interface FamilyMemberVitality {
+    id: string;
+    name: string;
+    firstName: string;
+    generation: number;
+    age: number;
+    deceased: boolean;
+    wellnessScore: number;
+    riskScore: number;
+    riskLevel: 'low' | 'moderate' | 'high' | 'critical';
+    trajectory: 'improving' | 'stable' | 'declining';
+    conditions: string[];
+}
+
+export interface FamilyTreeAnalysis {
+    vitalityScore: number;
+    breakdown: ReturnType<typeof buildFamilyVitalityFallback>['breakdown'];
+    insights: ReturnType<typeof buildFamilyVitalityFallback>['insights'];
+    members: FamilyMemberVitality[];
+    livingCount: number;
+    hereditary: ReturnType<typeof buildHereditarySignals>;
+    elderCare: ReturnType<typeof buildElderCareFallback>;
+    generatedAt: string;
+}
+
+/**
+ * The high-level family-tree analysis — Trinity interlacing St. Joseph (the
+ * family graph) with St. Raphael (per-member health) and St. Gabriel (finance).
+ * Computed locally from genealogy + the health model, so it works keyless in
+ * both demo and the real app, and is the single source for the family-tree
+ * vitality rings + the Family Intelligence page.
+ */
+export function getFamilyTreeAnalysis(): FamilyTreeAnalysis {
+    const context = getLocalTrinityContext();
+    const vitality = buildFamilyVitalityFallback(context);
+    const hereditary = buildHereditarySignals(context, context.primaryMember || {});
+    const elderCare = buildElderCareFallback(context);
+
+    const members: FamilyMemberVitality[] = context.healthProfiles.map((hp) => {
+        const fullName = formatMemberName(hp.member);
+        return {
+            id: String(hp.member.id),
+            name: fullName,
+            firstName: String(hp.member.firstName || hp.member.first_name || fullName.split(' ')[0] || 'Member'),
+            generation: Number(hp.member.generation || 0),
+            age: hp.age,
+            deceased: Boolean(hp.member.deathDate || hp.member.death_date),
+            wellnessScore: Math.round(hp.wellnessScore),
+            riskScore: Math.round(hp.riskScore),
+            riskLevel: hp.riskLevel as FamilyMemberVitality['riskLevel'],
+            trajectory: hp.trajectory as FamilyMemberVitality['trajectory'],
+            conditions: hp.conditions,
+        };
+    });
+
+    return {
+        vitalityScore: vitality.vitality_score,
+        breakdown: vitality.breakdown,
+        insights: vitality.insights,
+        members,
+        livingCount: context.livingMembers.length,
+        hereditary,
+        elderCare,
+        generatedAt: new Date().toISOString(),
+    };
+}
+
 function buildCouncilFallback(body: AnyRecord, context = getLocalTrinityContext()) {
     const userMessage = String(body.user_message || 'Help me coordinate health, wealth, and family stewardship.');
     const livingCount = context.livingMembers.length;
