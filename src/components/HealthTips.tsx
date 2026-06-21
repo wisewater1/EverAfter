@@ -211,7 +211,7 @@ export default function HealthTips() {
 
         {!isPaused && (
           <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-gray-900/50 rounded-full text-xs text-gray-400">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full motion-safe:animate-pulse" />
             <span>Auto-rotating</span>
           </div>
         )}

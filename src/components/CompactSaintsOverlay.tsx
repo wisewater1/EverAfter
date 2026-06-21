@@ -179,7 +179,7 @@ export default function CompactSaintsOverlay() {
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center">
                 <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
               </div>
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900 motion-safe:animate-pulse"></div>
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-semibold text-white">Your Saints</h3>
@@ -211,7 +211,7 @@ export default function CompactSaintsOverlay() {
 
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-              <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
+              <Activity className="w-3 h-3 text-emerald-400 motion-safe:animate-pulse" />
               <span className="text-xs font-semibold text-emerald-300 uppercase tracking-wider">Active</span>
             </div>
             {isExpanded ? (
@@ -318,7 +318,7 @@ export default function CompactSaintsOverlay() {
                               </span>
                             )}
                             {saint.active && isTrainable && (
-                              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full motion-safe:animate-pulse"></div>
                             )}
                           </div>
                           <p className={`text-[10px] sm:text-xs truncate ${isTrainable ? 'text-slate-400' : 'text-slate-600'}`}>{saint.title}</p>

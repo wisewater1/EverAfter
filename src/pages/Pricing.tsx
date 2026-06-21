@@ -205,7 +205,7 @@ export default function Pricing() {
   }, [user, authIntent]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
       {/* Header */}
       <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4">

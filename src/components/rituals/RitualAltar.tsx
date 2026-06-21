@@ -234,7 +234,7 @@ export default function RitualAltar() {
     }, [sacredState.biometric_mode]);
 
     return (
-        <div className="min-h-screen bg-black text-amber-100 p-6 flex flex-col items-center justify-center relative overflow-hidden font-serif">
+        <div className="min-h-[100dvh] bg-black text-amber-100 p-6 flex flex-col items-center justify-center relative overflow-hidden font-serif">
             {/* Minimalist Presence Aura Overlay */}
             <div
                 className="absolute inset-0 pointer-events-none transition-colors duration-[10000ms] ease-in-out opacity-[0.15]"
@@ -485,7 +485,7 @@ export default function RitualAltar() {
                             {currentStepIndex >= 0 && currentStepIndex < script.steps.length ? (
                                 <div className="bg-amber-900/10 border border-amber-500/30 p-8 rounded-2xl backdrop-blur-md animate-in zoom-in-95 duration-500 shadow-[0_0_50px_rgba(245,158,11,0.1)]">
                                     <div className="flex flex-col items-center text-center gap-6">
-                                        <div className="text-6xl animate-bounce-slow">
+                                        <div className="text-6xl motion-safe:animate-bounce-slow">
                                             {getAvatar(script.steps[currentStepIndex].actor)}
                                         </div>
                                         <div className="space-y-4">
@@ -506,7 +506,7 @@ export default function RitualAltar() {
                                     </div>
                                 </div>
                             ) : currentStepIndex === -1 ? (
-                                <div className="text-center py-20 animate-pulse text-amber-500/50">
+                                <div className="text-center py-20 motion-safe:animate-pulse text-amber-500/50">
                                     Prepare yourself...
                                 </div>
                             ) : (
@@ -552,7 +552,7 @@ export default function RitualAltar() {
                         onClick={() => setIsInvocationOpen(true)}
                         className="bg-white/5 hover:bg-white/10 border border-white/10 sm:backdrop-blur-xl px-6 py-3 rounded-full text-[10px] uppercase tracking-[0.3em] font-bold text-amber-500/60 hover:text-amber-400 transition-all duration-700 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(245,158,11,0.1)]"
                     >
-                        <div className={`w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse`} />
+                        <div className={`w-1.5 h-1.5 rounded-full bg-amber-500 motion-safe:animate-pulse`} />
                         Invoke Council Presence
                     </button>
 

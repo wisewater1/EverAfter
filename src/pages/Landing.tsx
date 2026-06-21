@@ -51,7 +51,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-[#06080c] via-[#0a0f15] to-[#0a1626]">
+    <div className="relative min-h-[100dvh] overflow-x-hidden bg-gradient-to-br from-[#06080c] via-[#0a0f15] to-[#0a1626]">
       {/* Moving starfield behind the dark glass — parallaxes with cursor + scroll */}
       <StarfieldBackground />
       <div className="relative z-10">

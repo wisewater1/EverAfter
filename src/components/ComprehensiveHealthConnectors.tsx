@@ -722,13 +722,13 @@ export default function ComprehensiveHealthConnectors() {
       {/* Custom Plugin Builder Modal */}
       {showCustomDashboard && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 overflow-auto">
-          <div className="min-h-screen p-4">
+          <div className="min-h-[100dvh] p-4">
             <div className="max-w-7xl mx-auto">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   <LayoutDashboard className="w-7 h-7 text-violet-400" />
                   Custom Health Plugin Builder
-                  <Sparkles className="w-6 h-6 text-violet-400 animate-pulse" />
+                  <Sparkles className="w-6 h-6 text-violet-400 motion-safe:animate-pulse" />
                 </h2>
                 <button
                   onClick={() => setShowCustomDashboard(false)}
@@ -818,7 +818,7 @@ function ServiceCard({ service, connection, onConnect, isConnecting }: Omit<Serv
         >
           {isConnecting ? (
             <>
-              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              <div className="absolute inset-0 bg-white/20 motion-safe:animate-pulse"></div>
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span className="relative z-10 tracking-wide font-semibold">Connecting...</span>
             </>

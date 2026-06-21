@@ -51,7 +51,7 @@ export default function GuardianLog({ report, alerts }: GuardianLogProps) {
                             <span className="text-[10px] text-slate-500 font-medium tracking-tight uppercase">Protocol: Active</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <AlertCircle className={`w-3.5 h-3.5 ${criticalAlerts.length > 0 ? 'text-rose-500 animate-pulse' : 'text-slate-600'}`} />
+                            <AlertCircle className={`w-3.5 h-3.5 ${criticalAlerts.length > 0 ? 'text-rose-500 motion-safe:animate-pulse' : 'text-slate-600'}`} />
                             <span className="text-[10px] text-slate-500 font-medium tracking-tight uppercase">Threat level: {criticalAlerts.length > 0 ? 'Elevated' : 'Low'}</span>
                         </div>
                     </div>

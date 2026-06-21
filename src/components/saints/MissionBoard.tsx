@@ -100,7 +100,7 @@ export default function MissionBoard() {
                                 <div key={step.step_id} className="flex items-start gap-3 p-2 rounded hover:bg-white/5 transition-colors">
                                     <div className="mt-0.5">
                                         {step.status === 'completed' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-                                        {step.status === 'in_progress' && <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />}
+                                        {step.status === 'in_progress' && <Clock className="w-3.5 h-3.5 text-amber-400 motion-safe:animate-pulse" />}
                                         {step.status === 'pending' && <Circle className="w-3.5 h-3.5 text-slate-600" />}
                                         {step.status === 'failed' && <AlertCircle className="w-3.5 h-3.5 text-rose-400" />}
                                     </div>

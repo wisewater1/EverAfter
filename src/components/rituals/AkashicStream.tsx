@@ -89,7 +89,7 @@ export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
         return (
             <div className="flex flex-col gap-2 overflow-hidden p-3">
                 {records.slice(0, 3).map((record) => (
-                    <div key={record.id} className="text-[10px] text-cyan-400/70 italic border-l border-cyan-500/30 pl-2 py-1 animate-pulse shrink-0 overflow-hidden flex items-center">
+                    <div key={record.id} className="text-[10px] text-cyan-400/70 italic border-l border-cyan-500/30 pl-2 py-1 motion-safe:animate-pulse shrink-0 overflow-hidden flex items-center">
                         <span className="opacity-50 mr-2 shrink-0">[{new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
                         <span className="truncate">{record.content}</span>
                     </div>
@@ -110,7 +110,7 @@ export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
                 </h3>
                 <div className="flex items-center gap-2">
                     {isSearching && <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />}
-                    <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+                    <Sparkles className="w-3 h-3 text-cyan-400 motion-safe:animate-pulse" />
                 </div>
             </div>
 

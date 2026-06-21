@@ -535,7 +535,7 @@ export default function FamilyTimeline() {
                         {historyProbes.map(probe => (
                             <div key={`${probe.memberId}-${probe.gapStartYear}`} className="bg-slate-900/60 backdrop-blur-sm border border-white/5 rounded-xl p-4 group hover:border-amber-500/30 transition-all">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Zap className="w-4 h-4 text-amber-400 group-hover:animate-pulse" />
+                                    <Zap className="w-4 h-4 text-amber-400 group-hover:motion-safe:animate-pulse" />
                                     <span className="text-xs font-bold text-white">{probe.memberName}</span>
                                     <span className="text-[10px] text-slate-500">{probe.gapStartYear}–{probe.gapEndYear}</span>
                                 </div>
@@ -554,7 +554,7 @@ export default function FamilyTimeline() {
 
             {/* Cross-Saint Ingestion Status */}
             {crossSaintLoading && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 animate-pulse">
+                <div className="flex items-center gap-2 text-xs text-slate-500 motion-safe:animate-pulse">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     Syncing milestones from St. Raphael, St. Gabriel, and the Council...
                 </div>
@@ -744,7 +744,7 @@ export default function FamilyTimeline() {
 
                                             {/* Dot on main horizontal line */}
                                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                                                <div className={`w-4 h-4 rounded-full ${colors.dot} ring-4 ring-slate-950 transition-transform duration-300 ${isThreadOrigin ? 'scale-150 ring-indigo-500/40 bg-indigo-400' : isThreadNode ? 'scale-125 ring-indigo-500/20 bg-indigo-400' : isEchoNode ? 'scale-110 ring-fuchsia-500/30 bg-fuchsia-400 animate-pulse' : 'group-hover:ring-slate-800'}`} />
+                                                <div className={`w-4 h-4 rounded-full ${colors.dot} ring-4 ring-slate-950 transition-transform duration-300 ${isThreadOrigin ? 'scale-150 ring-indigo-500/40 bg-indigo-400' : isThreadNode ? 'scale-125 ring-indigo-500/20 bg-indigo-400' : isEchoNode ? 'scale-110 ring-fuchsia-500/30 bg-fuchsia-400 motion-safe:animate-pulse' : 'group-hover:ring-slate-800'}`} />
                                             </div>
 
                                             {/* Causal Thread UI Prompt */}

@@ -422,7 +422,7 @@ const SocietyFeed: React.FC = () => {
 
     if (loading) return (
         <div className="flex items-center justify-center h-64">
-            <div className="animate-pulse flex flex-col items-center gap-4 relative">
+            <div className="motion-safe:animate-pulse flex flex-col items-center gap-4 relative">
                 <Activity className="text-cyan-400 w-12 h-12" />
                 <span className="text-cyan-500/80 text-sm font-medium tracking-[0.2em] uppercase">Engaging OASIS Social Engine...</span>
             </div>
@@ -449,7 +449,7 @@ const SocietyFeed: React.FC = () => {
                         <h2 className="text-lg font-light text-white tracking-tight">Ancestral Agora</h2>
                         <div className="text-[10px] text-cyan-500/60 uppercase tracking-[0.2em] font-bold flex items-center gap-1.5 mt-0.5">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                             </span>
                             Unified Social Ecosystem
@@ -503,7 +503,7 @@ const SocietyFeed: React.FC = () => {
                     {activeTab === 'agora' && showAnchors && SAINT_ANCHORS.map((anchor) => (
                         <div
                             key={anchor.id}
-                            className={`absolute z-20 flex flex-col items-center gap-1 pointer-events-none animate-pulse`}
+                            className={`absolute z-20 flex flex-col items-center gap-1 pointer-events-none motion-safe:animate-pulse`}
                             style={{ left: `${anchor.position.x}%`, top: `${anchor.position.y}%`, transform: 'translate(-50%, -50%)' }}
                         >
                             <div className={`w-16 h-16 rounded-full ${anchor.color} border-2 ${anchor.borderColor} flex items-center justify-center shadow-xl ${anchor.glowColor} backdrop-blur-md`}>
@@ -512,7 +512,7 @@ const SocietyFeed: React.FC = () => {
                             <span className="text-[9px] font-black text-white/60 uppercase tracking-wider">{anchor.name}</span>
                             <span className="text-[7px] text-white/30 uppercase tracking-widest">{anchor.description}</span>
                             {/* Gravitational Field Ring */}
-                            <div className={`absolute inset-0 -m-8 rounded-full border ${anchor.borderColor} opacity-20 animate-ping`} style={{ animationDuration: '3s' }} />
+                            <div className={`absolute inset-0 -m-8 rounded-full border ${anchor.borderColor} opacity-20 motion-safe:animate-ping`} style={{ animationDuration: '3s' }} />
                             <div className={`absolute inset-0 -m-14 rounded-full border ${anchor.borderColor} opacity-10`} />
                         </div>
                     ))}
@@ -648,7 +648,7 @@ const SocietyFeed: React.FC = () => {
                                 {isDeliberating && (
                                     <div className="flex items-center justify-center py-8 gap-2">
                                         <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-                                        <span className="text-xs text-indigo-400/60 animate-pulse">The Saints are deliberating...</span>
+                                        <span className="text-xs text-indigo-400/60 motion-safe:animate-pulse">The Saints are deliberating...</span>
                                     </div>
                                 )}
                                 {deliberationLog.map((entry, i) => (

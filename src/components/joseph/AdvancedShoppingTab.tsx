@@ -273,7 +273,7 @@ export function AdvancedShoppingTab() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
                                         {item.status === 'bought' && <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-md"><CheckCircle2 className="w-3 h-3" /> Procured</span>}
-                                        {item.status === 'negotiating' && <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-md animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> St. Joseph Negotiating</span>}
+                                        {item.status === 'negotiating' && <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-md motion-safe:animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> St. Joseph Negotiating</span>}
 
                                         {item.type === 'iot_trigger' && (
                                             <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/20 px-2 py-0.5 rounded-md border border-sky-500/30">
@@ -294,7 +294,7 @@ export function AdvancedShoppingTab() {
                                             disabled={activeItemId === item.id}
                                             className="px-3 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-950 border border-amber-500/30 transition-all rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg group"
                                         >
-                                            {activeItemId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4 group-hover:animate-bounce" />} Negotiator
+                                            {activeItemId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4 group-hover:motion-safe:animate-bounce" />} Negotiator
                                         </button>
                                     )}
 

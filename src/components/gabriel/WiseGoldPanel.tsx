@@ -453,7 +453,7 @@ export default function WiseGoldPanel() {
 
       <div className="bg-gradient-to-br from-amber-500/10 to-yellow-500/5 rounded-2xl p-6 border border-amber-500/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-20">
-          <Coins className="w-32 h-32 text-amber-500 animate-pulse" />
+          <Coins className="w-32 h-32 text-amber-500 motion-safe:animate-pulse" />
         </div>
 
         <h2 className="text-2xl font-light text-white mb-2 relative z-10 flex items-center gap-3">
@@ -540,7 +540,7 @@ export default function WiseGoldPanel() {
                   : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
               }`}
             >
-              <HeartPulse className={`w-3.5 h-3.5 ${heartbeatSending ? 'animate-ping' : ''}`} />
+              <HeartPulse className={`w-3.5 h-3.5 ${heartbeatSending ? 'motion-safe:animate-ping' : ''}`} />
               {heartbeatSending ? 'Syncing...' : 'Sync Biometrics'}
             </button>
           </div>

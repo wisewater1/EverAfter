@@ -130,10 +130,10 @@ export default function TimeCapsuleVault() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12 font-sans relative overflow-hidden">
+        <div className="min-h-[100dvh] bg-slate-950 text-slate-100 p-6 md:p-12 font-sans relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl opacity-30 animate-pulse"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl opacity-30 motion-safe:animate-pulse"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl opacity-20"></div>
             </div>
 

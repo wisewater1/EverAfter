@@ -255,7 +255,7 @@ export default function UnifiedActivityCenter() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl blur-lg opacity-30 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl blur-lg opacity-30 motion-safe:animate-pulse" />
               <div className="relative w-12 h-12 bg-gradient-to-br from-emerald-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
                 <CheckSquare className="w-6 h-6 text-white" />
               </div>
@@ -312,14 +312,14 @@ export default function UnifiedActivityCenter() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className={`w-10 h-10 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center ${
-                    isCurrent ? 'animate-pulse' : ''
+                    isCurrent ? 'motion-safe:animate-pulse' : ''
                   }`}>
                     <Icon className={`w-5 h-5 ${colors.icon}`} />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Clock className={`w-4 h-4 ${colors.text}`} />
                     <span className={`text-sm font-medium ${colors.text}`}>
-                      {isCurrent && <span className="animate-pulse">● </span>}
+                      {isCurrent && <span className="motion-safe:animate-pulse">● </span>}
                       ACTIVE
                     </span>
                   </div>

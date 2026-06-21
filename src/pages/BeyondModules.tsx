@@ -123,11 +123,11 @@ export default function BeyondModules() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-slate-950 overflow-hidden relative">
       {/* Ambient Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-black">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/10 via-transparent to-transparent animate-pulse"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-purple-900/10 via-transparent to-transparent animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/10 via-transparent to-transparent motion-safe:animate-pulse"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-purple-900/10 via-transparent to-transparent motion-safe:animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       {/* Starfield Effect */}
@@ -205,7 +205,7 @@ export default function BeyondModules() {
                   >
                     {/* Glow Effect */}
                     <div className={`absolute inset-0 bg-gradient-to-b ${module.gradient} blur-xl opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-3xl ${
-                      isHighlighted ? 'opacity-50 animate-pulse' : ''
+                      isHighlighted ? 'opacity-50 motion-safe:animate-pulse' : ''
                     }`}></div>
 
                     {/* Main Pillar */}
@@ -266,7 +266,7 @@ export default function BeyondModules() {
                                     <p className="text-xs text-slate-400">Avatar</p>
                                   </div>
                                   <div className="flex-1 relative h-1 mx-4">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/30 to-blue-500/30 animate-pulse"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/30 to-blue-500/30 motion-safe:animate-pulse"></div>
                                     {particles.map(particle => (
                                       <div
                                         key={particle.id}
@@ -401,7 +401,7 @@ export default function BeyondModules() {
 
                 {/* Center Core */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500/20 via-purple-500/20 to-amber-500/20 border border-white/30 flex items-center justify-center sm:backdrop-blur-xl animate-pulse">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500/20 via-purple-500/20 to-amber-500/20 border border-white/30 flex items-center justify-center sm:backdrop-blur-xl motion-safe:animate-pulse">
                     <Sparkles className="w-12 h-12 text-white" />
                   </div>
                 </div>

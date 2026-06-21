@@ -71,7 +71,7 @@ export default function CouncilAlerts() {
     if (loading && intercessions.length === 0) {
         return (
             <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex justify-center py-12">
-                <div className="animate-pulse flex flex-col items-center gap-2">
+                <div className="motion-safe:animate-pulse flex flex-col items-center gap-2">
                     <ShieldAlert className="w-8 h-8 text-slate-600" />
                     <span className="text-sm text-slate-500">Scanning Council Alerts...</span>
                 </div>
@@ -100,7 +100,7 @@ export default function CouncilAlerts() {
                     <div className="relative">
                         <AlertCircle className="w-6 h-6 text-rose-400" />
                         <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
                         </span>
                     </div>

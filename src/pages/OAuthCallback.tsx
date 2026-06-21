@@ -108,7 +108,7 @@ export default function OAuthCallback() {
     <div className="min-h-[100dvh] bg-[#0a0a0f] relative flex items-center justify-center overflow-hidden px-4">
       {/* Ambient glassmorphic background */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-[120px] mix-blend-screen motion-safe:animate-pulse"></div>
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] mix-blend-screen animate-[pulse_4s_ease-in-out_infinite]"></div>
       </div>
 
@@ -122,7 +122,7 @@ export default function OAuthCallback() {
           {status === 'processing' && (
             <div className="animate-[fade-in_0.5s_ease-out]">
               <div className="relative w-24 h-24 mx-auto mb-8">
-                <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-xl motion-safe:animate-pulse"></div>
                 <div className="relative w-full h-full rounded-full border border-white/10 bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]">
                   <Activity className="w-10 h-10 text-teal-400 animate-[pulse_2s_ease-in-out_infinite]" />
                 </div>
@@ -151,7 +151,7 @@ export default function OAuthCallback() {
           {status === 'success' && (
             <div className="animate-[scale-in_0.6s_spring]">
               <div className="relative w-24 h-24 mx-auto mb-8">
-                <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl motion-safe:animate-pulse"></div>
                 <div className="relative w-full h-full rounded-full border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent flex items-center justify-center shadow-[inset_0_2px_15px_rgba(16,185,129,0.2)]">
                   <CheckCircle2 className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
                 </div>

@@ -22,7 +22,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <Radio className="w-6 h-6 text-teal-400 animate-pulse" />
+                <Radio className="w-6 h-6 text-teal-400 motion-safe:animate-pulse" />
             </div>
         );
     }
@@ -119,7 +119,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
                         {driftHistory.map((event: any) => (
                             <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                                 <div className={`w-2 h-2 rounded-full ${event.status === 'resolved' ? 'bg-emerald-400' :
-                                    event.status === 'recalibrating' ? 'bg-amber-400 animate-pulse' :
+                                    event.status === 'recalibrating' ? 'bg-amber-400 motion-safe:animate-pulse' :
                                         'bg-red-400'
                                     }`} />
                                 <div className="flex-1 min-w-0">

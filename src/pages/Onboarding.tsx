@@ -353,7 +353,7 @@ export default function Onboarding() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading...</p>
@@ -366,7 +366,7 @@ export default function Onboarding() {
   const totalSteps = STEP_ORDER.length - 1; // Exclude 'complete' from count
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_28%),radial-gradient(circle_at_80%_10%,_rgba(129,140,248,0.18),_transparent_24%),linear-gradient(180deg,_#050816_0%,_#070b16_48%,_#04070f_100%)]">
+    <div className="min-h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_28%),radial-gradient(circle_at_80%_10%,_rgba(129,140,248,0.18),_transparent_24%),linear-gradient(180deg,_#050816_0%,_#070b16_48%,_#04070f_100%)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20" />
       <div className="relative max-w-6xl mx-auto px-4 py-8">
         {/* Progress Bar */}

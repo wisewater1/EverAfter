@@ -242,10 +242,10 @@ export default function StRaphaelHealthHub() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+            <div className="min-h-[100dvh] bg-[#0a0a0f] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-2 border-teal-500/20 border-t-teal-400 rounded-full animate-spin"></div>
-                    <div className="text-teal-400 text-sm font-medium animate-pulse">Initializing Neural Hub...</div>
+                    <div className="text-teal-400 text-sm font-medium motion-safe:animate-pulse">Initializing Neural Hub...</div>
                 </div>
             </div>
         );
@@ -633,12 +633,12 @@ function SynapsePulse() {
 
     return (
         <div className="p-8 rounded-[32px] bg-gradient-to-br from-teal-500/10 via-transparent to-transparent border border-teal-500/20 relative overflow-hidden group">
-            <div className={`absolute inset-0 bg-teal-500/5 animate-pulse pointer-events-none ${pulsing ? 'opacity-100' : 'opacity-0'}`}></div>
+            <div className={`absolute inset-0 bg-teal-500/5 motion-safe:animate-pulse pointer-events-none ${pulsing ? 'opacity-100' : 'opacity-0'}`}></div>
 
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-teal-400 animate-ping"></div>
+                        <div className="w-2 h-2 rounded-full bg-teal-400 motion-safe:animate-ping"></div>
                         <h3 className="text-xl font-bold text-white tracking-tight">Synapse Pulse</h3>
                     </div>
                     <p className="text-slate-400 text-sm max-w-md">
@@ -654,7 +654,7 @@ function SynapsePulse() {
                         : 'bg-teal-500 text-white hover:bg-teal-400 hover:-translate-y-1'
                         }`}
                 >
-                    <Zap className={`w-4 h-4 ${pulsing ? 'animate-bounce' : ''}`} />
+                    <Zap className={`w-4 h-4 ${pulsing ? 'motion-safe:animate-bounce' : ''}`} />
                     {pulsing ? 'Processing...' : 'Trigger Pulse'}
                 </button>
             </div>
@@ -829,7 +829,7 @@ function FamilyHealthHeatmap() {
                             className="px-4 py-2 rounded-xl border flex items-center gap-2 group cursor-help transition-all hover:bg-white/5"
                             style={{ borderColor: `${m.colour}40`, backgroundColor: `${m.colour}10` }}
                         >
-                            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: m.colour }}></div>
+                            <div className="w-2 h-2 rounded-full motion-safe:animate-pulse" style={{ backgroundColor: m.colour }}></div>
                             <span className="text-xs font-bold text-white/80 group-hover:text-white">{m.member_name}</span>
                             <span className="text-[10px] text-slate-500 uppercase font-black">{m.risk_level}</span>
                         </div>

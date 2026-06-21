@@ -147,7 +147,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
 
   if (authLoading && !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading...</p>
@@ -166,7 +166,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
 
   if (routeGateLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Checking runtime dependencies...</p>

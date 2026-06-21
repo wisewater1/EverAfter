@@ -296,7 +296,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                       </span>
                     </div>
                     {member.status?.toLowerCase() === 'active' && (
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse"></div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-800 motion-safe:animate-pulse"></div>
                     )}
                   </div>
                   <div>
@@ -548,7 +548,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                     <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 via-teal-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Sparkles className="w-6 h-6 text-white" />
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 motion-safe:animate-pulse"></div>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white">AI Assistant</h3>
@@ -613,9 +613,9 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                     </div>
                     <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl px-4 py-3">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
                     </div>
                   </div>

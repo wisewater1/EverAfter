@@ -294,7 +294,7 @@ export default function StGabrielFinanceDashboard() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col overflow-hidden bg-slate-950 font-sans text-slate-200 lg:h-screen lg:flex-row">
+        <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-slate-950 font-sans text-slate-200 lg:h-screen lg:flex-row">
             {/* Sidebar Navigation */}
             <div className="w-full border-b border-slate-800 bg-slate-900 lg:flex lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
                 <div className="p-4 sm:p-6">

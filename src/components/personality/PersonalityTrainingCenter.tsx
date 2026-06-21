@@ -202,7 +202,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-[#111827] text-slate-100 p-8 font-serif">
+        <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-[#111827] text-slate-100 p-8 font-serif">
             <div className="max-w-6xl mx-auto space-y-12 rounded-[32px] border border-amber-500/10 bg-gradient-to-br from-slate-900/95 via-[#151922]/95 to-slate-900/95 p-9 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
                 <header className="space-y-4">
                     <div className="flex justify-between items-start">
@@ -229,7 +229,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                         <label className="text-sm uppercase tracking-widest text-amber-300 font-bold">Select engram</label>
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                             {loading && engrams.length === 0 ? (
-                                <div className="rounded-2xl border border-slate-700/60 bg-slate-800/50 p-8 text-center animate-pulse">
+                                <div className="rounded-2xl border border-slate-700/60 bg-slate-800/50 p-8 text-center motion-safe:animate-pulse">
                                     <Sparkles className="w-8 h-8 mx-auto mb-2 text-amber-500/20" />
                                     <p className="text-xs text-slate-400 uppercase font-bold">Scanning Engrams...</p>
                                 </div>

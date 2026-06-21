@@ -128,7 +128,7 @@ export default function DarkGlassCarousel({
 
         {/* Animated Gradient Border Effect */}
         <div className="absolute inset-0 rounded-3xl opacity-50">
-          <div className={`absolute inset-0 bg-gradient-to-r ${currentItem.accentColor} opacity-20 blur-xl animate-pulse`} />
+          <div className={`absolute inset-0 bg-gradient-to-r ${currentItem.accentColor} opacity-20 blur-xl motion-safe:animate-pulse`} />
         </div>
 
         {/* Content Container */}
@@ -210,7 +210,7 @@ export default function DarkGlassCarousel({
                   aria-label={`Go to slide ${index + 1}`}
                 >
                   {index === currentIndex && (
-                    <div className="absolute inset-0 bg-white/30 rounded-full animate-pulse" />
+                    <div className="absolute inset-0 bg-white/30 rounded-full motion-safe:animate-pulse" />
                   )}
                 </button>
               ))}

@@ -227,7 +227,7 @@ export function AdvancedTasksTab() {
                                 {task.type === 'standard' && <span className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 text-slate-400 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-slate-700">Standard</span>}
 
                                 {task.status === 'completed' && <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">Completed</span>}
-                                {task.status === 'in_progress' && <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-[10px] font-bold uppercase tracking-wider animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> Dispatched</span>}
+                                {task.status === 'in_progress' && <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-[10px] font-bold uppercase tracking-wider motion-safe:animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> Dispatched</span>}
                             </div>
 
                             {task.rewardWG && task.status !== 'completed' && (

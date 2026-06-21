@@ -237,7 +237,7 @@ export default function LostFoundLedger({ filterToken }: LostFoundLedgerProps) {
                                         'bg-slate-700/10 border-slate-700/20 text-slate-400'
                                 }`}>
                                 {item.status === 'restored' && <CheckCircle className="w-5 h-5" />}
-                                {item.status === 'searching' && <Clock className="w-5 h-5 animate-pulse" />}
+                                {item.status === 'searching' && <Clock className="w-5 h-5 motion-safe:animate-pulse" />}
                                 {item.status === 'verified' && <Shield className="w-5 h-5" />}
                                 {item.status === 'archived' && <FileText className="w-5 h-5 text-slate-500" />}
                             </div>

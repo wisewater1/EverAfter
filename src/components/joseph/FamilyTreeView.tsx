@@ -403,7 +403,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                     <div className="flex items-center gap-2 mb-2">
                                         <Zap className="w-4 h-4 text-violet-400" />
                                         <span className="text-sm font-medium text-violet-300">AI Agent Active</span>
-                                        <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)] animate-pulse">
+                                        <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)] motion-safe:animate-pulse">
                                             ● Live
                                         </span>
                                     </div>

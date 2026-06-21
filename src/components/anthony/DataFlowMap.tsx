@@ -130,7 +130,7 @@ export default function DataFlowMap() {
     };
 
     if (loading) {
-        return <div className="p-8 text-center text-slate-500 animate-pulse">Anthony is assembling the Michael audit graph...</div>;
+        return <div className="p-8 text-center text-slate-500 motion-safe:animate-pulse">Anthony is assembling the Michael audit graph...</div>;
     }
 
     return (

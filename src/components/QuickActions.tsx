@@ -174,7 +174,7 @@ export default function QuickActions({ onNavigate }: QuickActionsProps) {
         </div>
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="w-full h-20 bg-gray-700/30 rounded-lg animate-pulse" />
+            <div key={i} className="w-full h-20 bg-gray-700/30 rounded-lg motion-safe:animate-pulse" />
           ))}
         </div>
       </div>

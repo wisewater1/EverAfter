@@ -59,7 +59,7 @@ export default function CouncilOracle() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12 font-sans">
+        <div className="min-h-[100dvh] bg-slate-950 text-slate-100 p-6 md:p-12 font-sans">
             <div className="max-w-6xl mx-auto space-y-12">
 
                 {/* Header */}
@@ -104,7 +104,7 @@ export default function CouncilOracle() {
                                         }
                                     `}>
                                         <div className={`p-3 rounded-xl bg-slate-950/50 ${saint.color}`}>
-                                            <Icon className={`w-8 h-8 ${isActive ? 'animate-pulse' : ''}`} />
+                                            <Icon className={`w-8 h-8 ${isActive ? 'motion-safe:animate-pulse' : ''}`} />
                                         </div>
                                         <div>
                                             <h3 className={`font-serif font-medium ${isActive || hasSpoken ? 'text-white' : 'text-slate-400'}`}>
@@ -116,7 +116,7 @@ export default function CouncilOracle() {
                                         </div>
 
                                         {isActive && (
-                                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-xs font-bold px-2 py-0.5 rounded-full bg-white text-black animate-bounce shadow-xl">
+                                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-xs font-bold px-2 py-0.5 rounded-full bg-white text-black motion-safe:animate-bounce shadow-xl">
                                                 DELIBERATING
                                             </div>
                                         )}

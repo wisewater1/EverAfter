@@ -66,7 +66,7 @@ export default function CausalTwinDashboard({ memberId }: { memberId?: string })
         return (
             <div className="flex items-center justify-center py-20">
                 <div className="flex items-center gap-3 text-teal-400">
-                    <Brain className="w-6 h-6 animate-pulse" />
+                    <Brain className="w-6 h-6 motion-safe:animate-pulse" />
                     <span className="text-sm">Loading Causal Twin...</span>
                 </div>
             </div>

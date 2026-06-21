@@ -468,7 +468,7 @@ export default function WidgetRenderer({
           <div>
             <h4 className="text-white font-semibold flex items-center gap-2">
               {data.title}
-              <Sparkles className="w-4 h-4 text-violet-400 animate-pulse" />
+              <Sparkles className="w-4 h-4 text-violet-400 motion-safe:animate-pulse" />
             </h4>
             <p className="text-xs text-violet-300">AI-generated from aggregated sources</p>
           </div>

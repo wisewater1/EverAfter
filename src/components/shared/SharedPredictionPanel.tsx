@@ -226,7 +226,7 @@ export default function SharedPredictionPanel({
 
     if (loading) {
         return (
-            <div className="rounded-2xl bg-[#13131a] border border-white/5 p-6 animate-pulse">
+            <div className="rounded-2xl bg-[#13131a] border border-white/5 p-6 motion-safe:animate-pulse">
                 <div className="flex items-center gap-2 text-slate-500 text-sm">
                     <Activity className="w-4 h-4" />
                     Analyzing health predictions…

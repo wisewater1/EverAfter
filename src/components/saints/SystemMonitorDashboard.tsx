@@ -98,7 +98,7 @@ export default function SystemMonitorDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 font-mono">
+        <div className="min-h-[100dvh] bg-slate-950 text-slate-200 font-mono">
             {/* Header */}
             <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/50 px-4 py-3 backdrop-blur-md sm:px-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -126,7 +126,7 @@ export default function SystemMonitorDashboard() {
                             <span className="text-slate-300">Uptime: {metrics ? formatUptime(metrics.uptime_seconds) : '--'}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
                             <span className="text-emerald-400">System Nominal</span>
                         </div>
                     </div>
