@@ -17,6 +17,7 @@ import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
 import FamilyTrajectoryMini from './FamilyTrajectoryMini';
+import MemberVaultPanel from './MemberVaultPanel';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -366,6 +367,11 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 userName={user.email?.split('@')[0] || 'You'}
                                 member={selectedMember}
                             />
+                        )}
+
+                        {/* Legacy vault items addressed to this family member */}
+                        {user?.id && (
+                            <MemberVaultPanel userId={user.id} member={selectedMember} />
                         )}
 
                         <JosephVoiceProfileCard
