@@ -715,30 +715,38 @@ export default function PersonalityQuiz({
                             <ChevronLeft className="w-3.5 h-3.5" /> Previous
                         </button>
 
-                        {/* Question dots */}
-                        <div className="flex gap-0.5 flex-wrap justify-center max-w-[200px]">
-                            {Object.entries(categoryGroups).map(([category, qs]) => (
-                                <div key={category} className="flex gap-[2px] mr-1.5">
-                                    {qs.map(q => {
-                                        const idx = questions.findIndex(qq => qq.id === q.id);
-                                        const isAnswered = !!answers[q.id];
-                                        const isCurrent = idx === currentQ;
-                                        return (
-                                            <button
-                                                key={q.id}
-                                                onClick={() => setCurrentQ(idx)}
-                                                className={`w-[6px] h-[6px] rounded-full transition-all ${isCurrent
-                                                    ? 'bg-purple-400 scale-[1.8]'
-                                                    : isAnswered
-                                                        ? 'bg-emerald-500/60'
-                                                        : 'bg-white/10'
-                                                    }`}
-                                                title={`Q${idx + 1}`}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                        {/* Single-row progress: filled track + position marker.
+                            Replaces the older nested flex-wrap dots, which on
+                            mobile collapsed onto two rows and pushed the
+                            scaled-up current dot above its peers (the "purple
+                            block placed incorrectly" report). */}
+                        <div className="flex-1 mx-3 max-w-[220px] min-w-[80px]">
+                            <div className="relative h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                {/* Answered progress fill */}
+                                <div
+                                    className="absolute inset-y-0 left-0 rounded-full bg-emerald-500/40 transition-[width] duration-200"
+                                    style={{
+                                        width: `${Math.min(
+                                            100,
+                                            (answeredCount / Math.max(1, questions.length)) * 100,
+                                        )}%`,
+                                    }}
+                                    aria-hidden="true"
+                                />
+                                {/* Current question position marker */}
+                                <div
+                                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-purple-400 ring-2 ring-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.5)] transition-[left] duration-200"
+                                    style={{
+                                        left: `${
+                                            ((currentQ + 0.5) / Math.max(1, questions.length)) * 100
+                                        }%`,
+                                    }}
+                                    aria-hidden="true"
+                                />
+                            </div>
+                            <div className="mt-1 text-center text-[10px] text-slate-500 tabular-nums">
+                                {currentQ + 1} / {questions.length}
+                            </div>
                         </div>
 
                         {currentQ === questions.length - 1 ? (
