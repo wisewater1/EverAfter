@@ -93,8 +93,11 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             )}
                         </div>
                         <div className="text-left min-w-0 flex-1">
-                            <div className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
-                                <span className="break-words">
+                            <div
+                                className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${isDeceased ? 'text-slate-400' : 'text-white'}`}
+                                style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                            >
+                                <span className="break-words whitespace-normal">
                                     {member.firstName} {member.lastName}
                                 </span>
                                 {hasAI && (
@@ -164,10 +167,13 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                     )}
                                 </div>
                                 <div className="text-left min-w-0 flex-1">
-                                    <div className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${spouse.deathDate ? 'text-slate-400' : 'text-white'}`}>
-                                        <span className="break-words">
-                                            {spouse.firstName} {spouse.lastName}
-                                        </span>
+                                <div
+                                    className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${spouse.deathDate ? 'text-slate-400' : 'text-white'}`}
+                                    style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                                >
+                                    <span className="break-words whitespace-normal">
+                                        {spouse.firstName} {spouse.lastName}
+                                    </span>
                                         {spouse.aiPersonality?.isActive && (
                                             <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">
                                                 Active
