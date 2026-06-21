@@ -47,6 +47,7 @@ const PublicCareerChat = lazyWithRetry(() => import('./pages/PublicCareerChat'),
 const PublicPersonalityQuiz = lazyWithRetry(() => import('./pages/PublicPersonalityQuiz'), 'pages/PublicPersonalityQuiz');
 const StMichaelSecurityDashboard = lazyWithRetry(() => import('./components/StMichaelSecurityDashboard'), 'components/StMichaelSecurityDashboard');
 const StJosephFamilyDashboard = lazyWithRetry(() => import('./components/StJosephFamilyDashboard'), 'components/StJosephFamilyDashboard');
+const FamilyIntelligence = lazyWithRetry(() => import('./pages/FamilyIntelligence'), 'pages/FamilyIntelligence');
 const CouncilOracle = lazyWithRetry(() => import('./components/council/CouncilOracle'), 'components/council/CouncilOracle');
 const TimeCapsuleVault = lazyWithRetry(() => import('./components/capsules/TimeCapsuleVault'), 'components/capsules/TimeCapsuleVault');
 const RitualAltar = lazyWithRetry(() => import('./components/rituals/RitualAltar'), 'components/rituals/RitualAltar');
@@ -264,6 +265,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <StJosephFamilyDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/family-intelligence"
+                    element={
+                      <ProtectedRoute>
+                        <FamilyIntelligence />
                       </ProtectedRoute>
                     }
                   />

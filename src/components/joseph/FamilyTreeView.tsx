@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DHTScorePanel from '../dht/DHTScorePanel';
-import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar, Activity } from 'lucide-react';
 import StarfieldBackground from '../StarfieldBackground';
 import SaintChat from '../SaintChat';
 import MemberCalendarPanel from './MemberCalendarPanel';
@@ -15,6 +16,10 @@ import TraitBadges from './TraitBadges';
 import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
+import { getFamilyTreeAnalysis } from '../trinity/trinityApi';
+
+// Vitality-ring colours by St. Raphael risk level (interlaced onto the tree).
+const RISK_HEX: Record<string, string> = { low: '#10b981', moderate: '#f59e0b', high: '#fb923c', critical: '#ef4444' };
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -31,6 +36,14 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
     const [zoom, setZoom] = useState(1);
     const [calMember, setCalMember] = useState<FamilyMember | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
+    const navigate = useNavigate();
+
+    // Per-member vitality (Trinity ↔ Raphael ↔ Joseph), keyed by member id for the tree rings.
+    const vitalityById = useMemo(() => {
+        const map = new Map<string, ReturnType<typeof getFamilyTreeAnalysis>['members'][number]>();
+        try { getFamilyTreeAnalysis().members.forEach((m) => map.set(m.id, m)); } catch { /* analysis optional */ }
+        return map;
+    }, [tree]);
 
     const refreshTree = useCallback(() => setTree(buildFamilyTree()), []);
 
@@ -52,6 +65,8 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
         const hasChildren = children.length > 0;
         const isDeceased = !!member.deathDate;
         const hasAI = member.aiPersonality?.isActive;
+        const vit = vitalityById.get(member.id);
+        const ringHex = !isDeceased && vit ? RISK_HEX[vit.riskLevel] : null;
 
         return (
             <div
@@ -76,7 +91,10 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             : 'bg-slate-800/50 border-white/5 hover:border-amber-500/30 hover:shadow-amber-500/5'
                             }`}
                     >
-                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-bold relative ${member.gender === 'male'
+                        <div
+                            title={ringHex ? `Vitality ${vit!.wellnessScore}/100 · ${vit!.riskLevel} risk` : undefined}
+                            style={ringHex ? { boxShadow: `0 0 0 2px ${ringHex}` } : undefined}
+                            className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-xs font-bold relative ${member.gender === 'male'
                             ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                             : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                             }`}>
@@ -229,6 +247,14 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             <span className="font-medium text-amber-400">St. Joseph:</span> Tap a family member to open their story or build an AI profile.
                         </p>
                     </div>
+                    <button
+                        onClick={() => navigate('/family-intelligence')}
+                        className="flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-xs font-medium text-cyan-200 transition-all hover:bg-cyan-500/20 sm:justify-start"
+                    >
+                        <Activity className="w-3.5 h-3.5" />
+                        <span className="sm:hidden">Analyze</span>
+                        <span className="hidden sm:inline">Family Intelligence</span>
+                    </button>
                     <button
                         onClick={() => setShowAddModal(true)}
                         className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-medium text-white transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 sm:justify-start"
