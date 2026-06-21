@@ -94,7 +94,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                         </div>
                         <div className="text-left min-w-0 flex-1">
                             <div className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
-                                <span className="truncate max-w-[50vw] sm:max-w-none">
+                                <span className="break-words">
                                     {member.firstName} {member.lastName}
                                 </span>
                                 {hasAI && (
@@ -122,7 +122,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                     {getGenerationLabel(member.generation)}
                                 </span>
                                 {member.occupation && (
-                                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400/70 rounded-md border border-amber-500/10 truncate max-w-[40vw] sm:max-w-none">
+                                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400/70 rounded-md border border-amber-500/10 break-words">
                                         {member.occupation}
                                     </span>
                                 )}
@@ -165,7 +165,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 </div>
                                 <div className="text-left min-w-0 flex-1">
                                     <div className={`text-sm font-medium flex flex-wrap items-center gap-x-2 gap-y-1 ${spouse.deathDate ? 'text-slate-400' : 'text-white'}`}>
-                                        <span className="truncate max-w-[50vw] sm:max-w-none">
+                                        <span className="break-words">
                                             {spouse.firstName} {spouse.lastName}
                                         </span>
                                         {spouse.aiPersonality?.isActive && (
@@ -280,7 +280,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             <div>
                                 <h3 className="text-lg font-light text-white">{selectedMember.firstName} {selectedMember.lastName}</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider whitespace-nowrap">{getGenerationLabel(selectedMember.generation)}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider break-words">{getGenerationLabel(selectedMember.generation)}</p>
                                     {selectedMember.aiPersonality?.familyRole && (
                                         <span className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
                                             {selectedMember.aiPersonality.familyRole}
