@@ -12,6 +12,7 @@ import {
   type JosephVoiceSample,
 } from '../../lib/joseph/voice';
 import { useAudioRecorder } from './useAudioRecorder';
+import { speakPreview, stopPreview, voicePreviewSupported } from '../../lib/voice/previewVoice';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
@@ -80,6 +81,7 @@ export default function JosephVoiceProfileCard({
   const [voiceStyleNotes, setVoiceStyleNotes] = useState('');
   const [clipType, setClipType] = useState('calibration');
   const [promptIndex, setPromptIndex] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
 
   const recorder = useAudioRecorder();
 
@@ -328,6 +330,24 @@ export default function JosephVoiceProfileCard({
           }`}>
             {formatVoiceStatus(profile)}
           </span>
+          {voicePreviewSupported() && (
+            <button
+              onClick={() => {
+                if (speaking) { stopPreview(); setSpeaking(false); return; }
+                const firstName = (familyMemberName || 'your loved one').split(' ')[0];
+                const ok = speakPreview(
+                  `Hi, this is ${firstName}. It's so good to hear from you.`,
+                  { seed: familyMemberId || familyMemberName, onEnd: () => setSpeaking(false) },
+                );
+                if (ok) setSpeaking(true);
+              }}
+              title="Preview voice — a generic stand-in until this person's voice model is trained"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium text-cyan-200 transition hover:border-cyan-300/40 hover:text-white"
+            >
+              <Volume2 className="h-3.5 w-3.5" />
+              {speaking ? 'Stop' : 'Hear preview'}
+            </button>
+          )}
           <button
             onClick={() => void loadProfile(false)}
             disabled={!liveVoiceAvailable}

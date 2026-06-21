@@ -339,7 +339,7 @@ export default function JosephVoiceAnswerPanel({
                   <span className={liveVoiceAvailable ? 'text-slate-300' : 'text-rose-200'}>
                     Voice runtime enabled
                     {!liveVoiceAvailable && (
-                      <span className="text-slate-500"> — VITE_JOSEPH_VOICE_API_URL not set in this environment</span>
+                      <span className="text-slate-500"> — sign in with a live (non-demo) account to enable voice answers</span>
                     )}
                   </span>
                 </li>

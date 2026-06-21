@@ -101,10 +101,12 @@ export default function DigitalLegacy() {
       .maybeSingle();
 
     if (data) {
-      const tierData = data as { subscription_tiers: { tier_name: string } };
+      // PostgREST resolves a to-one embed to null when the related row is missing,
+      // while `data` itself stays truthy — optional-chain so a missing tier reads as not-premium.
+      const tierData = data as { subscription_tiers?: { tier_name?: string } | null };
+      const tierName = tierData.subscription_tiers?.tier_name;
       setHasPremiumLegacy(
-        tierData.subscription_tiers.tier_name === 'legacy_premium' ||
-        tierData.subscription_tiers.tier_name === 'ultimate_bundle'
+        tierName === 'legacy_premium' || tierName === 'ultimate_bundle'
       );
     }
   };

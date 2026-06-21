@@ -569,6 +569,7 @@ function buildEmergencyAlertFallback(context = getLocalTrinityContext()) {
         cascade: {
             raphael: {
                 step: 1,
+                risk_level: health.riskLevel,
                 message: `${formatMemberName(primary || {})} is showing elevated strain markers: stress ${health.stress.toFixed(0)}/100 and sleep ${health.sleep.toFixed(1)}h.`,
             },
             gabriel: {
@@ -818,6 +819,8 @@ function buildElderCareFallback(context = getLocalTrinityContext()) {
             age: profile.age,
             conditions: profile.conditions,
             health_trajectory: profile.trajectory,
+            risk_level: profile.riskLevel,
+            risk_score: Math.round(profile.riskScore),
             coverage_status: coverageRatio >= 0.8 ? 'funded' : coverageRatio >= 0.45 ? 'underfunded' : 'critical',
             care_type: profile.riskScore >= 70 ? 'nursing' : profile.riskScore >= 52 ? 'assisted' : 'independent',
             estimated_monthly_cost: estimatedMonthlyCost,
@@ -827,13 +830,18 @@ function buildElderCareFallback(context = getLocalTrinityContext()) {
     });
     const totalMonthlyCost = elderMembers.reduce((sum, member) => sum + member.estimated_monthly_cost, 0);
     const totalBudget = elderMembers.reduce((sum, member) => sum + member.current_budget, 0);
+    const familyCoverageGap = Math.max(0, totalMonthlyCost - totalBudget);
 
     return {
         elder_members: elderMembers,
         total_elders: elderMembers.length,
-        family_coverage_gap: Math.max(0, totalMonthlyCost - totalBudget),
+        family_coverage_gap: familyCoverageGap,
         total_monthly_cost: totalMonthlyCost,
         total_budget_allocated: totalBudget,
+        overall_status: familyCoverageGap > 0
+            || elderMembers.some(member => member.coverage_status !== 'funded' || member.risk_level === 'critical')
+            ? 'attention_needed'
+            : 'adequate',
         generated_at: new Date().toISOString(),
     };
 }

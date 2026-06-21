@@ -107,6 +107,20 @@ export function useAudioRecorder(): AudioRecorderState {
         // only as a final safety net.
         const blobType = mimeType || recorder.mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type: blobType });
+        if (blob.size === 0) {
+          // No chunks captured (instant start/stop, denied mic, silent device).
+          // Leave audioBlob null so the upload guards block an empty clip.
+          setError('No audio was captured. Check microphone permissions and try again.');
+          chunksRef.current = [];
+          startedAtRef.current = null;
+          mediaRecorderRef.current = null;
+          setIsRecording(false);
+          setIsProcessing(false);
+          clearTimer();
+          stopTracks();
+          resolve();
+          return;
+        }
         const stoppedAt = Date.now();
         const startedAt = startedAtRef.current ?? stoppedAt;
         const seconds = Math.max(1, Math.round((stoppedAt - startedAt) / 1000));
