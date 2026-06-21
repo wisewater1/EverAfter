@@ -182,7 +182,7 @@ export default function TerraSetupWizard() {
           </div>
         </div>
 
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700 p-8">
+        <div className="bg-gray-800/50 sm:backdrop-blur-xl rounded-2xl border border-gray-700 p-8">
           {step === 'credentials' && (
             <div className="space-y-6">
               <div>

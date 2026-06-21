@@ -173,7 +173,7 @@ export default function UnifiedChatInterface() {
   if (viewMode === 'chat' && selectedSession) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-4 shadow-2xl">
+        <div className="flex items-center justify-between bg-slate-950/40 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-4 shadow-2xl">
           <ReactiveButton
             onClick={handleBackToList}
             variant="teal"
@@ -203,7 +203,7 @@ export default function UnifiedChatInterface() {
           </button>
         </div>
 
-        <div className="bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden shadow-2xl">
           {renderChatComponent()}
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function UnifiedChatInterface() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6 shadow-2xl">
+      <div className="flex items-center justify-between bg-slate-950/40 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6 shadow-2xl">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">Chat & Tasks Hub</h2>
           <p className="text-slate-400 text-sm">
@@ -229,7 +229,7 @@ export default function UnifiedChatInterface() {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-2 shadow-2xl">
+      <div className="flex items-center gap-2 bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-2 shadow-2xl">
         <button
           onClick={() => {
             setTabMode('conversations');
@@ -270,7 +270,7 @@ export default function UnifiedChatInterface() {
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 transition-all shadow-xl"
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 transition-all shadow-xl"
               />
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function UnifiedChatInterface() {
             <button
               key={filter.id}
               onClick={() => setFilterType(filter.id as FilterType)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all whitespace-nowrap text-sm font-medium backdrop-blur-xl ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all whitespace-nowrap text-sm font-medium sm:backdrop-blur-xl ${
                 isActive
                   ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10'
                   : 'bg-slate-950/40 border border-slate-800/30 text-slate-400 hover:bg-slate-800/40 hover:text-white hover:border-slate-700/50'
@@ -307,7 +307,7 @@ export default function UnifiedChatInterface() {
           <div
             key={session.id}
             onClick={() => handleSelectSession(session)}
-            className="relative group p-5 cursor-pointer bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300"
+            className="relative group p-5 cursor-pointer bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
@@ -369,7 +369,7 @@ export default function UnifiedChatInterface() {
         ))}
 
         {filteredSessions.length === 0 && (
-          <div className="col-span-full text-center py-16 bg-slate-950/40 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
+          <div className="col-span-full text-center py-16 bg-slate-950/40 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl">
             <div className="w-20 h-20 bg-slate-900/60 border border-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-10 h-10 text-slate-600" />
             </div>
@@ -382,7 +382,7 @@ export default function UnifiedChatInterface() {
       </div>
 
           {showSettings && (
-            <div className="p-6 space-y-4 bg-slate-950/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-spring-in">
+            <div className="p-6 space-y-4 bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-spring-in">
               <h3 className="text-white font-semibold text-lg mb-4">Chat Settings</h3>
               <div className="space-y-4">
                 <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">

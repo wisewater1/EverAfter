@@ -277,12 +277,12 @@ export default function TerraMetricsVisualization() {
       </div>
 
       {loading ? (
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700 p-12 text-center">
+        <div className="bg-gray-800/50 sm:backdrop-blur-xl rounded-2xl border border-gray-700 p-12 text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading metrics...</p>
         </div>
       ) : currentStats ? (
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700 p-6">
+        <div className="bg-gray-800/50 sm:backdrop-blur-xl rounded-2xl border border-gray-700 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${selectedMetric.color} flex items-center justify-center text-white`}>
@@ -337,7 +337,7 @@ export default function TerraMetricsVisualization() {
           )}
         </div>
       ) : (
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-700 p-12 text-center">
+        <div className="bg-gray-800/50 sm:backdrop-blur-xl rounded-2xl border border-gray-700 p-12 text-center">
           <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">No Data Available</h3>
           <p className="text-gray-400">Connect a device to start tracking {selectedMetric.name.toLowerCase()}</p>

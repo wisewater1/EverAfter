@@ -110,7 +110,7 @@ export default function RaphaelHealthInterface() {
               </div>
               <button
                 onClick={() => navigate('/raphael')}
-                className="flex-shrink-0 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-emerald-500/20 backdrop-blur-xl group"
+                className="flex-shrink-0 px-4 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-emerald-500/20 sm:backdrop-blur-xl group"
               >
                 <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="hidden sm:inline text-sm font-medium">Production AI</span>
@@ -128,7 +128,7 @@ export default function RaphaelHealthInterface() {
 
       {/* Partner Integrations Banner */}
       {hasPremiumHealth && (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-700/50">
           <h3 className="text-sm font-medium text-slate-300 mb-4">Trusted Health Partners</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             <div className="flex flex-col items-center justify-center p-3 bg-slate-900/50 rounded-lg border border-slate-800/50 hover:border-slate-700 transition-all cursor-pointer">
@@ -245,7 +245,7 @@ export default function RaphaelHealthInterface() {
       {/* Health Premium Modal */}
       {showPremiumModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-rose-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-rose-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
             <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div className="w-14 h-14 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
                 <Heart className="w-7 h-7 text-white" />

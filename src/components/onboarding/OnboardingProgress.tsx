@@ -27,7 +27,7 @@ export default function OnboardingProgress({
 
   return (
     <div className="mb-8">
-      <div className="rounded-[28px] border border-cyan-400/10 bg-slate-950/45 px-4 py-5 shadow-[0_12px_40px_rgba(2,6,23,0.4)] backdrop-blur-xl">
+      <div className="rounded-[28px] border border-cyan-400/10 bg-slate-950/45 px-4 py-5 shadow-[0_12px_40px_rgba(2,6,23,0.4)] sm:backdrop-blur-xl">
         <div className="relative">
         <div className="mb-3 flex justify-between">
           <span className="text-sm text-slate-300">

@@ -159,7 +159,7 @@ export default function FamilyHealthHeatmap({ onSelectMember }: Props) {
                                 style={{ backgroundColor: dot.colour }}
                             />
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs text-white font-medium truncate">{dot.member_name}</p>
+                                <p className="text-xs text-white font-medium break-words">{dot.member_name}</p>
                                 <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[10px] font-bold" style={{ color: dot.colour }}>
                                         {RISK_LABELS[dot.risk_level]}

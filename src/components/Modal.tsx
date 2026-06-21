@@ -70,7 +70,7 @@ export default function Modal({
         } max-h-[90vh] overflow-hidden flex flex-col ${className}`}
       >
         {(title || showCloseButton) && (
-          <div className="sticky top-0 bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/50 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
+          <div className="sticky top-0 bg-gray-900/95 sm:backdrop-blur-xl border-b border-gray-700/50 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
             {title && (
               <h2 id="modal-title" className="text-lg sm:text-xl font-medium text-white">
                 {title}

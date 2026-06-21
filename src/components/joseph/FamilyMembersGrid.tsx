@@ -299,7 +299,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                             )}
                                         </div>
                                         <div className="min-w-0">
-                                            <div className={`text-sm font-medium truncate ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
+                                            <div className={`text-sm font-medium break-words ${isDeceased ? 'text-slate-400' : 'text-white'}`}>
                                                 {member.firstName} {member.lastName}
                                                 {member.aiPersonality?.isActive && (
                                                     <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase tracking-tighter shadow-[0_0_8px_rgba(52,211,153,0.2)]">

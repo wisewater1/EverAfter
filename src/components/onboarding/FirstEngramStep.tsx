@@ -596,7 +596,7 @@ export default function FirstEngramStep({
             </div>
           </div>
 
-          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:backdrop-blur-xl">
             <div className="mb-4 flex items-center gap-3">
               <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${archetype.gradient}`}>
                 <Brain className="h-6 w-6 text-slate-950" />
@@ -648,7 +648,7 @@ export default function FirstEngramStep({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:backdrop-blur-xl">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-medium text-white">OCEAN starter quiz</h3>
@@ -718,7 +718,7 @@ export default function FirstEngramStep({
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:backdrop-blur-xl">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15">
                 <Users className="h-6 w-6 text-amber-300" />
@@ -832,7 +832,7 @@ export default function FirstEngramStep({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 sm:backdrop-blur-xl">
             <h3 className="text-lg font-medium text-white">Sector startup states</h3>
             <p className="mt-1 text-sm text-slate-400">
               This preview shows which saint sectors are live, seeded, or still waiting on their required data sources.

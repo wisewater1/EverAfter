@@ -41,7 +41,7 @@ export default function DarkGlassCarouselShowcase() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature Card 1 */}
-            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 hover:border-cyan-500/30 transition-all duration-300">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 hover:border-cyan-500/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h3 className="text-lg font-semibold text-white mb-2">Auto-Rotation</h3>
@@ -52,7 +52,7 @@ export default function DarkGlassCarouselShowcase() {
             </div>
 
             {/* Feature Card 2 */}
-            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h3 className="text-lg font-semibold text-white mb-2">Pause on Hover</h3>
@@ -63,7 +63,7 @@ export default function DarkGlassCarouselShowcase() {
             </div>
 
             {/* Feature Card 3 */}
-            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h3 className="text-lg font-semibold text-white mb-2">Smooth Transitions</h3>
@@ -74,7 +74,7 @@ export default function DarkGlassCarouselShowcase() {
             </div>
 
             {/* Feature Card 4 */}
-            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h3 className="text-lg font-semibold text-white mb-2">Keyboard Navigation</h3>
@@ -85,7 +85,7 @@ export default function DarkGlassCarouselShowcase() {
             </div>
 
             {/* Feature Card 5 */}
-            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h3 className="text-lg font-semibold text-white mb-2">Responsive Design</h3>
@@ -96,7 +96,7 @@ export default function DarkGlassCarouselShowcase() {
             </div>
 
             {/* Feature Card 6 */}
-            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 hover:border-pink-500/30 transition-all duration-300">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 hover:border-pink-500/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h3 className="text-lg font-semibold text-white mb-2">Glass Morphism</h3>
@@ -110,7 +110,7 @@ export default function DarkGlassCarouselShowcase() {
 
         {/* Usage Instructions */}
         <section className="py-12 px-4 sm:px-6 max-w-4xl mx-auto">
-          <div className="relative p-8 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-slate-700/50">
+          <div className="relative p-8 rounded-2xl bg-gradient-to-br from-slate-800/40 via-slate-800/30 to-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50">
             <h2 className="text-2xl font-bold text-white mb-6">How to Use</h2>
 
             <div className="space-y-4 text-slate-300">

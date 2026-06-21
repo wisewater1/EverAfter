@@ -70,7 +70,7 @@ export default function CouncilAlerts() {
 
     if (loading && intercessions.length === 0) {
         return (
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex justify-center py-12">
+            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex justify-center py-12">
                 <div className="motion-safe:animate-pulse flex flex-col items-center gap-2">
                     <ShieldAlert className="w-8 h-8 text-slate-600" />
                     <span className="text-sm text-slate-500">Scanning Council Alerts...</span>
@@ -81,7 +81,7 @@ export default function CouncilAlerts() {
 
     if (intercessions.length === 0) {
         return (
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex justify-center py-12">
+            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex justify-center py-12">
                 <div className="flex flex-col items-center gap-2 opacity-50">
                     <ShieldAlert className="w-8 h-8 text-emerald-500" />
                     <span className="text-sm font-medium text-emerald-400">All Clear</span>
@@ -92,7 +92,7 @@ export default function CouncilAlerts() {
     }
 
     return (
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-rose-500/20 rounded-3xl overflow-hidden relative shadow-2xl shadow-rose-500/5">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-rose-500/20 rounded-3xl overflow-hidden relative shadow-2xl shadow-rose-500/5">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500" />
 
             <div className="p-6">

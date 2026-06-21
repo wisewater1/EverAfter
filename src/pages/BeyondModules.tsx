@@ -149,7 +149,7 @@ export default function BeyondModules() {
       {/* Audio Control */}
       <button
         onClick={() => setIsPlaying(!isPlaying)}
-        className="fixed top-6 right-6 z-50 w-12 h-12 bg-slate-800/50 backdrop-blur-xl border border-teal-500/30 rounded-full flex items-center justify-center hover:bg-slate-800/70 transition-all group"
+        className="fixed top-6 right-6 z-50 w-12 h-12 bg-slate-800/50 sm:backdrop-blur-xl border border-teal-500/30 rounded-full flex items-center justify-center hover:bg-slate-800/70 transition-all group"
       >
         {isPlaying ? (
           <Pause className="w-5 h-5 text-teal-400 group-hover:scale-110 transition-transform" />
@@ -209,7 +209,7 @@ export default function BeyondModules() {
                     }`}></div>
 
                     {/* Main Pillar */}
-                    <div className={`relative bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden transition-all duration-500 ${
+                    <div className={`relative bg-slate-900/60 sm:backdrop-blur-xl border border-slate-700/50 rounded-3xl overflow-hidden transition-all duration-500 ${
                       isActive ? 'min-h-[600px]' : 'min-h-[400px]'
                     } ${
                       isHighlighted ? 'border-teal-500/50 shadow-2xl shadow-teal-500/20' : ''
@@ -219,7 +219,7 @@ export default function BeyondModules() {
 
                       {/* Icon Pillar */}
                       <div className="relative pt-12 pb-8 flex flex-col items-center">
-                        <div className={`w-24 h-24 mb-6 rounded-2xl bg-gradient-to-br ${module.gradient} flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all duration-500 group-hover:scale-110 ${
+                        <div className={`w-24 h-24 mb-6 rounded-2xl bg-gradient-to-br ${module.gradient} flex items-center justify-center sm:backdrop-blur-xl border border-white/10 transition-all duration-500 group-hover:scale-110 ${
                           isActive ? 'scale-125 mb-8' : ''
                         }`}>
                           <Icon className="w-12 h-12 text-white" />
@@ -401,7 +401,7 @@ export default function BeyondModules() {
 
                 {/* Center Core */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500/20 via-purple-500/20 to-amber-500/20 border border-white/30 flex items-center justify-center backdrop-blur-xl motion-safe:animate-pulse">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500/20 via-purple-500/20 to-amber-500/20 border border-white/30 flex items-center justify-center sm:backdrop-blur-xl motion-safe:animate-pulse">
                     <Sparkles className="w-12 h-12 text-white" />
                   </div>
                 </div>

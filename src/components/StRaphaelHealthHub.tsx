@@ -103,7 +103,7 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => openConnectionsPanel('health')}
-              className="relative px-5 py-3 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 hover:from-teal-500/20 hover:to-cyan-500/20 text-teal-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-teal-500/20 backdrop-blur-xl group"
+              className="relative px-5 py-3 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 hover:from-teal-500/20 hover:to-cyan-500/20 text-teal-400 transition-all duration-300 flex items-center gap-2 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3),inset_-2px_-2px_5px_rgba(255,255,255,0.03)] border border-teal-500/20 sm:backdrop-blur-xl group"
             >
               <Link2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
               <span className="hidden sm:inline font-medium">Connections</span>
@@ -129,7 +129,7 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
       <SaintsQuickNav />
 
       {/* Tab Navigation */}
-      <div className="p-3 rounded-3xl bg-gradient-to-br from-[#1a1a24]/80 to-[#13131a]/80 backdrop-blur-2xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
+      <div className="p-3 rounded-3xl bg-gradient-to-br from-[#1a1a24]/80 to-[#13131a]/80 sm:backdrop-blur-2xl shadow-[8px_8px_16px_#08080c,-8px_-8px_16px_#1c1c28] border border-white/5">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -140,7 +140,7 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-shrink-0 px-5 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2.5 min-h-[44px] whitespace-nowrap relative group ${isActive
-                  ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4),inset_-3px_-3px_8px_rgba(255,255,255,0.05)] border border-teal-500/30 backdrop-blur-xl'
+                  ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 text-teal-300 shadow-[inset_3px_3px_8px_rgba(0,0,0,0.4),inset_-3px_-3px_8px_rgba(255,255,255,0.05)] border border-teal-500/30 sm:backdrop-blur-xl'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 shadow-[2px_2px_5px_rgba(0,0,0,0.2),-2px_-2px_5px_rgba(255,255,255,0.02)] border border-transparent hover:border-white/5'
                   }`}
                 role="tab"

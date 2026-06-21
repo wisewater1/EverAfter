@@ -148,7 +148,7 @@ export default function DeviceCheck() {
           `,
           backgroundSize: '44px 44px'
         }}>
-          <div className="absolute top-4 right-4 bg-slate-900/90 backdrop-blur-xl px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-400 text-sm font-mono">
+          <div className="absolute top-4 right-4 bg-slate-900/90 sm:backdrop-blur-xl px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-400 text-sm font-mono">
             44×44px Grid (Min Touch Target)
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function DeviceCheck() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+          <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-cyan-400" />
               Device Status
@@ -279,7 +279,7 @@ export default function DeviceCheck() {
             </div>
           </div>
 
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+          <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Ruler className="w-5 h-5 text-teal-400" />
               Viewport Dimensions
@@ -309,7 +309,7 @@ export default function DeviceCheck() {
           </div>
         </div>
 
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 mb-6">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 mb-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Info className="w-5 h-5 text-purple-400" />
             Canvas Rendering Test
@@ -326,7 +326,7 @@ export default function DeviceCheck() {
           </p>
         </div>
 
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 mb-6">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">Text Wrap & Overflow Test</h3>
           <div className="space-y-4">
             <div className="p-4 bg-slate-800/50 rounded-lg">
@@ -350,7 +350,7 @@ export default function DeviceCheck() {
           </p>
         </div>
 
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">User Agent</h3>
           <code className="text-xs text-slate-400 break-all">{metrics.userAgent}</code>
         </div>

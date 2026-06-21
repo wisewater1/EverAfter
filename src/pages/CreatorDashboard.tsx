@@ -215,7 +215,7 @@ export default function CreatorDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-slate-400 text-sm">Total Revenue</p>
                 <DollarSign className="w-5 h-5 text-emerald-400" />
@@ -226,7 +226,7 @@ export default function CreatorDashboard() {
               <p className="text-xs text-slate-500">{revenueSharePercentage}% revenue share</p>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-slate-400 text-sm">Total Sales</p>
                 <TrendingUp className="w-5 h-5 text-blue-400" />
@@ -235,7 +235,7 @@ export default function CreatorDashboard() {
               <p className="text-xs text-slate-500">Across all templates</p>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-slate-400 text-sm">Active Templates</p>
                 <Package className="w-5 h-5 text-amber-400" />
@@ -244,7 +244,7 @@ export default function CreatorDashboard() {
               <p className="text-xs text-slate-500">{pendingTemplates.length} pending review</p>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+            <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-slate-400 text-sm">Avg Rating</p>
                 <Star className="w-5 h-5 text-amber-400" />
@@ -290,7 +290,7 @@ export default function CreatorDashboard() {
         {activeTab === 'templates' && (
           <div className="space-y-4">
             {templates.length === 0 ? (
-              <div className="text-center py-16 bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50">
+              <div className="text-center py-16 bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50">
                 <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
                 <h3 className="text-xl font-medium text-white mb-2">No templates yet</h3>
                 <p className="text-slate-400 mb-6">Create your first AI template to get started</p>
@@ -351,7 +351,7 @@ export default function CreatorDashboard() {
         )}
 
         {activeTab === 'overview' && (
-          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8">
+          <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8">
             <h3 className="text-xl font-medium text-white mb-4">Getting Started</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-4">
@@ -493,7 +493,7 @@ function TemplateCard({ template, navigate }: TemplateCardProps) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 hover:border-slate-600/50 transition-all">
+    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 hover:border-slate-600/50 transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">

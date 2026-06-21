@@ -314,7 +314,7 @@ export default function DigitalLegacy() {
 
         {/* Content Grid */}
         {items.length === 0 ? (
-          <div className="text-center py-16 bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50">
+          <div className="text-center py-16 bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50">
             <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               {tabs.find(t => t.id === activeTab)?.icon &&
                 React.createElement(tabs.find(t => t.id === activeTab)!.icon, { className: "w-8 h-8 text-slate-600" })
@@ -335,7 +335,7 @@ export default function DigitalLegacy() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300"
+                className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
@@ -422,7 +422,7 @@ export default function DigitalLegacy() {
       {/* Create/Edit Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-4 mb-6">
               <div className={`w-12 h-12 bg-gradient-to-br ${tabs.find(t => t.id === activeTab)?.color} rounded-xl flex items-center justify-center shadow-lg`}>
                 <Plus className="w-6 h-6 text-white" />
@@ -507,7 +507,7 @@ export default function DigitalLegacy() {
       {/* Upgrade Modal */}
       {showUpgradeModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-8 max-w-2xl w-full">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-8 max-w-2xl w-full">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
                 <Crown className="w-7 h-7 text-white" />

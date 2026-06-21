@@ -140,7 +140,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       <ResearchParticipation userId={userId} />
 
       {/* Header Card */}
-      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+      <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
@@ -212,7 +212,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
 
       {/* Insights Display */}
       {activeView === 'emotional' && (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg flex items-center justify-center">
               <Heart className="w-5 h-5 text-white" />
@@ -249,7 +249,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       )}
 
       {activeView === 'themes' && (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
@@ -281,7 +281,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
 
       {/* Premium Views (Locked) */}
       {(['relationships', 'dreams', 'mood', 'archetypes'] as const).includes(activeView) && !hasInsightPro && (
-        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-violet-500/30 p-12 text-center">
+        <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-violet-500/30 p-12 text-center">
           <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-500/20">
             <Lock className="w-8 h-8 text-white" />
           </div>
@@ -302,7 +302,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       {/* Upgrade Modal */}
       {showUpgradeModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-violet-500/30 p-8 max-w-2xl w-full">
+          <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-violet-500/30 p-8 max-w-2xl w-full">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
                 <Brain className="w-7 h-7 text-white" />

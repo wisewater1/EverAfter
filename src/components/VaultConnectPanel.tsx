@@ -174,7 +174,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900/50 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 sm:p-8">
+        <div className="bg-gradient-to-r from-slate-900/50 to-slate-800/50 sm:backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 sm:p-8">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
               <Shield className="w-7 h-7 text-white" />
@@ -254,7 +254,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
         {activeTab === 'discover' && (
           <div className="space-y-6">
             {/* Search and Filters */}
-            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6">
+            <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -325,7 +325,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
                   return (
                     <div
                       key={partner.id}
-                      className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 hover:border-amber-500/30 transition-all group"
+                      className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 hover:border-amber-500/30 transition-all group"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -407,7 +407,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
                   return (
                     <div
                       key={connection.id}
-                      className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6"
+                      className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div className="flex-1">

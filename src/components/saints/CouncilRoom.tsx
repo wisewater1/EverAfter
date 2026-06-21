@@ -217,7 +217,7 @@ export default function CouncilRoom() {
                             {!isDeliberating ? (
                                 <div className="relative w-64 group/input">
                                     <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-full opacity-0 group-hover/input:opacity-50 blur transition-opacity duration-500" />
-                                    <div className="relative flex items-center bg-black/80 border border-indigo-500/30 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.2)] backdrop-blur-xl overflow-hidden">
+                                    <div className="relative flex items-center bg-black/80 border border-indigo-500/30 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.2)] sm:backdrop-blur-xl overflow-hidden">
                                         <input
                                             type="text"
                                             value={query}
@@ -242,7 +242,7 @@ export default function CouncilRoom() {
                                 </div>
                             ) : (
                                 <div className={`relative transition-all duration-1000 scale-110`}>
-                                    <div className={`w-24 h-24 rounded-full bg-black/60 border border-indigo-500/30 flex items-center justify-center backdrop-blur-xl z-20 relative overflow-hidden`}>
+                                    <div className={`w-24 h-24 rounded-full bg-black/60 border border-indigo-500/30 flex items-center justify-center sm:backdrop-blur-xl z-20 relative overflow-hidden`}>
                                         <Brain className={`w-10 h-10 text-indigo-400 transition-all duration-500 motion-safe:animate-pulse drop-shadow-[0_0_10px_rgba(129,140,248,0.8)]`} />
 
                                         {/* Holographic Scanline */}
@@ -286,7 +286,7 @@ export default function CouncilRoom() {
 
                                     {/* Avatar Node */}
                                     <div className={`relative group cursor-pointer`}>
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center sm:backdrop-blur-xl border transition-all duration-300
                                             ${isActive
                                                 ? `bg-slate-900/90 border-white/20 translate-y-[-4px]`
                                                 : `bg-slate-900/40 border-white/5 hover:bg-slate-800/60 hover:border-white/20`

@@ -355,7 +355,7 @@ interface UserCardProps {
 
 function UserCard({ profile, connectionStatus, onConnect, onViewProfile }: UserCardProps) {
   return (
-    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 hover:border-slate-600/50 transition-all">
+    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 hover:border-slate-600/50 transition-all">
       <div className="flex items-start gap-4 mb-4">
         <div className="w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
           {profile.avatar_url ? (

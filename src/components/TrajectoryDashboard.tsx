@@ -164,7 +164,7 @@ const TrajectoryDashboard: React.FC<{ userId: string }> = ({ userId }) => {
 
     return (
         <div className="space-y-8">
-            <div className="backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+            <div className="sm:backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 -m-8 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl group-hover:bg-cyan-500/30 transition-all duration-700"></div>
                 <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:items-start relative z-10">
                     <div>

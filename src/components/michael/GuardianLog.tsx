@@ -25,7 +25,7 @@ export default function GuardianLog({ report, alerts }: GuardianLogProps) {
     };
 
     return (
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-sky-500/20 rounded-3xl p-6 relative overflow-hidden group">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-sky-500/20 rounded-3xl p-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
                 <Shield className="w-24 h-24 text-sky-400" />
             </div>

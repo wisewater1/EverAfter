@@ -46,7 +46,7 @@ export default function TrinityDashboard() {
             <StarfieldBackground />
             <div className="relative z-10">
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-[#0c0c12]/80 backdrop-blur-xl border-b border-white/5">
+            <header className="sticky top-0 z-40 bg-[#0c0c12]/80 sm:backdrop-blur-xl border-b border-white/5">
                 <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
                     <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-colors">
                         <ArrowLeft className="w-4 h-4" />

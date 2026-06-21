@@ -495,7 +495,7 @@ const SocietyFeed: React.FC = () => {
             {/* Main Simulation View */}
             <div className="flex-1 min-h-0 md:flex gap-4">
                 {/* Left: Force Directed Graph */}
-                <div className="flex-1 relative bg-slate-950/50 backdrop-blur-3xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl group">
+                <div className="flex-1 relative bg-slate-950/50 sm:backdrop-blur-3xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl group">
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 

@@ -100,7 +100,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
             <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#0f0f18] border border-white/8 shadow-[0_32px_80px_rgba(0,0,0,0.8)]">
 
                 {/* Header */}
-                <div className="sticky top-0 bg-gradient-to-br from-[#1a1a24] to-[#0f0f18] border-b border-white/5 p-6 flex items-center justify-between backdrop-blur-xl z-10 rounded-t-3xl">
+                <div className="sticky top-0 bg-gradient-to-br from-[#1a1a24] to-[#0f0f18] border-b border-white/5 p-6 flex items-center justify-between sm:backdrop-blur-xl z-10 rounded-t-3xl">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
                             <Dna className="w-6 h-6 text-teal-400" />

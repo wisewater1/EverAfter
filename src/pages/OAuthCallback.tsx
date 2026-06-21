@@ -113,7 +113,7 @@ export default function OAuthCallback() {
       </div>
 
       <div className="max-w-md w-full relative z-10">
-        <div className="bg-gradient-to-br from-[#151520]/80 to-[#0a0a0f]/90 backdrop-blur-2xl rounded-[32px] p-10 border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] text-center transform transition-all duration-700 ease-out">
+        <div className="bg-gradient-to-br from-[#151520]/80 to-[#0a0a0f]/90 sm:backdrop-blur-2xl rounded-[32px] p-10 border border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] text-center transform transition-all duration-700 ease-out">
 
           {/* Decorative Top Accent */}
           <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-teal-500/50 to-transparent"></div>

@@ -94,7 +94,7 @@ export default function ResearchParticipation({ userId }: ResearchParticipationP
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
       <div className="flex items-start gap-4 mb-4">
         <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
           <Shield className="w-6 h-6 text-white" />

@@ -130,7 +130,7 @@ export default function EdgeSparkleButtonShowcase() {
           <h2 className="text-2xl font-semibold text-white border-b border-slate-700 pb-2">
             Interactive Demo
           </h2>
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-8">
+          <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-8">
             <div className="text-center space-y-6">
               <p className="text-slate-300">
                 Click the button below to see it in action
@@ -156,7 +156,7 @@ export default function EdgeSparkleButtonShowcase() {
             {['primary', 'secondary', 'success', 'warning', 'danger', 'info'].map((variant) => (
               <div
                 key={variant}
-                className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 space-y-4"
+                className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 space-y-4"
               >
                 <h3 className="text-lg font-semibold text-white capitalize">{variant}</h3>
                 <div className="space-y-3">
@@ -192,7 +192,7 @@ export default function EdgeSparkleButtonShowcase() {
           <h2 className="text-2xl font-semibold text-white border-b border-slate-700 pb-2">
             Technical Specifications
           </h2>
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
+          <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
             <ul className="space-y-3 text-slate-300">
               <li className="flex items-start gap-2">
                 <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -245,7 +245,7 @@ export default function EdgeSparkleButtonShowcase() {
           <h2 className="text-2xl font-semibold text-white border-b border-slate-700 pb-2">
             Usage Example
           </h2>
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
+          <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-xl p-6">
             <pre className="text-sm text-slate-300 overflow-x-auto">
               <code>{`import EdgeSparkleButton from './components/EdgeSparkleButton';
 import { Zap } from 'lucide-react';

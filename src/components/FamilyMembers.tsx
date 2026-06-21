@@ -280,7 +280,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
         {familyMembers.map((member) => (
           <div
             key={member.id}
-            className="group relative bg-gradient-to-br from-slate-800/80 via-slate-800/50 to-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 overflow-hidden"
+            className="group relative bg-gradient-to-br from-slate-800/80 via-slate-800/50 to-slate-900/80 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 overflow-hidden"
           >
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-teal-500/0 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -541,7 +541,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-slate-700/50 max-w-2xl w-full h-[600px] flex flex-col overflow-hidden">
             {/* Chat Header */}
-            <div className="relative bg-gradient-to-r from-emerald-600/20 via-teal-600/20 to-sky-600/20 backdrop-blur-xl border-b border-slate-700/50 p-6">
+            <div className="relative bg-gradient-to-r from-emerald-600/20 via-teal-600/20 to-sky-600/20 sm:backdrop-blur-xl border-b border-slate-700/50 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="relative">
@@ -624,7 +624,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
             </div>
 
             {/* Chat Input */}
-            <div className="border-t border-slate-700/50 p-4 bg-slate-900/50 backdrop-blur-xl">
+            <div className="border-t border-slate-700/50 p-4 bg-slate-900/50 sm:backdrop-blur-xl">
               <div className="flex gap-3">
                 <input
                   type="text"

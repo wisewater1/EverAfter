@@ -695,7 +695,7 @@ export default function FamilyTimeline() {
             </div>
 
             {/* Cinematic Horizontal Timeline */}
-            <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/50 backdrop-blur-xl shadow-2xl transition-all duration-1000" style={{ backgroundImage: heatmapLayer !== 'transparent' ? heatmapLayer : 'none' }}>
+            <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/50 sm:backdrop-blur-xl shadow-2xl transition-all duration-1000" style={{ backgroundImage: heatmapLayer !== 'transparent' ? heatmapLayer : 'none' }}>
                 {/* Horizontal central line */}
                 <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 bg-gradient-to-r from-amber-500/10 via-amber-500/30 to-indigo-500/20 z-0" />
 

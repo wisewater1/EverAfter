@@ -135,19 +135,52 @@ export default function StMichaelSecurityDashboard() {
         if (user) loadData();
     }, [user]);
 
+    /**
+     * Race a promise against a timeout so a slow / hung backend can't
+     * leave the whole dashboard stuck on the spinner. Returns null if
+     * the promise doesn't resolve in time — caller handles the gap.
+     */
+    function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T | null> {
+        return new Promise<T | null>((resolve) => {
+            const timer = window.setTimeout(() => {
+                console.warn(`Michael: ${label} timed out after ${ms}ms; rendering without it`);
+                resolve(null);
+            }, ms);
+            p.then((value) => {
+                window.clearTimeout(timer);
+                resolve(value);
+            }).catch((error) => {
+                window.clearTimeout(timer);
+                console.warn(`Michael: ${label} failed:`, error);
+                resolve(null);
+            });
+        });
+    }
+
     const loadData = async () => {
         if (!user) return;
         setLoading(true);
-        try {
-            const [integrityData, auditData, caiAudit] = await Promise.all([
-                getSecurityIntegrity(user.id),
-                getAuditHistory(user.id),
-                runCAIAudit(user.id)
-            ]);
+        // Per-call 8-second timeout. allSettled so one slow / failing
+        // backend doesn't poison the others — each section updates as
+        // its own fetch resolves.
+        const [integrityData, auditData, caiAudit] = await Promise.all([
+            withTimeout(getSecurityIntegrity(user.id), 8000, 'getSecurityIntegrity'),
+            withTimeout(getAuditHistory(user.id), 8000, 'getAuditHistory'),
+            withTimeout(runCAIAudit(user.id), 8000, 'runCAIAudit'),
+        ]);
+
+        if (integrityData) {
             setReport(integrityData);
-            setAudits(auditData);
             setAlerts(integrityData.alerts);
+        }
+        if (auditData) {
+            setAudits(auditData);
+        }
+        if (caiAudit) {
             setCaiData(caiAudit);
+        }
+
+        if (integrityData && auditData) {
             const latestRecordedScan = auditData.find((entry) => entry.action === 'security/michael_full_scan_completed');
             if (latestRecordedScan) {
                 const metadata = latestRecordedScan.metadata && typeof latestRecordedScan.metadata === 'object'
@@ -179,11 +212,8 @@ export default function StMichaelSecurityDashboard() {
             } else {
                 setLastScanHandoff((current) => current ?? null);
             }
-        } catch (err) {
-            console.error('Failed to load security data:', err);
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     };
 
     const handleManualScan = async () => {
@@ -258,16 +288,12 @@ export default function StMichaelSecurityDashboard() {
         }
     };
 
-    if (loading && !scanning) {
-        return (
-            <div className="min-h-[100dvh] bg-slate-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Shield className="w-12 h-12 text-sky-500 motion-safe:animate-pulse" />
-                    <p className="text-sky-400 font-medium tracking-widest uppercase text-xs">Initializing Guardian...</p>
-                </div>
-            </div>
-        );
-    }
+    // Used to live as a blocking full-screen spinner that held the whole
+    // dashboard until every fetch finished. That meant a slow backend
+    // (Render free-tier cold-start, ~30-60s) made Michael feel broken.
+    // Now: render the shell immediately; the per-section components
+    // either show their data or their own internal skeleton if it's not
+    // here yet. We keep `loading` for the inline banner below.
 
     return (
         <div className="min-h-[100dvh] bg-[#0a0f15] text-slate-200">
@@ -378,7 +404,7 @@ export default function StMichaelSecurityDashboard() {
                         {/* Main Security Stats Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             {/* Integrity Score */}
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Fingerprint className="w-24 h-24 text-sky-400" />
                                 </div>
@@ -398,7 +424,7 @@ export default function StMichaelSecurityDashboard() {
                             </div>
 
                             {/* Raphael Watch */}
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Eye className="w-24 h-24 text-rose-400" />
                                 </div>
@@ -420,7 +446,7 @@ export default function StMichaelSecurityDashboard() {
                             </div>
 
                             {/* Privacy Status */}
-                            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Lock className="w-24 h-24 text-emerald-400" />
                                 </div>
@@ -443,7 +469,7 @@ export default function StMichaelSecurityDashboard() {
                         </div>
 
                         {/* CAI Audit */}
-                        <div className="bg-slate-900/40 backdrop-blur-xl border border-sky-500/20 rounded-3xl p-8 mb-8 relative overflow-hidden">
+                        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-sky-500/20 rounded-3xl p-8 mb-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
                                 <Search className="w-48 h-48 text-sky-400" />
                             </div>
@@ -484,7 +510,7 @@ export default function StMichaelSecurityDashboard() {
                         {/* Alerts & Audit Trail */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Security Alerts */}
-                            <div className="bg-slate-900/20 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
+                            <div className="bg-slate-900/20 sm:backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
                                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-white uppercase tracking-widest">Guardian Actions</h3>
                                     <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold">{alerts.length} LOGGED</span>
@@ -518,7 +544,7 @@ export default function StMichaelSecurityDashboard() {
                             </div>
 
                             {/* Audit Trail */}
-                            <div className="bg-slate-900/20 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
+                            <div className="bg-slate-900/20 sm:backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden flex flex-col">
                                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-white uppercase tracking-widest">Integrity Audit Trail</h3>
                                     <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-1 rounded font-bold uppercase">Real-Time</span>
@@ -560,7 +586,7 @@ export default function StMichaelSecurityDashboard() {
                 )}
 
                 {activeTab === 'chat' && (
-                    <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden h-[600px]">
+                    <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden h-[600px]">
                         <SaintChat saintId="michael" saintName="St. Michael" saintTitle="The Guardian" saintIcon={Shield} primaryColor="sky" />
                     </div>
                 )}

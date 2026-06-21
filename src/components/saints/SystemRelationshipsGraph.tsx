@@ -227,7 +227,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
 
             {/* Detail Panel */}
             {activeDetailId && activeStatusData && activeDisplayNode && (
-                <div className="absolute top-6 right-6 z-20 w-72 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="absolute top-6 right-6 z-20 w-72 bg-slate-900/95 sm:backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-300">
                     <div className="flex items-center justify-between mb-3">
                         <div>
                             <h4 className="text-sm font-bold text-white capitalize">{activeDisplayNode.label}</h4>

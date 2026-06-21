@@ -191,7 +191,7 @@ export default function MyAIs() {
           </div>
 
           {purchases.length === 0 ? (
-            <div className="text-center py-16 bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50">
+            <div className="text-center py-16 bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50">
               <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
               <h3 className="text-xl font-medium text-white mb-2">No AI templates yet</h3>
               <p className="text-slate-400 mb-6">
@@ -236,7 +236,7 @@ function AICard({ purchase, onActivate, onToggleActive, onStartChat }: AICardPro
   const isActive = instance?.is_active || false;
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 transition-all">
+    <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">

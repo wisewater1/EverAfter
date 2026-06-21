@@ -126,7 +126,7 @@ export function AdvancedTasksTab() {
     };
 
     return (
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
+        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h3 className="text-xl font-light text-white flex items-center gap-2">

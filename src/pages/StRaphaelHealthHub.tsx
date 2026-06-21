@@ -262,7 +262,7 @@ export default function StRaphaelHealthHub() {
             <div className="relative mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
                 {/* Cinematic Header */}
-                <div className="mb-6 rounded-[28px] border border-white/[0.03] bg-gradient-to-br from-[#12121a]/95 via-[#0d0d12]/95 to-[#12121a]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl sm:mb-8 sm:p-6 lg:p-8">
+                <div className="mb-6 rounded-[28px] border border-white/[0.03] bg-gradient-to-br from-[#12121a]/95 via-[#0d0d12]/95 to-[#12121a]/95 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] sm:backdrop-blur-3xl sm:mb-8 sm:p-6 lg:p-8">
                     <div className="mb-5 flex flex-col gap-4 sm:gap-5 md:mb-8 md:flex-row md:items-center md:justify-between md:gap-6">
                         <div className="flex items-center gap-3 sm:gap-5">
                             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-teal-500/30 bg-gradient-to-br from-teal-500/20 to-emerald-500/20 shadow-lg shadow-teal-500/10 sm:h-16 sm:w-16">
@@ -584,7 +584,7 @@ function HubInsightCard({ insight }: { insight: Insight }) {
     };
 
     return (
-        <div className={`p-4 rounded-2xl border ${colors[insight.severity]} backdrop-blur-xl flex gap-4 animate-in fade-in zoom-in duration-500`}>
+        <div className={`p-4 rounded-2xl border ${colors[insight.severity]} sm:backdrop-blur-xl flex gap-4 animate-in fade-in zoom-in duration-500`}>
             <div className="mt-1">
                 <Shield className="w-4 h-4" />
             </div>

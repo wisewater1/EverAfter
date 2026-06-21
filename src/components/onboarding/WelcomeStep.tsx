@@ -88,7 +88,7 @@ export default function WelcomeStep({ onNext, onSkip, saving }: WelcomeStepProps
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 sm:backdrop-blur-xl">
                 <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
                   <Brain className="h-4 w-4 text-violet-300" />
                   OCEAN personality onboarding
@@ -98,7 +98,7 @@ export default function WelcomeStep({ onNext, onSkip, saving }: WelcomeStepProps
                   have a real behavioral baseline.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 sm:backdrop-blur-xl">
                 <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
                   <Lock className="h-4 w-4 text-emerald-300" />
                   Real dependency startup
@@ -112,7 +112,7 @@ export default function WelcomeStep({ onNext, onSkip, saving }: WelcomeStepProps
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/40 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
+        <div className="rounded-[28px] border border-white/10 bg-slate-950/40 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">What gets formed here</p>
@@ -129,7 +129,7 @@ export default function WelcomeStep({ onNext, onSkip, saving }: WelcomeStepProps
               return (
                 <div
                   key={saint.name}
-                  className={`rounded-2xl border bg-gradient-to-r p-4 backdrop-blur-xl ${saint.accent}`}
+                  className={`rounded-2xl border bg-gradient-to-r p-4 sm:backdrop-blur-xl ${saint.accent}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 rounded-xl bg-slate-950/40 p-2">
@@ -153,7 +153,7 @@ export default function WelcomeStep({ onNext, onSkip, saving }: WelcomeStepProps
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-indigo-400/15 bg-indigo-400/10 p-4 text-sm text-indigo-100 backdrop-blur-xl">
+      <div className="rounded-[28px] border border-indigo-400/15 bg-indigo-400/10 p-4 text-sm text-indigo-100 sm:backdrop-blur-xl">
         This setup now covers your health profile, device links, permissions, first Engram,
         OCEAN starter quiz, and genealogy bootstrap for St. Joseph.
       </div>

@@ -368,7 +368,7 @@ export default function AppointmentManager() {
 
   if (loading) {
     return (
-      <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-800/50">
+      <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-800/50">
         <div className="flex items-center gap-3">
           <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
           <span className="text-slate-400">Loading appointments...</span>
@@ -391,7 +391,7 @@ export default function AppointmentManager() {
         </div>
       )}
 
-      <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
+      <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div className="flex-1">
@@ -413,7 +413,7 @@ export default function AppointmentManager() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-blue-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200">
+          <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-blue-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-blue-400" />
@@ -424,7 +424,7 @@ export default function AppointmentManager() {
               </div>
             </div>
           </div>
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200">
+          <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
@@ -437,7 +437,7 @@ export default function AppointmentManager() {
               </div>
             </div>
           </div>
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-purple-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200">
+          <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-purple-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                 <Video className="w-5 h-5 text-purple-400" />
@@ -450,7 +450,7 @@ export default function AppointmentManager() {
               </div>
             </div>
           </div>
-          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-orange-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200 min-[380px]:col-span-2 lg:col-span-1">
+          <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-orange-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200 min-[380px]:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500/20 to-amber-500/20 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-orange-400" />
@@ -476,7 +476,7 @@ export default function AppointmentManager() {
                 return (
                   <div
                     key={appointment.id}
-                    className="group bg-slate-900/60 backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-orange-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200"
+                    className="group bg-slate-900/60 sm:backdrop-blur-xl rounded-xl p-4 sm:p-6 border border-slate-800/50 hover:border-orange-500/30 hover:shadow-xl hover:shadow-slate-900/20 transition-all duration-200"
                   >
                     <div className="flex flex-col gap-4">
                       {/* Header */}
@@ -632,7 +632,7 @@ export default function AppointmentManager() {
               {pastAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="bg-slate-900/30 backdrop-blur-xl rounded-xl p-4 sm:p-5 border border-slate-800/30 opacity-75 hover:opacity-100 transition-all"
+                  className="bg-slate-900/30 sm:backdrop-blur-xl rounded-xl p-4 sm:p-5 border border-slate-800/30 opacity-75 hover:opacity-100 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1">
@@ -674,7 +674,7 @@ export default function AppointmentManager() {
 
         {/* Empty State */}
         {appointments.length === 0 && (
-          <div className="bg-slate-900/40 backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-700/50 p-8 sm:p-12 md:p-16 text-center min-h-[400px] flex flex-col items-center justify-center">
+          <div className="bg-slate-900/40 sm:backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-700/50 p-8 sm:p-12 md:p-16 text-center min-h-[400px] flex flex-col items-center justify-center">
             <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-6 motion-safe:animate-pulse">
               <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600" />
             </div>
