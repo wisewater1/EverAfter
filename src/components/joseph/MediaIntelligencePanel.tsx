@@ -554,9 +554,9 @@ export default function MediaIntelligencePanel() {
                                                     <span className={`text-[9px] uppercase tracking-wider font-medium ${style.color}`}>{insight.category}</span>
                                                     <span className="text-[9px] text-slate-600">{(insight.confidence * 100).toFixed(0)}%</span>
                                                 </div>
-                                                <p className="text-xs text-white truncate">{insight.value}</p>
+                                                <p className="text-xs text-white break-words">{insight.value}</p>
                                                 {insight.source_snippet && (
-                                                    <p className="text-[10px] text-slate-600 truncate mt-0.5">"{insight.source_snippet}"</p>
+                                                    <p className="text-[10px] text-slate-600 break-words mt-0.5">"{insight.source_snippet}"</p>
                                                 )}
                                             </div>
                                         </div>

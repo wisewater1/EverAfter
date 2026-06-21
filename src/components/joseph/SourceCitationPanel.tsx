@@ -132,7 +132,7 @@ export default function SourceCitationPanel() {
                                     <div className="text-xl shrink-0">{ti.icon}</div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <h4 className="text-sm font-medium text-white truncate">{src.title}</h4>
+                                            <h4 className="text-sm font-medium text-white break-words">{src.title}</h4>
                                             <span className="px-2 py-0.5 bg-white/5 text-[10px] text-slate-400 rounded uppercase shrink-0">{ti.label}</span>
                                         </div>
                                         {src.repository && <p className="text-xs text-slate-500">{src.repository}</p>}
