@@ -15,6 +15,8 @@ import TraitBadges from './TraitBadges';
 import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
+import MemberGeneticsPanel from './MemberGeneticsPanel';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface FamilyTreeViewProps {
     onTrainMember?: (engramId: string) => void;
@@ -22,6 +24,7 @@ interface FamilyTreeViewProps {
 }
 
 export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }: FamilyTreeViewProps) {
+    const { user } = useAuth();
     const [tree, setTree] = useState<FamilyTreeNode[]>(() => buildFamilyTree());
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(['gp1', 'gp3', 'p1']));
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -355,6 +358,15 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             personId={selectedMember.id}
                             memberName={`${selectedMember.firstName} ${selectedMember.lastName}`}
                         />
+
+                        {/* Encrypted DNA upload + variant index per family member */}
+                        {user?.id && (
+                            <MemberGeneticsPanel
+                                userId={user.id}
+                                member={selectedMember}
+                                familyMemberDbId={null}
+                            />
+                        )}
 
                         <JosephVoiceProfileCard
                             familyMemberId={selectedMember.id}
