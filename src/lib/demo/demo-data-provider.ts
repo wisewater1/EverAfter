@@ -18,6 +18,7 @@
 
 import { isDemoAuthEnabled } from '../demo-auth';
 import { DEMO_QUIZ_QUESTIONS, buildDemoProfile } from './demoPersonalityQuiz';
+import axios from 'axios';
 
 // ============================================================
 // MOCK DATA: Runtime Readiness (unlocks ALL saints)
@@ -199,6 +200,83 @@ const MOCK_CAI_AUDIT = {
   ],
 };
 
+// ── St. Michael monitoring/audit shapes (consumed by src/lib/michael/security.ts) ──
+// These match the FLAT MonitoringStatusResponse / Vulnerability / SecurityScanResult /
+// ledger / compliance interfaces the dashboard reads — NOT a nested { saints } object,
+// which is why demo St. Michael used to render empty.
+const MICHAEL_FINDINGS = [
+  { id: 'mf-1', type: 'adversarial_probe', severity: 'high', message: 'Adversarial pattern on Saint Bridge', details: 'Automated probe signature matched on the event bus; integrity filters strengthened.', source: 'Saint Bridge', timestamp: new Date(Date.now() - 1800000).toISOString(), resolved: false },
+  { id: 'mf-2', type: 'pii_leak', severity: 'medium', message: 'Health data read from an unrecognized session', details: 'A St. Raphael record was accessed from an unfamiliar session context; flagged for review.', source: 'St. Raphael API', timestamp: new Date(Date.now() - 7200000).toISOString(), resolved: true },
+  { id: 'mf-3', type: 'auth', severity: 'low', message: 'Brute-force attempt on API endpoint', details: 'Rate limiter tripped after repeated failed auth attempts from a single IP.', source: 'Auth Service', timestamp: new Date(Date.now() - 14400000).toISOString(), resolved: true },
+];
+
+const MOCK_MONITORING_STATUS = {
+  michael: { status: 'active', role: 'Security Guardian', integrity: '94%', message: 'Autonomous guardian online — 3 findings under management.', metrics: { findings: 3, scans_24h: 12 }, recent_findings: MICHAEL_FINDINGS },
+  raphael: { status: 'active', role: 'Health Steward', integrity: '97%', recent_findings: [] },
+  gabriel: { status: 'active', role: 'Finance Steward', integrity: '98%', recent_findings: [] },
+  anthony: { status: 'active', role: 'Integrity Auditor', integrity: '100%', recent_findings: [] },
+  joseph: { status: 'active', role: 'Family Keeper', integrity: '99%', recent_findings: [] },
+  timestamp: new Date().toISOString(),
+};
+
+const MOCK_MICHAEL_VULNERABILITIES = [
+  { id: 'v1', cveId: 'CVE-2024-31091', title: 'Authentication Bypass in Legacy Module', severity: 'critical', cvssScore: 9.8, affectedComponent: 'Auth Service v2.1', status: 'patched', publishedDate: '2024-03-15', description: 'Allows unauthenticated users to bypass MFA.' },
+  { id: 'v2', cveId: 'CVE-2024-28447', title: 'XSS in Dashboard Rendering', severity: 'medium', cvssScore: 6.1, affectedComponent: 'Frontend UI', status: 'mitigated', publishedDate: '2024-02-20', description: 'Reflected XSS via query parameter injection.' },
+  { id: 'v3', cveId: 'CVE-2024-22119', title: 'SQL Injection in Legacy Vault', severity: 'high', cvssScore: 8.6, affectedComponent: 'Legacy Vault API', status: 'patched', publishedDate: '2024-01-10', description: 'Parameterized query bypass in search endpoint.' },
+  { id: 'v4', cveId: 'CVE-2024-35890', title: 'Insecure Deserialization', severity: 'high', cvssScore: 7.5, affectedComponent: 'Engram Pipeline', status: 'open', publishedDate: '2024-04-01', description: 'Untrusted data deserialization in engram processor.' },
+  { id: 'v5', cveId: 'CVE-2024-40012', title: 'Weak Encryption in Transport', severity: 'low', cvssScore: 3.7, affectedComponent: 'Saint Bridge', status: 'accepted', publishedDate: '2024-05-12', description: 'Deprecated TLS cipher suite still supported.' },
+];
+
+const MOCK_MICHAEL_SCAN = {
+  timestamp: new Date().toISOString(),
+  status: 'warning',
+  findings_count: MICHAEL_FINDINGS.length,
+  findings: MICHAEL_FINDINGS.map((f) => ({ id: f.id, type: f.type, severity: f.severity, message: f.message, timestamp: f.timestamp, resolved: f.resolved, details: f.details })),
+  vulnerabilities: MOCK_MICHAEL_VULNERABILITIES,
+  system_integrity: 94,
+  integrity_score: 94,
+  scan_scope: 'full_application',
+  audit_handoff: { recipient: 'st_anthony', status: 'completed', scan_log_id: 'demo-scan-log-1', ledger_entry_id: 'demo-ledger-1Q4S7S', tab: 'ledger' },
+};
+
+const MOCK_AUDIT_LEDGER = {
+  success: true,
+  data: [
+    { id: 'demo-ledger-1Q4S7S', action: 'security/michael_full_scan_completed', userId: '00000000-0000-4000-8000-000000000001', provider: 'st_michael', sha256: 'a3f2b8c1e7d4f9a2', prevHash: '0000000000000000', signature: 'demo-sig-michael', signerId: 'st_michael', ts: new Date(Date.now() - 600000).toISOString(), metadata: { findings_count: 3, vulnerabilities_count: 5, system_integrity: 94, status: 'warning' } },
+    { id: 'demo-ledger-anthony-1', action: 'audit/integrity_check_archived', userId: '00000000-0000-4000-8000-000000000001', provider: 'st_anthony', sha256: 'b1c2d3e4f5a6b7c8', prevHash: 'a3f2b8c1e7d4f9a2', signature: 'demo-sig-anthony', signerId: 'st_anthony', ts: new Date(Date.now() - 300000).toISOString(), metadata: { received_from: 'michael', status: 'archived_for_audit' } },
+  ],
+};
+
+const MOCK_COMPLIANCE_READINESS = {
+  success: true,
+  readiness_score: 92,
+  controls: [
+    { id: 'c1', controlId: 'HIPAA 164.312(a)(1)', description: 'Access Control — Unique User Identification', isPassing: true, lastCheckedAt: new Date().toISOString() },
+    { id: 'c2', controlId: 'HIPAA 164.312(a)(2)(iv)', description: 'Encryption and Decryption', isPassing: true, lastCheckedAt: new Date().toISOString() },
+    { id: 'c3', controlId: 'HIPAA 164.312(b)', description: 'Audit Controls', isPassing: true, lastCheckedAt: new Date().toISOString() },
+    { id: 'c4', controlId: 'PCI-DSS 6.5', description: 'Secure Coding Guidelines', isPassing: false, lastCheckedAt: new Date().toISOString() },
+    { id: 'c5', controlId: 'GDPR Art. 25', description: 'Data Protection by Design', isPassing: true, lastCheckedAt: new Date().toISOString() },
+    { id: 'c6', controlId: 'NIST SI-4', description: 'System Monitoring', isPassing: true, lastCheckedAt: new Date().toISOString() },
+  ],
+};
+
+const MOCK_HIPAA_REPORT = {
+  generated_at: new Date().toISOString(),
+  user_id: '00000000-0000-4000-8000-000000000001',
+  compliance_score: 96,
+  status: 'compliant',
+  total_phi_events: 142,
+  flagged_events: 2,
+  denied_events: 1,
+  safeguards: [
+    { rule: '164.308 Administrative', officer: 'St. Anthony', status: 'pass', description: 'Security management and workforce controls in place.' },
+    { rule: '164.310 Physical', officer: 'St. Michael', status: 'pass', description: 'Facility and device access controls verified.' },
+    { rule: '164.312 Technical', officer: 'St. Michael', status: 'pass', description: 'Encryption, audit, and integrity controls active.' },
+  ],
+  recent_events: [],
+  certifying_saints: { michael: 'verified', anthony: 'audited' },
+};
+
 // ============================================================
 // MOCK DATA: St. Gabriel Finance
 // ============================================================
@@ -325,6 +403,8 @@ const SAINT_CHAT_RESPONSES: Record<string, string[]> = {
 // ============================================================
 const originalFetch = window.fetch;
 let interceptorActive = false;
+// Saved so axios's default adapter can be restored when demo mode ends.
+let prevAxiosAdapter: unknown;
 
 function mockResponse(data: any, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -549,23 +629,20 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     return mockResponse(MOCK_FAMILY_RISK);
   }
 
-  // St. Michael Security endpoints
+  // St. Michael Security endpoints (axios-based — reached now that the demo
+  // interceptor also routes axios through fetch).
   if (path.includes('/security/integrity') || path.includes('/security/scan')) {
     return mockResponse(MOCK_SECURITY_INTEGRITY);
   }
   if (path.includes('/audit') && path.includes('/cai')) return mockResponse(MOCK_CAI_AUDIT);
   if (path.includes('/audit/history')) return mockResponse({ audits: [MOCK_CAI_AUDIT] });
-  if (path.includes('/monitoring/status')) {
-    return mockResponse({
-      saints: {
-        michael: { status: 'online', security: 'green' },
-        raphael: { status: 'online', security: 'green' },
-        joseph: { status: 'online', security: 'green' },
-        gabriel: { status: 'online', security: 'green' },
-        anthony: { status: 'online', security: 'green' },
-      },
-    });
-  }
+  if (path.includes('/monitoring/michael/scan')) return mockResponse(MOCK_MICHAEL_SCAN);
+  if (path.includes('/monitoring/michael/vulnerabilities')) return mockResponse(MOCK_MICHAEL_VULNERABILITIES);
+  if (path.includes('/monitoring/status')) return mockResponse(MOCK_MONITORING_STATUS);
+  if (path.includes('/audit/controls/readiness')) return mockResponse(MOCK_COMPLIANCE_READINESS);
+  if (path.includes('/integrity/hipaa-report')) return mockResponse(MOCK_HIPAA_REPORT);
+  if (path.includes('/audit/jit-access')) return mockResponse({ success: true, data: [] });
+  if (path.includes('/audit/ledger')) return mockResponse(MOCK_AUDIT_LEDGER);
 
   // St. Gabriel Finance endpoints
   if (path.includes('/finance/budget') || path.includes('/budget/envelopes')) {
@@ -673,6 +750,15 @@ export function initDemoInterceptor(): void {
 
   interceptorActive = true;
 
+  // Several saints (notably St. Michael's security layer) call the API through
+  // axios, which uses XHR by default and would BYPASS this fetch interceptor —
+  // hitting the real, cold backend and making the dashboard feel broken/slow in
+  // demo. Route axios through its fetch adapter so the mocks below apply.
+  try {
+    prevAxiosAdapter = (axios.defaults as { adapter?: unknown }).adapter;
+    (axios.defaults as { adapter?: unknown }).adapter = 'fetch';
+  } catch { /* adapter override unavailable — fetch-based callers still mock */ }
+
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
@@ -730,6 +816,7 @@ export function initDemoInterceptor(): void {
 export function removeDemoInterceptor(): void {
   if (!interceptorActive) return;
   window.fetch = originalFetch;
+  try { (axios.defaults as { adapter?: unknown }).adapter = prevAxiosAdapter; } catch { /* ignore */ }
   interceptorActive = false;
   console.log('[EverAfter Demo] Data interceptor removed');
 }

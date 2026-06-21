@@ -449,6 +449,9 @@ async function axiosWithAuthRetry<T = any>(
             method,
             url,
             responseType,
+            // Never hang the guardian UI on a cold/unreachable backend — fail fast
+            // (≤9s) so each caller falls back to its curated data instead of spinning.
+            timeout: 9000,
         };
 
         if (method !== 'get' && typeof data !== 'undefined') {
