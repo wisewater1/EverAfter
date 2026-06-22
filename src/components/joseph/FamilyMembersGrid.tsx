@@ -11,6 +11,7 @@ import {
 } from '../../lib/joseph/genealogy';
 import PersonalityRadar from './PersonalityRadar';
 import SaintChat from '../SaintChat';
+import { aiPersonaFromProfile, personaDemoReply } from '../../lib/joseph/aiPersona';
 import SocietyFeed from '../SocietyFeed';
 import TraitBadges from './TraitBadges';
 import CausalAncestryPanel from '../causal-twin/CausalAncestryPanel';
@@ -93,11 +94,14 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
         setIsSyncing(true);
         try {
             // Register as dynamic agent
+            const persona = aiPersonaFromProfile(member);
             const data = await apiClient.registerDynamicSaint({
                 name: `${member.firstName} ${member.lastName}`,
                 description: member.bio || `Family member engram for ${member.firstName}`,
-                system_prompt: `You are ${member.firstName} ${member.lastName}. ${member.bio || ""}`,
+                system_prompt: persona.systemPrompt,
                 traits: {
+                    ocean: persona.ocean,
+                    archetype: persona.archetype,
                     generation: member.generation,
                     memberId: member.id
                 }
@@ -159,21 +163,27 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
         if (member.aiPersonality?.isActive) return;
 
         try {
-            await apiClient.registerDynamicSaint({
+            const persona = aiPersonaFromProfile(member);
+            const data = await apiClient.registerDynamicSaint({
                 name: `${member.firstName} ${member.lastName}`,
                 description: member.bio || `Family member in the St. Joseph tree.`,
-                system_prompt: `You are ${member.firstName} ${member.lastName}, a family member in the St. Joseph tree. Use the provided bio and context to interact with the user. Bio: ${member.bio}`,
+                system_prompt: persona.systemPrompt,
                 traits: {
+                    ocean: persona.ocean,
+                    archetype: persona.archetype,
                     memberId: member.id,
                     generation: member.generation,
                     research_integrated: ["generative_agents", "genagents", "agentic_collab"]
                 }
             });
 
-            // Persist to local storage via genealogy API
+            // Persist to local storage via genealogy API — keep the engram id so
+            // the "Chat" button talks to the agent we just created from the analysis.
             const updatedMember = activateAgent(member.id);
             if (updatedMember) {
-                setMembers(prev => prev.map(m => m.id === member.id ? updatedMember : m));
+                const withEngram = data?.engram_id ? { ...updatedMember, engramId: data.engram_id } : updatedMember;
+                if (data?.engram_id) updateFamilyMember(member.id, withEngram);
+                setMembers(prev => prev.map(m => m.id === member.id ? withEngram : m));
             }
 
             alert(`Activated ${member.firstName} with Saint Runtime Research Layers (Generative Agents, GenAgents, Agentic Collab)!`);
@@ -560,7 +570,9 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
 
             {/* Saint Chat Modal */}
             {
-                chatMember && (
+                chatMember && (() => {
+                const persona = aiPersonaFromProfile(chatMember);
+                return (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
                         <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-4xl h-[80vh] overflow-hidden shadow-2xl relative">
                             <button
@@ -570,15 +582,19 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                 <X className="w-5 h-5" />
                             </button>
                             <SaintChat
-                                saintId={chatMember.id}
+                                saintId={chatMember.engramId || chatMember.id}
                                 saintName={`${chatMember?.firstName} ${chatMember?.lastName}`}
-                                saintTitle="Family Member"
+                                saintTitle={persona.archetype ? `${persona.archetype}${persona.familyRole ? ` · ${persona.familyRole}` : ''}` : 'Family Member'}
                                 saintIcon={User}
+                                systemPrompt={persona.systemPrompt}
+                                demoReply={(input) => personaDemoReply(persona, input)}
+                                initialMessage={`Hello, I'm ${chatMember.firstName}. It's good to talk with you — what's on your mind?`}
                                 onClose={() => setChatMember(null)}
                             />
                         </div>
                     </div>
-                )
+                );
+                })()
             }
             {/* Causal Ancestry Panel */}
             {ancestryTarget && (

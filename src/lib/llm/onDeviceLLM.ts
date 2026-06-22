@@ -80,10 +80,13 @@ export async function generateOnDevice(
   saintId: string,
   history: ChatTurn[],
   onProgress?: (p: OnDeviceProgress) => void,
+  systemPrompt?: string,
 ): Promise<string> {
   const engine = await ensureEngine(onProgress);
   const messages = [
-    { role: 'system' as const, content: personaFor(saintId) },
+    // A caller-supplied persona (e.g. a family member's analyzed personality)
+    // overrides the generic saint persona so the agent reflects the analysis.
+    { role: 'system' as const, content: systemPrompt?.trim() || personaFor(saintId) },
     ...history.slice(-12), // keep recent context; small models have limited windows
   ];
   const reply = await engine.chat.completions.create({

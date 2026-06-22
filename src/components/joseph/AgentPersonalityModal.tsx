@@ -4,6 +4,7 @@ import { FamilyMember, AIPersonality, generateAIPersonality, activateAgent, getS
 import { emitSaintEvent } from '../../lib/saintBridge';
 import { apiClient } from '../../lib/api-client';
 import { getJosephVoiceProfile, synthesizeJosephVoice, type JosephVoiceProfileBundle } from '../../lib/joseph/voice';
+import { aiPersonaFromProfile } from '../../lib/joseph/aiPersona';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 
@@ -121,12 +122,17 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
             // Register agent on backend to ensure persistence
             const birthYear = member.birthDate ? new Date(member.birthDate).getFullYear() : 'Unknown';
 
+            // Build the agent FROM the analyzed personality (OCEAN + archetype +
+            // traits), so the agent you converse with reflects the analysis.
+            const persona = aiPersonaFromProfile(member);
             await apiClient.registerDynamicSaint({
                 name: `${member.firstName} ${member.lastName}`,
                 description: `Family System Agent. Generation: ${member.generation}.`,
-                system_prompt: `You are ${member.firstName} ${member.lastName}. ${personality.communicationStyle} You have the following traits: ${personality.traits.join(', ')}.`,
+                system_prompt: persona.systemPrompt,
                 traits: {
                     ...personality,
+                    ocean: persona.ocean,
+                    archetype: persona.archetype,
                     memberId: member.id,
                     birthYear: birthYear,
                     birthPlace: member.birthPlace,
