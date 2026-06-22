@@ -17,6 +17,7 @@ import RelationshipInsight from './RelationshipInsight';
 import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
 import { getFamilyTreeAnalysis } from '../trinity/trinityApi';
+import { aiPersonaFromProfile, personaDemoReply } from '../../lib/joseph/aiPersona';
 
 // Vitality-ring colours by St. Raphael risk level (interlaced onto the tree).
 const RISK_HEX: Record<string, string> = { low: '#10b981', moderate: '#f59e0b', high: '#fb923c', critical: '#ef4444' };
@@ -491,22 +492,28 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
             )}
 
             {/* Talk to this family member (AI failover: server → on-device → graceful) */}
-            {chatMember && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
-                    <div className="relative h-[80vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
-                        <button onClick={() => setChatMember(null)} className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white">
-                            <X className="w-5 h-5" />
-                        </button>
-                        <SaintChat
-                            saintId={chatMember.id}
-                            saintName={`${chatMember.firstName} ${chatMember.lastName}`}
-                            saintTitle="Family Member"
-                            saintIcon={User}
-                            onClose={() => setChatMember(null)}
-                        />
+            {chatMember && (() => {
+                const persona = aiPersonaFromProfile(chatMember);
+                return (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+                        <div className="relative h-[80vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl">
+                            <button onClick={() => setChatMember(null)} className="absolute right-4 top-4 z-10 rounded-lg p-2 text-slate-400 transition-all hover:bg-white/10 hover:text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                            <SaintChat
+                                saintId={chatMember.engramId || chatMember.id}
+                                saintName={`${chatMember.firstName} ${chatMember.lastName}`}
+                                saintTitle={persona.archetype ? `${persona.archetype}${persona.familyRole ? ` · ${persona.familyRole}` : ''}` : 'Family Member'}
+                                saintIcon={User}
+                                systemPrompt={persona.systemPrompt}
+                                demoReply={(input) => personaDemoReply(persona, input)}
+                                initialMessage={`Hello, I'm ${chatMember.firstName}. It's good to talk with you — what's on your mind?`}
+                                onClose={() => setChatMember(null)}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Their calendar — birthday + add-to-any-calendar + connect their feed */}
             {calMember && (

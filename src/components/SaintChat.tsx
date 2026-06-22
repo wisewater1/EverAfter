@@ -21,6 +21,10 @@ interface SaintChatProps {
     primaryColor?: string;
     initialMessage?: string;
     userContext?: string;
+    /** Persona system prompt (e.g. a family member's analyzed personality) — conditions server + on-device replies. */
+    systemPrompt?: string;
+    /** Keyless persona-flavoured demo reply generator (used in demo mode instead of the generic canned line). */
+    demoReply?: (userInput: string) => string;
     onClose?: () => void;
 }
 
@@ -128,6 +132,8 @@ export default function SaintChat({
     primaryColor = 'blue',
     initialMessage,
     userContext,
+    systemPrompt,
+    demoReply,
     onClose
 }: SaintChatProps) {
     const { loading: authLoading, session, isDemoMode } = useAuth();
@@ -304,7 +310,7 @@ export default function SaintChat({
                 const history = [...messages, userMsg]
                     .filter((m) => m.id !== 'init' && (m.role === 'user' || m.role === 'assistant'))
                     .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-                const reply = await generateOnDevice(saintId, history, (p) => setOnDeviceProgress(p.progress));
+                const reply = await generateOnDevice(saintId, history, (p) => setOnDeviceProgress(p.progress), systemPrompt);
                 if (!reply || !reply.trim()) { setOnDeviceStatus('error'); return false; }
                 setOnDeviceMode(true);
                 setOnDeviceStatus('ready');
@@ -331,7 +337,7 @@ export default function SaintChat({
                 const history = [...messages, userMsg]
                     .filter((m) => m.id !== 'init' && (m.role === 'user' || m.role === 'assistant'))
                     .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-                const reply = await generateOnDevice(saintId, history, (p) => setOnDeviceProgress(p.progress));
+                const reply = await generateOnDevice(saintId, history, (p) => setOnDeviceProgress(p.progress), systemPrompt);
                 setMessages(prev => [...prev, {
                     id: (Date.now() + 1).toString(),
                     role: 'assistant',
@@ -346,7 +352,7 @@ export default function SaintChat({
                 const demoMsg: Message = {
                     id: (Date.now() + 1).toString(),
                     role: 'assistant',
-                    content: getDemoChatResponse(saintId, userMsg.content),
+                    content: demoReply ? demoReply(userMsg.content) : getDemoChatResponse(saintId, userMsg.content),
                     timestamp: new Date().toISOString(),
                 };
                 setMessages(prev => [...prev, demoMsg]);
