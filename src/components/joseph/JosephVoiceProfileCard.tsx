@@ -13,6 +13,7 @@ import {
 } from '../../lib/joseph/voice';
 import { useAudioRecorder } from './useAudioRecorder';
 import { speakPreview, stopPreview, voicePreviewSupported } from '../../lib/voice/previewVoice';
+import KeylessVoicePack from './KeylessVoicePack';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
@@ -376,6 +377,12 @@ export default function JosephVoiceProfileCard({
             <div className="rounded-xl border border-slate-500/20 bg-slate-500/10 px-3 py-2 text-xs text-slate-300">
               {authRequiredMessage}
             </div>
+          )}
+
+          {/* Keyless path: when the live cloning flow isn't available (demo /
+              signed-out), record + replay their REAL voice on-device. */}
+          {!canUseVoiceCapability && (
+            <KeylessVoicePack familyMemberId={familyMemberId} familyMemberName={familyMemberName} />
           )}
 
           {error && (

@@ -119,5 +119,10 @@ services:
         value: 3.11.11
       - key: VOICE_AI_PROVIDER
         value: elevenlabs
+      # Production posture: with no provider key set, report voice as UNAVAILABLE
+      # rather than silently synthesizing a placeholder tone. Paste ELEVENLABS_API_KEY
+      # in the Render dashboard to enable real arbitrary-text voice cloning.
+      - key: ENVIRONMENT
+        value: production
       - key: ELEVENLABS_API_KEY
         sync: false
