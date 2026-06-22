@@ -348,8 +348,10 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                         </div>
                     </div>
 
-                    {/* Activate Button */}
+                    {/* Activate Button — pinned to the bottom so it's reachable
+                        without scrolling past the traits/voice blocks on mobile. */}
                     {!isAlreadyActive && (
+                        <div className="sticky bottom-0 z-10 mt-3 border-t border-white/10 bg-slate-900/95 py-3 backdrop-blur">
                         <button
                             onClick={handleActivate}
                             disabled={activating}
@@ -370,6 +372,7 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
                                 </>
                             )}
                         </button>
+                        </div>
                     )}
                 </div>
             </div>

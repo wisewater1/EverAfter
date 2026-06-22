@@ -784,7 +784,7 @@ export default function PersonalityQuiz({
                     </div>
 
                     {/* Tab Navigation */}
-                    <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto no-scrollbar gap-1">
+                    <div className="flex bg-white/5 p-1 rounded-xl overflow-x-auto scrollbar-hide gap-1">
                         {TABS.map(tab => {
                             const Icon = tab.icon;
                             return (
