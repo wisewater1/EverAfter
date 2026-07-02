@@ -370,17 +370,37 @@ Deno.serve(async (req: Request) => {
     const webhookId =
       `terra_${payload.type}_${payload.user?.user_id}_${Date.now()}`;
 
+    // Fail CLOSED: a missing secret or missing signature header must reject,
+    // never bypass verification. Previously this else-branch set
+    // signatureValid = true, letting an attacker inject fabricated health
+    // data by simply omitting the signature header.
     let signatureValid = false;
-    if (TERRA_WEBHOOK_SECRET && terraSignature) {
-      signatureValid = await verifyTerraSignature(
-        payloadText,
-        terraSignature,
-        TERRA_WEBHOOK_SECRET
+    if (!TERRA_WEBHOOK_SECRET) {
+      console.error(
+        "TERRA_WEBHOOK_SECRET is not configured; rejecting webhook (fail-closed)"
       );
-    } else {
-      console.warn("Webhook signature verification skipped");
-      signatureValid = true;
+      return new Response(
+        JSON.stringify({ error: "Webhook not configured" }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
+    if (!terraSignature) {
+      return new Response(
+        JSON.stringify({ error: "Missing signature" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    signatureValid = await verifyTerraSignature(
+      payloadText,
+      terraSignature,
+      TERRA_WEBHOOK_SECRET
+    );
 
     const { error: eventError } = await supabaseClient
       .from("terra_webhook_events")
