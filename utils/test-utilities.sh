@@ -6,8 +6,8 @@
 set -e
 
 # Load environment variables
-export VITE_SUPABASE_URL=https://rfwghspbhuqdhyyipynt.supabase.co
-export VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmd2doc3BiaHVxZGh5eWlweW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3MjQ0MzIsImV4cCI6MjA3NTMwMDQzMn0.d_GP9IBBPRFWAGMCjQd5v4TDj1RBFOCphLuvssZsclY
+export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:?set VITE_SUPABASE_URL in your environment}"
+export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:?set VITE_SUPABASE_ANON_KEY in your environment}"
 
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║        Health Data Utilities - System Test                   ║"

@@ -69,3 +69,20 @@ voice-ai-service/storage/
 .playwright-cli/
 playwright-report/
 test-results/
+
+# Debug/dump artifacts — never commit (leaked DB hostnames/paths before)
+build_error.txt
+build_err.txt
+corruption_report.csv
+live_debug.js
+check_live.js
+prisma_out.txt
+pip_list_full.txt
+classNam_files.txt
+errors.txt
+ts_errors*.txt
+tsc_errors*.txt
+
+# Credential/session notes — never commit (leaked a live access token before)
+conversation.md
+LOGIN_CREDENTIALS.md
