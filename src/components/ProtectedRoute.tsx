@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { withTimeout } from '../lib/withTimeout';
 import { getOnboardingStatus } from '../lib/onboardingApi';
@@ -10,6 +11,14 @@ import FeatureBlockedState from './FeatureBlockedState';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   skipOnboardingCheck?: boolean;
+  /**
+   * When true, the authenticated user must also be a platform admin
+   * (present in the `platform_admins` allowlist, verified via the
+   * `is_platform_admin` RPC). Non-admins are shown a blocked state.
+   * This is a UX guard only — the database RPCs are independently
+   * gated server-side, which is the real enforcement boundary.
+   */
+  requireAdmin?: boolean;
 }
 
 function hasHardRouteBlocker(routeGate: RuntimeRouteGate | null | undefined): boolean {
@@ -20,7 +29,7 @@ function hasHardRouteBlocker(routeGate: RuntimeRouteGate | null | undefined): bo
   return routeGate.deps.some((dep) => dep === 'auth.session' || dep === 'frontend.supabase');
 }
 
-export default function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, skipOnboardingCheck = false, requireAdmin = false }: ProtectedRouteProps) {
   const ONBOARDING_CHECK_TIMEOUT_MS = 2500;
   const { user, loading: authLoading, isDemoMode } = useAuth();
   const location = useLocation();
@@ -29,6 +38,36 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   const [routeGate, setRouteGate] = useState<RuntimeRouteGate | null>(null);
   const [routeGateLoading, setRouteGateLoading] = useState(false);
   const routeHasHardBlocker = hasHardRouteBlocker(routeGate);
+  // null = not yet checked, true/false = resolved admin status
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(requireAdmin ? null : true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!requireAdmin) {
+      setIsAdmin(true);
+      return;
+    }
+    if (!user || isDemoMode) {
+      setIsAdmin(false);
+      return;
+    }
+    setIsAdmin(null);
+    (async () => {
+      try {
+        const { data, error } = await withTimeout(
+          supabase.rpc('is_platform_admin'),
+          ONBOARDING_CHECK_TIMEOUT_MS,
+          'Timed out while checking admin status'
+        );
+        if (!cancelled) setIsAdmin(!error && data === true);
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [requireAdmin, user?.id, isDemoMode]);
 
   // Routes that should skip onboarding check
   const onboardingExemptRoutes = ['/onboarding', '/portal/profile'];
@@ -188,6 +227,27 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   // Redirect to onboarding if needed (but not if already on an exempt route)
   if (needsOnboarding && !isExemptRoute) {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  if (requireAdmin && isAdmin === null) {
+    return (
+      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Verifying admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (requireAdmin && !isAdmin) {
+    return (
+      <FeatureBlockedState
+        title="Admin access required"
+        reason="This page is restricted to platform administrators."
+        detail={`Route: ${location.pathname}`}
+      />
+    );
   }
 
   return <>{children}</>;

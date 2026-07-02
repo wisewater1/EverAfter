@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -8,6 +8,25 @@ export default function AdminUserCreation() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  // Defense-in-depth: confirm platform-admin membership before exposing the
+  // form at all. The RPCs are independently service-role/admin gated in the
+  // database, but we should never render an admin action to a non-admin.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error: adminError } = await supabase.rpc('is_platform_admin');
+        if (!cancelled) setIsAdmin(!adminError && data === true);
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +35,10 @@ export default function AdminUserCreation() {
     setLoading(true);
 
     try {
-      // Call the database function to create user
+      // create_user_manually is service-role-only in the database. From an
+      // admin's browser session this call is expected to be rejected; account
+      // creation for real users goes through the standard /signup flow. This
+      // form remains as an internal/service-role tool surface only.
       const { data, error: createError } = await supabase.rpc('create_user_manually', {
         user_email: email,
         user_password: password
@@ -36,6 +58,18 @@ export default function AdminUserCreation() {
       setLoading(false);
     }
   };
+
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700 p-8 text-center">
+          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-white mb-2">Admin access required</h1>
+          <p className="text-gray-400 text-sm">You do not have permission to view this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-4">

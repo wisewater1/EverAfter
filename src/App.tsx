@@ -135,7 +135,16 @@ function App() {
                   />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/admin/create-user" element={nonCoreRoutesEnabled ? <AdminUserCreation /> : publicReleaseRedirect} />
+                  <Route
+                    path="/admin/create-user"
+                    element={
+                      nonCoreRoutesEnabled ? (
+                        <ProtectedRoute requireAdmin>
+                          <AdminUserCreation />
+                        </ProtectedRoute>
+                      ) : protectedReleaseRedirect
+                    }
+                  />
                   <Route path="/pricing" element={nonCoreRoutesEnabled ? <Pricing /> : publicReleaseRedirect} />
                   <Route path="/marketplace" element={nonCoreRoutesEnabled ? <Marketplace /> : publicReleaseRedirect} />
                   <Route
@@ -178,7 +187,7 @@ function App() {
                     path="/admin/portal"
                     element={
                       nonCoreRoutesEnabled ? (
-                        <ProtectedRoute>
+                        <ProtectedRoute requireAdmin>
                           <AdminPortal />
                         </ProtectedRoute>
                       ) : protectedReleaseRedirect
