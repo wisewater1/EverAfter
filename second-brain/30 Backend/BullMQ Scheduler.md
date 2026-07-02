@@ -43,7 +43,7 @@ flowchart TD
 
 Details worth remembering:
 
-- **Consent gating happens twice.** The schedule worker skips users with no unrevoked `Consent` for purpose `train` or `project` (`server/workers/scheduler.ts:40-53`); `runRaphael()` then re-checks `train` consent before writing engrams. Consent rows live in the [[Prisma Schema]] and are checked through `server/lib/consent.ts`.
+- **Consent gating happens twice.** The schedule worker skips users with no unrevoked `Consent` for purpose `train` or `project` (`server/workers/scheduler.ts:40-53`); `runRaphael()` then re-checks `train` consent before writing engrams. Consent rows live in the [[Prisma Schema]]; the schedule worker queries them directly via Prisma (revocation only — it ignores `expiresAt` and `interactionCap`), while `runRaphael()`'s re-check goes through `checkConsent()` in `server/lib/consent.ts`, which enforces both.
 - **Retry policy**: `agent-run` jobs get `attempts: 2` with exponential backoff starting at 5s; Terra ingest jobs (from the webhook route) get `attempts: 3` starting at 2s.
 - **Run bookkeeping**: each execution creates an `AgentRun` row (`status: running → completed/failed`, `tokensUsed`, `steps` JSON) — the [[Autonomous Task System]]'s Prisma-side counterpart to the Supabase task tables.
 - Completion/failure of both workers is logged via `.on('completed')` / `.on('failed')` handlers.
@@ -67,7 +67,7 @@ In production mode the scheduler starts **in-process** with the Express server: 
 - `server/api/connections/webhooks.ts` — producer for the (unconsumed) `ingest-terra` queue
 - `agents/raphael/manifest.json` — agent id `raphael.healer.v1`, cron default `0 9 * * *`, guardrails
 - `agents/raphael/runner.ts` — `runRaphael()` executed by the `agent-run` worker
-- `server/lib/consent.ts` — consent lookups used by the schedule worker
+- `server/lib/consent.ts` — `checkConsent()` used by `runRaphael()`'s engram-write gate (the schedule worker queries Prisma directly)
 
 ## Related
 

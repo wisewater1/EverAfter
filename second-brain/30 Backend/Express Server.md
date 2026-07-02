@@ -65,12 +65,12 @@ flowchart TD
 `POST /api/webhooks/terra` verifies the `terra-signature` header (HMAC-SHA256 with `TERRA_WEBHOOK_SECRET`) — part of the broader [[Webhook Signature Verification]] story — then enqueues the payload onto a BullMQ queue named `ingest-terra` (3 attempts, exponential backoff) and writes an audit row. See [[Webhook Ingestion Pipeline]] for the end-to-end picture.
 
 > [!warning] Two ingestion gaps in the webhook path
-> 1. If `TERRA_WEBHOOK_SECRET` is unset, `verifyTerraWebhook()` returns `true` — unsigned webhooks are accepted silently (`server/api/connections/webhooks.ts:25-29`).
+> 1. Verification is easy to bypass: if `TERRA_WEBHOOK_SECRET` is unset, `verifyTerraWebhook()` returns `true` (`server/api/connections/webhooks.ts:25-29`), and the route only verifies when a `terra-signature` header is present (`if (signature && ...)`, line 46) — a request that simply omits the header is accepted even with the secret set.
 > 2. Nothing in the repo consumes the `ingest-terra` queue — `server/workers/scheduler.ts` only creates workers for `agent-schedule` and `agent-run`. Queued Terra payloads are never turned into `Metric` rows by this server.
 
 ### Consent and audit libraries
 
-- `server/lib/consent.ts` — `checkConsent(userId, purpose)` finds a non-revoked, non-expired `Consent` row for the purpose, enforces `interactionCap`, and **increments `usageCount` as a side effect** on every successful check. Also exports `grantConsent`, `revokeConsent`, `listConsents`. Used by the Raphael routes, `agents/raphael/*`, and the scheduler.
+- `server/lib/consent.ts` — `checkConsent(userId, purpose)` finds a non-revoked, non-expired `Consent` row for the purpose, enforces `interactionCap`, and **increments `usageCount` as a side effect** on every successful check. Also exports `grantConsent`, `revokeConsent`, `listConsents`. Used by the Raphael log route and `agents/raphael/runner.ts`; the scheduler's fan-out worker does **not** go through it — it queries the `Consent` table directly via Prisma.
 - `server/lib/audit.ts` — `createAuditLog()` writes an `AuditLog` row with a SHA-256 hash of the metadata JSON; `getAuditTrail()` reads back. Relevant to [[PHI Handling]] since it logs actions, not payloads.
 
 > [!note] The `AuditLog` model defines hash-chain fields (`prevHash`, `signature`, `signerId`) in `prisma/schema.prisma:128-131`, but `createAuditLog()` never populates them — the cryptographic chaining is schema-only today.

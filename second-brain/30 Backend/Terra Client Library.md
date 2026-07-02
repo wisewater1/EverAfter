@@ -42,7 +42,7 @@ Incoming data after connection arrives via Terra webhooks handled in `server/api
 > [!warning] Three Terra implementations coexist — don't confuse them
 > - `server/lib/terra-client.ts` — this Node/axios class (auth: `TERRA_API_KEY` + `TERRA_DEV_ID`).
 > - `src/lib/terra-client.ts` — a separate, larger frontend module (~449 lines) that talks to Supabase Edge Functions and includes its own webhook-signature helper. Same filename, different codebase layer.
-> - `supabase/functions/terra-widget`, `terra-webhook`, `webhook-terra`, `terra-backfill`, `terra-test` — the Deno Edge Function suite (auth: `TERRA_CLIENT_ID`/`TERRA_CLIENT_SECRET` secrets per `CLAUDE.md`).
+> - `supabase/functions/terra-widget`, `terra-webhook`, `webhook-terra`, `terra-backfill`, `terra-test` — the Deno Edge Function suite. Despite `CLAUDE.md` documenting `TERRA_CLIENT_ID`/`TERRA_CLIENT_SECRET` secrets, the function code reads `TERRA_API_KEY`, `TERRA_DEV_ID`, and `TERRA_WEBHOOK_SECRET` — the same credentials as this Node client.
 > When changing Terra behavior, confirm which layer actually serves your flow; the [[Dual Backend System]] note explains the split.
 
 > [!note] The class has no retry, rate-limit, or token-refresh logic, and `getUserData` responses are untyped `any`. Refreshing expired `Source.accessToken` values is not implemented anywhere in `server/` — see [[Connection Rotation]] for how token freshness is supposed to be handled platform-wide.
