@@ -62,7 +62,10 @@ AS $$
   );
 $$;
 
-REVOKE ALL ON FUNCTION is_platform_admin() FROM PUBLIC;
+-- Revoke from PUBLIC *and* anon explicitly: Supabase's default privileges
+-- auto-grant EXECUTE on new public functions to the anon role, which a bare
+-- REVOKE ... FROM PUBLIC does not remove.
+REVOKE ALL ON FUNCTION is_platform_admin() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION is_platform_admin() TO authenticated;
 
 -- 3. create_user_manually — service-role only --------------------------------
