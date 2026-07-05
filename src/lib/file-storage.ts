@@ -166,6 +166,21 @@ export async function getFileUrl(fileId: string, expiresIn: number = 3600): Prom
 }
 
 /**
+ * Sign a storage path directly (for callers that persisted the bucket
+ * file_path rather than the user_files row id, e.g. Legacy Vault
+ * attachments). Returns a short-lived signed URL for the private bucket.
+ */
+export async function getSignedUrlForPath(
+  filePath: string,
+  bucket: string = 'user-files',
+  expiresIn: number = 3600,
+): Promise<string> {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(filePath, expiresIn);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/**
  * Delete a file
  */
 export async function deleteFile(fileId: string): Promise<void> {
