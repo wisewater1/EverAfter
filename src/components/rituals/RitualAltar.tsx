@@ -1,542 +1,820 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Sparkles, Users, BookOpen, ChevronRight, Play, CheckCircle, Brain, X, Clock } from 'lucide-react';
-import AkashicStream from './AkashicStream';
-import { supabase } from '../../lib/supabase';
-import { getFamilyMembers, type FamilyMember } from '../../lib/joseph/genealogy';
+import {
+    Archive,
+    ArrowLeft,
+    Calendar,
+    CheckCircle,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronUp,
+    Flame,
+    MapPin,
+    Pencil,
+    Play,
+    Plus,
+    Sparkles,
+    Trash2,
+    Users,
+    X,
+} from 'lucide-react';
+import {
+    describeRelationship,
+    findRelationshipPath,
+    getFamilyMembers,
+    type FamilyMember,
+} from '../../lib/joseph/genealogy';
+import {
+    archiveCeremony,
+    buildCeremonyScript,
+    completeCeremony,
+    createCeremony,
+    updateCeremony,
+    listCeremonies,
+    type Ceremony,
+    type CeremonyStatus,
+    type CeremonyStep,
+    type CeremonyType,
+} from '../../lib/ceremonies/ceremonies';
+import { useNotification } from '../../contexts/NotificationContext';
 
-interface RitualStep {
-    actor: string;
-    action: string;
-    dialogue?: string;
-}
+type ViewMode = 'list' | 'form' | 'conduct';
 
-interface RitualScript {
+const CEREMONY_TYPES: { value: CeremonyType; label: string }[] = [
+    { value: 'remembrance', label: 'Remembrance' },
+    { value: 'gratitude', label: 'Gratitude' },
+    { value: 'blessing', label: 'Blessing' },
+    { value: 'milestone', label: 'Milestone' },
+    { value: 'legacy', label: 'Legacy' },
+    { value: 'seasonal', label: 'Seasonal' },
+    { value: 'custom', label: 'Custom' },
+];
+
+const inputClass =
+    'w-full min-h-11 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-amber-50 placeholder:text-amber-100/30 transition-colors focus:border-amber-500/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60';
+
+interface CeremonyFormState {
     title: string;
     description: string;
-    steps: RitualStep[];
+    ceremonyType: CeremonyType;
+    scheduledDate: string;
+    scheduledTime: string;
+    durationMinutes: string;
+    location: string;
+    honoreeMemberId: string;
+    participantMemberIds: string[];
+    script: CeremonyStep[];
 }
 
+function ceremonyTypeLabel(type: CeremonyType): string {
+    return CEREMONY_TYPES.find((option) => option.value === type)?.label ?? 'Ceremony';
+}
 
+function memberDisplayName(member: FamilyMember): string {
+    return `${member.firstName} ${member.lastName}`.trim();
+}
 
-export default function RitualAltar() {
-    const [ritualType, setRitualType] = useState('morning_prayer');
-    const [context, setContext] = useState('');
-    const [participants, setParticipants] = useState<string[]>(['joseph']);
-    const [ancestorId, setAncestorId] = useState<string | null>(null);
-    const [ancestors, setAncestors] = useState<any[]>([]);
-    const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-    const [script, setScript] = useState<RitualScript | null>(null);
-    const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isCandleLit, setIsCandleLit] = useState(false);
-    const [showAkashic, setShowAkashic] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
-    const [ritualHistory, setRitualHistory] = useState<any[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [sacredState, setSacredState] = useState<any>({
-        active_guardian_id: null,
-        glow_intensity: 0.5,
-        transition_speed: 10
-    });
-    const [biometricBPM, setBiometricBPM] = useState(60);
-    const [isInvocationOpen, setIsInvocationOpen] = useState(false);
+function findMemberByClientId(members: FamilyMember[], clientId: string | undefined): FamilyMember | undefined {
+    if (!clientId) return undefined;
+    return members.find((member) => member.id === clientId);
+}
 
-    const getAuthHeaders = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token ? {
-            Authorization: `Bearer ${session.access_token}`
-        } : {};
+function toDateInputValue(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function toTimeInputValue(date: Date): string {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+function combineDateAndTime(dateValue: string, timeValue: string): Date | null {
+    if (!dateValue) return null;
+    const time = timeValue || '09:00';
+    const combined = new Date(`${dateValue}T${time}:00`);
+    return Number.isNaN(combined.getTime()) ? null : combined;
+}
+
+function emptyFormState(): CeremonyFormState {
+    return {
+        title: '',
+        description: '',
+        ceremonyType: 'remembrance',
+        scheduledDate: '',
+        scheduledTime: '',
+        durationMinutes: '',
+        location: '',
+        honoreeMemberId: '',
+        participantMemberIds: [],
+        script: buildCeremonyScript('remembrance'),
     };
+}
 
-    React.useEffect(() => {
-        const initAltar = async () => {
-            try {
-                setError(null);
+function formStateFromCeremony(ceremony: Ceremony): CeremonyFormState {
+    const scheduled = ceremony.scheduledAt ? new Date(ceremony.scheduledAt) : null;
+    const validScheduled = scheduled && !Number.isNaN(scheduled.getTime()) ? scheduled : null;
 
-                // Fetch ancestors from Supabase (non-blocking)
-                try {
-                    const { data: aiData } = await supabase.from('archetypal_ais').select('id, name');
-                    if (aiData) setAncestors(aiData);
-                } catch {
-                    // Supabase unavailable — that's fine
-                }
-
-                // Load family members from local genealogy store
-                try {
-                    const members = getFamilyMembers();
-                    setFamilyMembers(members);
-                } catch {
-                    // No family data yet
-                }
-
-                // Load sacred state (non-blocking)
-                try {
-                    const headers = await getAuthHeaders();
-                    const res = await axios.get('/api/v1/sacred/state', { headers });
-                    if (res.data) {
-                        setIsCandleLit(res.data.is_candle_lit ?? false);
-                        setSacredState(res.data);
-                    }
-                } catch {
-                    // Sacred state unavailable — default values already set
-                }
-
-                // Load ritual history (non-blocking)
-                try {
-                    const headers = await getAuthHeaders();
-                    const res = await axios.get('/api/v1/rituals/history?limit=10', { headers });
-                    if (res.data?.history) setRitualHistory(res.data.history);
-                } catch {
-                    // History unavailable — that's OK
-                }
-
-            } catch (err) {
-                console.error("Failed to initialize Altar state", err);
-                setError("Lost contact with the sacred servers. Please check your connection.");
-            }
-        };
-
-        const fetchState = async () => {
-            try {
-                const headers = await getAuthHeaders();
-                const res = await axios.get('/api/v1/sacred/state', { headers });
-                if (res.data) {
-                    setIsCandleLit(res.data.is_candle_lit ?? false);
-                    setSacredState(res.data);
-                }
-            } catch (err) {
-                console.warn("Failed to poll sacred state", err);
-            }
-        };
-
-        initAltar();
-        const poll = setInterval(fetchState, 15000); // 15s poll
-        return () => clearInterval(poll);
-    }, []);
-
-    const toggleCandle = async () => {
-        const newState = !isCandleLit;
-        setIsCandleLit(newState);
-        try {
-            const headers = await getAuthHeaders();
-            await axios.post('/api/v1/sacred/state', { is_candle_lit: newState }, { headers });
-        } catch (err) {
-            console.error("Failed to sync candle state", err);
-        }
+    return {
+        title: ceremony.title,
+        description: ceremony.description ?? '',
+        ceremonyType: ceremony.ceremonyType,
+        scheduledDate: validScheduled ? toDateInputValue(validScheduled) : '',
+        scheduledTime: validScheduled ? toTimeInputValue(validScheduled) : '',
+        durationMinutes: ceremony.durationMinutes ? String(ceremony.durationMinutes) : '',
+        location: ceremony.location ?? '',
+        honoreeMemberId: ceremony.honoreeMemberId ?? '',
+        participantMemberIds: ceremony.participantMemberIds,
+        script: ceremony.script.length > 0 ? ceremony.script : buildCeremonyScript(ceremony.ceremonyType),
     };
+}
 
-    const toggleParticipant = (id: string) => {
-        if (participants.includes(id)) {
-            setParticipants(participants.filter(p => p !== id));
-        } else {
-            setParticipants([...participants, id]);
-        }
-    };
+interface CeremonyCardProps {
+    ceremony: Ceremony;
+    familyMembers: FamilyMember[];
+    onBegin?: () => void;
+    onEdit?: () => void;
+    onArchive?: () => void;
+}
 
-    const generateRitual = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const headers = await getAuthHeaders();
-
-            // Resolve `family:xxx` participant IDs to readable names for the backend
-            const resolvedParticipants = participants.map(p => {
-                if (p.startsWith('family:')) {
-                    const memberId = p.replace('family:', '');
-                    const member = familyMembers.find(m => m.id === memberId);
-                    return member ? `${member.firstName} ${member.lastName}` : p;
-                }
-                return p; // saints keep their IDs
-            });
-
-            const res = await axios.post('/api/v1/rituals/generate', {
-                ritual_type: ritualType,
-                context: context,
-                participants: resolvedParticipants,
-                ancestor_id: ancestorId
-            }, { headers });
-            setScript(res.data);
-            setCurrentStepIndex(-1);
-        } catch (error) {
-            console.error("Failed to generate ritual", error);
-            setError("The ritual engine failed to ignite. Check your intention and try again.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const nextStep = async () => {
-        if (!script) return;
-        if (currentStepIndex < script.steps.length - 1) {
-            setCurrentStepIndex(currentStepIndex + 1);
-        } else {
-            // Complete — send full payload for persistence
-            try {
-                const headers = await getAuthHeaders();
-                const _result = await axios.post('/api/v1/rituals/complete', {
-                    title: script.title,
-                    ritual_type: ritualType,
-                    participants,
-                    steps_count: script.steps.length,
-                }, { headers });
-                // Refresh history
-                const histRes = await axios.get('/api/v1/rituals/history?limit=10', { headers });
-                if (histRes.data?.history) setRitualHistory(histRes.data.history);
-            } catch (err) {
-                console.error("Failed to log completion", err);
-            }
-            setCurrentStepIndex(script.steps.length); // Finished state
-        }
-    };
-
-    const getAvatar = (actor: string) => {
-        if (actor === 'system') return '🔮';
-        const saintMap: any = { joseph: '🔨', michael: '⚔️', raphael: '🌿', gabriel: '📣', user: '👤' };
-        if (saintMap[actor]) return saintMap[actor];
-        // Family member names — show initials
-        const parts = actor.split(' ');
-        if (parts.length >= 2) {
-            return parts.map(p => p[0]).join('').toUpperCase();
-        }
-        return '✨';
-    };
-
-    const SAINTS = [
-        { id: 'joseph', emoji: '🔨', label: 'Joseph' },
-        { id: 'michael', emoji: '⚔️', label: 'Michael' },
-        { id: 'raphael', emoji: '🌿', label: 'Raphael' },
-        { id: 'gabriel', emoji: '📣', label: 'Gabriel' },
-    ];
-
-    // Minimalistic HSL Drift for Ancestral Presence
-    const guardianColors: any = {
-        'raphael': '142, 70%, 50%', // Healing Green
-        'michael': '217, 91%, 60%', // Protection Blue
-        'joseph': '35, 92%, 50%',   // Legacy Amber
-        'gabriel': '280, 80%, 60%', // Message Purple
-        'default': '35, 92%, 50%'
-    };
-
-    const activeColor = useMemo(() => {
-        return guardianColors[sacredState.active_guardian_id] || guardianColors['default'];
-    }, [sacredState.active_guardian_id]);
-
-    // Simulate Biometric Sync (Heartbeat)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Simulated subtle BPM drift if biometric mode is on
-            if (sacredState.biometric_mode) {
-                setBiometricBPM(prev => Math.max(55, Math.min(85, prev + (Math.random() - 0.5) * 2)));
-            }
-        }, 2000);
-        return () => clearInterval(interval);
-    }, [sacredState.biometric_mode]);
+function CeremonyCard({ ceremony, familyMembers, onBegin, onEdit, onArchive }: CeremonyCardProps) {
+    const honoree = findMemberByClientId(familyMembers, ceremony.honoreeMemberId);
+    const scheduled = ceremony.scheduledAt ? new Date(ceremony.scheduledAt) : null;
+    const validScheduled = scheduled && !Number.isNaN(scheduled.getTime()) ? scheduled : null;
+    const isPastDue = Boolean(validScheduled && validScheduled.getTime() < Date.now() && ceremony.status === 'scheduled');
 
     return (
-        <div className="min-h-[100dvh] bg-black text-amber-100 p-6 flex flex-col items-center justify-center relative overflow-hidden font-serif">
-            {/* Minimalist Presence Aura Overlay */}
-            <div
-                className="absolute inset-0 pointer-events-none transition-colors duration-[10000ms] ease-in-out opacity-[0.15]"
-                style={{
-                    background: `radial-gradient(circle at 50% 50%, hsla(${activeColor}, 0.8) 0%, transparent 70%)`
-                }}
-            />
-
-            {/* Biometric Breathing Pulse */}
-            <div
-                className="absolute inset-0 pointer-events-none flex items-center justify-center"
-                style={{
-                    animation: `pulse ${60 / biometricBPM}s infinite ease-in-out`
-                }}
-            >
-                <div
-                    className="w-[100vw] h-[100vw] rounded-full opacity-[0.03] transition-colors duration-[5000ms]"
-                    style={{
-                        background: `radial-gradient(circle, hsla(${activeColor}, 1) 0%, transparent 60%)`
-                    }}
-                />
+        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-amber-500/20">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                            <Flame className="h-3 w-3" />
+                            {ceremonyTypeLabel(ceremony.ceremonyType)}
+                        </span>
+                        {isPastDue && (
+                            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-amber-200/70">
+                                This date has passed
+                            </span>
+                        )}
+                    </div>
+                    <h3 className="text-lg font-medium text-amber-50">{ceremony.title}</h3>
+                    {honoree && <p className="text-sm text-amber-200/60">In honor of {memberDisplayName(honoree)}</p>}
+                </div>
+                {onArchive && (
+                    <button
+                        type="button"
+                        onClick={onArchive}
+                        title="Archive this ceremony"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-amber-200/50 transition-colors hover:border-white/20 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                    >
+                        <Archive className="h-4 w-4" />
+                    </button>
+                )}
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                @keyframes pulse {
-                    0% { transform: scale(0.95); opacity: 0.8; }
-                    50% { transform: scale(1.05); opacity: 1; }
-                    100% { transform: scale(0.95); opacity: 0.8; }
-                }
-            `}} />
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-amber-200/60">
+                {validScheduled && (
+                    <span className="inline-flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {validScheduled.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                        {' at '}
+                        {validScheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                )}
+                {ceremony.location && (
+                    <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {ceremony.location}
+                    </span>
+                )}
+                <span className="inline-flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" />
+                    {ceremony.participantMemberIds.length} participant{ceremony.participantMemberIds.length === 1 ? '' : 's'}
+                </span>
+            </div>
 
-            <div className="max-w-4xl w-full z-10 space-y-12">
+            {ceremony.status === 'completed' && (
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3 text-sm italic text-amber-100/80">
+                    {ceremony.reflection ? `"${ceremony.reflection}"` : 'This ceremony was completed without a written reflection.'}
+                </div>
+            )}
 
-                {/* Header / Setup Phase */}
-                {!script && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-700">
-                        <div className="text-center space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-amber-600">
-                                    The Digital Altar
+            {(onBegin || onEdit) && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                    {onBegin && (
+                        <button
+                            type="button"
+                            onClick={onBegin}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                        >
+                            <Play className="h-4 w-4" />
+                            Begin Ceremony
+                        </button>
+                    )}
+                    {onEdit && (
+                        <button
+                            type="button"
+                            onClick={onEdit}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-amber-100 transition-colors hover:border-amber-500/30 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                        >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                        </button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default function RitualAltar() {
+    const { showNotification } = useNotification();
+
+    const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+    const [ceremonies, setCeremonies] = useState<Ceremony[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [view, setView] = useState<ViewMode>('list');
+    const [showArchived, setShowArchived] = useState(false);
+
+    const [editingCeremonyId, setEditingCeremonyId] = useState<string | null>(null);
+    const [formState, setFormState] = useState<CeremonyFormState>(emptyFormState());
+    const [formError, setFormError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [suggestingScript, setSuggestingScript] = useState(false);
+
+    const [conductCeremony, setConductCeremony] = useState<Ceremony | null>(null);
+    const [conductStepIndex, setConductStepIndex] = useState(-1);
+    const [reflectionDraft, setReflectionDraft] = useState('');
+    const [completing, setCompleting] = useState(false);
+    const [showParticipantsPanel, setShowParticipantsPanel] = useState(false);
+
+    const loadCeremonies = async () => {
+        try {
+            const result = await listCeremonies();
+            setCeremonies(result);
+        } catch (error) {
+            showNotification(error instanceof Error ? error.message : 'We could not load your ceremonies.', 'error');
+        }
+    };
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            setLoading(true);
+            try {
+                setFamilyMembers(getFamilyMembers());
+            } catch {
+                // No family data yet — the form still works with an empty list.
+            }
+            await loadCeremonies();
+            if (mounted) setLoading(false);
+        })();
+        return () => {
+            mounted = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        const handleHydrated = () => setFamilyMembers(getFamilyMembers());
+        window.addEventListener('everafter:genealogy-hydrated', handleHydrated);
+        return () => window.removeEventListener('everafter:genealogy-hydrated', handleHydrated);
+    }, []);
+
+    const grouped = useMemo(() => {
+        const upcoming = ceremonies
+            .filter((c) => c.status === 'scheduled')
+            .sort((a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime());
+        const drafts = ceremonies
+            .filter((c) => c.status === 'draft')
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        const completed = ceremonies
+            .filter((c) => c.status === 'completed')
+            .sort((a, b) => new Date(b.completedAt ?? b.updatedAt).getTime() - new Date(a.completedAt ?? a.updatedAt).getTime());
+        const archived = ceremonies
+            .filter((c) => c.status === 'archived')
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        return { upcoming, drafts, completed, archived };
+    }, [ceremonies]);
+
+    const openCreateForm = () => {
+        setEditingCeremonyId(null);
+        setFormState(emptyFormState());
+        setFormError(null);
+        setView('form');
+    };
+
+    const openEditForm = (ceremony: Ceremony) => {
+        setEditingCeremonyId(ceremony.id);
+        setFormState(formStateFromCeremony(ceremony));
+        setFormError(null);
+        setView('form');
+    };
+
+    const closeForm = () => {
+        setView('list');
+        setEditingCeremonyId(null);
+        setFormError(null);
+    };
+
+    const updateStep = (index: number, patch: Partial<CeremonyStep>) => {
+        setFormState((prev) => ({
+            ...prev,
+            script: prev.script.map((step, i) => (i === index ? { ...step, ...patch } : step)),
+        }));
+    };
+
+    const addStep = () => {
+        setFormState((prev) => ({
+            ...prev,
+            script: [...prev.script, { title: `Step ${prev.script.length + 1}`, text: '' }],
+        }));
+    };
+
+    const removeStep = (index: number) => {
+        setFormState((prev) => ({ ...prev, script: prev.script.filter((_, i) => i !== index) }));
+    };
+
+    const moveStep = (index: number, direction: -1 | 1) => {
+        setFormState((prev) => {
+            const nextIndex = index + direction;
+            if (nextIndex < 0 || nextIndex >= prev.script.length) return prev;
+            const script = [...prev.script];
+            const [moved] = script.splice(index, 1);
+            script.splice(nextIndex, 0, moved);
+            return { ...prev, script };
+        });
+    };
+
+    const applySuggestedScript = () => {
+        setFormState((prev) => {
+            const honoree = findMemberByClientId(familyMembers, prev.honoreeMemberId);
+            return { ...prev, script: buildCeremonyScript(prev.ceremonyType, honoree ? memberDisplayName(honoree) : undefined) };
+        });
+    };
+
+    const toggleParticipant = (memberId: string) => {
+        setFormState((prev) => ({
+            ...prev,
+            participantMemberIds: prev.participantMemberIds.includes(memberId)
+                ? prev.participantMemberIds.filter((id) => id !== memberId)
+                : [...prev.participantMemberIds, memberId],
+        }));
+    };
+
+    // Optional, best-effort enhancement only. buildCeremonyScript() above is
+    // always the first-class script; when this backend suggestion is
+    // unavailable or fails, it fails silently and the template stands.
+    const tryAlternateScript = async () => {
+        setSuggestingScript(true);
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 4000);
+        try {
+            const honoree = findMemberByClientId(familyMembers, formState.honoreeMemberId);
+            const participantNames = formState.participantMemberIds
+                .map((id) => findMemberByClientId(familyMembers, id))
+                .filter((member): member is FamilyMember => Boolean(member))
+                .map(memberDisplayName);
+
+            const response = await axios.post(
+                '/api/v1/rituals/generate',
+                {
+                    ritual_type: formState.ceremonyType,
+                    context: formState.description,
+                    participants: participantNames,
+                    ancestor_id: honoree ? honoree.id : null,
+                },
+                { signal: controller.signal },
+            );
+
+            const rawSteps = Array.isArray(response.data?.steps) ? response.data.steps : [];
+            const mapped: CeremonyStep[] = rawSteps
+                .map((step: { title?: string; actor?: string; dialogue?: string; action?: string }, index: number) => ({
+                    title: step.title || step.actor || `Step ${index + 1}`,
+                    text: step.dialogue || step.action || '',
+                }))
+                .filter((step: CeremonyStep) => step.text.trim().length > 0);
+
+            if (mapped.length > 0) {
+                setFormState((prev) => ({ ...prev, script: mapped }));
+                showNotification('Loaded an alternate script suggestion.', 'success');
+            }
+        } catch {
+            // Silent by design — the suggested template is already in place.
+        } finally {
+            window.clearTimeout(timeoutId);
+            setSuggestingScript(false);
+        }
+    };
+
+    const handleSave = async (status: Extract<CeremonyStatus, 'draft' | 'scheduled'>) => {
+        setFormError(null);
+        const title = formState.title.trim();
+        if (!title) {
+            setFormError('Give the ceremony a title before saving.');
+            return;
+        }
+
+        const combined = combineDateAndTime(formState.scheduledDate, formState.scheduledTime);
+        if (status === 'scheduled') {
+            if (!combined) {
+                setFormError('Choose a date for the ceremony before scheduling it.');
+                return;
+            }
+            if (combined.getTime() <= Date.now()) {
+                setFormError('Choose a date and time in the future to schedule this ceremony.');
+                return;
+            }
+        }
+
+        const durationMinutes = formState.durationMinutes.trim() ? Number(formState.durationMinutes) : undefined;
+        if (durationMinutes !== undefined && (!Number.isFinite(durationMinutes) || durationMinutes <= 0)) {
+            setFormError('Duration should be a positive number of minutes.');
+            return;
+        }
+
+        const trimmedSteps = formState.script
+            .map((step) => ({ title: step.title.trim(), text: step.text.trim() }))
+            .filter((step) => step.title.length > 0 || step.text.length > 0);
+
+        setSaving(true);
+        try {
+            if (editingCeremonyId) {
+                const updated = await updateCeremony(editingCeremonyId, {
+                    title,
+                    description: formState.description,
+                    ceremonyType: formState.ceremonyType,
+                    scheduledAt: combined ? combined.toISOString() : null,
+                    durationMinutes: durationMinutes ?? null,
+                    location: formState.location,
+                    honoreeMemberId: formState.honoreeMemberId || null,
+                    participantMemberIds: formState.participantMemberIds,
+                    script: trimmedSteps,
+                    status,
+                });
+                setCeremonies((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+            } else {
+                const created = await createCeremony({
+                    title,
+                    description: formState.description,
+                    ceremonyType: formState.ceremonyType,
+                    scheduledAt: combined ? combined.toISOString() : undefined,
+                    durationMinutes,
+                    location: formState.location,
+                    honoreeMemberId: formState.honoreeMemberId || undefined,
+                    participantMemberIds: formState.participantMemberIds,
+                    script: trimmedSteps,
+                    status,
+                });
+                setCeremonies((prev) => [created, ...prev]);
+            }
+            showNotification(status === 'scheduled' ? 'Ceremony scheduled.' : 'Saved as a draft.', 'success');
+            setView('list');
+            setEditingCeremonyId(null);
+        } catch (error) {
+            showNotification(error instanceof Error ? error.message : 'We could not save this ceremony.', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleArchive = async (ceremony: Ceremony) => {
+        if (!window.confirm(`Move "${ceremony.title}" to the archive?`)) return;
+        try {
+            await archiveCeremony(ceremony.id);
+            setCeremonies((prev) => prev.map((c) => (c.id === ceremony.id ? { ...c, status: 'archived' } : c)));
+            showNotification('Ceremony archived.', 'success');
+        } catch (error) {
+            showNotification(error instanceof Error ? error.message : 'We could not archive this ceremony.', 'error');
+        }
+    };
+
+    const beginCeremony = (ceremony: Ceremony) => {
+        setConductCeremony(ceremony);
+        setConductStepIndex(-1);
+        setReflectionDraft('');
+        setShowParticipantsPanel(false);
+        setView('conduct');
+    };
+
+    const exitConduct = () => {
+        setConductCeremony(null);
+        setConductStepIndex(-1);
+        setReflectionDraft('');
+        setView('list');
+    };
+
+    const nextConductStep = () => {
+        if (!conductCeremony) return;
+        setConductStepIndex((prev) => Math.min(prev + 1, conductCeremony.script.length));
+    };
+
+    const prevConductStep = () => {
+        setConductStepIndex((prev) => Math.max(prev - 1, -1));
+    };
+
+    const handleCompleteCeremony = async () => {
+        if (!conductCeremony) return;
+        setCompleting(true);
+        try {
+            const completed = await completeCeremony(conductCeremony.id, reflectionDraft);
+            setCeremonies((prev) => prev.map((c) => (c.id === completed.id ? completed : c)));
+            showNotification('Ceremony completed and added to the family Chronicle.', 'success');
+            exitConduct();
+        } catch (error) {
+            showNotification(error instanceof Error ? error.message : 'We could not complete this ceremony.', 'error');
+        } finally {
+            setCompleting(false);
+        }
+    };
+
+    const conductParticipants = useMemo(() => {
+        if (!conductCeremony) return [] as { id: string; name: string; role: string }[];
+
+        const honoree = findMemberByClientId(familyMembers, conductCeremony.honoreeMemberId);
+        const entries: { id: string; name: string; role: string }[] = [];
+
+        if (conductCeremony.honoreeMemberId) {
+            entries.push({
+                id: conductCeremony.honoreeMemberId,
+                name: honoree ? memberDisplayName(honoree) : 'Family member',
+                role: 'Honoree',
+            });
+        }
+
+        for (const memberId of conductCeremony.participantMemberIds) {
+            if (memberId === conductCeremony.honoreeMemberId) continue;
+            const member = findMemberByClientId(familyMembers, memberId);
+            if (!member) {
+                entries.push({ id: memberId, name: 'Family member', role: 'Participant' });
+                continue;
+            }
+            const path = honoree ? findRelationshipPath(honoree.id, member.id) : null;
+            const role = path && path.length > 0 ? describeRelationship(path) : member.aiPersonality?.familyRole || 'Participant';
+            entries.push({ id: member.id, name: memberDisplayName(member), role });
+        }
+
+        return entries;
+    }, [conductCeremony, familyMembers]);
+
+    return (
+        <div className="min-h-[100dvh] bg-black px-4 py-8 text-amber-100 sm:px-6 sm:py-10 md:px-10">
+            <div
+                className="pointer-events-none fixed inset-0 opacity-[0.15]"
+                style={{ background: 'radial-gradient(circle at 50% 15%, hsla(35, 92%, 50%, 0.8) 0%, transparent 70%)' }}
+            />
+
+            <div className="relative mx-auto w-full max-w-5xl">
+                {view === 'list' && (
+                    <div className="space-y-10 animate-in fade-in duration-500">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h1 className="text-3xl font-light tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-amber-600 sm:text-4xl">
+                                    Ceremonies
                                 </h1>
-                                {ritualHistory.length > 0 && (
-                                    <button
-                                        onClick={() => setShowHistory(!showHistory)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-amber-400/70 hover:text-amber-300 hover:border-amber-500/30 text-xs transition-all"
-                                    >
-                                        <Clock className="w-3.5 h-3.5" />
-                                        History ({ritualHistory.length})
-                                    </button>
-                                )}
+                                <p className="mt-2 max-w-xl text-sm text-amber-200/60 sm:text-base">
+                                    Plan gatherings that honor your family's passing, gratitude, and legacy, at whatever pace feels right.
+                                </p>
                             </div>
-                            <p className="text-amber-300/60 text-lg">
-                                Design a sacred moment with your digital guardians.
-                            </p>
+                            <button
+                                type="button"
+                                onClick={openCreateForm}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                            >
+                                <Plus className="h-4 w-4" />
+                                New Ceremony
+                            </button>
                         </div>
 
-                        {error && (
-                            <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl text-rose-400 text-sm text-center animate-in fade-in zoom-in duration-300">
-                                {error}
+                        {loading && ceremonies.length === 0 && (
+                            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center text-sm text-amber-200/50">
+                                Gathering your ceremonies...
                             </div>
                         )}
 
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">Ritual Type</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {['morning_prayer', 'reflection', 'crisis_intercession', 'affirmation'].map(type => (
-                                            <button
-                                                key={type}
-                                                onClick={() => setRitualType(type)}
-                                                className={`p-3 rounded-lg border text-sm capitalize transition-all ${ritualType === type
-                                                    ? 'bg-amber-500/20 border-amber-500 text-amber-200'
-                                                    : 'border-white/10 text-slate-400 hover:border-amber-500/50'
-                                                    }`}
-                                            >
-                                                {type.replace('_', ' ')}
-                                            </button>
+                        {!loading && ceremonies.length === 0 && (
+                            <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center sm:p-16">
+                                <Flame className="mx-auto h-10 w-10 text-amber-500/50" />
+                                <h3 className="mt-4 text-xl text-amber-100">Plan your family's first ceremony</h3>
+                                <p className="mx-auto mt-2 max-w-md text-sm text-amber-200/60">
+                                    A ceremony can be as simple as a shared memory or as considered as a legacy hand-off to a designated
+                                    successor. Whenever you are ready, it starts here.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={openCreateForm}
+                                    className="mx-auto mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Create your first ceremony
+                                </button>
+                            </div>
+                        )}
+
+                        {grouped.upcoming.length > 0 && (
+                            <section className="space-y-4">
+                                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-500/70">Upcoming</h2>
+                                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                    {grouped.upcoming.map((ceremony) => (
+                                        <CeremonyCard
+                                            key={ceremony.id}
+                                            ceremony={ceremony}
+                                            familyMembers={familyMembers}
+                                            onBegin={() => beginCeremony(ceremony)}
+                                            onEdit={() => openEditForm(ceremony)}
+                                            onArchive={() => handleArchive(ceremony)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {grouped.drafts.length > 0 && (
+                            <section className="space-y-4">
+                                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-500/70">Drafts</h2>
+                                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                    {grouped.drafts.map((ceremony) => (
+                                        <CeremonyCard
+                                            key={ceremony.id}
+                                            ceremony={ceremony}
+                                            familyMembers={familyMembers}
+                                            onBegin={() => beginCeremony(ceremony)}
+                                            onEdit={() => openEditForm(ceremony)}
+                                            onArchive={() => handleArchive(ceremony)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {grouped.completed.length > 0 && (
+                            <section className="space-y-4">
+                                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-500/70">Completed</h2>
+                                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                    {grouped.completed.map((ceremony) => (
+                                        <CeremonyCard
+                                            key={ceremony.id}
+                                            ceremony={ceremony}
+                                            familyMembers={familyMembers}
+                                            onArchive={() => handleArchive(ceremony)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {grouped.archived.length > 0 && (
+                            <section className="space-y-3 border-t border-white/5 pt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowArchived((v) => !v)}
+                                    className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium uppercase tracking-[0.2em] text-amber-500/50 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                >
+                                    {showArchived ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                    Archived ({grouped.archived.length})
+                                </button>
+                                {showArchived && (
+                                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                        {grouped.archived.map((ceremony) => (
+                                            <CeremonyCard key={ceremony.id} ceremony={ceremony} familyMembers={familyMembers} />
                                         ))}
                                     </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">Guardian Saints</label>
-                                    <div className="flex gap-3 flex-wrap">
-                                        {SAINTS.map(saint => (
-                                            <button
-                                                key={saint.id}
-                                                onClick={() => toggleParticipant(saint.id)}
-                                                title={saint.label}
-                                                className={`w-12 h-12 rounded-full border flex flex-col items-center justify-center text-xl transition-all ${participants.includes(saint.id)
-                                                    ? 'bg-amber-500/20 border-amber-500 scale-110'
-                                                    : 'border-white/10 opacity-50 grayscale hover:opacity-100'
-                                                    }`}
-                                            >
-                                                {saint.emoji}
-                                                <span className="text-[8px] text-amber-400/60 uppercase">{saint.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {familyMembers.length > 0 && (
-                                        <>
-                                            <label className="text-sm uppercase tracking-widest text-amber-500 font-bold mt-3">Family Members</label>
-                                            <div className="flex gap-2 flex-wrap">
-                                                {familyMembers.map(m => {
-                                                    const pid = `family:${m.id}`;
-                                                    const isSelected = participants.includes(pid);
-                                                    const isDeceased = !!m.deathDate;
-                                                    return (
-                                                        <button
-                                                            key={m.id}
-                                                            onClick={() => toggleParticipant(pid)}
-                                                            title={`${m.firstName} ${m.lastName}${isDeceased ? ' (†)' : ''}`}
-                                                            className={`px-3 py-2 rounded-xl border flex items-center gap-2 text-sm transition-all ${isSelected
-                                                                ? 'bg-amber-500/20 border-amber-500 text-amber-200 scale-105'
-                                                                : 'border-white/10 text-slate-400 hover:border-amber-500/50 hover:text-slate-200'
-                                                                }`}
-                                                        >
-                                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${m.gender === 'male' ? 'bg-sky-500/20 text-sky-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                                                                {m.firstName[0]}{m.lastName[0]}
-                                                            </div>
-                                                            <div className="text-left">
-                                                                <div className="text-xs font-medium">{m.firstName}</div>
-                                                                {isDeceased && <div className="text-[8px] text-slate-600">ancestor</div>}
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-4">
-                                        <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">Commune with Soul</label>
-                                        <select
-                                            value={ancestorId || ''}
-                                            onChange={(e) => setAncestorId(e.target.value || null)}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-amber-100 focus:outline-none focus:border-amber-500/50"
-                                        >
-                                            <option value="">None (Saints Only)</option>
-                                            {familyMembers.length > 0 && (
-                                                <optgroup label="Family Members">
-                                                    {familyMembers.map(m => (
-                                                        <option key={m.id} value={m.id}>
-                                                            {m.firstName} {m.lastName}{m.deathDate ? ' †' : ''}
-                                                        </option>
-                                                    ))}
-                                                </optgroup>
-                                            )}
-                                            {ancestors.length > 0 && (
-                                                <optgroup label="Archetypal AIs">
-                                                    {ancestors.map(a => (
-                                                        <option key={a.id} value={a.id}>{a.name}</option>
-                                                    ))}
-                                                </optgroup>
-                                            )}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-4 flex flex-col justify-center items-center">
-                                        <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">Perpetual Candle</label>
-                                        <button
-                                            onClick={toggleCandle}
-                                            className={`text-4xl transition-all duration-700 ${isCandleLit ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.8)] scale-110' : 'grayscale opacity-30'}`}
-                                        >
-                                            🕯️
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">Akashic Glimmers</label>
-                                        <button
-                                            onClick={() => setShowAkashic(true)}
-                                            className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase flex items-center gap-1 transition-colors"
-                                        >
-                                            <Brain className="w-3 h-3" />
-                                            View Full Record
-                                        </button>
-                                    </div>
-                                    <div className="bg-black/60 border border-cyan-500/20 rounded-xl overflow-hidden">
-                                        <AkashicStream minimal={true} />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm uppercase tracking-widest text-amber-500 font-bold">
-                                        {ritualType === 'affirmation' ? 'Your Positive Affirmation' : 'Intention / Context'}
-                                    </label>
-                                    <textarea
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-amber-100 focus:outline-none focus:border-amber-500/50 h-32"
-                                        placeholder={ritualType === 'affirmation'
-                                            ? "Write something beautiful for your loved one..."
-                                            : "Examples: 'I'm feeling overwhelmed', 'Celebrating a new job', 'Seeking clarity'..."}
-                                        value={context}
-                                        onChange={(e) => setContext(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={generateRitual}
-                                disabled={isLoading}
-                                className="w-full py-4 bg-gradient-to-r from-amber-700 to-amber-600 rounded-xl text-amber-100 font-bold tracking-widest hover:from-amber-600 hover:to-amber-500 transition-all flex items-center justify-center gap-3"
-                            >
-                                {isLoading ? (
-                                    <>Generating Sacred Script...</>
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-5 h-5" />
-                                        Begin Ritual
-                                    </>
                                 )}
-                            </button>
-                        </div>
+                            </section>
+                        )}
                     </div>
                 )}
 
-                {/* Ritual Execution Phase */}
-                {script && (
-                    <div className="relative min-h-[60vh] flex flex-col items-center">
-                        <div className="text-center mb-12 animate-in fade-in duration-1000">
-                            <h2 className="text-3xl font-serif text-amber-200">{script.title}</h2>
-                            <p className="text-amber-400/60 italic mt-2">{script.description}</p>
+                {view === 'conduct' && conductCeremony && (
+                    <div className="relative mx-auto flex min-h-[70vh] w-full max-w-3xl flex-col items-center pb-28 pt-16 sm:pt-8">
+                        <button
+                            type="button"
+                            onClick={exitConduct}
+                            className="absolute left-0 top-0 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm text-amber-200/60 transition-colors hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Leave ceremony
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowParticipantsPanel((v) => !v)}
+                            className="absolute right-0 top-0 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-amber-200/70 transition-colors hover:border-amber-500/30 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                        >
+                            <Users className="h-4 w-4" />
+                            {conductParticipants.length}
+                        </button>
+
+                        <div className="mt-2 text-center animate-in fade-in duration-700">
+                            <p className="text-xs uppercase tracking-[0.3em] text-amber-500/60">
+                                {ceremonyTypeLabel(conductCeremony.ceremonyType)}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-serif text-amber-100 sm:text-3xl">{conductCeremony.title}</h2>
+                            {conductCeremony.description && (
+                                <p className="mx-auto mt-2 max-w-xl text-sm italic text-amber-300/60">{conductCeremony.description}</p>
+                            )}
                         </div>
 
-                        <div className="w-full max-w-2xl space-y-8 relative">
-                            {/* Previous Steps Faded */}
-                            <div className="opacity-30 space-y-4 blur-[1px]">
-                                {script.steps.slice(0, Math.max(0, currentStepIndex)).slice(-2).map((step, i) => (
-                                    <div key={i} className="flex gap-4 items-start">
-                                        <div className="text-2xl mt-1">{getAvatar(step.actor)}</div>
-                                        <div>
-                                            <p className="font-bold text-amber-500 text-sm uppercase">{step.actor}</p>
-                                            <p className="text-amber-100">{step.dialogue || step.action}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Current Step */}
-                            {currentStepIndex >= 0 && currentStepIndex < script.steps.length ? (
-                                <div className="bg-amber-900/10 border border-amber-500/30 p-8 rounded-2xl backdrop-blur-md animate-in zoom-in-95 duration-500 shadow-[0_0_50px_rgba(245,158,11,0.1)]">
-                                    <div className="flex flex-col items-center text-center gap-6">
-                                        <div className="text-6xl motion-safe:animate-bounce-slow">
-                                            {getAvatar(script.steps[currentStepIndex].actor)}
-                                        </div>
-                                        <div className="space-y-4">
-                                            <p className="text-amber-500 font-bold tracking-widest uppercase text-sm">
-                                                {script.steps[currentStepIndex].actor}
-                                            </p>
-                                            {script.steps[currentStepIndex].action && (
-                                                <p className="text-amber-300/70 italic text-lg">
-                                                    * {script.steps[currentStepIndex].action} *
-                                                </p>
-                                            )}
-                                            {script.steps[currentStepIndex].dialogue && (
-                                                <p className="text-2xl text-amber-100 font-serif leading-relaxed">
-                                                    "{script.steps[currentStepIndex].dialogue}"
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
+                        {showParticipantsPanel && (
+                            <div className="mt-6 w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-amber-500/60">Gathered together</p>
+                                <div className="space-y-2">
+                                    {conductParticipants.length === 0 ? (
+                                        <p className="text-sm text-amber-200/50">No one has been added to this ceremony yet.</p>
+                                    ) : (
+                                        conductParticipants.map((person) => (
+                                            <div
+                                                key={person.id}
+                                                className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2"
+                                            >
+                                                <span className="text-sm text-amber-100">{person.name}</span>
+                                                <span className="text-[10px] uppercase tracking-wider text-amber-500/60">{person.role}</span>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
-                            ) : currentStepIndex === -1 ? (
-                                <div className="text-center py-20 motion-safe:animate-pulse text-amber-500/50">
-                                    Prepare yourself...
+                            </div>
+                        )}
+
+                        <div className="mt-10 w-full max-w-2xl space-y-6">
+                            {conductStepIndex >= 0 && conductStepIndex < conductCeremony.script.length ? (
+                                <div className="rounded-2xl border border-amber-500/30 bg-amber-900/10 p-8 text-center shadow-[0_0_50px_rgba(245,158,11,0.1)] animate-in zoom-in-95 duration-500">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-amber-500">
+                                        Step {conductStepIndex + 1} of {conductCeremony.script.length}
+                                    </p>
+                                    <h3 className="mt-3 text-xl text-amber-100 sm:text-2xl">
+                                        {conductCeremony.script[conductStepIndex].title}
+                                    </h3>
+                                    <p className="mt-4 text-lg leading-relaxed text-amber-100/90">
+                                        {conductCeremony.script[conductStepIndex].text}
+                                    </p>
+                                </div>
+                            ) : conductStepIndex === -1 ? (
+                                <div className="py-16 text-center text-amber-500/50">
+                                    <p className="motion-safe:animate-pulse">Take a breath together before you begin.</p>
                                 </div>
                             ) : (
-                                <div className="text-center py-10 animate-in zoom-in duration-700">
-                                    <div className="inline-block p-6 rounded-full bg-amber-500/20 mb-6">
-                                        <CheckCircle className="w-12 h-12 text-amber-400" />
+                                <div className="space-y-6 py-6 text-center animate-in zoom-in duration-700">
+                                    <div className="inline-flex rounded-full bg-amber-500/20 p-5">
+                                        <CheckCircle className="h-10 w-10 text-amber-400" />
                                     </div>
-                                    <h3 className="text-2xl text-amber-200 mb-2">Ritual Complete</h3>
-                                    <p className="text-amber-400/60">May peace be with you.</p>
-                                    <button
-                                        onClick={() => setScript(null)}
-                                        className="mt-8 px-6 py-2 border border-amber-500/30 rounded-full hover:bg-amber-500/10 transition"
-                                    >
-                                        Return to Altar
-                                    </button>
+                                    <h3 className="text-2xl text-amber-100">The ceremony is complete</h3>
+                                    <p className="mx-auto max-w-md text-sm text-amber-300/60">
+                                        If you would like, write a few words about how this gathering felt. It is kept with the ceremony
+                                        and shared in your family Chronicle.
+                                    </p>
+                                    <textarea
+                                        value={reflectionDraft}
+                                        onChange={(e) => setReflectionDraft(e.target.value)}
+                                        rows={4}
+                                        placeholder="A few words about today (optional)"
+                                        aria-label="Ceremony reflection"
+                                        className={`mx-auto max-w-md text-left ${inputClass}`}
+                                    />
+                                    <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={handleCompleteCeremony}
+                                            disabled={completing}
+                                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-600 px-6 py-3 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-500 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                                        >
+                                            {completing ? 'Saving...' : 'Complete Ceremony'}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Controls */}
-                        {currentStepIndex < script.steps.length && (
-                            <div className="fixed bottom-12 left-0 w-full flex justify-center z-50">
+                        {conductStepIndex < conductCeremony.script.length && (
+                            <div className="mt-10 flex items-center gap-3">
+                                {conductStepIndex >= 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={prevConductStep}
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 px-5 py-3 text-sm text-amber-200/70 transition-colors hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Back
+                                    </button>
+                                )}
                                 <button
-                                    onClick={nextStep}
-                                    className="group px-8 py-4 bg-amber-600 hover:bg-amber-500 text-black font-bold rounded-full shadow-lg shadow-amber-600/20 flex items-center gap-3 transition-all transform hover:scale-105"
+                                    type="button"
+                                    onClick={nextConductStep}
+                                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-amber-600 px-8 py-3 text-sm font-bold text-black transition-transform hover:scale-105 hover:bg-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                                 >
-                                    {currentStepIndex === -1 ? (
-                                        <>Begin <Play className="w-4 h-4" /></>
+                                    {conductStepIndex === -1 ? (
+                                        <>
+                                            Begin <Play className="h-4 w-4" />
+                                        </>
                                     ) : (
-                                        <>Next <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
+                                        <>
+                                            Next <ChevronRight className="h-4 w-4" />
+                                        </>
                                     )}
                                 </button>
                             </div>
@@ -545,65 +823,310 @@ export default function RitualAltar() {
                 )}
             </div>
 
-            {/* Sacred Gate: Council Invocation Pedestal */}
-            <div className="fixed bottom-0 left-0 w-full flex justify-center pb-8 z-40">
-                <div className="relative group">
-                    <button
-                        onClick={() => setIsInvocationOpen(true)}
-                        className="bg-white/5 hover:bg-white/10 border border-white/10 sm:backdrop-blur-xl px-6 py-3 rounded-full text-[10px] uppercase tracking-[0.3em] font-bold text-amber-500/60 hover:text-amber-400 transition-all duration-700 flex items-center gap-3 group-hover:shadow-[0_0_30px_rgba(245,158,11,0.1)]"
-                    >
-                        <div className={`w-1.5 h-1.5 rounded-full bg-amber-500 motion-safe:animate-pulse`} />
-                        Invoke Council Presence
-                    </button>
-
-                    {/* Minimalist Reveal Shadow */}
-                    <div className="absolute inset-0 bg-amber-500/5 blur-xl -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                </div>
-            </div>
-
-            {/* Invocation Overlay (Sacred Gate) */}
-            {isInvocationOpen && (
-                <div className="fixed inset-0 z-[110] bg-black/90 sm:backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-1000">
-                    <div className="max-w-2xl w-full space-y-12 text-center">
-                        <div className="space-y-4">
-                            <h2 className="text-sm uppercase tracking-[0.5em] text-amber-500/40">Council Consensus</h2>
-                            <p className="text-3xl font-serif text-amber-100 leading-relaxed italic">
-                                "The legacy you build today is the sanctuary your ancestors breathe within tomorrow. Maintain the vigil, for the silence is where the engrams speak loudest."
-                            </p>
+            {view === 'form' && (
+                <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 p-4 py-8 sm:items-center sm:backdrop-blur-sm">
+                    <div className="w-full max-w-2xl rounded-3xl border border-amber-500/20 bg-neutral-950 p-5 shadow-2xl sm:p-8">
+                        <div className="mb-6 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-light text-amber-50">
+                                    {editingCeremonyId ? 'Edit Ceremony' : 'Plan a Ceremony'}
+                                </h2>
+                                <p className="mt-1 text-sm text-amber-200/50">
+                                    Take your time; you can always save this as a draft and come back.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeForm}
+                                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-amber-200/60 transition-colors hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
                         </div>
 
-                        <div className="flex justify-center gap-8">
-                            <div className="text-center space-y-2">
-                                <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-xl grayscale opacity-50">🌿</div>
-                                <div className="text-[8px] uppercase tracking-widest text-amber-500/40">Raphael</div>
+                        {formError && (
+                            <div className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+                                {formError}
                             </div>
-                            <div className="text-center space-y-2">
-                                <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-xl grayscale opacity-50">🔨</div>
-                                <div className="text-[8px] uppercase tracking-widest text-amber-500/40">Joseph</div>
+                        )}
+
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label htmlFor="ceremony-title" className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                    Title
+                                </label>
+                                <input
+                                    id="ceremony-title"
+                                    value={formState.title}
+                                    onChange={(e) => setFormState((prev) => ({ ...prev, title: e.target.value }))}
+                                    placeholder="e.g. Remembering Grandpa Lucas"
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label htmlFor="ceremony-type" className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                        Type
+                                    </label>
+                                    <select
+                                        id="ceremony-type"
+                                        value={formState.ceremonyType}
+                                        onChange={(e) => setFormState((prev) => ({ ...prev, ceremonyType: e.target.value as CeremonyType }))}
+                                        className={inputClass}
+                                    >
+                                        {CEREMONY_TYPES.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label
+                                        htmlFor="ceremony-honoree"
+                                        className="text-xs font-semibold uppercase tracking-wider text-amber-500/70"
+                                    >
+                                        Honoree (optional)
+                                    </label>
+                                    <select
+                                        id="ceremony-honoree"
+                                        value={formState.honoreeMemberId}
+                                        onChange={(e) => setFormState((prev) => ({ ...prev, honoreeMemberId: e.target.value }))}
+                                        className={inputClass}
+                                    >
+                                        <option value="">No one in particular</option>
+                                        {familyMembers.map((member) => (
+                                            <option key={member.id} value={member.id}>
+                                                {memberDisplayName(member)}
+                                                {member.deathDate ? ' (in memory)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="ceremony-description"
+                                    className="text-xs font-semibold uppercase tracking-wider text-amber-500/70"
+                                >
+                                    A note about this gathering (optional)
+                                </label>
+                                <textarea
+                                    id="ceremony-description"
+                                    value={formState.description}
+                                    onChange={(e) => setFormState((prev) => ({ ...prev, description: e.target.value }))}
+                                    rows={3}
+                                    placeholder="What is this ceremony for, and why now?"
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                                <div className="space-y-2">
+                                    <label htmlFor="ceremony-date" className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                        Date
+                                    </label>
+                                    <input
+                                        id="ceremony-date"
+                                        type="date"
+                                        value={formState.scheduledDate}
+                                        onChange={(e) => setFormState((prev) => ({ ...prev, scheduledDate: e.target.value }))}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="ceremony-time" className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                        Time
+                                    </label>
+                                    <input
+                                        id="ceremony-time"
+                                        type="time"
+                                        value={formState.scheduledTime}
+                                        onChange={(e) => setFormState((prev) => ({ ...prev, scheduledTime: e.target.value }))}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label
+                                        htmlFor="ceremony-duration"
+                                        className="text-xs font-semibold uppercase tracking-wider text-amber-500/70"
+                                    >
+                                        Duration (minutes)
+                                    </label>
+                                    <input
+                                        id="ceremony-duration"
+                                        type="number"
+                                        min={1}
+                                        inputMode="numeric"
+                                        value={formState.durationMinutes}
+                                        onChange={(e) => setFormState((prev) => ({ ...prev, durationMinutes: e.target.value }))}
+                                        placeholder="30"
+                                        className={inputClass}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="ceremony-location" className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                    Location (optional)
+                                </label>
+                                <input
+                                    id="ceremony-location"
+                                    value={formState.location}
+                                    onChange={(e) => setFormState((prev) => ({ ...prev, location: e.target.value }))}
+                                    placeholder="e.g. The back porch"
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                    Participants (optional)
+                                </label>
+                                {familyMembers.length === 0 ? (
+                                    <p className="text-sm text-amber-200/50">Add family members to your tree to invite them here.</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {familyMembers.map((member) => {
+                                            const selected = formState.participantMemberIds.includes(member.id);
+                                            return (
+                                                <button
+                                                    key={member.id}
+                                                    type="button"
+                                                    onClick={() => toggleParticipant(member.id)}
+                                                    aria-pressed={selected}
+                                                    className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 ${
+                                                        selected
+                                                            ? 'border-amber-500 bg-amber-500/20 text-amber-100'
+                                                            : 'border-white/10 text-amber-200/60 hover:border-amber-500/30 hover:text-amber-100'
+                                                    }`}
+                                                >
+                                                    {memberDisplayName(member)}
+                                                    {member.deathDate ? <span className="text-[10px] text-amber-200/40">(in memory)</span> : null}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-amber-500/70">
+                                        Ceremony Script
+                                    </label>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={applySuggestedScript}
+                                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-500/20 px-3 py-2 text-xs font-medium text-amber-300 transition-colors hover:border-amber-500/40 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                        >
+                                            <Sparkles className="h-3.5 w-3.5" />
+                                            Use suggested script
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={tryAlternateScript}
+                                            disabled={suggestingScript}
+                                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-amber-200/60 transition-colors hover:border-white/20 hover:text-amber-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                        >
+                                            {suggestingScript ? 'Asking...' : 'Try an alternate script'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {formState.script.map((step, index) => (
+                                        <div key={index} className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-4">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/60">
+                                                    Step {index + 1}
+                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => moveStep(index, -1)}
+                                                        disabled={index === 0}
+                                                        title="Move step up"
+                                                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-200/50 transition-colors hover:text-amber-100 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                                    >
+                                                        <ChevronUp className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => moveStep(index, 1)}
+                                                        disabled={index === formState.script.length - 1}
+                                                        title="Move step down"
+                                                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-200/50 transition-colors hover:text-amber-100 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                                    >
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeStep(index)}
+                                                        title="Remove step"
+                                                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-200/50 transition-colors hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <input
+                                                value={step.title}
+                                                onChange={(e) => updateStep(index, { title: e.target.value })}
+                                                placeholder="Step title"
+                                                aria-label={`Step ${index + 1} title`}
+                                                className={inputClass}
+                                            />
+                                            <textarea
+                                                value={step.text}
+                                                onChange={(e) => updateStep(index, { text: e.target.value })}
+                                                rows={2}
+                                                placeholder="What happens in this part of the ceremony?"
+                                                aria-label={`Step ${index + 1} description`}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={addStep}
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-white/15 px-4 py-2.5 text-sm text-amber-200/60 transition-colors hover:border-amber-500/30 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Add a step
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => setIsInvocationOpen(false)}
-                            className="text-[10px] uppercase tracking-widest text-slate-500 hover:text-amber-500 transition-colors"
-                        >
-                            [ Close Invocation ]
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Akashic Record Sidebar/Modal */}
-            {showAkashic && (
-                <div className="fixed inset-0 z-[100] bg-black/80 sm:backdrop-blur-xl flex justify-end p-4 animate-in slide-in-from-right duration-500">
-                    <div className="w-full max-w-md h-full relative">
-                        <button
-                            onClick={() => setShowAkashic(false)}
-                            className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all z-50"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <AkashicStream />
+                        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-white/5 pt-6 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={closeForm}
+                                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-medium text-amber-200/70 transition-colors hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={saving}
+                                onClick={() => handleSave('draft')}
+                                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-500/30 px-5 py-3 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-500/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                            >
+                                Save as Draft
+                            </button>
+                            <button
+                                type="button"
+                                disabled={saving}
+                                onClick={() => handleSave('scheduled')}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-500 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                            >
+                                {saving ? 'Saving...' : 'Schedule'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

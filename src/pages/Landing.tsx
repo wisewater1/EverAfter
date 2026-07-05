@@ -18,7 +18,7 @@ export default function Landing() {
     window.location.href = user && !isDemoMode ? '/dashboard' : '/signup';
   };
 
-  // The one true roster — must match SaintsNavigation and the in-app hubs.
+  // The one true roster, must match SaintsNavigation and the in-app hubs.
   const saints = [
     {
       name: 'St. Michael',
@@ -64,7 +64,7 @@ export default function Landing() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-x-hidden bg-gradient-to-br from-[#06080c] via-[#0a0f15] to-[#0a1626]">
-      {/* Living night sky behind the dark glass — parallax, constellations, touch-reactive */}
+      {/* Living night sky behind the dark glass: parallax, constellations, touch-reactive */}
       <StarfieldBackground />
       <div className="relative z-10">
       {/* Header */}
@@ -118,7 +118,7 @@ export default function Landing() {
             steward your finances, and carry your legacy forward for the people you love.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            {/* LEFT — the real, fully-developed app (no demo data). */}
+            {/* LEFT: the real, fully-developed app (no demo data). */}
             <button
               onClick={enterRealApp}
               className={`w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all shadow-2xl font-medium text-lg flex items-center gap-2 ${focusRing}`}
@@ -126,7 +126,7 @@ export default function Landing() {
               {user && !isDemoMode ? 'Go to Dashboard' : 'Start Free'}
               <ArrowRight className="w-5 h-5" />
             </button>
-            {/* RIGHT — instant guided demo with sample data, no account needed. */}
+            {/* RIGHT: instant guided demo with sample data, no account needed. */}
             <button
               onClick={() => {
                 startDemoMode();
@@ -143,7 +143,7 @@ export default function Landing() {
           </p>
         </div>
 
-        {/* Saints Grid — the real five */}
+        {/* Saints Grid: the real five */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-20">
           {saints.map((saint) => {
             const Icon = saint.icon;

@@ -3,8 +3,16 @@
  * 12-month Trinity calendar with month selection and detailed event context.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Bell, Calendar, Clock, Link as LinkIcon, Loader2, MapPin, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Bell, Calendar, Clock, Flame, Link as LinkIcon, Loader2, MapPin, Users } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
+import { listCeremonies, type Ceremony } from '../../lib/ceremonies/ceremonies';
+
+function formatCeremonyTime(scheduledAt: string): string {
+    const date = new Date(scheduledAt);
+    if (Number.isNaN(date.getTime())) return 'Time pending';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 function getRiskLevel(month: any) {
     if ((month?.combined_risk || 0) >= 2) return 'high';
@@ -52,9 +60,11 @@ function formatEventTime(event: any) {
 }
 
 export default function SeasonalHealthCalendar() {
+    const navigate = useNavigate();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [selectedMonthIndex, setSelectedMonthIndex] = useState<number | null>(null);
+    const [ceremonies, setCeremonies] = useState<Ceremony[]>([]);
 
     useEffect(() => {
         let mounted = true;
@@ -65,6 +75,24 @@ export default function SeasonalHealthCalendar() {
             setData(result);
             setLoading(false);
         })();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+
+        listCeremonies()
+            .then((result) => {
+                if (!mounted) return;
+                setCeremonies(result.filter((ceremony) => ceremony.status === 'scheduled' && Boolean(ceremony.scheduledAt)));
+            })
+            .catch(() => {
+                // Ceremonies are a supplementary layer here; the seasonal calendar
+                // still renders fully from the base data without them.
+            });
 
         return () => {
             mounted = false;
@@ -88,6 +116,14 @@ export default function SeasonalHealthCalendar() {
         if (selectedMonthIndex === null) return calendar[0];
         return calendar[selectedMonthIndex] || calendar[0];
     }, [calendar, selectedMonthIndex]);
+
+    const selectedMonthCeremonies = useMemo(() => {
+        if (!selectedMonth || typeof selectedMonth.month !== 'number') return [];
+        return ceremonies.filter((ceremony) => {
+            const scheduled = new Date(ceremony.scheduledAt as string);
+            return !Number.isNaN(scheduled.getTime()) && scheduled.getMonth() === selectedMonth.month;
+        });
+    }, [ceremonies, selectedMonth]);
 
     if (loading) {
         return (
@@ -210,6 +246,47 @@ export default function SeasonalHealthCalendar() {
 
                     <div className="space-y-3">
                         <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Event details</div>
+                        {selectedMonthCeremonies.map((ceremony) => (
+                            <button
+                                key={ceremony.id}
+                                type="button"
+                                onClick={() => navigate('/rituals')}
+                                className="w-full min-h-11 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4 space-y-3 text-left transition-colors hover:border-amber-500/40 hover:bg-amber-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                            >
+                                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                                    <div>
+                                        <div className="text-sm font-semibold text-white">{ceremony.title}</div>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+                                            <span className="px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 inline-flex items-center gap-1">
+                                                <Flame className="w-2.5 h-2.5" />
+                                                Ceremony
+                                            </span>
+                                            <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/5 capitalize">
+                                                {ceremony.ceremonyType}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-slate-300">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                        <span>{formatCeremonyTime(ceremony.scheduledAt as string)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-3.5 h-3.5 text-slate-500" />
+                                        <span>
+                                            {ceremony.participantMemberIds.length} participant
+                                            {ceremony.participantMemberIds.length === 1 ? '' : 's'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                                        <span>{ceremony.location || 'Location pending'}</span>
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
                         {selectedEvents.length > 0 ? (
                             selectedEvents.map((event: any) => (
                                 <div key={event.id} className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-3">
@@ -275,11 +352,11 @@ export default function SeasonalHealthCalendar() {
                                     )}
                                 </div>
                             ))
-                        ) : (
+                        ) : selectedMonthCeremonies.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-slate-400">
                                 No specific family events are recorded for {selectedMonth.month_name}. Trinity is treating this as a planning and preventive-care window.
                             </div>
-                        )}
+                        ) : null}
                     </div>
                 </div>
             )}

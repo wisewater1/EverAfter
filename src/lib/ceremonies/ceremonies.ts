@@ -302,9 +302,6 @@ export async function listCeremonies(): Promise<Ceremony[]> {
         return readDemoCeremonies().sort(byRecencyDesc);
     }
 
-    if (!supabase) {
-        throw new Error('Ceremonies are unavailable right now because the connection to Supabase is not configured.');
-    }
     const userId = await requireLiveUserId('view your ceremonies');
 
     const { data, error } = await supabase

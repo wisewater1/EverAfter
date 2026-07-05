@@ -1309,7 +1309,7 @@ function normalizeInheritanceDirectivePayload(payload: AnyRecord, context = getL
         source_notes: [
             'Pedigree continuity is derived from Joseph family graph coverage and record density.',
             'Hereditary signals use family-pattern inference inspired by variant inheritance workflows, but do not diagnose disease.',
-            'Continuity automation models dead-man-switch style release readiness for legacy and executor handoff.',
+            'Continuity automation models inactivity-based release readiness for legacy transition and executor handoff.',
         ],
         generated_at: payload.generated_at || new Date().toISOString(),
     };

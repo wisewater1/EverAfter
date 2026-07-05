@@ -469,10 +469,90 @@ const DEMO_FAMILY_MOMENTS = [
   ...Array.from({ length: 5 }, () => ({ family_member_id: 'dm-susan' })),
   ...Array.from({ length: 2 }, () => ({ family_member_id: 'dm-alice' })),
 ];
+
+// Ceremonies (see src/lib/ceremonies/ceremonies.ts) — one scheduled remembrance
+// coming up and one completed gratitude gathering with a written reflection,
+// so the Ceremonies screen, Seasonal Calendar, and Chronicle all have
+// something real to show on stage. Demo mode itself reads ceremonies from
+// localStorage rather than these REST seeds (see ceremonies.ts), but the rows
+// are kept here too so any direct `/rest/v1/ceremonies` or
+// `/rest/v1/family_tree_events` read in demo mode still resolves to the same
+// story instead of an empty table.
+const DEMO_CEREMONY_SCHEDULED_ID = 'dm-ceremony-remembrance';
+const DEMO_CEREMONY_COMPLETED_ID = 'dm-ceremony-gratitude';
+
+const DEMO_CEREMONIES = [
+  {
+    id: DEMO_CEREMONY_SCHEDULED_ID,
+    user_id: 'demo-user',
+    title: 'Remembering Margaret',
+    description: 'A quiet gathering to hold Margaret in memory and share the stories that keep her close.',
+    ceremony_type: 'remembrance',
+    scheduled_at: new Date(DEMO_NOW + 12 * 86400000).toISOString(),
+    duration_minutes: 45,
+    location: 'The back porch, Sunday afternoon',
+    honoree_member_id: 'dm-margaret',
+    participant_member_ids: ['dm-james', 'dm-susan', 'dm-alice'],
+    script: [
+      { title: 'Gathering in Stillness', text: 'Invite everyone present to settle into a quiet moment together before beginning. This time is set apart to hold Margaret in memory.' },
+      { title: 'A Shared Memory', text: 'Ask each person to share one memory of Margaret, however small.' },
+      { title: 'A Reading', text: 'Read a passage or letter that speaks to who Margaret was.' },
+      { title: 'A Moment of Quiet', text: 'Sit together in silence, holding Margaret in memory.' },
+      { title: 'Closing Gratitude', text: 'Close by naming what you are grateful Margaret gave the family.' },
+    ],
+    status: 'scheduled',
+    completed_at: null,
+    reflection: null,
+    created_at: isoDaysAgo(6),
+    updated_at: isoDaysAgo(6),
+  },
+  {
+    id: DEMO_CEREMONY_COMPLETED_ID,
+    user_id: 'demo-user',
+    title: 'A Season of Gratitude',
+    description: 'An evening set aside to name what the family is grateful for this year.',
+    ceremony_type: 'gratitude',
+    scheduled_at: isoDaysAgo(21),
+    duration_minutes: 30,
+    location: 'The kitchen table',
+    honoree_member_id: null,
+    participant_member_ids: ['dm-james', 'dm-susan', 'dm-alice', 'dm-lily'],
+    script: [
+      { title: 'Naming the Blessings', text: 'Begin by inviting everyone to think quietly about the past season and what has felt like a gift.' },
+      { title: 'An Appreciation Round', text: 'Let each person name someone present they are grateful for, and why.' },
+      { title: 'A Blessing Spoken Aloud', text: 'Offer a short blessing over the family together.' },
+      { title: 'Closing Thanks', text: 'End with a shared moment of thanks.' },
+    ],
+    status: 'completed',
+    completed_at: isoDaysAgo(20),
+    reflection: "James read Grandma Ruth's old blessing and Lily cried a little. It felt good to say these things out loud instead of just thinking them.",
+    created_at: isoDaysAgo(24),
+    updated_at: isoDaysAgo(20),
+  },
+];
+
+const DEMO_FAMILY_TREE_EVENTS = [
+  {
+    id: 'dm-event-ceremony-gratitude',
+    user_id: 'demo-user',
+    member_id: null,
+    legacy_event_id: `ceremony_${DEMO_CEREMONY_COMPLETED_ID}`,
+    event_type: 'ceremony',
+    event_date: isoDaysAgo(20).slice(0, 10),
+    title: 'A Season of Gratitude',
+    description: "James read Grandma Ruth's old blessing and Lily cried a little. It felt good to say these things out loud instead of just thinking them.",
+    location: 'The kitchen table',
+    created_at: isoDaysAgo(20),
+    updated_at: isoDaysAgo(20),
+  },
+];
+
 const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
   family_members: DEMO_FAMILY_MEMBERS,
   engrams: DEMO_ENGRAM_ROWS,
   family_moments: DEMO_FAMILY_MOMENTS,
+  ceremonies: DEMO_CEREMONIES,
+  family_tree_events: DEMO_FAMILY_TREE_EVENTS,
 };
 
 // Populated engram list for the Engram Training Center (bare array — callers .map/.filter).

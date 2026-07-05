@@ -11,7 +11,7 @@ const PREFERRED_MIME_TYPES = [
 
 /**
  * Pick a MIME type the browser's MediaRecorder will accept. Returns null
- * when none of our preferred candidates work — the caller should still
+ * when none of our preferred candidates work, so the caller should still
  * try constructing a MediaRecorder with NO mimeType option so the
  * browser picks its own default. (Safari iOS in particular often only
  * accepts the bare audio/mp4 with no codec hint.)
@@ -52,7 +52,7 @@ export interface AudioRecorderState {
 export function useAudioRecorder(): AudioRecorderState {
   const mimeType = useMemo(() => getSupportedMimeType(), []);
   // Support requires only the APIs themselves. mimeType being null is
-  // not a blocker — the recorder falls back to the browser-picked
+  // not a blocker; the recorder falls back to the browser-picked
   // default in startRecording, which is correct behavior on Safari iOS
   // where MediaRecorder works but none of our preferred candidates are
   // reported as supported.
@@ -162,7 +162,7 @@ export function useAudioRecorder(): AudioRecorderState {
     await new Promise<void>((resolve) => {
       recorder.onstop = () => {
         // mimeType may be null (Safari iOS path). When that happens the
-        // browser still attached a default codec — read it back from the
+        // browser still attached a default codec, read it back from the
         // MediaRecorder instance and fall back to a generic webm guess
         // only as a final safety net.
         const blobType = mimeType || recorder.mimeType || 'audio/webm';
