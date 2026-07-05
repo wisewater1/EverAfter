@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 export interface FileUploadOptions {
-  category?: 'health_report' | 'document' | 'image' | 'other';
+  category?: 'health_report' | 'document' | 'image' | 'memorial' | 'other';
   description?: string;
   isPublic?: boolean;
   metadata?: Record<string, any>;

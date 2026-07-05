@@ -18,7 +18,7 @@ import DHTAnomalyAlertChain from './michael/DHTAnomalyAlertChain';
 interface CAIState {
     integrityScore: number;
     adversarialFlags: number;
-    phiLeeksDetected: number;
+    phiLeaksDetected: number;
     status: 'clean' | 'compromised' | 'warning';
 }
 
@@ -301,7 +301,13 @@ export default function StMichaelSecurityDashboard() {
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 right-0 -m-32 w-96 h-96 bg-sky-500/10 rounded-full blur-[120px]"></div>
                 <div className="absolute bottom-0 left-0 -m-32 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px]"></div>
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
+                {/* Self-contained SVG noise texture (data URI), no external request */}
+                <div
+                    className="absolute inset-0 opacity-[0.03]"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")`,
+                    }}
+                ></div>
             </div>
 
             <div className="relative mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
@@ -491,7 +497,7 @@ export default function StMichaelSecurityDashboard() {
                                         </div>
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Leak Check</div>
-                                            <div className="text-xl font-light text-white">{caiData?.phiLeeksDetected || 0}</div>
+                                            <div className="text-xl font-light text-white">{caiData?.phiLeaksDetected || 0}</div>
                                         </div>
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Audit Status</div>

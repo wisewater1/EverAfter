@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import { supabase } from '../lib/supabase';
 import {
   Calendar, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock,
@@ -10,17 +11,24 @@ import {
 } from 'lucide-react';
 import FileUploadZone from './FileUploadZone';
 import { generateVaultKey, exportKey, importKey, encryptVaultData, decryptVaultData } from '../lib/vault-encryption';
+import { getFileUrl } from '../lib/file-storage';
 import type {
   VaultItem,
   Beneficiary,
   Receipt,
   ItemStatusFilter,
   LegacyConceptPreset,
+  UnlockRequest,
+  UnlockRequestDecision,
 } from '../lib/vault/types';
 import {
   fetchVaultItems,
   fetchSharedVaultItems,
   fetchAssuranceData,
+  fetchUnlockRequestsForOwner,
+  fetchMyUnlockRequests,
+  createUnlockRequest,
+  decideUnlockRequest,
   createBeneficiary as createBeneficiaryRow,
   deleteBeneficiary as deleteBeneficiaryRow,
   deleteVaultItem,

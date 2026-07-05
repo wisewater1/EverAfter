@@ -125,9 +125,14 @@ export default function SacredOverlay() {
                 }}
             />
 
-            {/* Ambient Particles / Dust (simplified) */}
+            {/* Ambient Particles / Dust (self-contained SVG data URI, no external request) */}
             <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/dust.png')] pointer-events-none" />
+                <div
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cg fill='%23ffffff' fill-opacity='0.5'%3E%3Ccircle cx='14' cy='22' r='1'/%3E%3Ccircle cx='58' cy='9' r='0.8'/%3E%3Ccircle cx='102' cy='41' r='1.2'/%3E%3Ccircle cx='140' cy='74' r='0.7'/%3E%3Ccircle cx='33' cy='88' r='1'/%3E%3Ccircle cx='79' cy='121' r='0.9'/%3E%3Ccircle cx='121' cy='148' r='1.1'/%3E%3Ccircle cx='9' cy='139' r='0.8'/%3E%3C/g%3E%3C/svg%3E")`,
+                    }}
+                />
             </div>
 
             <style>{`

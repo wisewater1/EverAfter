@@ -6,6 +6,14 @@ import { requestBackendJson } from '../backend-request';
 import { isDemoAuthEnabled } from '../demo-auth';
 import { isDevelopment } from '../env';
 import { supabase } from '../supabase';
+import {
+    backfillGenealogy,
+    fetchGenealogyFromSupabase,
+    getGenealogyUserId,
+    pushEvent,
+    pushMember,
+    pushRelationship,
+} from './genealogySync';
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
 export type EventType = 'birth' | 'marriage' | 'death' | 'milestone' | 'adoption';
@@ -199,17 +207,46 @@ const DEFAULT_EVENTS: FamilyEvent[] = [
 
 // ── Persistence Layer ──────────────────────────────────────
 
-function loadFromStorage<T>(key: string, defaults: T[]): T[] {
-    try {
-        const stored = localStorage.getItem(key);
-        if (stored) return JSON.parse(stored);
-    } catch { /* ignore parse errors */ }
-    return [...defaults];
+// The sample family ships for demo sessions and local development only.
+// Real accounts start from their own data (localStorage cache + the
+// canonical Supabase store) and never see the seeded roster.
+function seedsEnabled(): boolean {
+    return isDemoAuthEnabled() || isDevelopment;
+}
+
+// Demo sessions get their own storage namespace so playing with the demo
+// never leaks sample-family edits into a real account on the same browser.
+function storageKey(key: string): string {
+    return isDemoAuthEnabled() ? `${key}:demo` : key;
+}
+
+const SEED_MEMBER_IDS = new Set(DEFAULT_MEMBERS.map((m) => m.id));
+const SEED_REL_IDS = new Set(DEFAULT_RELATIONSHIPS.map((r) => r.id));
+const SEED_EVENT_IDS = new Set(DEFAULT_EVENTS.map((e) => e.id));
+
+/**
+ * Remove seeded sample rows that older builds persisted into real users'
+ * localStorage, along with any edges/events left dangling by the removal.
+ */
+function stripSeedData(
+    members: FamilyMember[],
+    relationships: Relationship[],
+    events: FamilyEvent[],
+): { members: FamilyMember[]; relationships: Relationship[]; events: FamilyEvent[] } {
+    const keptMembers = members.filter((m) => !SEED_MEMBER_IDS.has(m.id));
+    const keptIds = new Set(keptMembers.map((m) => m.id));
+    return {
+        members: keptMembers,
+        relationships: relationships.filter(
+            (r) => !SEED_REL_IDS.has(r.id) && keptIds.has(r.fromId) && keptIds.has(r.toId),
+        ),
+        events: events.filter((e) => !SEED_EVENT_IDS.has(e.id) && (!e.memberId || keptIds.has(e.memberId))),
+    };
 }
 
 function loadOptionalFromStorage<T>(key: string): T[] | null {
     try {
-        const stored = localStorage.getItem(key);
+        const stored = localStorage.getItem(storageKey(key));
         if (!stored) return null;
         const parsed = JSON.parse(stored);
         return Array.isArray(parsed) ? parsed : null;
@@ -225,19 +262,30 @@ function loadStoredOrDevDefaults<T>(key: string, defaults: T[]): T[] {
 }
 
 function saveToStorage<T>(key: string, data: T[]): void {
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(storageKey(key), JSON.stringify(data));
 }
 
 // ── In-memory caches (loaded once from backend) ────────────
 
-const INITIAL_GENEALOGY = mergeStoredGenealogy(
-    loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members),
-    loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships),
-    loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events),
-    DEFAULT_MEMBERS,
-    DEFAULT_RELATIONSHIPS,
-    DEFAULT_EVENTS,
-);
+function buildLocalGenealogy() {
+    const storedMembers = loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members);
+    const storedRelationships = loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships);
+    const storedEvents = loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events);
+    if (seedsEnabled()) {
+        return mergeStoredGenealogy(
+            storedMembers,
+            storedRelationships,
+            storedEvents,
+            DEFAULT_MEMBERS,
+            DEFAULT_RELATIONSHIPS,
+            DEFAULT_EVENTS,
+        );
+    }
+    const stripped = stripSeedData(storedMembers || [], storedRelationships || [], storedEvents || []);
+    return mergeStoredGenealogy(stripped.members, stripped.relationships, stripped.events, [], [], []);
+}
+
+const INITIAL_GENEALOGY = buildLocalGenealogy();
 
 let _members: FamilyMember[] = INITIAL_GENEALOGY.members;
 let _relationships: Relationship[] = INITIAL_GENEALOGY.relationships;
@@ -245,6 +293,9 @@ let _events: FamilyEvent[] = INITIAL_GENEALOGY.events;
 let _sources: SourceCitation[] = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
 let _genealogyHydrationPromise: Promise<void> | null = null;
 let _genealogyHydrated = false;
+let _hydratedForMode: 'demo' | 'live' | null = null;
+// client graph id -> canonical Supabase family_members.id (uuid)
+let _dbIds = new Map<string, string>();
 
 function normalizeName(value: string | undefined | null): string {
     return String(value || '')

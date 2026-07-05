@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Wallet, PieChart, TrendingUp, TrendingDown, Shield, MessageSquare, Plus, DollarSign, Sparkles, Building2, RefreshCcw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AddTransactionModal from './AddTransactionModal';
 import BudgetEnvelopes from './BudgetEnvelopes';
 import TransactionLedger from './TransactionLedger';
 import CouncilChat from './CouncilChat';
@@ -12,9 +13,11 @@ import GabrielDHTSummary from './GabrielDHTSummary';
 import WiseGoldPanel from './WiseGoldPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
-import { BankStatusResponse, Transaction, financeApi } from '../../lib/gabriel/finance';
+import { BankStatusResponse, BudgetEnvelope, Transaction, financeApi } from '../../lib/gabriel/finance';
 import { openPlaidLink } from '../../lib/gabriel/plaidLink';
 import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
+import { getFamilyMembers } from '../../lib/joseph/genealogy';
+import { fetchHealthMetrics, type HealthDataPoint } from '../../lib/raphael/healthDataService';
 
 type GabrielView = 'budget' | 'ledger' | 'reports' | 'wisegold';
 
@@ -58,6 +61,12 @@ export default function StGabrielFinanceDashboard() {
     const [showGuardian, setShowGuardian] = useState(false);
     const [financeCapability, setFinanceCapability] = useState<RuntimeCapability | null>(null);
     const [plaidCapability, setPlaidCapability] = useState<RuntimeCapability | null>(null);
+    const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+    // Remount key so the ledger re-bootstraps after a transaction is added from the top bar.
+    const [ledgerRefreshKey, setLedgerRefreshKey] = useState(0);
+    const [budgetEnvelopes, setBudgetEnvelopes] = useState<BudgetEnvelope[]>(() => financeApi.getCachedBudget());
+    const [metricsHistory, setMetricsHistory] = useState<HealthDataPoint[]>([]);
+    const familyMembers = useMemo(() => getFamilyMembers(), []);
 
     useEffect(() => {
         const idleTimer = window.setTimeout(() => {
@@ -107,11 +116,13 @@ export default function StGabrielFinanceDashboard() {
                     return;
                 }
 
-                const [walletResult, priceResult, bankStatusResult, transactionsResult] = await Promise.allSettled([
+                const [walletResult, priceResult, bankStatusResult, transactionsResult, budgetResult, metricsResult] = await Promise.allSettled([
                     financeApi.getWiseGoldWallet(),
                     financeApi.getWiseGoldPrice(),
                     financeApi.getBankStatus(),
                     financeApi.getTransactions(200),
+                    financeApi.getBudget(),
+                    user?.id ? fetchHealthMetrics(user.id, 30) : Promise.resolve<HealthDataPoint[]>([]),
                 ]);
 
                 if (walletResult.status === 'fulfilled') {
@@ -132,6 +143,14 @@ export default function StGabrielFinanceDashboard() {
                     setBankStatus(bankStatusResult.value);
                 } else {
                     setBankStatus(null);
+                }
+
+                if (budgetResult.status === 'fulfilled') {
+                    setBudgetEnvelopes(budgetResult.value);
+                }
+
+                if (metricsResult.status === 'fulfilled') {
+                    setMetricsHistory(metricsResult.value);
                 }
 
                 if (transactionsResult.status === 'fulfilled') {
@@ -173,7 +192,7 @@ export default function StGabrielFinanceDashboard() {
         }, 200);
 
         return () => window.clearTimeout(bootstrapTimer);
-    }, [authLoading, cachedBankStatus, cachedMonthCashFlow, isDemoMode, session]);
+    }, [authLoading, cachedBankStatus, cachedMonthCashFlow, isDemoMode, session, user]);
 
     const linkedAccountBalance = useMemo(() => {
         if (!bankStatus?.connected) {
@@ -472,7 +491,13 @@ export default function StGabrielFinanceDashboard() {
                     </h2>
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                         <SecurityIntegrityBadge />
-                        <button className="p-2 text-slate-400 transition-colors hover:text-white">
+                        <button
+                            type="button"
+                            onClick={() => setIsAddTransactionOpen(true)}
+                            title="Add transaction"
+                            aria-label="Add transaction"
+                            className="p-2 text-slate-400 transition-colors hover:text-white"
+                        >
                             <Plus className="w-5 h-5" />
                         </button>
                         <button
@@ -497,7 +522,7 @@ export default function StGabrielFinanceDashboard() {
                     {showGuardian ? <SaintsGuardian /> : null}
 
                     {activeView === 'budget' && <BudgetEnvelopes />}
-                    {activeView === 'ledger' && <TransactionLedger />}
+                    {activeView === 'ledger' && <TransactionLedger key={ledgerRefreshKey} />}
                     {activeView === 'wisegold' && <WiseGoldPanel />}
                     {activeView === 'reports' && (
                         <div className="space-y-5">
@@ -514,10 +539,9 @@ export default function StGabrielFinanceDashboard() {
                             {user?.id && <GabrielDHTSummary personId={user.id} />}
                             <TrinitySynapsePanel
                                 saint="gabriel"
-                                budgetEnvelopes={[]}
-                                metricsHistory={[]}
-                                familyMembers={[]}
-                                healthRiskScore={50}
+                                budgetEnvelopes={budgetEnvelopes}
+                                metricsHistory={metricsHistory}
+                                familyMembers={familyMembers}
                             />
                             <div className="rounded-2xl bg-slate-900/50 border border-slate-800/50 p-5">
                                 <h3 className="text-sm font-semibold text-white mb-3">How Trinity Synapse Works</h3>
@@ -547,6 +571,16 @@ export default function StGabrielFinanceDashboard() {
                     </div>
                 </div>
             )}
+
+            <AddTransactionModal
+                isOpen={isAddTransactionOpen}
+                onClose={() => setIsAddTransactionOpen(false)}
+                onTransactionAdded={() => {
+                    setLedgerRefreshKey((key) => key + 1);
+                    setActiveView('ledger');
+                    void refreshFinanceCardState();
+                }}
+            />
         </div>
     );
 }

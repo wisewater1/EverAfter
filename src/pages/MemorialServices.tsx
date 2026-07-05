@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
+import { listUserFiles, uploadFile, getFileUrl, formatFileSize, type UserFile } from '../lib/file-storage';
 import {
   Heart,
   MapPin,
@@ -10,7 +11,6 @@ import {
   Camera,
   Music,
   Flower2,
-  BookOpen,
   Phone,
   Mail,
   Clock,
@@ -29,7 +29,8 @@ import {
   Sparkles,
   Shield,
   Lock,
-  Globe
+  Globe,
+  X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -62,6 +63,19 @@ interface MemorialPlan {
 
 const DEMO_MEMORIAL_PLANS_KEY = 'everafter_demo_memorial_plans';
 
+function formatServiceType(serviceType: string): string {
+  return serviceType
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function documentIcon(fileType: string) {
+  if (fileType.startsWith('image/')) return Camera;
+  if (fileType.startsWith('audio/')) return Music;
+  return FileText;
+}
+
 export default function MemorialServices() {
   const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
@@ -69,6 +83,13 @@ export default function MemorialServices() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [plans, setPlans] = useState<MemorialPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<MemorialPlan | null>(null);
+  const [documents, setDocuments] = useState<UserFile[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [documentActionId, setDocumentActionId] = useState<string | null>(null);
+  const [documentNotice, setDocumentNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const serviceCategories = [
     { id: 'all', name: 'All Services', icon: Building2 },
@@ -184,6 +205,105 @@ export default function MemorialServices() {
     }
   };
 
+  useEffect(() => {
+    if (user && !isDemoMode && activeTab === 'documents') {
+      void fetchDocuments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isDemoMode, activeTab]);
+
+  const fetchDocuments = async () => {
+    setDocumentsLoading(true);
+    try {
+      const files = await listUserFiles('memorial');
+      setDocuments(files);
+    } catch (error) {
+      console.warn('Error fetching memorial documents:', error);
+      setDocumentNotice({
+        tone: 'error',
+        message: 'We could not load your documents just now. Please try again in a moment.',
+      });
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (isDemoMode) {
+      setDocumentNotice({
+        tone: 'error',
+        message: 'Demo mode does not store documents. Sign in with a full account to keep them safe here.',
+      });
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setUploadingDocument(true);
+    setDocumentNotice(null);
+    try {
+      await uploadFile(file, { category: 'memorial', description: 'Memorial planning document' });
+      await fetchDocuments();
+      setDocumentNotice({
+        tone: 'success',
+        message: `"${file.name}" has been safely stored with your memorial documents.`,
+      });
+    } catch (error) {
+      console.warn('Error uploading memorial document:', error);
+      setDocumentNotice({
+        tone: 'error',
+        message: 'We could not store that document just now. Please try again in a moment.',
+      });
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
+  const handleDownloadDocument = async (file: UserFile) => {
+    setDocumentActionId(file.id);
+    try {
+      const url = await getFileUrl(file.id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.warn('Error downloading memorial document:', error);
+      setDocumentNotice({
+        tone: 'error',
+        message: 'We could not open that document just now. Please try again in a moment.',
+      });
+    } finally {
+      setDocumentActionId(null);
+    }
+  };
+
+  const handleShareDocument = async (file: UserFile) => {
+    setDocumentActionId(file.id);
+    try {
+      const url = await getFileUrl(file.id, 3600);
+      await navigator.clipboard.writeText(url);
+      setDocumentNotice({
+        tone: 'success',
+        message: 'A secure sharing link was copied to your clipboard. It stays valid for one hour.',
+      });
+    } catch (error) {
+      console.warn('Error sharing memorial document:', error);
+      setDocumentNotice({
+        tone: 'error',
+        message: 'We could not create a sharing link just now. Please try again in a moment.',
+      });
+    } finally {
+      setDocumentActionId(null);
+    }
+  };
+
   const openExternal = (url: string) => {
     const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
     window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
@@ -273,30 +393,30 @@ export default function MemorialServices() {
             <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Shield className="w-5 h-5 text-teal-400" />
-                <span className="text-sm text-slate-400">Verified Providers</span>
+                <span className="text-sm text-slate-400">Provider Care</span>
               </div>
-              <p className="text-2xl font-bold text-white">500+</p>
+              <p className="text-lg font-bold text-white">Thoughtfully curated</p>
             </div>
             <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Users className="w-5 h-5 text-cyan-400" />
-                <span className="text-sm text-slate-400">Families Served</span>
+                <span className="text-sm text-slate-400">Family Support</span>
               </div>
-              <p className="text-2xl font-bold text-white">50,000+</p>
+              <p className="text-lg font-bold text-white">At your own pace</p>
             </div>
             <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Star className="w-5 h-5 text-amber-400" />
-                <span className="text-sm text-slate-400">Average Rating</span>
+                <span className="text-sm text-slate-400">Service Quality</span>
               </div>
-              <p className="text-2xl font-bold text-white">4.8</p>
+              <p className="text-lg font-bold text-white">Chosen for dignity</p>
             </div>
             <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
               <div className="flex items-center gap-3 mb-2">
                 <Lock className="w-5 h-5 text-emerald-400" />
-                <span className="text-sm text-slate-400">Secure Platform</span>
+                <span className="text-sm text-slate-400">Your Information</span>
               </div>
-              <p className="text-2xl font-bold text-white">100%</p>
+              <p className="text-lg font-bold text-white">Private by design</p>
             </div>
           </div>
         </div>
@@ -501,7 +621,10 @@ export default function MemorialServices() {
                     <p className="text-slate-400 text-sm mb-4">
                       Budget: ${plan.budget.toLocaleString()}
                     </p>
-                    <button className="w-full px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setSelectedPlan(plan)}
+                      className="w-full px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2"
+                    >
                       View Plan
                       <ChevronRight className="w-4 h-4" />
                     </button>

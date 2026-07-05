@@ -67,6 +67,30 @@ export interface Receipt {
     file_url?: string;
 }
 
+export type UnlockRequestStatus = 'pending' | 'approved' | 'declined' | 'expired';
+
+export type UnlockRequestDecision = 'approved' | 'declined';
+
+/**
+ * A successor access request for a vault item whose release rule needs a
+ * reviewed decision (custodian approval, or a verified passing with
+ * documentation reviewed). Rows live in public.vault_unlock_requests.
+ */
+export interface UnlockRequest {
+    id: string;
+    vault_item_id: string;
+    owner_user_id: string;
+    requested_by_email: string;
+    request_reason?: string | null;
+    evidence_note?: string | null;
+    status: UnlockRequestStatus;
+    decided_by_email?: string | null;
+    decided_at?: string | null;
+    created_at: string;
+    /** Present when the query embeds the parent item for display. */
+    vault_items?: { title: string } | null;
+}
+
 export type ItemStatusFilter = 'ALL' | VaultItemStatus;
 
 export interface LegacyConceptPreset {
