@@ -171,7 +171,75 @@ function writeLocalJson<T>(key: string, value: T): void {
     }
 }
 
+// Built-in sample ceremonies so demo mode opens with something to explore.
+// Seeded into localStorage on first read only; once the key exists (even as
+// an empty list because the user archived them all), the seed never returns.
+function buildDemoSeedCeremonies(): Ceremony[] {
+    const now = new Date();
+    const inTwoWeeks = new Date(now.getTime() + 14 * 86_400_000).toISOString();
+    const sixWeeksAgo = new Date(now.getTime() - 42 * 86_400_000).toISOString();
+    const members = getFamilyMembers();
+    const grandmother = members.find((m) => m.firstName === 'Margaret') || members[0];
+    const honoreeName = grandmother ? `${grandmother.firstName} ${grandmother.lastName}` : undefined;
+    const participantIds = members.filter((m) => !m.deathDate).slice(0, 3).map((m) => m.id);
+    return [
+        {
+            id: 'demo-ceremony-remembrance',
+            userId: DEMO_FALLBACK_USER_ID,
+            title: honoreeName ? `Remembering ${grandmother?.firstName}` : 'A Remembrance Gathering',
+            description: 'A quiet gathering to hold space for a life well lived and the memories we carry forward.',
+            ceremonyType: 'remembrance',
+            scheduledAt: inTwoWeeks,
+            durationMinutes: 45,
+            location: 'The family home',
+            honoreeMemberId: grandmother?.id,
+            participantMemberIds: participantIds,
+            script: buildCeremonyScript('remembrance', grandmother?.firstName),
+            status: 'scheduled',
+            createdAt: now.toISOString(),
+            updatedAt: now.toISOString(),
+        },
+        {
+            id: 'demo-ceremony-gratitude',
+            userId: DEMO_FALLBACK_USER_ID,
+            title: 'A Season of Gratitude',
+            description: 'Naming what we are thankful for as a family, and the people who made it possible.',
+            ceremonyType: 'gratitude',
+            durationMinutes: 30,
+            participantMemberIds: participantIds,
+            script: buildCeremonyScript('gratitude'),
+            status: 'completed',
+            completedAt: sixWeeksAgo,
+            reflection: 'We each shared one thing we were grateful for. The children surprised us with how much they noticed. A warm, unhurried evening we will remember.',
+            createdAt: sixWeeksAgo,
+            updatedAt: sixWeeksAgo,
+        },
+    ];
+}
+
 function readDemoCeremonies(): Ceremony[] {
+    if (isBrowser() && window.localStorage.getItem(DEMO_CEREMONIES_KEY) === null) {
+        const seed = buildDemoSeedCeremonies();
+        writeDemoCeremonies(seed);
+        // Mirror the completed ceremony into the chronicle events store.
+        const completed = seed.filter((c) => c.status === 'completed');
+        if (completed.length > 0) {
+            writeDemoCeremonyEvents(
+                completed.map((c) => ({
+                    id: `evt-${c.id}`,
+                    userId: c.userId,
+                    memberId: c.honoreeMemberId,
+                    legacyEventId: `ceremony_${c.id}`,
+                    eventType: 'ceremony' as const,
+                    eventDate: (c.completedAt || c.createdAt).slice(0, 10),
+                    title: c.title,
+                    description: c.reflection?.slice(0, 280),
+                    location: c.location,
+                })),
+            );
+        }
+        return seed;
+    }
     return readLocalJson<Ceremony[]>(DEMO_CEREMONIES_KEY, []);
 }
 

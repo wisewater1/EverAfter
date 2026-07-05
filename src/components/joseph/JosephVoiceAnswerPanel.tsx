@@ -132,12 +132,13 @@ export default function JosephVoiceAnswerPanel({
         likertValue: selectedAnswer,
         durationSeconds: recorder.durationSeconds,
       });
-      onApprovedAnswer(selectedAnswer);
       setSaved(persisted);
       setPhase('idle');
       setTranscript('');
       recorder.clearRecording();
-      setOpen(false);
+      // Keep the panel open so the saved confirmation is visible; advancing
+      // the quiz happens after, and the panel resets on the next question.
+      onApprovedAnswer(selectedAnswer);
     } catch (approveError) {
       setError(approveError instanceof Error ? approveError.message : 'Could not save this answer. Please try again.');
     } finally {

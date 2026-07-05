@@ -11,6 +11,7 @@ import {
     getRelationships,
 } from '../../lib/joseph/genealogy';
 import { getCachedTrinitySignals, wellnessFromLiveHealth, type LiveTrinitySignals } from '../../lib/trinity/liveSignals';
+import { isDemoAuthEnabled } from '../../lib/demo-auth';
 
 const TRINITY_GOALS_KEY = 'everafter_trinity_goals';
 const TRINITY_WHATIF_HISTORY_KEY = 'everafter_trinity_whatif_history';
@@ -401,9 +402,14 @@ export function getStoredTrinityGoals(): TrinityGoal[] {
         writeLocalJson(TRINITY_GOALS_KEY, hydrated);
         return hydrated;
     }
-    const seeded = buildSeedGoals();
-    writeLocalJson(TRINITY_GOALS_KEY, seeded.map(hydrateTrinityGoal));
-    return seeded;
+    // Only the guided demo starts with sample goals. A real account begins with
+    // an empty list so it never shows goals the user did not create.
+    if (isDemoAuthEnabled()) {
+        const seeded = buildSeedGoals();
+        writeLocalJson(TRINITY_GOALS_KEY, seeded.map(hydrateTrinityGoal));
+        return seeded;
+    }
+    return [];
 }
 
 export function persistTrinityGoal(goal: TrinityGoal): TrinityGoal[] {

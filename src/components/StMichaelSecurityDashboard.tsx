@@ -95,6 +95,11 @@ export default function StMichaelSecurityDashboard() {
     const [lastScanHandoff, setLastScanHandoff] = useState<ScanBannerState | null>(null);
     const criticalAlerts = alerts.filter((alert) => alert.severity === 'critical' || alert.severity === 'high');
     const accessAlerts = alerts.filter((alert) => alert.type === 'access' || alert.type === 'pii_leak' || alert.type === 'leak_prevention');
+    // `report` is only populated once a real scan has resolved. Track the
+    // score as nullable so an absent report renders an honest "awaiting
+    // data" state instead of a fabricated 100%.
+    const overallScore = report?.overallScore ?? null;
+    const hasIntegrityScore = overallScore !== null;
     const threatLevel =
         criticalAlerts.length > 0 ? 'HIGH' :
         (report?.overallScore || 100) < 90 ? 'ELEVATED' :
@@ -416,16 +421,30 @@ export default function StMichaelSecurityDashboard() {
                                 </div>
                                 <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-6">Integrity Score</h3>
                                 <div className="flex items-baseline gap-4">
-                                    <span className="text-4xl sm:text-5xl lg:text-6xl font-extralight text-white tabular-nums">{report?.overallScore || 100}%</span>
+                                    <span className={`text-4xl sm:text-5xl lg:text-6xl font-extralight tabular-nums ${hasIntegrityScore ? 'text-white' : 'text-slate-600'}`}>
+                                        {hasIntegrityScore ? `${overallScore}%` : 'N/A'}
+                                    </span>
                                     <div className="flex flex-col">
-                                        <span className="text-emerald-400 text-sm font-bold flex items-center gap-1">
-                                            <CheckCircle className="w-3 h-3" /> VERIFIED
-                                        </span>
-                                        <span className="text-slate-600 text-[10px] uppercase font-bold">Data is Pristine</span>
+                                        {hasIntegrityScore ? (
+                                            <>
+                                                <span className="text-emerald-400 text-sm font-bold flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" /> VERIFIED
+                                                </span>
+                                                <span className="text-slate-600 text-[10px] uppercase font-bold">Data is Pristine</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-slate-500 text-sm font-bold">Awaiting live integrity data</span>
+                                                <span className="text-slate-600 text-[10px] uppercase font-bold">No scan recorded yet</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="mt-8 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-sky-500 to-blue-500 rounded-full transition-all duration-1000" style={{ width: `${report?.overallScore || 100}%` }} />
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-1000 ${hasIntegrityScore ? 'bg-gradient-to-r from-sky-500 to-blue-500' : 'bg-slate-700'}`}
+                                        style={{ width: hasIntegrityScore ? `${overallScore}%` : '0%' }}
+                                    />
                                 </div>
                             </div>
 
@@ -489,11 +508,15 @@ export default function StMichaelSecurityDashboard() {
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Adversarial Prob.</div>
-                                            <div className="text-xl font-light text-white">{caiData?.adversarialFlags === 0 ? '0.01%' : 'HIGH'}</div>
+                                            <div className={`text-xl font-light ${!caiData ? 'text-slate-500' : caiData.adversarialFlags === 0 ? 'text-white' : 'text-amber-400'}`}>
+                                                {!caiData ? 'Awaiting data' : caiData.adversarialFlags === 0 ? 'Nominal' : 'Elevated'}
+                                            </div>
                                         </div>
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Privacy Filter</div>
-                                            <div className="text-xl font-light text-emerald-400">ACTIVE</div>
+                                            <div className={`text-xl font-light ${!caiData ? 'text-slate-500' : caiData.phiLeaksDetected === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {!caiData ? 'Unknown' : caiData.phiLeaksDetected === 0 ? 'ACTIVE' : 'REVIEW'}
+                                            </div>
                                         </div>
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Leak Check</div>
@@ -501,7 +524,7 @@ export default function StMichaelSecurityDashboard() {
                                         </div>
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">Audit Status</div>
-                                            <div className="text-xl font-light text-sky-400 uppercase">{caiData?.status || 'SAFE'}</div>
+                                            <div className={`text-xl font-light uppercase ${!caiData ? 'text-slate-500' : 'text-sky-400'}`}>{caiData ? caiData.status : 'Unknown'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -615,7 +638,7 @@ export default function StMichaelSecurityDashboard() {
                         </div>
                         <div className="w-px h-8 bg-white/5" />
                         <div className="text-center">
-                            <div className="text-2xl font-light text-white">{report?.overallScore || 100}%</div>
+                            <div className={`text-2xl font-light ${hasIntegrityScore ? 'text-white' : 'text-slate-600'}`}>{hasIntegrityScore ? `${overallScore}%` : 'N/A'}</div>
                             <div className="text-[10px] text-slate-600 uppercase font-black">Integrity Rating</div>
                         </div>
                     </div>

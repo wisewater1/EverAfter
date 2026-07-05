@@ -59,6 +59,9 @@ export default function UserPortal() {
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({});
+  // Counterpart display names keyed by their user id, so the connections tab
+  // shows real people instead of the literal "Connected user".
+  const [connectionNames, setConnectionNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user) {
@@ -112,7 +115,30 @@ export default function UserPortal() {
           .or(`requester_id.eq.${user?.id},addressee_id.eq.${user?.id}`);
 
         if (error) throw error;
-        setConnections(data || []);
+        const conns = data || [];
+        setConnections(conns);
+
+        // Resolve the other party's name for each connection.
+        const otherIds = Array.from(
+          new Set(
+            conns.map((conn: Connection) =>
+              conn.requester_id === user?.id ? conn.addressee_id : conn.requester_id,
+            ),
+          ),
+        );
+        if (otherIds.length > 0) {
+          const { data: people } = await supabase
+            .from('user_profiles')
+            .select('user_id, full_name, display_name')
+            .in('user_id', otherIds);
+          const names: Record<string, string> = {};
+          (people || []).forEach((p: { user_id: string; full_name: string | null; display_name: string | null }) => {
+            names[p.user_id] = p.display_name || p.full_name || 'A member';
+          });
+          setConnectionNames(names);
+        } else {
+          setConnectionNames({});
+        }
       }
     } catch (error) {
       console.warn('User portal data unavailable, falling back to empty state:', error);
@@ -491,7 +517,9 @@ function ConnectionsTab({ connections, userId, onRefresh }: ConnectionsTabProps)
             {pending.map((connection) => (
               <div key={connection.id} className="flex items-center justify-between p-4 bg-slate-800/40 rounded-xl">
                 <div className="flex-1">
-                  <p className="text-white font-medium">Connection request from user</p>
+                  <p className="text-white font-medium">
+                    Connection request from {connectionNames[connection.requester_id] || 'a member'}
+                  </p>
                   <p className="text-slate-400 text-sm">{new Date(connection.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -524,7 +552,9 @@ function ConnectionsTab({ connections, userId, onRefresh }: ConnectionsTabProps)
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {accepted.map((connection) => (
               <div key={connection.id} className="p-4 bg-slate-800/40 rounded-xl">
-                <p className="text-white font-medium">Connected user</p>
+                <p className="text-white font-medium">
+                  {connectionNames[connection.requester_id === user?.id ? connection.addressee_id : connection.requester_id] || 'A member'}
+                </p>
                 <p className="text-slate-400 text-sm">Connected on {new Date(connection.updated_at).toLocaleDateString()}</p>
               </div>
             ))}

@@ -286,11 +286,7 @@ export default function LegacyVaultEnhanced() {
             )}
           </button>
           <button
-            onClickCapture={(e) => {
-              e.stopPropagation();
-              console.log('Section Tab Clicked (Capture): shared');
-              setActiveSection('shared');
-            }}
+            onClick={() => setActiveSection('shared')}
             className={`min-h-11 px-6 py-3 font-medium transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 ${activeSection === 'shared'
               ? 'text-teal-400'
               : 'text-slate-400 hover:text-white'
@@ -838,11 +834,8 @@ function EmptyState({ type, onCreate }: { type: string; onCreate: () => void }) 
       <h3 className="text-xl font-bold text-white mb-2">{state.title}</h3>
       <p className="text-slate-400 text-center mb-6 max-w-md">{state.description}</p>
       <button
-        onClickCapture={(e) => {
-          e.stopPropagation();
-          onCreate();
-        }}
-        className="relative z-[100] pointer-events-auto px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all cursor-pointer"
+        onClick={onCreate}
+        className="min-h-11 px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
       >
         {state.cta}
       </button>

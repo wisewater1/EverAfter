@@ -16,7 +16,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isDemoMode: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -201,9 +201,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.user && data?.session) {
         setSession(data.session);
         setUser(data.user);
+        return { error: null, needsEmailConfirmation: false };
       }
 
-      return { error: null };
+      // A user with no session means email confirmation is required before
+      // sign-in. The caller must show a "check your email" state rather than
+      // routing into a protected page (which would bounce back to login).
+      return { error: null, needsEmailConfirmation: Boolean(data?.user) };
     } catch (err) {
       logger.critical('Signup exception', err);
       const errorMsg = err instanceof Error ? err.message : 'Signup failed';

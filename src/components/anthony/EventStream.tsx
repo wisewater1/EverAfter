@@ -3,41 +3,12 @@ import { Activity, Server, Shield, Heart, Users, Search, Code, ChevronRight, Dow
 import { getEventLog, subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
 import { buildApiUrl } from '../../lib/env';
 
-const MOCK_EVENTS: SaintEventEnvelope[] = [
-    {
-        id: '1',
-        source: 'michael',
-        target: 'raphael',
-        topic: 'security/scan_complete',
-        payload: { target: 'Health Module', status: 'secure' },
-        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-        confidence: 1.0
-    },
-    {
-        id: '2',
-        source: 'raphael',
-        target: 'joseph',
-        topic: 'health/update',
-        payload: { user: 'wisea', metric: 'heart_rate', value: 72 },
-        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        confidence: 0.95
-    },
-    {
-        id: '3',
-        source: 'system',
-        target: 'broadcast',
-        topic: 'system/startup',
-        payload: { version: '2.1.0', environment: 'production' },
-        timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        confidence: 1.0
-    },
-];
-
 export default function EventStream() {
+    // Real saint events from the in-app event bus. Do not seed fabricated
+    // events; an empty log shows an honest empty state instead.
     const initialEvents = getEventLog().slice().reverse();
-    const seededEvents = initialEvents.length > 0 ? initialEvents : MOCK_EVENTS;
-    const [events, setEvents] = useState<SaintEventEnvelope[]>(seededEvents);
-    const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(seededEvents[0]);
+    const [events, setEvents] = useState<SaintEventEnvelope[]>(initialEvents);
+    const [selectedEvent, setSelectedEvent] = useState<SaintEventEnvelope | null>(initialEvents[0] || null);
     // Redact sensitive data before displaying
     const redactSensitiveData = (obj: any): any => {
         if (!obj) return obj;
@@ -105,6 +76,12 @@ export default function EventStream() {
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    {events.length === 0 && (
+                        <div className="p-8 text-center text-slate-500 text-sm">
+                            <Activity className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                            No saint events yet. Activity will appear here as the Saints coordinate.
+                        </div>
+                    )}
                     {events.map((event, idx) => {
                         const Icon = getIcon(event.source);
                         const isSelected = selectedEvent === event;
@@ -142,7 +119,10 @@ export default function EventStream() {
 
             {/* Event Detail */}
             <div className="lg:col-span-2 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl relative">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                <div
+                    className="absolute inset-0 opacity-20 pointer-events-none"
+                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.8'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E\")" }}
+                ></div>
 
                 {selectedEvent ? (
                     <>
@@ -156,13 +136,9 @@ export default function EventStream() {
                             <div className="flex justify-between items-start mb-1">
                                 <h3 className="text-2xl font-light text-white">Event Payload</h3>
                                 <div className="flex gap-2">
-                                    <span className="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-md text-xs flex items-center gap-1 font-mono">
+                                    <span className="px-2 py-1 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded-md text-xs flex items-center gap-1 font-mono">
                                         <CheckCircle className="w-3 h-3" />
-                                        Hash Valid
-                                    </span>
-                                    <span className="px-2 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-md text-xs flex items-center gap-1 font-mono">
-                                        <CheckCircle className="w-3 h-3" />
-                                        Sig Valid
+                                        Recorded
                                     </span>
                                 </div>
                             </div>

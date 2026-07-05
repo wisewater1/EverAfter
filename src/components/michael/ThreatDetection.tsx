@@ -17,17 +17,43 @@ const CATEGORY_LABELS: Record<MitreCategory, string> = {
     lateral_movement: 'Lateral Movement', collection: 'Collection', exfiltration: 'Exfiltration',
 };
 
+// There is no live mitigation endpoint wired up yet, so an operator click
+// here can only record an acknowledgment, not a verified fix. Acknowledged
+// ids are kept in localStorage so the state survives a reload.
+const ACK_STORAGE_KEY = 'everafter_michael_ack_threats';
+
+function loadAcknowledgedThreatIds(): Set<string> {
+    try {
+        const raw = localStorage.getItem(ACK_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+        return new Set();
+    }
+}
+
+function saveAcknowledgedThreatIds(ids: Set<string>): void {
+    try {
+        localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify([...ids]));
+    } catch {
+        // Storage may be unavailable (private browsing, quota); the
+        // acknowledgment still applies for the current session.
+    }
+}
+
 export default function ThreatDetection() {
     const [threats, setThreats] = useState<ThreatEvent[]>([]);
     const [filterSeverity, setFilterSeverity] = useState<ThreatSeverity | null>(null);
-    const [mitigatingId, setMitigatingId] = useState<string | null>(null);
+    const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     const loadThreats = async () => {
         setLoading(true);
         try {
-            setThreats(await getLiveThreatEvents());
+            const liveThreats = await getLiveThreatEvents();
+            const acknowledged = loadAcknowledgedThreatIds();
+            setThreats(liveThreats.map(t => acknowledged.has(t.id) ? { ...t, mitigated: true } : t));
         } finally {
             setLoading(false);
         }
@@ -39,12 +65,18 @@ export default function ThreatDetection() {
 
     const filtered = filterSeverity ? threats.filter(t => t.severity === filterSeverity) : threats;
 
-    const handleMitigate = async (id: string) => {
-        setMitigatingId(id);
-        // Signature Michael protection animation delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setThreats(prev => prev.map(t => t.id === id ? { ...t, mitigated: true } : t));
-        setMitigatingId(null);
+    const handleAcknowledge = async (id: string) => {
+        setAcknowledgingId(id);
+        try {
+            // Signature Michael acknowledgment animation delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            const acknowledged = loadAcknowledgedThreatIds();
+            acknowledged.add(id);
+            saveAcknowledgedThreatIds(acknowledged);
+            setThreats(prev => prev.map(t => t.id === id ? { ...t, mitigated: true } : t));
+        } finally {
+            setAcknowledgingId(null);
+        }
     };
 
     const handleInvestigate = (ruleId: string) => {
@@ -114,7 +146,7 @@ export default function ThreatDetection() {
                 )}
                 {filtered.map(threat => {
                     const s = SEVERITY_STYLES[threat.severity];
-                    const isMitigating = mitigatingId === threat.id;
+                    const isAcknowledging = acknowledgingId === threat.id;
 
                     return (
                         <div key={threat.id} className={`${s.bg} border ${s.border} rounded-2xl p-5 transition-all hover:scale-[1.005] group/item`}>
@@ -141,7 +173,7 @@ export default function ThreatDetection() {
                                 <div className="flex flex-col items-end gap-2 shrink-0">
                                     {threat.mitigated ? (
                                         <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                                            <CheckCircle className="w-3 h-3" /> Mitigated
+                                            <CheckCircle className="w-3 h-3" /> Acknowledged
                                         </span>
                                     ) : (
                                         <div className="flex items-center gap-2">
@@ -152,17 +184,17 @@ export default function ThreatDetection() {
                                                 Investigate
                                             </button>
                                             <button
-                                                onClick={() => handleMitigate(threat.id)}
-                                                disabled={isMitigating}
-                                                className={`px-3 py-1 ${isMitigating ? 'bg-sky-500/50 cursor-wait' : 'bg-sky-600 hover:bg-sky-500'} text-white text-[10px] font-bold rounded-lg shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2`}
+                                                onClick={() => handleAcknowledge(threat.id)}
+                                                disabled={isAcknowledging}
+                                                className={`px-3 py-1 ${isAcknowledging ? 'bg-sky-500/50 cursor-wait' : 'bg-sky-600 hover:bg-sky-500'} text-white text-[10px] font-bold rounded-lg shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2`}
                                             >
-                                                {isMitigating ? (
+                                                {isAcknowledging ? (
                                                     <>
                                                         <Shield className="w-3 h-3 animate-spin" />
-                                                        Isolating...
+                                                        Acknowledging...
                                                     </>
                                                 ) : (
-                                                    'Mitigate'
+                                                    'Acknowledge'
                                                 )}
                                             </button>
                                         </div>

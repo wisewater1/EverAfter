@@ -3,6 +3,7 @@
  * OCEAN × stress × budget real-time nudges.
  */
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Zap, Check, Clock, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
 
@@ -12,10 +13,25 @@ const PRIORITY_CONFIG: Record<string, { color: string; icon: any; label: string 
     weekly: { color: '#10b981', icon: Check, label: 'This Week' },
 };
 const SAINT_COLORS: Record<string, string> = { joseph: '#f59e0b', raphael: '#14b8a6', gabriel: '#10b981' };
+const SAINT_ROUTES: Record<string, string> = { joseph: '/family-dashboard', raphael: '/health-dashboard', gabriel: '/finance-dashboard', michael: '/security-dashboard', anthony: '/anthony-dashboard' };
+const DISMISSED_KEY = 'everafter_trinity_nudges_dismissed';
+
+function loadDismissed(): Set<string> {
+    try {
+        const raw = localStorage.getItem(DISMISSED_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+        return new Set();
+    }
+}
 
 export default function BehavioralNudgeEngine() {
+    const navigate = useNavigate();
     const [data, setData] = useState<any>(null);
-    const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+    // Dismissals are keyed by nudge title so they survive reloads and are not
+    // tied to a fragile array index.
+    const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
     const [loading, setLoading] = useState(true);
 
     useEffect(() => { (async () => { setData(await trinitySynapse('behavioral_nudge', {})); setLoading(false); })(); }, []);
@@ -23,7 +39,21 @@ export default function BehavioralNudgeEngine() {
     if (loading) return <div className="flex items-center gap-2 text-xs text-slate-500 p-4"><Loader2 className="w-4 h-4 animate-spin" />Generating nudges…</div>;
     if (!data) return null;
 
-    const nudges = (data.nudges || []).filter((_: any, i: number) => !dismissed.has(i));
+    const dismiss = (title: string) => {
+        setDismissed((prev) => {
+            const next = new Set([...prev, title]);
+            try { localStorage.setItem(DISMISSED_KEY, JSON.stringify([...next])); } catch { /* storage may be unavailable */ }
+            return next;
+        });
+    };
+
+    const handleAction = (n: any) => {
+        const target = (n.sources || []).map((s: string) => SAINT_ROUTES[s]).find(Boolean);
+        if (target) navigate(target);
+        else dismiss(n.title);
+    };
+
+    const nudges = (data.nudges || []).filter((n: any) => !dismissed.has(n.title));
 
     return (
         <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-5">
@@ -57,8 +87,8 @@ export default function BehavioralNudgeEngine() {
                                                 <span key={s} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: SAINT_COLORS[s] || '#666' }} />
                                             ))}
                                         </div>
-                                        <button onClick={() => setDismissed(prev => new Set([...prev, i]))} className="text-[9px] text-slate-500 hover:text-slate-300 ml-auto">Dismiss</button>
-                                        <button className="text-[9px] px-2 py-0.5 rounded font-medium" style={{ color: cfg.color, backgroundColor: cfg.color + '15' }}>{n.action}</button>
+                                        <button onClick={() => dismiss(n.title)} className="text-[9px] text-slate-500 hover:text-slate-300 ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50 rounded">Dismiss</button>
+                                        <button onClick={() => handleAction(n)} className="text-[9px] px-2 py-0.5 rounded font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60" style={{ color: cfg.color, backgroundColor: cfg.color + '15' }}>{n.action}</button>
                                     </div>
                                 </div>
                             </div>

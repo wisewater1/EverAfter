@@ -30,8 +30,9 @@ const FALLBACK_CONTROLS: Control[] = [
 
 export default function ContinuousControls() {
     const navigate = useNavigate();
-    const [score, setScore] = useState(100);
+    const [score, setScore] = useState<number | null>(null);
     const [controls, setControls] = useState<Control[]>([]);
+    const [unavailable, setUnavailable] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -40,15 +41,18 @@ export default function ContinuousControls() {
                 const res = await fetch(buildApiUrl('/api/v1/audit/controls/readiness'));
                 if (res.ok) {
                     const data = await res.json();
-                    setScore(Number.isFinite(data?.readiness_score) ? data.readiness_score : 100);
+                    setScore(Number.isFinite(data?.readiness_score) ? data.readiness_score : null);
                     setControls(Array.isArray(data?.controls) ? data.controls : FALLBACK_CONTROLS);
+                    setUnavailable(!Number.isFinite(data?.readiness_score));
                 } else {
-                    setScore(100);
+                    // No live readiness data. Show an honest unavailable state
+                    // rather than a fabricated perfect score.
+                    setUnavailable(true);
                     setControls(FALLBACK_CONTROLS);
                 }
             } catch (err) {
                 console.warn("Failed to fetch compliance readiness", err);
-                setScore(100);
+                setUnavailable(true);
                 setControls(FALLBACK_CONTROLS);
             } finally {
                 setLoading(false);
@@ -66,7 +70,10 @@ export default function ContinuousControls() {
         <div className="space-y-6">
             {/* Score Card */}
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex items-center justify-between shadow-xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                <div
+                    className="absolute inset-0 opacity-20 pointer-events-none"
+                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.8'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E\")" }}
+                ></div>
                 <div className="relative z-10 space-y-2">
                     <h2 className="text-xl font-light text-white flex items-center gap-2">
                         <ShieldCheck className="w-5 h-5 text-amber-500" />
@@ -78,16 +85,28 @@ export default function ContinuousControls() {
                 </div>
                 <div className="relative z-10 flex items-center gap-4">
                     <div className="text-right">
-                        <div className="text-4xl font-light flex items-baseline gap-1">
-                            <span className={score === 100 ? 'text-green-400' : 'text-amber-500'}>
-                                {score}
-                            </span>
-                            <span className="text-lg text-slate-500">/ 100</span>
-                        </div>
-                        <div className="text-xs font-mono text-slate-500 flex items-center gap-1 justify-end mt-1">
-                            <Activity className="w-3 h-3 text-green-500" />
-                            Live Monitoring Active
-                        </div>
+                        {unavailable || score === null ? (
+                            <>
+                                <div className="text-2xl font-light text-slate-500">Awaiting live data</div>
+                                <div className="text-xs font-mono text-slate-600 flex items-center gap-1 justify-end mt-1">
+                                    <Activity className="w-3 h-3 text-slate-600" />
+                                    Live monitoring unavailable
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-4xl font-light flex items-baseline gap-1">
+                                    <span className={score >= 90 ? 'text-green-400' : 'text-amber-500'}>
+                                        {score}
+                                    </span>
+                                    <span className="text-lg text-slate-500">/ 100</span>
+                                </div>
+                                <div className="text-xs font-mono text-slate-500 flex items-center gap-1 justify-end mt-1">
+                                    <Activity className="w-3 h-3 text-green-500" />
+                                    Live Monitoring Active
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -136,30 +155,24 @@ export default function ContinuousControls() {
                 </div>
             </div>
 
-            {/* Integrity SLOs Mock */}
+            {/* Integrity SLO targets (the objectives, not live readings) */}
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl relative overflow-hidden">
                 <div className="relative z-10 space-y-4">
-                    <h3 className="text-sm font-medium text-slate-300">Integrity SLOs</h3>
+                    <h3 className="text-sm font-medium text-slate-300">Integrity SLO Targets</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-slate-300 text-sm">Event Coverage Latency</span>
-                                <span className="text-green-400 font-mono text-sm">99.98%</span>
+                                <span className="text-slate-400 font-mono text-sm">Target: &ge; 99.9%</span>
                             </div>
-                            <p className="text-xs text-slate-500">&gt;99.9% of events have complete hop coverage within 5m</p>
-                            <div className="mt-3 w-full bg-slate-700 rounded-full h-1.5">
-                                <div className="bg-green-400 h-1.5 rounded-full" style={{ width: '99.98%' }}></div>
-                            </div>
+                            <p className="text-xs text-slate-500">Objective: 99.9% of events have complete hop coverage within 5m</p>
                         </div>
                         <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-slate-300 text-sm">Ledger Hash Integrity</span>
-                                <span className="text-green-400 font-mono text-sm">100.0%</span>
+                                <span className="text-slate-400 font-mono text-sm">Target: 100%</span>
                             </div>
-                            <p className="text-xs text-slate-500">Zero chain breaks detected in the last 30 days</p>
-                            <div className="mt-3 w-full bg-slate-700 rounded-full h-1.5">
-                                <div className="bg-green-400 h-1.5 rounded-full" style={{ width: '100%' }}></div>
-                            </div>
+                            <p className="text-xs text-slate-500">Objective: zero chain breaks across the ledger</p>
                         </div>
                     </div>
                 </div>
