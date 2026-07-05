@@ -792,6 +792,8 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   if (path.includes('/integrity/hipaa-report')) return mockResponse(MOCK_HIPAA_REPORT);
   if (path.includes('/audit/jit-access')) return mockResponse({ success: true, data: [] });
   if (path.includes('/audit/ledger')) return mockResponse(MOCK_AUDIT_LEDGER);
+  // No pending guardian intercessions in the demo (keeps the family dashboard console clean).
+  if (path.includes('/saints/intercessions/pending')) return mockResponse([]);
 
   // St. Gabriel Finance endpoints
   if (path.includes('/finance/budget') || path.includes('/budget/envelopes')) {
