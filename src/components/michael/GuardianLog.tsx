@@ -9,6 +9,13 @@ interface GuardianLogProps {
 export default function GuardianLog({ report, alerts }: GuardianLogProps) {
     const criticalAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'high');
     const resolvedCount = alerts.filter(a => a.resolved).length;
+    // Stable reference id derived from the current report state, so it does
+    // not regenerate on every render (which read as a churning fake id).
+    const refId = (((report?.overallScore ?? 0) * 1000 + alerts.length * 31 + resolvedCount * 7) + 100000)
+        .toString(36)
+        .toUpperCase()
+        .slice(-6)
+        .padStart(6, '0');
 
     const getNarrative = () => {
         if (!report) return "Initializing Guardian protocols... Gathering system telemetry.";
@@ -38,7 +45,7 @@ export default function GuardianLog({ report, alerts }: GuardianLogProps) {
                 <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
                         <h3 className="text-xs font-bold text-sky-500 uppercase tracking-widest">The Guardian's Log</h3>
-                        <span className="text-[10px] text-slate-500 font-mono">ST. MICHAEL // REF-ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">ST. MICHAEL // REF-ID: {refId}</span>
                     </div>
 
                     <p className="text-sm text-slate-200 leading-relaxed font-light italic">
