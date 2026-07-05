@@ -245,13 +245,14 @@ export default function Onboarding() {
     });
   }, [onboardingData.familySetup, onboardingData.firstEngram, onboardingData.personalityQuiz, user?.id]);
 
-  const handleStepComplete = async (step: OnboardingStep) => {
+  const handleStepComplete = async (step: OnboardingStep, extra?: Record<string, unknown>) => {
     setSaving(true);
     try {
       const newCompletedSteps = Array.from(new Set([...completedSteps, step]));
       await reconcileOnboarding({
         current_step: STEP_ORDER.indexOf(step) + 2,
         completed_steps: newCompletedSteps,
+        ...extra,
       });
       setCompletedSteps(newCompletedSteps);
       setLoadWarning(null);
@@ -430,9 +431,12 @@ export default function Onboarding() {
 
           {currentStep === 'health_connections' && (
             <HealthConnectionStep
-              onNext={() => handleStepComplete('health_connections')}
+              onNext={(selectedProviders) =>
+                handleStepComplete('health_connections', { health_connection_preferences: selectedProviders })
+              }
               onBack={handleBack}
               saving={saving}
+              userId={user?.id || ''}
             />
           )}
 
