@@ -795,6 +795,12 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   // No pending guardian intercessions in the demo (keeps the family dashboard console clean).
   if (path.includes('/saints/intercessions/pending')) return mockResponse([]);
 
+  // Society feed endpoints: the feed simulates locally, so return empty
+  // collections here to keep the demo console clean.
+  if (path.includes('/social/feed')) return mockResponse([]);
+  if (path.includes('/social/clusters')) return mockResponse({});
+  if (path.includes('/social/interact')) return mockResponse([]);
+
   // St. Gabriel Finance endpoints
   if (path.includes('/finance/budget') || path.includes('/budget/envelopes')) {
     return mockResponse(MOCK_FINANCE_DATA.budget);

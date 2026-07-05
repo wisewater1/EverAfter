@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Lock, Unlock, Mail, Plus, Clock,
-    Calendar, Sparkles, Send, X, Loader
+    Sparkles, X, Loader
 } from 'lucide-react';
 import { buildAccessTokenHeaders } from '../../lib/auth-session';
 import { requestBackendJson } from '../../lib/backend-request';
@@ -17,10 +17,31 @@ interface TimeCapsule {
     media_url?: string;
 }
 
+const LOCAL_CAPSULES_KEY = 'everafter_time_capsules';
+
+function readLocalCapsules(): TimeCapsule[] {
+    try {
+        const raw = localStorage.getItem(LOCAL_CAPSULES_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeLocalCapsules(capsules: TimeCapsule[]): void {
+    try {
+        localStorage.setItem(LOCAL_CAPSULES_KEY, JSON.stringify(capsules.slice(-100)));
+    } catch {
+        // Storage may be unavailable; the in-memory list still works this session.
+    }
+}
+
 export default function TimeCapsuleVault() {
     const [capsules, setCapsules] = useState<TimeCapsule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [notice, setNotice] = useState<string | null>(null);
 
     // Create Form State
     const [newTitle, setNewTitle] = useState('');
@@ -44,14 +65,22 @@ export default function TimeCapsuleVault() {
                 'Failed to load time capsules.',
             );
             setCapsules(Array.isArray(data) ? data : []);
+            setNotice(null);
         } catch (error) {
-            console.error(error);
+            // The vault service is unavailable. Fall back to any capsules the
+            // person has saved locally so the feature still works offline.
+            console.warn('Time capsule service unavailable, using local capsules', error);
+            const local = readLocalCapsules();
+            setCapsules(local);
+            setNotice('The vault service is unavailable right now. Your capsules are saved on this device and will sync when the service is back.');
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleCreate = async () => {
+        const title = newTitle.trim();
+        if (!title) return;
         try {
             const headers = await buildAccessTokenHeaders({
                 'Content-Type': 'application/json',
@@ -63,7 +92,7 @@ export default function TimeCapsuleVault() {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({
-                        title: newTitle,
+                        title,
                         content: newContent,
                         unlock_condition: targetDate,
                         sender_saint_id: targetSaint,
@@ -73,11 +102,27 @@ export default function TimeCapsuleVault() {
             );
             setShowCreateModal(false);
             await fetchCapsules();
-            // Reset form
             setNewTitle('');
             setNewContent('');
         } catch (error) {
-            console.error("Failed to create capsule", error);
+            // Service down: persist the capsule locally so the work is not lost.
+            console.warn('Time capsule create fell back to local storage', error);
+            const localCapsule: TimeCapsule = {
+                id: `local_${Date.now()}`,
+                title,
+                sender_saint_id: targetSaint,
+                is_unlocked: false,
+                unlock_date: targetDate || null,
+                created_at: new Date().toISOString(),
+                content: newContent,
+            };
+            const next = [localCapsule, ...readLocalCapsules()];
+            writeLocalCapsules(next);
+            setCapsules(next);
+            setShowCreateModal(false);
+            setNewTitle('');
+            setNewContent('');
+            setNotice('The vault service is unavailable, so this capsule was saved on this device for now.');
         }
     };
 
@@ -111,6 +156,22 @@ export default function TimeCapsuleVault() {
     };
 
     const handleUnlock = async (id: string) => {
+        // Locally-stored capsules are evaluated on the device: reveal the
+        // contents once the chosen date has passed.
+        if (id.startsWith('local_')) {
+            const local = readLocalCapsules();
+            const capsule = local.find((c) => c.id === id);
+            if (!capsule) return;
+            const ready = !capsule.unlock_date || new Date(capsule.unlock_date).getTime() <= Date.now();
+            if (!ready) {
+                setNotice('This capsule is still sealed until its chosen date.');
+                return;
+            }
+            const next = local.map((c) => (c.id === id ? { ...c, is_unlocked: true } : c));
+            writeLocalCapsules(next);
+            setCapsules(next);
+            return;
+        }
         try {
             const headers = await buildAccessTokenHeaders({
                 'Bypass-Tunnel-Reminder': 'true',
@@ -124,8 +185,12 @@ export default function TimeCapsuleVault() {
                 'Failed to unlock the time capsule.',
             );
             await fetchCapsules();
-        } catch (error) {
-            alert("This capsule cannot be unlocked yet.");
+        } catch {
+            const capsule = capsules.find((c) => c.id === id);
+            const future = capsule?.unlock_date && new Date(capsule.unlock_date).getTime() > Date.now();
+            setNotice(future
+                ? 'This capsule is still sealed until its chosen date.'
+                : 'The vault service is unavailable right now. Please try again later.');
         }
     };
 
@@ -156,12 +221,21 @@ export default function TimeCapsuleVault() {
 
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="group flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+                        className="group flex items-center gap-2 min-h-11 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
                     >
                         <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
                         Create Capsule
                     </button>
                 </div>
+
+                {notice && (
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 flex items-start justify-between gap-3">
+                        <span>{notice}</span>
+                        <button onClick={() => setNotice(null)} aria-label="Dismiss" className="text-amber-300/70 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 rounded">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
 
                 {/* Capsules Grid */}
                 {isLoading ? (

@@ -2,6 +2,70 @@ import { useEffect, useState, useRef } from 'react';
 import { Users, Heart, Activity, Zap, Globe, Share2, MessageSquare, TrendingUp, Shield, Loader2, ListTodo, ChevronRight, Eye } from 'lucide-react';
 import { apiClient } from '../lib/api-client';
 import { getFamilyMembers } from '../lib/joseph/genealogy';
+import { getCachedTrinitySignals, refreshTrinitySignals, wellnessFromLiveHealth } from '../lib/trinity/liveSignals';
+
+interface DeliberationResult {
+    transcript: { speaker: string; role: string; content: string; timestamp: string }[];
+    consensus: string;
+    action_items: string[];
+}
+
+// A grounded council deliberation built from the family's real records, so the
+// feature works instantly even when the backend council service is offline.
+function buildLocalDeliberation(): DeliberationResult {
+    const members = getFamilyMembers();
+    const living = members.filter((m) => !m.deathDate);
+    const elders = living.filter((m) => {
+        if (!m.birthDate) return false;
+        const age = (Date.now() - new Date(m.birthDate).getTime()) / (365.25 * 86400000);
+        return age >= 65;
+    });
+    const signals = getCachedTrinitySignals();
+    const wellness = signals ? wellnessFromLiveHealth(signals.health) : null;
+    const overspent = signals?.finance.overspentEnvelopes ?? 0;
+    const responses30d = signals?.engagement.responses30d ?? 0;
+    const now = () => new Date().toISOString();
+
+    const josephLine = living.length > 0
+        ? `Our family stands at ${living.length} living ${living.length === 1 ? 'member' : 'members'}${elders.length ? `, ${elders.length} of whom we should keep close watch over` : ''}. Let us make sure everyone is accounted for and cared for this week.`
+        : 'Our family tree is still taking shape. The first task is to record the people we love so the rest of us can support them.';
+
+    const raphaelLine = wellness !== null
+        ? `Health signals are ${wellness >= 70 ? 'strong' : wellness >= 45 ? 'steady' : 'in need of gentle attention'} this week. I suggest we protect rest and recovery before adding new commitments.`
+        : 'I do not yet see recent health readings. Connecting a device or logging a check-in would let me watch over everyone properly.';
+
+    const gabrielLine = overspent > 0
+        ? `${overspent} budget ${overspent === 1 ? 'envelope is' : 'envelopes are'} overspent. I recommend we steady those before any new spending, so the family stays on firm ground.`
+        : 'Our finances are in good order, with no envelopes overspent. This is a season to steward carefully rather than expand.';
+
+    const anthonyLine = responses30d > 0
+        ? `Guidance is active, with ${responses30d} reflections recorded this month. The record is being kept faithfully.`
+        : 'We have few recent reflections on record. A short daily answer would deepen the guidance each Saint can offer.';
+
+    const consensus = wellness !== null && wellness < 45
+        ? 'The Council agrees to prioritize health and rest this week, then tend to the family before taking on anything new.'
+        : overspent > 0
+            ? 'The Council agrees to steady the overspent budgets first, keeping the family secure before new commitments.'
+            : 'The Council agrees the family is on stable ground. This is a week to care for one another and keep the record faithfully.';
+
+    const actions: string[] = [];
+    if (wellness !== null && wellness < 60) actions.push('Protect a rest day and log a health check-in with St. Raphael');
+    if (overspent > 0) actions.push('Review and rebalance the overspent budget envelopes with St. Gabriel');
+    if (elders.length > 0) actions.push('Check in on the family members most in need of care');
+    if (responses30d === 0) actions.push('Answer one daily question to strengthen guidance');
+    if (actions.length === 0) actions.push('Share one moment of gratitude with the family this week');
+
+    return {
+        transcript: [
+            { speaker: 'St. Joseph', role: 'family', content: josephLine, timestamp: now() },
+            { speaker: 'St. Raphael', role: 'health', content: raphaelLine, timestamp: now() },
+            { speaker: 'St. Gabriel', role: 'finance', content: gabrielLine, timestamp: now() },
+            { speaker: 'St. Anthony', role: 'guidance', content: anthonyLine, timestamp: now() },
+        ],
+        consensus,
+        action_items: actions,
+    };
+}
 
 // Define Personality Archetypes
 export type Archetype = 'analytical' | 'creative' | 'empathetic' | 'direct' | 'balanced';
@@ -191,7 +255,60 @@ const SocietyFeed: React.FC = () => {
 
     // Physics Engine State
     const physicsRef = useRef<Record<string, { x: number, y: number, vx: number, vy: number, baseVy: number, targetHeight: number, arc: Archetype }>>({});
-    const [positions, setPositions] = useState<Record<string, { x: number, y: number }>>({});
+    // Positions live in a ref and are written straight to the DOM each frame, so
+    // the constellation animates at the display's native frame rate without
+    // re-rendering React on every tick. `positionsReady` flips once so nodes and
+    // lines mount after the first physics pass.
+    const posRef = useRef<Record<string, { x: number, y: number }>>({});
+    const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const lineRefs = useRef<Record<string, SVGPathElement | null>>({});
+    const [positionsReady, setPositionsReady] = useState(false);
+
+    const applyDeliberation = (result: DeliberationResult) => {
+        setDeliberationLog(result.transcript);
+        setDeliberationConsensus(result.consensus);
+        setDeliberationActions(result.action_items);
+    };
+
+    // Begin a council deliberation. We warm the live signals, then race the
+    // backend council against a short deadline; if it does not answer quickly
+    // (or at all), we show a grounded deliberation built from the family's real
+    // data so the button always produces a meaningful result without a long wait.
+    const startDeliberation = async () => {
+        if (isDeliberating) return;
+        setIsDeliberating(true);
+        setDeliberationLog([]);
+        setDeliberationConsensus(null);
+        setDeliberationActions([]);
+        setTaskCreated(false);
+        void refreshTrinitySignals().catch(() => undefined);
+        try {
+            const backend = apiClient.deliberate(
+                "Review the family's current health, financial, and social status. What actions should we prioritize this week?",
+                'Cross-saint integration deliberation triggered from the Society Feed.',
+            ).then((result): DeliberationResult | null => {
+                if (result?.transcript && Array.isArray(result.transcript) && result.transcript.length > 0) {
+                    return {
+                        transcript: result.transcript.map((entry: any, i: number) => ({
+                            speaker: entry.saint_name || entry.speaker || `Saint ${i + 1}`,
+                            role: entry.saint_id || entry.role || 'advisor',
+                            content: entry.content || entry.message || '',
+                            timestamp: new Date().toISOString(),
+                        })),
+                        consensus: result.consensus || buildLocalDeliberation().consensus,
+                        action_items: Array.isArray(result.action_items) ? result.action_items : [],
+                    };
+                }
+                return null;
+            }).catch(() => null);
+
+            const deadline = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+            const winner = await Promise.race([backend, deadline]);
+            applyDeliberation(winner || buildLocalDeliberation());
+        } finally {
+            setIsDeliberating(false);
+        }
+    };
 
     const appendLocalEvents = (newEvents: InteractionEvent[]) => {
         if (newEvents.length === 0) return;
@@ -291,49 +408,50 @@ const SocietyFeed: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // 60fps Physics Loop (Antigravity & Cluster Magnetism)
+    // Physics Loop (Antigravity & Cluster Magnetism). Runs at the display's
+    // native frame rate and writes positions straight to the DOM, so the motion
+    // stays smooth without a React re-render per frame.
     useEffect(() => {
         if (agents.length === 0) return;
 
         agents.forEach((a, i) => {
             if (!physicsRef.current[a.id]) {
+                const startX = 20 + (i * 30) % 60;
+                const startY = 80 + Math.random() * 20;
                 physicsRef.current[a.id] = {
-                    x: 20 + (i * 30) % 60,
-                    y: 80 + Math.random() * 20,
+                    x: startX,
+                    y: startY,
                     vx: (Math.random() - 0.5) * 0.05,
                     vy: 0,
                     baseVy: -0.01 - Math.random() * 0.015,
                     targetHeight: 30 + Math.random() * 40,
                     arc: a.archetype
                 };
+                posRef.current[a.id] = { x: startX, y: startY };
             }
         });
+        setPositionsReady(true);
 
         let frameId: number;
         let time = 0;
         let lastTick = 0;
-        // ~25fps cap: the O(n²) sim setStates on every pass, so 60fps means 60
-        // React re-renders/sec — and hidden tabs shouldn't simulate at all.
+        // Sub-step the physics on a fixed 40ms clock (stable simulation) but
+        // paint every animation frame, interpolating so motion looks continuous
+        // even on 120Hz displays.
         const FRAME_MS = 40;
 
-        const tick = (ts: number = 0) => {
-            if (document.hidden || ts - lastTick < FRAME_MS) {
-                frameId = requestAnimationFrame(tick);
-                return;
-            }
-            lastTick = ts;
-            time += 0.02;
-            const updated: Record<string, { x: number, y: number }> = {};
-            const keys = Object.keys(physicsRef.current);
+        // Cluster Centers (normalized % coordinates)
+        const clusterCenters: Record<string, { x: number, y: number }> = {
+            analytical: { x: 25, y: 25 },
+            creative: { x: 75, y: 25 },
+            empathetic: { x: 25, y: 75 },
+            direct: { x: 75, y: 75 },
+            balanced: { x: 50, y: 50 }
+        };
 
-            // Cluster Centers (normalized % coordinates)
-            const clusterCenters: Record<string, { x: number, y: number }> = {
-                analytical: { x: 25, y: 25 },
-                creative: { x: 75, y: 25 },
-                empathetic: { x: 25, y: 75 },
-                direct: { x: 75, y: 75 },
-                balanced: { x: 50, y: 50 }
-            };
+        const stepPhysics = () => {
+            time += 0.02;
+            const keys = Object.keys(physicsRef.current);
 
             for (let i = 0; i < keys.length; i++) {
                 const k1 = keys[i];
@@ -409,16 +527,58 @@ const SocietyFeed: React.FC = () => {
                 p1.x = Math.max(5, Math.min(95, p1.x));
                 p1.y = Math.max(5, Math.min(95, p1.y));
 
-                updated[k1] = { x: p1.x, y: p1.y };
+                const cur = posRef.current[k1];
+                if (cur) { cur.x = p1.x; cur.y = p1.y; }
+                else posRef.current[k1] = { x: p1.x, y: p1.y };
             }
+        };
 
-            setPositions(updated);
+        // Write the latest positions straight to the DOM: node offsets and the
+        // curved connection paths. No React state changes, so no re-render.
+        const paint = () => {
+            for (const id in nodeRefs.current) {
+                const el = nodeRefs.current[id];
+                const p = posRef.current[id];
+                if (el && p) {
+                    el.style.left = `${p.x}%`;
+                    el.style.top = `${p.y}%`;
+                }
+            }
+            for (const id in lineRefs.current) {
+                const path = lineRefs.current[id];
+                if (!path) continue;
+                const from = posRef.current[path.dataset.from || ''];
+                const to = posRef.current[path.dataset.to || ''];
+                if (from && to) {
+                    path.setAttribute('d', `M ${from.x} ${from.y} Q 50 50 ${to.x} ${to.y}`);
+                    path.style.opacity = '1';
+                } else {
+                    path.style.opacity = '0';
+                }
+            }
+        };
+
+        const tick = (ts: number = 0) => {
             frameId = requestAnimationFrame(tick);
+            if (document.hidden) { lastTick = ts; return; }
+            if (!lastTick) lastTick = ts;
+            // Fixed-step accumulator keeps the simulation stable regardless of
+            // display refresh rate; cap catch-up so a backgrounded tab does not
+            // fast-forward on return.
+            let acc = Math.min(200, ts - lastTick);
+            lastTick = ts;
+            let steps = 0;
+            while (acc >= FRAME_MS && steps < 5) {
+                stepPhysics();
+                acc -= FRAME_MS;
+                steps += 1;
+            }
+            paint();
         };
 
         frameId = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frameId);
-    }, [agents, activeTab]);
+    }, [agents, activeTab, showAnchors]);
 
     if (loading) return (
         <div className="flex items-center justify-center h-64">
@@ -526,18 +686,21 @@ const SocietyFeed: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Connection Lines */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                    {/* Connection Lines. viewBox 0-100 lets the physics feed
+                        percentage coordinates directly; paths are positioned
+                        imperatively each frame in the physics loop. */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
                         {events.slice(0, 15).map((event) => {
-                            const pos1 = positions[event.initiator_id];
-                            const pos2 = positions[event.receiver_id];
-                            if (!pos1 || !pos2) return null;
                             const isPropagation = event.interaction_type === 'vignette_propagation';
                             return (
                                 <path
                                     key={event.id}
-                                    d={`M ${pos1.x}% ${pos1.y}% Q 50% 50% ${pos2.x}% ${pos2.y}%`}
+                                    ref={(el) => { lineRefs.current[event.id] = el; }}
+                                    data-from={event.initiator_id}
+                                    data-to={event.receiver_id}
+                                    style={{ opacity: 0 }}
                                     fill="none"
+                                    vectorEffect="non-scaling-stroke"
                                     stroke={isPropagation ? 'rgba(234, 179, 8, 0.4)' : 'rgba(6, 182, 212, 0.15)'}
                                     strokeWidth={isPropagation ? 3 : 1}
                                     strokeDasharray={isPropagation ? "5 5" : "0"}
@@ -547,19 +710,21 @@ const SocietyFeed: React.FC = () => {
                         })}
                     </svg>
 
-                    {/* Agent Nodes */}
-                    {agents.map((agent) => {
-                        const pos = positions[agent.id];
-                        if (!pos) return null;
+                    {/* Agent Nodes. Positioned imperatively each frame by the
+                        physics loop; only transform/opacity transition so the
+                        per-frame offset updates stay crisp. */}
+                    {positionsReady && agents.map((agent) => {
+                        const pos = posRef.current[agent.id] || { x: 50, y: 50 };
                         const colors = ARCHETYPE_COLORS[agent.archetype];
                         const isHovered = hoveredAgent === agent.id;
 
                         return (
                             <div
                                 key={agent.id}
+                                ref={(el) => { nodeRefs.current[agent.id] = el; }}
                                 onMouseEnter={() => setHoveredAgent(agent.id)}
                                 onMouseLeave={() => setHoveredAgent(null)}
-                                className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full border-2 p-0.5 cursor-pointer transition-all duration-300 z-30 shadow-2xl ${colors.border} ${isHovered ? 'scale-125 z-40' : 'scale-100 opacity-80'}`}
+                                className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full border-2 p-0.5 cursor-pointer transition-[transform,opacity] duration-300 will-change-transform z-30 shadow-2xl ${colors.border} ${isHovered ? 'scale-125 z-40' : 'scale-100 opacity-80'}`}
                                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                             >
                                 <div className="w-full h-full rounded-full overflow-hidden bg-slate-800 flex items-center justify-center">
@@ -592,43 +757,7 @@ const SocietyFeed: React.FC = () => {
                                     <span className="text-[10px] font-black uppercase tracking-widest">Eavesdrop on Council</span>
                                 </div>
                                 <button
-                                    onClick={async () => {
-                                        if (isDeliberating) return;
-                                        setIsDeliberating(true);
-                                        setDeliberationLog([]);
-                                        setDeliberationConsensus(null);
-                                        setDeliberationActions([]);
-                                        setTaskCreated(false);
-                                        try {
-                                            const result = await apiClient.deliberate(
-                                                'Review the family\'s current health, financial, and social status. What actions should we prioritize this week?',
-                                                'Cross-saint integration deliberation triggered from the Society Feed.'
-                                            );
-                                            // Map transcript to dialogue
-                                            if (result.transcript && Array.isArray(result.transcript)) {
-                                                setDeliberationLog(result.transcript.map((entry: any, i: number) => ({
-                                                    speaker: entry.saint_name || entry.speaker || `Saint ${i + 1}`,
-                                                    role: entry.saint_id || entry.role || 'advisor',
-                                                    content: entry.content || entry.message || '',
-                                                    timestamp: new Date().toISOString(),
-                                                })));
-                                            }
-                                            if (result.consensus) setDeliberationConsensus(result.consensus);
-                                            if (result.action_items) setDeliberationActions(result.action_items);
-                                        } catch (error) {
-                                            console.error('Deliberation error:', error);
-                                            // Fallback: show a simulated deliberation
-                                            setDeliberationLog([
-                                                { speaker: 'St. Joseph', role: 'guardian', content: 'The family\'s task backlog has grown. We should prioritize completing overdue commitments before taking on new missions.', timestamp: new Date().toISOString() },
-                                                { speaker: 'St. Raphael', role: 'healer', content: 'I notice sleep patterns have been irregular. I recommend a family rest day before pushing harder on tasks.', timestamp: new Date().toISOString() },
-                                                { speaker: 'St. Gabriel', role: 'steward', content: 'The WiseGold covenants are stable. Financially, we\'re in a position to invest in the family\'s wellbeing rather than growth this cycle.', timestamp: new Date().toISOString() },
-                                            ]);
-                                            setDeliberationConsensus('The Council agrees: prioritize health and rest this week, then clear the task backlog before expanding new initiatives.');
-                                            setDeliberationActions(['Schedule a family rest day', 'Clear overdue St. Joseph tasks', 'Review WiseGold covenant status']);
-                                        } finally {
-                                            setIsDeliberating(false);
-                                        }
-                                    }}
+                                    onClick={() => void startDeliberation()}
                                     disabled={isDeliberating}
                                     className="px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-50 text-indigo-400 border border-indigo-500/20 rounded-lg text-[9px] font-bold transition-all uppercase tracking-tighter flex items-center gap-1.5"
                                 >

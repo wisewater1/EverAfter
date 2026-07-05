@@ -21,12 +21,25 @@ interface AkashicStreamProps {
     minimal?: boolean;
 }
 
+// Sample records shown when the live memory service is unreachable, so the
+// stream illustrates what it holds rather than sitting blank.
+function buildSampleRecords(): AkashicRecord[] {
+    const now = Date.now();
+    return [
+        { id: 'sample-1', content: 'St. Raphael noted a steady week of recovery, with rest and activity in good balance.', metadata: { type: 'HEALTH', saint_id: 'raphael' }, timestamp: new Date(now - 2 * 3600000).toISOString() },
+        { id: 'sample-2', content: 'St. Joseph recorded a family gathering and three shared memories added to the chronicle.', metadata: { type: 'FAMILY', saint_id: 'joseph' }, timestamp: new Date(now - 26 * 3600000).toISOString() },
+        { id: 'sample-3', content: 'St. Gabriel confirmed the emergency fund is on track and no envelopes are overspent.', metadata: { type: 'FINANCE', saint_id: 'gabriel' }, timestamp: new Date(now - 50 * 3600000).toISOString() },
+    ];
+}
+
 export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
     const [records, setRecords] = useState<AkashicRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [connected, setConnected] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const failureCountRef = useRef(0);
 
     const fetchMemories = async (query?: string) => {
         try {
@@ -55,9 +68,18 @@ export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
                     : [...res.data].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
                 setRecords(finalData);
+                setConnected(true);
+                failureCountRef.current = 0;
             }
         } catch (err) {
-            console.error("Failed to fetch Akashic records", err);
+            console.warn('Akashic memory service unreachable', err);
+            failureCountRef.current += 1;
+            setConnected(false);
+            // Show sample records (only for the unfiltered stream) so the panel
+            // is not blank and the footer honestly reflects the offline state.
+            if (!query) {
+                setRecords((prev) => (prev.length === 0 ? buildSampleRecords() : prev));
+            }
         } finally {
             setLoading(false);
             setIsSearching(false);
@@ -80,7 +102,15 @@ export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
 
     useEffect(() => {
         if (!searchQuery) {
-            const interval = setInterval(() => fetchMemories(), 10000);
+            // Poll every 10s while reachable; once the service has failed a few
+            // times in a row, only try every 6th tick (~60s) so we do not thrash
+            // a dead endpoint.
+            let tick = 0;
+            const interval = setInterval(() => {
+                tick += 1;
+                if (failureCountRef.current >= 3 && tick % 6 !== 0) return;
+                fetchMemories();
+            }, 10000);
             return () => clearInterval(interval);
         }
     }, [searchQuery]);
@@ -182,7 +212,7 @@ export default function AkashicStream({ minimal = false }: AkashicStreamProps) {
             <div className="mt-4 pt-2 border-t border-cyan-500/10 flex items-center justify-between text-[10px] text-slate-500 italic relative z-10">
                 <span className="flex items-center gap-1">
                     <HistoryIcon className="w-3 h-3" />
-                    Neural Link Active
+                    {connected ? 'Live record connected' : 'Live record unavailable'}
                 </span>
                 <span>Total Engrams: {records.length}</span>
             </div>
