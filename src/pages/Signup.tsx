@@ -10,6 +10,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const { signUp, user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -51,7 +52,7 @@ export default function Signup() {
     setSubmitting(true);
 
     try {
-      const { error } = await signUp(email, password);
+      const { error, needsEmailConfirmation } = await signUp(email, password);
 
       if (error) {
         if (isInvalidApiKeyError(error.message)) {
@@ -66,8 +67,14 @@ export default function Signup() {
           setError(error.message);
         }
         setSubmitting(false);
+      } else if (needsEmailConfirmation) {
+        // No session yet: the account needs email confirmation first. Show a
+        // clear "check your email" state instead of routing into a protected
+        // page, which would bounce straight back to login.
+        setConfirmationSent(true);
+        setSubmitting(false);
       } else {
-        // Success - navigate immediately
+        // Session established - go straight to the app.
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
@@ -80,6 +87,34 @@ export default function Signup() {
       setSubmitting(false);
     }
   };
+
+  if (confirmationSent) {
+    return (
+      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <Mail className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-light text-white mb-3">Check your email</h1>
+          <p className="text-gray-400 mb-2">
+            We sent a confirmation link to <span className="text-white font-medium">{email}</span>.
+          </p>
+          <p className="text-gray-400 mb-8">
+            Open it to activate your account, then sign in to continue setting up your Saints.
+          </p>
+          <Link
+            to="/login"
+            className="inline-flex min-h-11 items-center justify-center px-8 py-3 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-teal-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
+          >
+            Go to sign in
+          </Link>
+          <p className="text-gray-500 text-sm mt-4">
+            Did not get it? Check your spam folder, or wait a moment and try signing in.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center p-4">

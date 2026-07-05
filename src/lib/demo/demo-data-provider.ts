@@ -547,12 +547,81 @@ const DEMO_FAMILY_TREE_EVENTS = [
   },
 ];
 
+// Legacy Vault sample items so the demo vault opens with real content to
+// explore rather than an empty shell.
+const DEMO_VAULT_ITEMS = [
+  {
+    id: 'dv-message-alice',
+    user_id: 'demo-user',
+    type: 'MESSAGE',
+    title: 'A note for Alice on her wedding day',
+    slug: 'note-for-alice',
+    status: 'SCHEDULED',
+    payload: { message: 'Alice, whatever day this reaches you, know how proud we are. Carry us with you.' },
+    encryption_key_id: null,
+    unlock_at: new Date(DEMO_NOW + 200 * 86400000).toISOString(),
+    unlock_rule: 'DATE',
+    heartbeat_timeout_days: null,
+    is_encrypted: false,
+    metadata: {},
+    created_at: isoDaysAgo(30),
+    updated_at: isoDaysAgo(30),
+    published_at: null,
+    locked_at: null,
+    delivered_at: null,
+    family_member_id: null,
+  },
+  {
+    id: 'dv-will-family',
+    user_id: 'demo-user',
+    type: 'WILL',
+    title: 'Family letter of wishes',
+    slug: 'letter-of-wishes',
+    status: 'LOCKED',
+    payload: { message: 'A plain-language companion to the formal will, sharing the reasoning behind each decision.' },
+    encryption_key_id: null,
+    unlock_at: null,
+    unlock_rule: 'CUSTODIAN_APPROVAL',
+    heartbeat_timeout_days: null,
+    is_encrypted: false,
+    metadata: {},
+    created_at: isoDaysAgo(60),
+    updated_at: isoDaysAgo(14),
+    published_at: null,
+    locked_at: isoDaysAgo(14),
+    delivered_at: null,
+    family_member_id: null,
+  },
+  {
+    id: 'dv-capsule-grandkids',
+    user_id: 'demo-user',
+    type: 'CAPSULE',
+    title: 'Time capsule for the grandchildren',
+    slug: 'grandchildren-capsule',
+    status: 'DRAFT',
+    payload: { message: 'Photographs, voice recordings, and a few small stories to open when they turn eighteen.' },
+    encryption_key_id: null,
+    unlock_at: null,
+    unlock_rule: 'HEARTBEAT_TIMEOUT',
+    heartbeat_timeout_days: 180,
+    is_encrypted: false,
+    metadata: {},
+    created_at: isoDaysAgo(10),
+    updated_at: isoDaysAgo(3),
+    published_at: null,
+    locked_at: null,
+    delivered_at: null,
+    family_member_id: null,
+  },
+];
+
 const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
   family_members: DEMO_FAMILY_MEMBERS,
   engrams: DEMO_ENGRAM_ROWS,
   family_moments: DEMO_FAMILY_MOMENTS,
   ceremonies: DEMO_CEREMONIES,
   family_tree_events: DEMO_FAMILY_TREE_EVENTS,
+  vault_items: DEMO_VAULT_ITEMS,
 };
 
 // Populated engram list for the Engram Training Center (bare array — callers .map/.filter).
@@ -857,7 +926,30 @@ export function initDemoInterceptor(): void {
       try {
         accept = new Headers((init?.headers ?? {}) as HeadersInit).get('accept') || '';
       } catch { /* keep '' */ }
+      const restMethod = (init?.method || 'GET').toUpperCase();
       if (accept.includes('vnd.pgrst.object')) {
+        // An insert or update that asks for the row back (.insert().select()
+        // .single() / .update()...single()). Echo the submitted row with an id
+        // and timestamps so demo create/edit flows succeed instead of 406ing.
+        if (restMethod === 'POST' || restMethod === 'PATCH') {
+          let row: Record<string, unknown> = {};
+          try {
+            const parsed = init?.body ? JSON.parse(String(init.body)) : {};
+            row = Array.isArray(parsed) ? (parsed[0] || {}) : parsed;
+          } catch { /* keep empty row */ }
+          const nowIso = new Date().toISOString();
+          const echoed = {
+            id: (row.id as string) || `demo-${Math.random().toString(36).slice(2, 10)}`,
+            created_at: (row.created_at as string) || nowIso,
+            updated_at: nowIso,
+            ...row,
+          };
+          return new Response(JSON.stringify(echoed), {
+            status: restMethod === 'POST' ? 201 : 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        // A single-row read with no seeded match: PostgREST returns PGRST116.
         return new Response(
           JSON.stringify({ message: 'JSON object requested, multiple (or no) rows returned', code: 'PGRST116', details: 'Results contain 0 rows', hint: null }),
           { status: 406, headers: { 'Content-Type': 'application/json' } },

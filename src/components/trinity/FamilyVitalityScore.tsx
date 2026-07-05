@@ -23,6 +23,7 @@ interface VitalityBar {
 interface VitalityData {
     vitality_score: number;
     breakdown?: Record<string, VitalityBar>;
+    data_source?: { family?: string; recovery?: string; financial?: string };
     access_layer?: { steward: string; label: string; emergency_contacts?: number; vault_items?: number } | null;
     insights?: {
         condition_density?: number;
@@ -31,6 +32,14 @@ interface VitalityData {
         overspent_envelopes?: number;
     };
 }
+
+// Map each bar to its data_source key so the UI can show whether the number
+// is measured from live records or estimated from the family model.
+const BAR_SOURCE_KEY: Record<string, keyof NonNullable<VitalityData['data_source']>> = {
+    joseph: 'family',
+    raphael: 'recovery',
+    gabriel: 'financial',
+};
 
 export default function FamilyVitalityScore() {
     const [data, setData] = useState<VitalityData | null>(null);
@@ -74,6 +83,22 @@ export default function FamilyVitalityScore() {
                 <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4 text-amber-400" />
                     <span className="text-sm font-semibold text-white">Family Vitality Score</span>
+                    {data.data_source && (() => {
+                        const vals = Object.values(data.data_source);
+                        const allLive = vals.length > 0 && vals.every((v) => v === 'live');
+                        return (
+                            <span
+                                className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${
+                                    allLive
+                                        ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'
+                                        : 'text-slate-400 border-slate-600/40 bg-slate-700/20'
+                                }`}
+                                title={allLive ? 'Computed from your live records' : 'Some components are estimated from the family model until live data is linked'}
+                            >
+                                {allLive ? 'Live' : 'Partly estimated'}
+                            </span>
+                        );
+                    })()}
                 </div>
                 <button
                     onClick={() => load(true)}
@@ -105,6 +130,8 @@ export default function FamilyVitalityScore() {
                         { key: 'gabriel', icon: Wallet, color: '#10b981', label: breakdown.gabriel?.label || 'Financial readiness' },
                     ].map(({ key, icon: Icon, color, label }) => {
                         const s = breakdown[key] || { score: 0, weight: 0 };
+                        const srcKey = BAR_SOURCE_KEY[key];
+                        const isLive = srcKey ? data.data_source?.[srcKey] === 'live' : false;
                         return (
                             <div key={key}>
                                 <div className="flex items-center justify-between mb-1">
@@ -112,6 +139,9 @@ export default function FamilyVitalityScore() {
                                         <Icon className="w-3 h-3" style={{ color }} />
                                         <span className="text-[10px] text-slate-400">{label}</span>
                                         {s.source && <span className="text-[9px] text-slate-600 hidden sm:inline">{s.source}</span>}
+                                        <span className={`text-[9px] ${isLive ? 'text-emerald-400/80' : 'text-slate-500'}`}>
+                                            {isLive ? 'live' : 'estimated'}
+                                        </span>
                                     </div>
                                     <span className="text-xs font-medium text-white">{s.score?.toFixed(0)}/100 <span className="text-slate-600">({s.weight}%)</span></span>
                                 </div>
