@@ -83,7 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [errorNotifier, setErrorNotifier] = useState<ErrorNotificationHook | null>(null);
 
   useEffect(() => {
-    if (import.meta.env.DEV) console.log('AuthContext: Initializing...', { hasSupabase: !!supabase });
     if (isDemoAuthEnabled()) {
       const demoState = readDemoAuthState();
       // Reloads must re-install the fetch interceptor, or every API call goes
@@ -126,7 +125,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         if (error) throw error;
 
-        console.log('AuthContext: Session retrieved', { hasSession: !!session });
         setSession(session);
         setUser(session?.user ?? null);
         setIsDemoMode(false);
@@ -159,7 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, AUTH_BOOT_TIMEOUT_MS + 2000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      console.log('AuthContext: Auth state changed', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
       setIsDemoMode(false);
@@ -265,9 +262,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Capture before resetting state so the demo branch below is explicit
+    // rather than relying on the not-yet-updated state variable.
+    const wasDemoMode = isDemoMode;
     clearDemoAuth();
     setIsDemoMode(false);
-    if (isDemoMode) {
+    if (wasDemoMode) {
+      // Restore the original window.fetch and axios adapter; otherwise the
+      // demo interceptor keeps serving mock data after sign-out.
+      removeDemoInterceptor();
       setSession(null);
       setUser(null);
       return { error: null };

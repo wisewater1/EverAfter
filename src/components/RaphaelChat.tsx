@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
-import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, ExternalLink, CheckCircle, Zap } from 'lucide-react';
+import { Send, Bot, User, Heart, Activity, Moon, Pill, Sparkles, CheckCircle, Zap } from 'lucide-react';
 import { extractHealthDataFromMessage, storeHealthMetrics, type ExtractedHealthData } from '../lib/raphael/healthDataService';
 
 interface Message {
@@ -246,14 +246,6 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
               <p className="text-gray-400 text-xs sm:text-sm">Your personal health companion</p>
             </div>
           </div>
-          <button
-            onClick={() => window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host'}
-            className="flex-shrink-0 px-3 py-2 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-400 transition-all duration-300 flex items-center gap-2 border border-emerald-500/20 sm:backdrop-blur-xl group"
-          >
-            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline text-sm font-medium">Production AI</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
         </div>
 
         <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-2 sm:gap-3">

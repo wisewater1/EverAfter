@@ -8,13 +8,18 @@ import {
   ArrowLeft,
   Loader2,
   Check,
-  ExternalLink,
+  Plus,
 } from 'lucide-react';
+import {
+  loadHealthConnectionPreferencesDraft,
+  saveHealthConnectionPreferencesDraft,
+} from '../../lib/onboardingApi';
 
 interface HealthConnectionStepProps {
-  onNext: () => void;
+  onNext: (selectedProviders: string[]) => void;
   onBack: () => void;
   saving: boolean;
+  userId: string;
 }
 
 interface HealthProvider {
@@ -81,24 +86,29 @@ const HEALTH_PROVIDERS: HealthProvider[] = [
   },
 ];
 
+const KNOWN_PROVIDER_IDS = new Set(HEALTH_PROVIDERS.map((provider) => provider.id));
+
 export default function HealthConnectionStep({
   onNext,
   onBack,
   saving,
+  userId,
 }: HealthConnectionStepProps) {
-  const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
-  const [connecting, setConnecting] = useState<string | null>(null);
+  const [selectedProviders, setSelectedProviders] = useState<string[]>(() =>
+    loadHealthConnectionPreferencesDraft(userId).filter((id) => KNOWN_PROVIDER_IDS.has(id))
+  );
 
-  const handleConnect = async (providerId: string) => {
-    setConnecting(providerId);
-    // Simulate connection process - in production this would initiate OAuth
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setConnectedProviders((prev) => [...prev, providerId]);
-    setConnecting(null);
+  const toggleProvider = (providerId: string) => {
+    const next = selectedProviders.includes(providerId)
+      ? selectedProviders.filter((id) => id !== providerId)
+      : [...selectedProviders, providerId];
+    setSelectedProviders(next);
+    saveHealthConnectionPreferencesDraft(userId, next);
   };
 
-  const handleDisconnect = (providerId: string) => {
-    setConnectedProviders((prev) => prev.filter((id) => id !== providerId));
+  const handleContinue = () => {
+    saveHealthConnectionPreferencesDraft(userId, selectedProviders);
+    onNext(selectedProviders);
   };
 
   const popularProviders = HEALTH_PROVIDERS.filter((p) => p.popular);
@@ -111,32 +121,30 @@ export default function HealthConnectionStep({
         <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
           <Activity className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Connect Your Health Data</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">Choose Your Health Sources</h2>
         <p className="text-gray-400 text-sm">
-          Link your wearables and health apps for personalized insights. Skip this step if you
-          prefer to add them later.
+          Pick the devices and apps you use. We save your choices now, and you complete each
+          secure connection in the St. Raphael health hub after setup finishes.
         </p>
       </div>
 
       {/* Popular Providers */}
       <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-400 mb-3">Popular Connections</h3>
+        <h3 className="text-sm font-medium text-gray-400 mb-3">Popular Sources</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {popularProviders.map((provider) => {
-            const isConnected = connectedProviders.includes(provider.id);
-            const isConnecting = connecting === provider.id;
+            const isSelected = selectedProviders.includes(provider.id);
             const Icon = provider.icon;
 
             return (
               <button
                 key={provider.id}
-                onClick={() =>
-                  isConnected ? handleDisconnect(provider.id) : handleConnect(provider.id)
-                }
-                disabled={isConnecting || saving}
-                className={`p-4 rounded-xl border transition-all text-left ${
-                  isConnected
-                    ? 'bg-green-500/10 border-green-500/50'
+                onClick={() => toggleProvider(provider.id)}
+                disabled={saving}
+                aria-pressed={isSelected}
+                className={`p-4 rounded-xl border transition-all text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
+                  isSelected
+                    ? 'bg-indigo-500/10 border-indigo-500/50'
                     : 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-700/50'
                 }`}
               >
@@ -144,14 +152,17 @@ export default function HealthConnectionStep({
                   <div className={`p-2 rounded-lg ${provider.bgColor}`}>
                     <Icon className={`w-5 h-5 ${provider.color}`} />
                   </div>
-                  {isConnecting ? (
-                    <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-                  ) : isConnected ? (
-                    <Check className="w-5 h-5 text-green-400" />
-                  ) : null}
+                  {isSelected ? (
+                    <Check className="w-5 h-5 text-indigo-400" />
+                  ) : (
+                    <Plus className="w-5 h-5 text-gray-500" />
+                  )}
                 </div>
                 <h4 className="font-medium text-white mt-3">{provider.name}</h4>
                 <p className="text-xs text-gray-400 mt-1">{provider.description}</p>
+                {isSelected && (
+                  <p className="text-xs text-indigo-300 mt-2">Selected for setup</p>
+                )}
               </button>
             );
           })}
@@ -163,20 +174,18 @@ export default function HealthConnectionStep({
         <h3 className="text-sm font-medium text-gray-400 mb-3">More Devices</h3>
         <div className="space-y-2">
           {otherProviders.map((provider) => {
-            const isConnected = connectedProviders.includes(provider.id);
-            const isConnecting = connecting === provider.id;
+            const isSelected = selectedProviders.includes(provider.id);
             const Icon = provider.icon;
 
             return (
               <button
                 key={provider.id}
-                onClick={() =>
-                  isConnected ? handleDisconnect(provider.id) : handleConnect(provider.id)
-                }
-                disabled={isConnecting || saving}
-                className={`w-full p-3 rounded-lg border transition-all flex items-center gap-3 ${
-                  isConnected
-                    ? 'bg-green-500/10 border-green-500/50'
+                onClick={() => toggleProvider(provider.id)}
+                disabled={saving}
+                aria-pressed={isSelected}
+                className={`w-full p-3 rounded-lg border transition-all flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
+                  isSelected
+                    ? 'bg-indigo-500/10 border-indigo-500/50'
                     : 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-700/50'
                 }`}
               >
@@ -187,12 +196,13 @@ export default function HealthConnectionStep({
                   <h4 className="font-medium text-white text-sm">{provider.name}</h4>
                   <p className="text-xs text-gray-400">{provider.description}</p>
                 </div>
-                {isConnecting ? (
-                  <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-                ) : isConnected ? (
-                  <Check className="w-4 h-4 text-green-400" />
+                {isSelected ? (
+                  <span className="flex items-center gap-1.5 text-xs text-indigo-300">
+                    Selected for setup
+                    <Check className="w-4 h-4 text-indigo-400" />
+                  </span>
                 ) : (
-                  <ExternalLink className="w-4 h-4 text-gray-500" />
+                  <Plus className="w-4 h-4 text-gray-500" />
                 )}
               </button>
             );
@@ -200,17 +210,19 @@ export default function HealthConnectionStep({
         </div>
       </div>
 
-      {/* Connection Status */}
-      {connectedProviders.length > 0 && (
-        <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
+      {/* Selection Summary */}
+      {selectedProviders.length > 0 && (
+        <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 mb-6">
           <div className="flex items-center gap-2">
-            <Check className="w-5 h-5 text-green-400" />
-            <span className="text-green-300 font-medium">
-              {connectedProviders.length} device{connectedProviders.length > 1 ? 's' : ''} connected
+            <Check className="w-5 h-5 text-indigo-400" />
+            <span className="text-indigo-300 font-medium">
+              {selectedProviders.length} source{selectedProviders.length > 1 ? 's' : ''} selected
+              for setup
             </span>
           </div>
-          <p className="text-green-300/70 text-sm mt-1">
-            St. Raphael will use this data to provide personalized health insights.
+          <p className="text-indigo-300/70 text-sm mt-1">
+            Nothing is connected yet. After setup, the St. Raphael health hub walks you through
+            each provider's secure sign-in.
           </p>
         </div>
       )}
@@ -218,8 +230,9 @@ export default function HealthConnectionStep({
       {/* Info Note */}
       <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 mb-8">
         <p className="text-indigo-300 text-sm">
-          <strong>Privacy Note:</strong> Your health data is encrypted and never shared. You can
-          disconnect any device at any time from your settings.
+          <strong>Privacy Note:</strong> Selecting a source only saves your preference. No health
+          data flows until you approve the secure connection, and you can change your choices at
+          any time in settings.
         </p>
       </div>
 
@@ -227,22 +240,22 @@ export default function HealthConnectionStep({
       <div className="flex justify-between">
         <button
           onClick={onBack}
-          disabled={saving || connecting !== null}
+          disabled={saving}
           className="px-6 py-3 text-gray-400 hover:text-white transition-colors flex items-center gap-2"
         >
           <ArrowLeft className="w-5 h-5" />
           Back
         </button>
         <button
-          onClick={onNext}
-          disabled={saving || connecting !== null}
+          onClick={handleContinue}
+          disabled={saving}
           className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 flex items-center gap-2"
         >
           {saving ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              {connectedProviders.length > 0 ? 'Continue' : 'Skip for now'}
+              {selectedProviders.length > 0 ? 'Continue' : 'Skip for now'}
               <ArrowRight className="w-5 h-5" />
             </>
           )}

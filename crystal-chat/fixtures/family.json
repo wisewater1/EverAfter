@@ -1,0 +1,43 @@
+{
+  "members": [
+    { "id": "gp1", "firstName": "William", "lastName": "Anderson", "gender": "male", "birthDate": "1935-03-12", "deathDate": "2010-11-30", "birthPlace": "Chicago, IL", "generation": -2, "bio": "Served in the Korean War. Worked as a mechanical engineer for 35 years." },
+    { "id": "gp2", "firstName": "Margaret", "lastName": "Anderson", "gender": "female", "birthDate": "1938-07-22", "birthPlace": "Milwaukee, WI", "generation": -2, "bio": "Retired schoolteacher. Known for her incredible apple pies." },
+    { "id": "gp3", "firstName": "Robert", "lastName": "Mitchell", "gender": "male", "birthDate": "1933-01-05", "deathDate": "2015-06-18", "birthPlace": "Detroit, MI", "generation": -2, "bio": "Founded Mitchell Hardware. Community leader and church deacon." },
+    { "id": "gp4", "firstName": "Eleanor", "lastName": "Mitchell", "gender": "female", "birthDate": "1937-09-14", "deathDate": "2020-02-28", "birthPlace": "Detroit, MI", "generation": -2, "bio": "Volunteer nurse. Active in local charity organizations." },
+    { "id": "p1", "firstName": "James", "lastName": "Anderson", "gender": "male", "birthDate": "1962-05-20", "birthPlace": "Chicago, IL", "generation": -1, "bio": "Software architect. Enjoys woodworking and fishing." },
+    { "id": "p2", "firstName": "Susan", "lastName": "Anderson", "gender": "female", "birthDate": "1965-11-08", "birthPlace": "Detroit, MI", "generation": -1, "bio": "Pediatric nurse. Marathon runner and avid gardener." },
+    { "id": "u1", "firstName": "Alice", "lastName": "Anderson", "gender": "female", "birthDate": "1990-04-15", "birthPlace": "Evanston, IL", "generation": 0, "bio": "Product designer. Loves hiking and photography." },
+    { "id": "u2", "firstName": "Daniel", "lastName": "Anderson", "gender": "male", "birthDate": "1993-08-22", "birthPlace": "Evanston, IL", "generation": 0, "bio": "High school teacher. Coaches the soccer team." },
+    { "id": "u1s", "firstName": "Bob", "lastName": "Chen", "gender": "male", "birthDate": "1989-12-03", "birthPlace": "San Francisco, CA", "generation": 0, "bio": "Data engineer. Amateur chef and craft beer enthusiast." },
+    { "id": "c1", "firstName": "Charlie", "lastName": "Chen", "gender": "male", "birthDate": "2018-06-10", "birthPlace": "Chicago, IL", "generation": 1, "bio": "Loves dinosaurs and building blocks." },
+    { "id": "c2", "firstName": "Lily", "lastName": "Chen", "gender": "female", "birthDate": "2021-03-25", "birthPlace": "Chicago, IL", "generation": 1, "bio": "The family's little sunshine." }
+  ],
+  "relationships": [
+    { "id": "r1", "fromId": "gp1", "toId": "gp2", "type": "spouse", "marriageDate": "1957-06-15" },
+    { "id": "r2", "fromId": "gp3", "toId": "gp4", "type": "spouse", "marriageDate": "1959-09-20" },
+    { "id": "r3", "fromId": "gp1", "toId": "p1", "type": "parent" },
+    { "id": "r4", "fromId": "gp2", "toId": "p1", "type": "parent" },
+    { "id": "r5", "fromId": "gp3", "toId": "p2", "type": "parent" },
+    { "id": "r6", "fromId": "gp4", "toId": "p2", "type": "parent" },
+    { "id": "r7", "fromId": "p1", "toId": "p2", "type": "spouse", "marriageDate": "1988-08-12" },
+    { "id": "r8", "fromId": "p1", "toId": "u1", "type": "parent" },
+    { "id": "r9", "fromId": "p2", "toId": "u1", "type": "parent" },
+    { "id": "r10", "fromId": "p1", "toId": "u2", "type": "parent" },
+    { "id": "r11", "fromId": "p2", "toId": "u2", "type": "parent" },
+    { "id": "r12", "fromId": "u1", "toId": "u1s", "type": "spouse", "marriageDate": "2016-10-08" },
+    { "id": "r13", "fromId": "u1", "toId": "u2", "type": "sibling" },
+    { "id": "r14", "fromId": "u1", "toId": "c1", "type": "parent" },
+    { "id": "r15", "fromId": "u1s", "toId": "c1", "type": "parent" },
+    { "id": "r16", "fromId": "u1", "toId": "c2", "type": "parent" },
+    { "id": "r17", "fromId": "u1s", "toId": "c2", "type": "parent" },
+    { "id": "r18", "fromId": "c1", "toId": "c2", "type": "sibling" }
+  ],
+  "events": [
+    { "id": "ev1", "memberId": "gp1", "memberName": "William Anderson", "type": "birth", "date": "1935-03-12", "title": "William Anderson born", "description": "Born in Chicago, IL" },
+    { "id": "ev2", "memberId": "gp1", "memberName": "William & Margaret", "type": "marriage", "date": "1957-06-15", "title": "William & Margaret married" },
+    { "id": "ev6", "memberId": "u1", "memberName": "Alice Anderson", "type": "birth", "date": "1990-04-15", "title": "Alice Anderson born" },
+    { "id": "ev8", "memberId": "gp1", "memberName": "William Anderson", "type": "death", "date": "2010-11-30", "title": "William Anderson passed" },
+    { "id": "ev10", "memberId": "u1", "memberName": "Alice & Bob", "type": "marriage", "date": "2016-10-08", "title": "Alice & Bob married" },
+    { "id": "ev11", "memberId": "c1", "memberName": "Charlie Chen", "type": "birth", "date": "2018-06-10", "title": "Charlie Chen born" }
+  ]
+}

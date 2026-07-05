@@ -11,7 +11,7 @@ const PREFERRED_MIME_TYPES = [
 
 /**
  * Pick a MIME type the browser's MediaRecorder will accept. Returns null
- * when none of our preferred candidates work — the caller should still
+ * when none of our preferred candidates work, so the caller should still
  * try constructing a MediaRecorder with NO mimeType option so the
  * browser picks its own default. (Safari iOS in particular often only
  * accepts the bare audio/mp4 with no codec hint.)
@@ -38,6 +38,12 @@ export interface AudioRecorderState {
   audioBlob: Blob | null;
   previewUrl: string | null;
   error: string | null;
+  /** Live microphone level 0..1 while recording, for a waveform/level meter. */
+  inputLevel: number;
+  /** True once any real audio signal has been detected during a recording. */
+  hasSignal: boolean;
+  /** Live microphone permission state. */
+  permission: 'unknown' | 'granted' | 'denied';
   startRecording: () => Promise<void>;
   stopRecording: () => Promise<void>;
   clearRecording: () => void;
@@ -46,7 +52,7 @@ export interface AudioRecorderState {
 export function useAudioRecorder(): AudioRecorderState {
   const mimeType = useMemo(() => getSupportedMimeType(), []);
   // Support requires only the APIs themselves. mimeType being null is
-  // not a blocker — the recorder falls back to the browser-picked
+  // not a blocker; the recorder falls back to the browser-picked
   // default in startRecording, which is correct behavior on Safari iOS
   // where MediaRecorder works but none of our preferred candidates are
   // reported as supported.
@@ -61,6 +67,9 @@ export function useAudioRecorder(): AudioRecorderState {
   const chunksRef = useRef<BlobPart[]>([]);
   const startedAtRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const levelRafRef = useRef<number | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,11 +77,61 @@ export function useAudioRecorder(): AudioRecorderState {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inputLevel, setInputLevel] = useState(0);
+  const [hasSignal, setHasSignal] = useState(false);
+  const [permission, setPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+
+  const stopMetering = useCallback(() => {
+    if (levelRafRef.current !== null) {
+      cancelAnimationFrame(levelRafRef.current);
+      levelRafRef.current = null;
+    }
+    analyserRef.current = null;
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close().catch(() => undefined);
+      audioCtxRef.current = null;
+    }
+    setInputLevel(0);
+  }, []);
+
+  const startMetering = useCallback((stream: MediaStream) => {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      audioCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      const buffer = new Uint8Array(analyser.fftSize);
+      const tick = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteTimeDomainData(buffer);
+        // RMS around the 128 midpoint -> 0..1 level.
+        let sum = 0;
+        for (let i = 0; i < buffer.length; i++) {
+          const v = (buffer[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / buffer.length);
+        const level = Math.min(1, rms * 2.4);
+        setInputLevel(level);
+        if (level > 0.06) setHasSignal(true);
+        levelRafRef.current = requestAnimationFrame(tick);
+      };
+      levelRafRef.current = requestAnimationFrame(tick);
+    } catch {
+      // Metering is a nicety; recording still works without it.
+    }
+  }, []);
 
   const stopTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-  }, []);
+    stopMetering();
+  }, [stopMetering]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -85,6 +144,7 @@ export function useAudioRecorder(): AudioRecorderState {
     setAudioBlob(null);
     setDurationSeconds(0);
     setError(null);
+    setHasSignal(false);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -102,7 +162,7 @@ export function useAudioRecorder(): AudioRecorderState {
     await new Promise<void>((resolve) => {
       recorder.onstop = () => {
         // mimeType may be null (Safari iOS path). When that happens the
-        // browser still attached a default codec — read it back from the
+        // browser still attached a default codec, read it back from the
         // MediaRecorder instance and fall back to a generic webm guess
         // only as a final safety net.
         const blobType = mimeType || recorder.mimeType || 'audio/webm';
@@ -161,6 +221,9 @@ export function useAudioRecorder(): AudioRecorderState {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setPermission('granted');
+      setHasSignal(false);
+      startMetering(stream);
       chunksRef.current = [];
 
       // Only pass the mimeType option when we know one works. Passing
@@ -198,13 +261,19 @@ export function useAudioRecorder(): AudioRecorderState {
       setIsRecording(true);
       setIsProcessing(false);
     } catch (recordError) {
-      setError(recordError instanceof Error ? recordError.message : 'Microphone access was denied.');
+      const message = recordError instanceof Error ? recordError.message : 'Microphone access was denied.';
+      const denied = recordError instanceof DOMException
+        && (recordError.name === 'NotAllowedError' || recordError.name === 'SecurityError');
+      setPermission(denied ? 'denied' : 'unknown');
+      setError(denied
+        ? 'Microphone access was declined. Allow microphone access for this site in your browser settings, then try again.'
+        : message);
       setIsRecording(false);
       setIsProcessing(false);
       clearTimer();
       stopTracks();
     }
-  }, [clearRecording, clearTimer, isSupported, mimeType, stopTracks]);
+  }, [clearRecording, clearTimer, isSupported, mimeType, startMetering, stopTracks]);
 
   useEffect(() => {
     return () => {
@@ -224,6 +293,9 @@ export function useAudioRecorder(): AudioRecorderState {
     audioBlob,
     previewUrl,
     error,
+    inputLevel,
+    hasSignal,
+    permission,
     startRecording,
     stopRecording,
     clearRecording,

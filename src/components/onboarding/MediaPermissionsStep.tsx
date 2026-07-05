@@ -50,17 +50,19 @@ function PermissionToggle({
   onChange,
   color,
   bgColor,
-}: PermissionToggleProps) {
+  note,
+}: PermissionToggleProps & { note?: string }) {
   return (
     <button
       onClick={() => onChange(!enabled)}
-      className={`w-full p-4 rounded-xl border transition-all text-left ${
+      aria-pressed={enabled}
+      className={`w-full min-h-11 p-4 rounded-xl border transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 ${
         enabled
           ? 'bg-indigo-500/10 border-indigo-500/50'
           : 'bg-gray-700/30 border-gray-600/50 hover:bg-gray-700/50'
       }`}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className={`p-2 rounded-lg ${bgColor}`}>
             <Icon className={`w-5 h-5 ${color}`} />
@@ -68,6 +70,7 @@ function PermissionToggle({
           <div>
             <h4 className="font-medium text-white">{title}</h4>
             <p className="text-sm text-gray-400 mt-1">{description}</p>
+            {note && <p className="text-xs text-amber-300/90 mt-1">{note}</p>}
           </div>
         </div>
         {enabled ? (
@@ -91,11 +94,37 @@ export default function MediaPermissionsStep({
   const [localData, setLocalData] = useState<MediaConsentData>(data);
   const [savingConsent, setSavingConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraNote, setCameraNote] = useState<string | null>(null);
 
   const updateField = (field: keyof MediaConsentData, value: boolean) => {
     const updated = { ...localData, [field]: value };
     setLocalData(updated);
     onUpdate(updated);
+  };
+
+  // The camera toggle asks the browser for real permission. The other
+  // switches record app-side consent for features that take effect later
+  // in the media tools, so they do not map to a browser permission prompt.
+  const handleCameraToggle = async (value: boolean) => {
+    if (!value) {
+      setCameraNote(null);
+      updateField('cameraAccess', false);
+      return;
+    }
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setCameraNote('This browser cannot grant camera access. You can enable it later on a supported device.');
+      updateField('cameraAccess', false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setCameraNote(null);
+      updateField('cameraAccess', true);
+    } catch {
+      setCameraNote('Camera access was declined in the browser. You can enable it later in your browser settings.');
+      updateField('cameraAccess', false);
+    }
   };
 
   const handleContinue = async () => {
@@ -162,8 +191,8 @@ export default function MediaPermissionsStep({
       <div className="space-y-3 mb-6">
         <PermissionToggle
           icon={Image}
-          title="Photo Library Access"
-          description="Allow access to your photos for memory albums and sharing"
+          title="Photo Library Consent"
+          description="Consent to add photos to memory albums when you choose to share them"
           enabled={localData.photoLibraryAccess}
           onChange={(v) => updateField('photoLibraryAccess', v)}
           color="text-blue-400"
@@ -175,15 +204,16 @@ export default function MediaPermissionsStep({
           title="Camera Access"
           description="Take photos directly in the app for quick captures"
           enabled={localData.cameraAccess}
-          onChange={(v) => updateField('cameraAccess', v)}
+          onChange={(v) => void handleCameraToggle(v)}
           color="text-green-400"
           bgColor="bg-green-500/20"
+          note={cameraNote || undefined}
         />
 
         <PermissionToggle
           icon={Video}
-          title="Video Recording"
-          description="Record video messages for your digital legacy"
+          title="Video Message Consent"
+          description="Consent to record video messages for your digital legacy in the media tools"
           enabled={localData.videoAccess}
           onChange={(v) => updateField('videoAccess', v)}
           color="text-red-400"
@@ -250,7 +280,7 @@ export default function MediaPermissionsStep({
         <button
           onClick={onBack}
           disabled={saving || savingConsent}
-          className="px-6 py-3 text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+          className="min-h-11 px-6 py-3 text-gray-400 hover:text-white transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-lg"
         >
           <ArrowLeft className="w-5 h-5" />
           Back
@@ -258,7 +288,7 @@ export default function MediaPermissionsStep({
         <button
           onClick={handleContinue}
           disabled={saving || savingConsent}
-          className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 flex items-center gap-2"
+          className="min-h-11 px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
         >
           {savingConsent ? (
             <Loader2 className="w-5 h-5 animate-spin" />

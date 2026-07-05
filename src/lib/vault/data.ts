@@ -15,6 +15,8 @@ import { supabase } from '../supabase';
 import type {
     Beneficiary,
     Receipt,
+    UnlockRequest,
+    UnlockRequestDecision,
     VaultItem,
     VaultItemType,
 } from './types';
@@ -156,6 +158,98 @@ export async function deleteBeneficiary(
 export async function deleteVaultItem(itemId: string): Promise<void> {
     const client = ensureClient();
     const { error } = await client.from('vault_items').delete().eq('id', itemId);
+    if (error) throw error;
+}
+
+/**
+ * Access requests raised against items the current user owns. RLS scopes the
+ * rows to the owner; the explicit filter keeps intent obvious. The parent
+ * item title is embedded for display in the review panel.
+ */
+export async function fetchUnlockRequestsForOwner(
+    user: AuthUser,
+): Promise<UnlockRequest[]> {
+    const client = ensureClient();
+    const { data, error } = await client
+        .from('vault_unlock_requests')
+        .select('*, vault_items ( title )')
+        .eq('owner_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as UnlockRequest[];
+}
+
+/**
+ * Access requests the current user has raised as a designated successor,
+ * matched by their verified email. Used to show request status on items
+ * shared with them.
+ */
+export async function fetchMyUnlockRequests(
+    user: AuthUser,
+): Promise<UnlockRequest[]> {
+    if (!user.email) return [];
+    const client = ensureClient();
+    const { data, error } = await client
+        .from('vault_unlock_requests')
+        .select('*')
+        .eq('requested_by_email', user.email)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as UnlockRequest[];
+}
+
+/**
+ * Open an access request for a sealed item as a designated successor.
+ * RLS only accepts the insert when the requester's verified email appears
+ * among the item's beneficiaries.
+ */
+export async function createUnlockRequest(
+    user: AuthUser,
+    item: Pick<VaultItem, 'id' | 'user_id'>,
+    reason: string,
+    evidenceNote?: string,
+): Promise<void> {
+    if (!user.email) {
+        throw new Error('A verified email address is required to request access.');
+    }
+    const client = ensureClient();
+    const { error } = await client.from('vault_unlock_requests').insert({
+        vault_item_id: item.id,
+        owner_user_id: item.user_id,
+        requested_by_email: user.email,
+        request_reason: reason,
+        evidence_note: evidenceNote || null,
+        status: 'pending',
+    });
+    if (error) throw error;
+}
+
+/**
+ * Record a review decision on a pending access request. The reviewer's
+ * verified email and the decision time are stamped on the row. Only pending
+ * requests can be decided, which keeps repeated clicks harmless. A declined
+ * request leaves the item sealed; it can be reviewed again later.
+ */
+export async function decideUnlockRequest(
+    user: AuthUser,
+    requestId: string,
+    decision: UnlockRequestDecision,
+): Promise<void> {
+    if (!user.email) {
+        throw new Error('A verified email address is required to review access requests.');
+    }
+    const client = ensureClient();
+    const { error } = await client
+        .from('vault_unlock_requests')
+        .update({
+            status: decision,
+            decided_by_email: user.email,
+            decided_at: new Date().toISOString(),
+        })
+        .eq('id', requestId)
+        .eq('status', 'pending');
     if (error) throw error;
 }
 

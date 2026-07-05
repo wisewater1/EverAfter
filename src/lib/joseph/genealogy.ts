@@ -6,6 +6,14 @@ import { requestBackendJson } from '../backend-request';
 import { isDemoAuthEnabled } from '../demo-auth';
 import { isDevelopment } from '../env';
 import { supabase } from '../supabase';
+import {
+    backfillGenealogy,
+    fetchGenealogyFromSupabase,
+    getGenealogyUserId,
+    pushEvent,
+    pushMember,
+    pushRelationship,
+} from './genealogySync';
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
 export type EventType = 'birth' | 'marriage' | 'death' | 'milestone' | 'adoption';
@@ -199,17 +207,46 @@ const DEFAULT_EVENTS: FamilyEvent[] = [
 
 // ── Persistence Layer ──────────────────────────────────────
 
-function loadFromStorage<T>(key: string, defaults: T[]): T[] {
-    try {
-        const stored = localStorage.getItem(key);
-        if (stored) return JSON.parse(stored);
-    } catch { /* ignore parse errors */ }
-    return [...defaults];
+// The sample family ships for demo sessions and local development only.
+// Real accounts start from their own data (localStorage cache + the
+// canonical Supabase store) and never see the seeded roster.
+function seedsEnabled(): boolean {
+    return isDemoAuthEnabled() || isDevelopment;
+}
+
+// Demo sessions get their own storage namespace so playing with the demo
+// never leaks sample-family edits into a real account on the same browser.
+function storageKey(key: string): string {
+    return isDemoAuthEnabled() ? `${key}:demo` : key;
+}
+
+const SEED_MEMBER_IDS = new Set(DEFAULT_MEMBERS.map((m) => m.id));
+const SEED_REL_IDS = new Set(DEFAULT_RELATIONSHIPS.map((r) => r.id));
+const SEED_EVENT_IDS = new Set(DEFAULT_EVENTS.map((e) => e.id));
+
+/**
+ * Remove seeded sample rows that older builds persisted into real users'
+ * localStorage, along with any edges/events left dangling by the removal.
+ */
+function stripSeedData(
+    members: FamilyMember[],
+    relationships: Relationship[],
+    events: FamilyEvent[],
+): { members: FamilyMember[]; relationships: Relationship[]; events: FamilyEvent[] } {
+    const keptMembers = members.filter((m) => !SEED_MEMBER_IDS.has(m.id));
+    const keptIds = new Set(keptMembers.map((m) => m.id));
+    return {
+        members: keptMembers,
+        relationships: relationships.filter(
+            (r) => !SEED_REL_IDS.has(r.id) && keptIds.has(r.fromId) && keptIds.has(r.toId),
+        ),
+        events: events.filter((e) => !SEED_EVENT_IDS.has(e.id) && (!e.memberId || keptIds.has(e.memberId))),
+    };
 }
 
 function loadOptionalFromStorage<T>(key: string): T[] | null {
     try {
-        const stored = localStorage.getItem(key);
+        const stored = localStorage.getItem(storageKey(key));
         if (!stored) return null;
         const parsed = JSON.parse(stored);
         return Array.isArray(parsed) ? parsed : null;
@@ -225,19 +262,30 @@ function loadStoredOrDevDefaults<T>(key: string, defaults: T[]): T[] {
 }
 
 function saveToStorage<T>(key: string, data: T[]): void {
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(storageKey(key), JSON.stringify(data));
 }
 
 // ── In-memory caches (loaded once from backend) ────────────
 
-const INITIAL_GENEALOGY = mergeStoredGenealogy(
-    loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members),
-    loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships),
-    loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events),
-    DEFAULT_MEMBERS,
-    DEFAULT_RELATIONSHIPS,
-    DEFAULT_EVENTS,
-);
+function buildLocalGenealogy() {
+    const storedMembers = loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members);
+    const storedRelationships = loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships);
+    const storedEvents = loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events);
+    if (seedsEnabled()) {
+        return mergeStoredGenealogy(
+            storedMembers,
+            storedRelationships,
+            storedEvents,
+            DEFAULT_MEMBERS,
+            DEFAULT_RELATIONSHIPS,
+            DEFAULT_EVENTS,
+        );
+    }
+    const stripped = stripSeedData(storedMembers || [], storedRelationships || [], storedEvents || []);
+    return mergeStoredGenealogy(stripped.members, stripped.relationships, stripped.events, [], [], []);
+}
+
+const INITIAL_GENEALOGY = buildLocalGenealogy();
 
 let _members: FamilyMember[] = INITIAL_GENEALOGY.members;
 let _relationships: Relationship[] = INITIAL_GENEALOGY.relationships;
@@ -245,6 +293,9 @@ let _events: FamilyEvent[] = INITIAL_GENEALOGY.events;
 let _sources: SourceCitation[] = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
 let _genealogyHydrationPromise: Promise<void> | null = null;
 let _genealogyHydrated = false;
+let _hydratedForMode: 'demo' | 'live' | null = null;
+// client graph id -> canonical Supabase family_members.id (uuid)
+let _dbIds = new Map<string, string>();
 
 function normalizeName(value: string | undefined | null): string {
     return String(value || '')
@@ -462,16 +513,16 @@ function mergeCanonicalGenealogy(
     };
 }
 
-// Helper to fetch from the new Postgres Backend Router
+// Hydrate the in-memory graph. Order of truth for real accounts:
+// 1) canonical Supabase store (family_members + links + events),
+// 2) the optional Python backend graph,
+// 3) the localStorage cache.
+// Whatever ends up loaded locally that the canonical store is missing gets
+// backfilled to Supabase in the background, so the tree a user builds is
+// durable across devices.
 async function loadGenealogyFromBackend() {
-    const mergedLocal = mergeStoredGenealogy(
-        loadOptionalFromStorage<FamilyMember>(STORAGE_KEYS.members),
-        loadOptionalFromStorage<Relationship>(STORAGE_KEYS.relationships),
-        loadOptionalFromStorage<FamilyEvent>(STORAGE_KEYS.events),
-        DEFAULT_MEMBERS,
-        DEFAULT_RELATIONSHIPS,
-        DEFAULT_EVENTS,
-    );
+    _hydratedForMode = isDemoAuthEnabled() ? 'demo' : 'live';
+    const mergedLocal = buildLocalGenealogy();
     const baseMembers = mergedLocal.members;
     const baseRelationships = mergedLocal.relationships;
     const baseEvents = mergedLocal.events;
@@ -483,6 +534,39 @@ async function loadGenealogyFromBackend() {
         _events = baseEvents;
         _sources = baseSources;
         return;
+    }
+
+    const userId = await getGenealogyUserId();
+    if (userId) {
+        try {
+            const canonical = await fetchGenealogyFromSupabase(userId);
+            if (canonical) {
+                // Canonical rows are the base; local-only extras overlay and
+                // then get pushed back so both sides converge.
+                const merged = mergeStoredGenealogy(
+                    baseMembers,
+                    baseRelationships,
+                    baseEvents,
+                    canonical.members,
+                    canonical.relationships,
+                    canonical.events,
+                );
+                _members = merged.members;
+                _relationships = merged.relationships;
+                _events = merged.events;
+                _sources = baseSources;
+                _dbIds = canonical.dbIds;
+                saveToStorage(STORAGE_KEYS.members, _members);
+                saveToStorage(STORAGE_KEYS.relationships, _relationships);
+                saveToStorage(STORAGE_KEYS.events, _events);
+                void backfillGenealogy(_members, _relationships, _events, userId, _dbIds).catch((error) =>
+                    console.warn('Genealogy backfill failed', error),
+                );
+                return;
+            }
+        } catch (error) {
+            console.warn('Failed to load genealogy from Supabase', error);
+        }
     }
 
     try {
@@ -518,6 +602,37 @@ async function loadGenealogyFromBackend() {
     _relationships = baseRelationships;
     _events = baseEvents;
     _sources = baseSources;
+
+    // New account (or canonical store empty): push whatever the user already
+    // built locally, e.g. the family added during onboarding.
+    if (userId && _members.length > 0) {
+        void backfillGenealogy(_members, _relationships, _events, userId, _dbIds).catch((error) =>
+            console.warn('Genealogy backfill failed', error),
+        );
+    }
+}
+
+/**
+ * Canonical Supabase uuid for a client graph id, when the member has been
+ * persisted. Lets other features (vault, ceremonies, engrams) FK against
+ * the same person row instead of re-resolving by name.
+ */
+export function getCanonicalMemberId(clientId: string): string | undefined {
+    return _dbIds.get(clientId);
+}
+
+// Best-effort remote write-through for real sessions; local state is already
+// saved, so failures only cost durability, never the interaction.
+function persistRemote(task: (userId: string) => Promise<void>): void {
+    void (async () => {
+        try {
+            const userId = await getGenealogyUserId();
+            if (!userId) return;
+            await task(userId);
+        } catch (error) {
+            console.warn('Genealogy sync failed', error);
+        }
+    })();
 }
 
 export function hydrateGenealogyInBackground(force = false): Promise<void> {
@@ -545,6 +660,19 @@ export function hydrateGenealogyInBackground(force = false): Promise<void> {
 }
 
 function ensureLoaded() {
+    // Entering or leaving demo mode swaps the storage namespace and the
+    // source of truth, so a hydration done for the other mode is stale.
+    const mode = isDemoAuthEnabled() ? 'demo' : 'live';
+    if (_genealogyHydrated && _hydratedForMode !== null && _hydratedForMode !== mode) {
+        const local = buildLocalGenealogy();
+        _members = local.members;
+        _relationships = local.relationships;
+        _events = local.events;
+        _dbIds = new Map();
+        _genealogyHydrated = false;
+        void hydrateGenealogyInBackground(true);
+        return;
+    }
     void hydrateGenealogyInBackground();
 }
 
@@ -577,6 +705,7 @@ export function addFamilyMember(member: Omit<FamilyMember, 'id'>, parentIds?: st
     saveToStorage(STORAGE_KEYS.members, _members!);
 
     // Create parent relationships
+    const createdRels: Relationship[] = [];
     if (parentIds) {
         parentIds.forEach(pid => {
             const rel: Relationship = {
@@ -586,11 +715,13 @@ export function addFamilyMember(member: Omit<FamilyMember, 'id'>, parentIds?: st
                 type: 'parent',
             };
             _relationships!.push(rel);
+            createdRels.push(rel);
         });
         saveToStorage(STORAGE_KEYS.relationships, _relationships!);
     }
 
     // Auto-create birth event
+    let createdEvent: FamilyEvent | null = null;
     if (newMember.birthDate) {
         const evt: FamilyEvent = {
             id: `ev_${Date.now()}`,
@@ -602,8 +733,17 @@ export function addFamilyMember(member: Omit<FamilyMember, 'id'>, parentIds?: st
             description: newMember.birthPlace ? `Born in ${newMember.birthPlace}` : undefined,
         };
         _events!.push(evt);
+        createdEvent = evt;
         saveToStorage(STORAGE_KEYS.events, _events!);
     }
+
+    persistRemote(async (userId) => {
+        await pushMember(newMember, userId, _dbIds);
+        for (const rel of createdRels) {
+            await pushRelationship(rel, userId, _dbIds, _members!);
+        }
+        if (createdEvent) await pushEvent(createdEvent, userId, _dbIds, _members!);
+    });
 
     return newMember;
 }
@@ -614,7 +754,11 @@ export function updateFamilyMember(id: string, updates: Partial<FamilyMember>): 
     if (idx === -1) return null;
     _members![idx] = { ..._members![idx], ...updates };
     saveToStorage(STORAGE_KEYS.members, _members!);
-    return _members![idx];
+    const updated = _members![idx];
+    persistRemote(async (userId) => {
+        await pushMember(updated, userId, _dbIds);
+    });
+    return updated;
 }
 
 export function addRelationship(rel: Omit<Relationship, 'id'>): Relationship {
@@ -622,6 +766,9 @@ export function addRelationship(rel: Omit<Relationship, 'id'>): Relationship {
     const newRel: Relationship = { ...rel, id: `r_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` };
     _relationships!.push(newRel);
     saveToStorage(STORAGE_KEYS.relationships, _relationships!);
+    persistRemote(async (userId) => {
+        await pushRelationship(newRel, userId, _dbIds, _members!);
+    });
     return newRel;
 }
 
@@ -631,6 +778,9 @@ export function addFamilyEvent(event: Omit<FamilyEvent, 'id'>): FamilyEvent {
     _events!.push(newEvent);
     _events!.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     saveToStorage(STORAGE_KEYS.events, _events!);
+    persistRemote(async (userId) => {
+        await pushEvent(newEvent, userId, _dbIds, _members!);
+    });
     return newEvent;
 }
 

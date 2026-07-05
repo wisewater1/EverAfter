@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import { supabase } from '../lib/supabase';
 import {
   Calendar, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock,
@@ -10,17 +11,24 @@ import {
 } from 'lucide-react';
 import FileUploadZone from './FileUploadZone';
 import { generateVaultKey, exportKey, importKey, encryptVaultData, decryptVaultData } from '../lib/vault-encryption';
+import { getSignedUrlForPath } from '../lib/file-storage';
 import type {
   VaultItem,
   Beneficiary,
   Receipt,
   ItemStatusFilter,
   LegacyConceptPreset,
+  UnlockRequest,
+  UnlockRequestDecision,
 } from '../lib/vault/types';
 import {
   fetchVaultItems,
   fetchSharedVaultItems,
   fetchAssuranceData,
+  fetchUnlockRequestsForOwner,
+  fetchMyUnlockRequests,
+  createUnlockRequest,
+  decideUnlockRequest,
   createBeneficiary as createBeneficiaryRow,
   deleteBeneficiary as deleteBeneficiaryRow,
   deleteVaultItem,
@@ -30,6 +38,7 @@ import {
 
 export default function LegacyVaultEnhanced() {
   const { user } = useAuth();
+  const { showNotification } = useNotification();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'continuity' | 'assurance' | 'shared'>('continuity');
   const [activeTab, setActiveTab] = useState<'CAPSULE' | 'MEMORIAL' | 'WILL' | 'MESSAGE'>('CAPSULE');
@@ -44,9 +53,25 @@ export default function LegacyVaultEnhanced() {
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<VaultItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
   const [createPreset, setCreatePreset] = useState<LegacyConceptPreset | null>(null);
+  const [unlockRequests, setUnlockRequests] = useState<UnlockRequest[]>([]);
+  const [myRequests, setMyRequests] = useState<UnlockRequest[]>([]);
+  const [decidingId, setDecidingId] = useState<string | null>(null);
+
+  const loadUnlockRequests = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [owned, mine] = await Promise.all([
+        fetchUnlockRequestsForOwner(user),
+        fetchMyUnlockRequests(user),
+      ]);
+      setUnlockRequests(owned);
+      setMyRequests(mine);
+    } catch (error) {
+      console.error('Error loading access requests:', error);
+    }
+  }, [user]);
 
   useEffect(() => {
-    console.log('Active Section changed to:', activeSection);
     if (!supabase || !user) return;
     if (activeSection === 'continuity') {
       loadVaultItems();
@@ -55,7 +80,42 @@ export default function LegacyVaultEnhanced() {
     } else if (activeSection === 'shared') {
       loadSharedItems();
     }
+    void loadUnlockRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeTab, activeSection]);
+
+  const handleDecideRequest = async (requestId: string, decision: UnlockRequestDecision) => {
+    if (!user) return;
+    setDecidingId(requestId);
+    try {
+      await decideUnlockRequest(user, requestId, decision);
+      showNotification(
+        decision === 'approved'
+          ? 'Access approved. The designated successor may now open this item.'
+          : 'Request declined. The item remains sealed and can be reviewed again later.',
+        'success',
+      );
+      await loadUnlockRequests();
+    } catch (error) {
+      console.error('Error deciding access request:', error);
+      showNotification('Could not record that decision. Please try again.', 'error');
+    } finally {
+      setDecidingId(null);
+    }
+  };
+
+  const handleRequestAccess = async (item: VaultItem, reason: string, evidenceNote?: string) => {
+    if (!user) return;
+    try {
+      await createUnlockRequest(user, item, reason, evidenceNote);
+      showNotification('Your access request has been sent to the custodian for review.', 'success');
+      await loadUnlockRequests();
+    } catch (error) {
+      console.error('Error creating access request:', error);
+      showNotification('Could not send that request. Please try again.', 'error');
+      throw error;
+    }
+  };
 
   if (!supabase) {
     return (
@@ -191,12 +251,8 @@ export default function LegacyVaultEnhanced() {
           </div>
           {activeSection === 'continuity' && (
             <button
-              onClickCapture={(e) => {
-                e.stopPropagation();
-                console.log('Create New Clicked (Capture)');
-                setIsCreateModalOpen(true);
-              }}
-              className="relative z-[100] pointer-events-auto px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2 cursor-pointer"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="min-h-11 px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
             >
               <Plus className="w-5 h-5" />
               Create New
@@ -206,12 +262,8 @@ export default function LegacyVaultEnhanced() {
 
         <div className="flex items-center gap-4 mb-6 border-b border-white/10">
           <button
-            onClickCapture={(e) => {
-              e.stopPropagation();
-              console.log('Section Tab Clicked (Capture): continuity');
-              setActiveSection('continuity');
-            }}
-            className={`px-6 py-3 font-medium transition-all relative cursor-pointer pointer-events-auto ${activeSection === 'continuity'
+            onClick={() => setActiveSection('continuity')}
+            className={`min-h-11 px-6 py-3 font-medium transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 ${activeSection === 'continuity'
               ? 'text-teal-400'
               : 'text-slate-400 hover:text-white'
               }`}
@@ -222,12 +274,8 @@ export default function LegacyVaultEnhanced() {
             )}
           </button>
           <button
-            onClickCapture={(e) => {
-              e.stopPropagation();
-              console.log('Section Tab Clicked (Capture): assurance');
-              setActiveSection('assurance');
-            }}
-            className={`px-6 py-3 font-medium transition-all relative cursor-pointer pointer-events-auto ${activeSection === 'assurance'
+            onClick={() => setActiveSection('assurance')}
+            className={`min-h-11 px-6 py-3 font-medium transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 ${activeSection === 'assurance'
               ? 'text-teal-400'
               : 'text-slate-400 hover:text-white'
               }`}
@@ -243,7 +291,7 @@ export default function LegacyVaultEnhanced() {
               console.log('Section Tab Clicked (Capture): shared');
               setActiveSection('shared');
             }}
-            className={`px-6 py-3 font-medium transition-all relative cursor-pointer pointer-events-auto ${activeSection === 'shared'
+            className={`min-h-11 px-6 py-3 font-medium transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 ${activeSection === 'shared'
               ? 'text-teal-400'
               : 'text-slate-400 hover:text-white'
               }`}
@@ -254,6 +302,45 @@ export default function LegacyVaultEnhanced() {
             )}
           </button>
         </div>
+
+        {/* Owner access requests: designated successors asking to open sealed items */}
+        {unlockRequests.some((r) => r.status === 'pending') && (
+          <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Lock className="w-4 h-4 text-amber-300" />
+              <h3 className="text-sm font-semibold text-white">Access requests awaiting your review</h3>
+            </div>
+            <div className="space-y-3">
+              {unlockRequests.filter((r) => r.status === 'pending').map((req) => (
+                <div key={req.id} className="rounded-xl border border-white/10 bg-slate-900/40 p-3">
+                  <p className="text-sm text-white font-medium">{req.vault_items?.title || 'A sealed item'}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Requested by {req.requested_by_email}
+                    {req.created_at ? ` on ${new Date(req.created_at).toLocaleDateString()}` : ''}
+                  </p>
+                  {req.request_reason && <p className="text-xs text-slate-300 mt-1">Reason: {req.request_reason}</p>}
+                  {req.evidence_note && <p className="text-xs text-slate-400 mt-1">Documentation: {req.evidence_note}</p>}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => void handleDecideRequest(req.id, 'approved')}
+                      disabled={decidingId === req.id}
+                      className="min-h-11 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-medium text-emerald-100 transition hover:bg-emerald-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 disabled:opacity-50"
+                    >
+                      Approve access
+                    </button>
+                    <button
+                      onClick={() => void handleDecideRequest(req.id, 'declined')}
+                      disabled={decidingId === req.id}
+                      className="min-h-11 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-slate-200 transition hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:opacity-50"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {activeSection === 'continuity' ? (
           <ContinuityPlansSection
@@ -317,6 +404,9 @@ export default function LegacyVaultEnhanced() {
         {selectedItem && (
           <ItemDetailModal
             item={selectedItem}
+            isOwner={selectedItem.user_id === user?.id}
+            myRequest={myRequests.find((r) => r.vault_item_id === selectedItem.id) || null}
+            onRequestAccess={handleRequestAccess}
             onClose={() => setSelectedItem(null)}
             onRemove={(id) => {
               handleDeleteItem(id);
@@ -832,10 +922,22 @@ function getItemPreview(item: VaultItem) {
   }
 }
 
+// Calm, plain-language names for each release rule. The enum values never
+// change; this is display only.
+const UNLOCK_RULE_LABELS: Record<string, string> = {
+  DATE: 'On a chosen date',
+  DEATH_CERT: 'After a verified passing (documentation reviewed)',
+  CUSTODIAN_APPROVAL: 'With custodian approval',
+  HEARTBEAT_TIMEOUT: 'After a period of account inactivity',
+};
+
 function formatUnlockRule(rule: VaultItem['unlock_rule']) {
   if (!rule) return 'Unspecified';
-  return rule.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, match => match.toUpperCase());
+  return UNLOCK_RULE_LABELS[rule] || rule.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, match => match.toUpperCase());
 }
+
+// Rules that require a reviewed decision before a designated successor may open the item.
+const REVIEWED_UNLOCK_RULES = new Set(['DEATH_CERT', 'CUSTODIAN_APPROVAL']);
 
 function LegacyAssuranceSection({
   beneficiaries,
@@ -1661,13 +1763,13 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
             <label className="block text-sm font-medium text-slate-400 mb-1">Unlock Rule</label>
             <select
               value={formData.unlock_rule}
-              onChange={(e) => setFormData({ ...formData, unlock_rule: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, unlock_rule: e.target.value as VaultItem['unlock_rule'] })}
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-teal-500/50"
             >
-              <option value="DATE">Specific Date</option>
-              <option value="DEATH_CERT">Death Certificate</option>
-              <option value="CUSTODIAN_APPROVAL">Custodian Approval</option>
-              <option value="HEARTBEAT_TIMEOUT">Heartbeat Timeout</option>
+              <option value="DATE">On a chosen date</option>
+              <option value="DEATH_CERT">After a verified passing</option>
+              <option value="CUSTODIAN_APPROVAL">With custodian approval</option>
+              <option value="HEARTBEAT_TIMEOUT">After a period of account inactivity</option>
             </select>
           </div>
           {formData.unlock_rule === 'DATE' && (
@@ -1772,12 +1874,69 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
   );
 }
 
-function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem; onClose: () => void; onRemove: (id: string) => void; onEdit: (item: VaultItem) => void }) {
+function ItemDetailModal({
+  item,
+  onClose,
+  onRemove,
+  onEdit,
+  isOwner: isOwnerProp,
+  myRequest = null,
+  onRequestAccess,
+}: {
+  item: VaultItem;
+  onClose: () => void;
+  onRemove: (id: string) => void;
+  onEdit: (item: VaultItem) => void;
+  isOwner?: boolean;
+  myRequest?: UnlockRequest | null;
+  onRequestAccess?: (item: VaultItem, reason: string, evidenceNote?: string) => Promise<void>;
+}) {
   const { user } = useAuth();
+  const { showNotification } = useNotification();
   const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [decryptedPayload, setDecryptedPayload] = useState<any>(null);
-  const isOwner = user?.id === item.user_id;
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [requestReason, setRequestReason] = useState('');
+  const [requestEvidence, setRequestEvidence] = useState('');
+  const [requesting, setRequesting] = useState(false);
+  const isOwner = isOwnerProp ?? user?.id === item.user_id;
+
+  const handleDownloadAttachment = async (path: string) => {
+    setDownloadingFile(path);
+    try {
+      const url = await getSignedUrlForPath(path);
+      if (!url) throw new Error('no url');
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = path.split('/').pop() || 'attachment';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      showNotification('That file could not be opened. The secure link may have expired. Please try again.', 'error');
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
+
+  const submitAccessRequest = async () => {
+    if (!onRequestAccess || !requestReason.trim()) return;
+    setRequesting(true);
+    try {
+      await onRequestAccess(item, requestReason.trim(), requestEvidence.trim() || undefined);
+      setRequestReason('');
+      setRequestEvidence('');
+    } catch {
+      // notification handled upstream
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const needsReviewedAccess = !isOwner && REVIEWED_UNLOCK_RULES.has(item.unlock_rule || '') && item.status !== 'SENT' && item.status !== 'PUBLISHED';
 
   useEffect(() => {
     loadBeneficiaries();
@@ -1922,17 +2081,75 @@ function ItemDetailModal({ item, onClose, onRemove, onEdit }: { item: VaultItem;
                 <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wider">Attachments</h3>
                 <div className="space-y-2">
                     {(payload.attachments || []).map((file: string, i: number) => (
-                      <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <File className="w-4 h-4 text-slate-400" />
-                          <span className="text-sm text-slate-300">{file}</span>
+                      <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <File className="w-4 h-4 shrink-0 text-slate-400" />
+                          <span className="text-sm text-slate-300 truncate">{file.split('/').pop()}</span>
                         </div>
-                        <button className="text-slate-500 hover:text-white transition-colors">
-                          <Download className="w-4 h-4" />
+                        <button
+                          onClick={() => void handleDownloadAttachment(file)}
+                          disabled={downloadingFile === file}
+                          aria-label={`Download ${file.split('/').pop()}`}
+                          className="shrink-0 min-h-11 min-w-11 flex items-center justify-center text-slate-500 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 rounded-lg disabled:opacity-50"
+                        >
+                          {downloadingFile === file
+                            ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                            : <Download className="w-4 h-4" />}
                         </button>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {needsReviewedAccess && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lock className="w-4 h-4 text-amber-300" />
+                    <h3 className="text-sm font-medium text-white">This item is sealed</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 mb-3">
+                    Release rule: {formatUnlockRule(item.unlock_rule)}. As a designated successor you can request access;
+                    the custodian will review it. If it cannot be verified, the item stays sealed and can be reviewed again later.
+                  </p>
+                  {myRequest ? (
+                    <div className={`rounded-lg border px-3 py-2 text-xs ${
+                      myRequest.status === 'approved'
+                        ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
+                        : myRequest.status === 'declined'
+                          ? 'border-rose-400/30 bg-rose-400/10 text-rose-100'
+                          : 'border-white/10 bg-white/[0.03] text-slate-200'
+                    }`}>
+                      {myRequest.status === 'pending' && 'Your request is with the custodian for review.'}
+                      {myRequest.status === 'approved' && 'Your request was approved. This item will open once released.'}
+                      {myRequest.status === 'declined' && 'The custodian could not verify this request. The item remains sealed. You may submit again with more detail.'}
+                      {myRequest.status === 'expired' && 'Your earlier request expired. You may submit a new one below.'}
+                    </div>
+                  ) : null}
+                  {(!myRequest || myRequest.status === 'declined' || myRequest.status === 'expired') && onRequestAccess && (
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        value={requestReason}
+                        onChange={(e) => setRequestReason(e.target.value)}
+                        rows={2}
+                        placeholder="Reason for requesting access"
+                        className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40"
+                      />
+                      <input
+                        value={requestEvidence}
+                        onChange={(e) => setRequestEvidence(e.target.value)}
+                        placeholder="Documentation reference (optional)"
+                        className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40"
+                      />
+                      <button
+                        onClick={() => void submitAccessRequest()}
+                        disabled={requesting || !requestReason.trim()}
+                        className="min-h-11 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-medium text-amber-100 transition hover:bg-amber-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 disabled:opacity-50"
+                      >
+                        {requesting ? 'Sending...' : 'Request access'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

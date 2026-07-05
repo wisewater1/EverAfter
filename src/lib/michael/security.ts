@@ -714,7 +714,7 @@ export async function scanForLeaks(userId: string): Promise<SecurityAlert[]> {
 export async function runCAIAudit(userId: string): Promise<{
     integrityScore: number;
     adversarialFlags: number;
-    phiLeeksDetected: number;
+    phiLeaksDetected: number;
     status: 'clean' | 'compromised' | 'warning';
 }> {
     try {
@@ -728,21 +728,21 @@ export async function runCAIAudit(userId: string): Promise<{
             monitoring.michael?.status === 'warning' ? 'warning' :
             'clean';
 
-        return { integrityScore, adversarialFlags, phiLeeksDetected: phiLeaksDetected, status };
+        return { integrityScore, adversarialFlags, phiLeaksDetected, status };
     } catch (error) {
         console.error('Error running CAI audit:', error);
     }
 
     if (!userId) {
         if (!isDevelopment) {
-            return { integrityScore: 0, adversarialFlags: 0, phiLeeksDetected: 0, status: 'warning' };
+            return { integrityScore: 0, adversarialFlags: 0, phiLeaksDetected: 0, status: 'warning' };
         }
-        return { integrityScore: 100, adversarialFlags: 0, phiLeeksDetected: 0, status: 'clean' };
+        return { integrityScore: 100, adversarialFlags: 0, phiLeaksDetected: 0, status: 'clean' };
     }
     if (!isDevelopment) {
-        return { integrityScore: 0, adversarialFlags: 0, phiLeeksDetected: 0, status: 'warning' };
+        return { integrityScore: 0, adversarialFlags: 0, phiLeaksDetected: 0, status: 'warning' };
     }
-    return { integrityScore: 99, adversarialFlags: 0, phiLeeksDetected: 0, status: 'clean' };
+    return { integrityScore: 99, adversarialFlags: 0, phiLeaksDetected: 0, status: 'clean' };
 }
 
 // ── Wazuh-Inspired Types ───────────────────────────────────

@@ -27,7 +27,7 @@ const modules: Module[] = [
       'Token particles flow (10% to EverAfter, 90% to heir)',
       'Licensed usage tracking across media platforms'
     ],
-    revenue: 'Digital talent agency for the dead',
+    revenue: 'Digital talent agency for lasting legacies',
     position: 0
   },
   {

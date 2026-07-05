@@ -1,0 +1,6 @@
+bin/
+pybench/.venv/
+pybench/__pycache__/
+bench/logs/
+bench/full_run.log
+*.pyc

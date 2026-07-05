@@ -51,6 +51,107 @@ interface SaintAvailabilityState {
 
 type SaintStep = 'bootstrap' | 'history' | 'knowledge' | 'chat';
 
+interface SaintColorClasses {
+    /** Header and knowledge panel icon tint (text-X-600). */
+    icon: string;
+    /** Thinking indicator icon tint (text-X-500). */
+    iconSoft: string;
+    /** Bootstrap spinner border tint (border-X-500). */
+    spinner: string;
+    /** User message bubble background (bg-X-600). */
+    userBubble: string;
+    /** Send button background plus hover state. */
+    sendButton: string;
+    /** Knowledge panel intro card border, background, and text. */
+    knowledgePanel: string;
+}
+
+// Tailwind JIT only compiles class names that appear as complete literals in
+// the source, so interpolated names like `bg-${color}-600` never generate CSS
+// and render unstyled. Every class string below must stay a full literal.
+const SAINT_COLOR_CLASSES: Record<string, SaintColorClasses> = {
+    blue: {
+        icon: 'text-blue-600',
+        iconSoft: 'text-blue-500',
+        spinner: 'border-blue-500',
+        userBubble: 'bg-blue-600',
+        sendButton: 'bg-blue-600 hover:bg-blue-700',
+        knowledgePanel: 'border-blue-100 bg-blue-50/50 text-blue-700',
+    },
+    sky: {
+        icon: 'text-sky-600',
+        iconSoft: 'text-sky-500',
+        spinner: 'border-sky-500',
+        userBubble: 'bg-sky-600',
+        sendButton: 'bg-sky-600 hover:bg-sky-700',
+        knowledgePanel: 'border-sky-100 bg-sky-50/50 text-sky-700',
+    },
+    amber: {
+        icon: 'text-amber-600',
+        iconSoft: 'text-amber-500',
+        spinner: 'border-amber-500',
+        userBubble: 'bg-amber-600',
+        sendButton: 'bg-amber-600 hover:bg-amber-700',
+        knowledgePanel: 'border-amber-100 bg-amber-50/50 text-amber-700',
+    },
+    emerald: {
+        icon: 'text-emerald-600',
+        iconSoft: 'text-emerald-500',
+        spinner: 'border-emerald-500',
+        userBubble: 'bg-emerald-600',
+        sendButton: 'bg-emerald-600 hover:bg-emerald-700',
+        knowledgePanel: 'border-emerald-100 bg-emerald-50/50 text-emerald-700',
+    },
+    teal: {
+        icon: 'text-teal-600',
+        iconSoft: 'text-teal-500',
+        spinner: 'border-teal-500',
+        userBubble: 'bg-teal-600',
+        sendButton: 'bg-teal-600 hover:bg-teal-700',
+        knowledgePanel: 'border-teal-100 bg-teal-50/50 text-teal-700',
+    },
+    cyan: {
+        icon: 'text-cyan-600',
+        iconSoft: 'text-cyan-500',
+        spinner: 'border-cyan-500',
+        userBubble: 'bg-cyan-600',
+        sendButton: 'bg-cyan-600 hover:bg-cyan-700',
+        knowledgePanel: 'border-cyan-100 bg-cyan-50/50 text-cyan-700',
+    },
+    purple: {
+        icon: 'text-purple-600',
+        iconSoft: 'text-purple-500',
+        spinner: 'border-purple-500',
+        userBubble: 'bg-purple-600',
+        sendButton: 'bg-purple-600 hover:bg-purple-700',
+        knowledgePanel: 'border-purple-100 bg-purple-50/50 text-purple-700',
+    },
+    violet: {
+        icon: 'text-violet-600',
+        iconSoft: 'text-violet-500',
+        spinner: 'border-violet-500',
+        userBubble: 'bg-violet-600',
+        sendButton: 'bg-violet-600 hover:bg-violet-700',
+        knowledgePanel: 'border-violet-100 bg-violet-50/50 text-violet-700',
+    },
+    rose: {
+        icon: 'text-rose-600',
+        iconSoft: 'text-rose-500',
+        spinner: 'border-rose-500',
+        userBubble: 'bg-rose-600',
+        sendButton: 'bg-rose-600 hover:bg-rose-700',
+        knowledgePanel: 'border-rose-100 bg-rose-50/50 text-rose-700',
+    },
+    red: {
+        icon: 'text-red-600',
+        iconSoft: 'text-red-500',
+        spinner: 'border-red-500',
+        userBubble: 'bg-red-600',
+        sendButton: 'bg-red-600 hover:bg-red-700',
+        knowledgePanel: 'border-red-100 bg-red-50/50 text-red-700',
+    },
+};
+
 const DEFAULT_SAINT_AVAILABILITY: SaintAvailabilityState = {
     persistenceAvailable: true,
     historyAvailable: true,
@@ -137,6 +238,7 @@ export default function SaintChat({
     onClose
 }: SaintChatProps) {
     const { loading: authLoading, session, isDemoMode } = useAuth();
+    const colors = SAINT_COLOR_CLASSES[primaryColor] ?? SAINT_COLOR_CLASSES.blue;
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -431,7 +533,7 @@ export default function SaintChat({
                 {/* Header */}
                 <div className="h-16 border-b border-slate-100 flex items-center justify-between px-6 bg-slate-50/50">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg bg-white shadow-sm ring-1 ring-slate-200 text-${primaryColor}-600`}>
+                        <div className={`p-2 rounded-lg bg-white shadow-sm ring-1 ring-slate-200 ${colors.icon}`}>
                             <Icon className="w-5 h-5" />
                         </div>
                         <div>
@@ -468,7 +570,7 @@ export default function SaintChat({
                     <>
                         {bootstrapping && (
                             <div className="mx-4 flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-700">
-                                <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-${primaryColor}-500`}></div>
+                                <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${colors.spinner}`}></div>
                                 <span>Establishing spiritual connection...</span>
                             </div>
                         )}
@@ -496,7 +598,7 @@ export default function SaintChat({
                                     >
                                         <div
                                             className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
-                                                ? `bg-${primaryColor}-600 text-white`
+                                                ? `${colors.userBubble} text-white`
                                                 : 'bg-white border border-slate-100 text-slate-700'
                                                 }`}
                                         >
@@ -519,7 +621,7 @@ export default function SaintChat({
                                 {loading && (
                                     <div className="flex justify-start">
                                         <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3">
-                                            <Icon className={`w-4 h-4 text-${primaryColor}-500 motion-safe:animate-bounce`} />
+                                            <Icon className={`w-4 h-4 ${colors.iconSoft} motion-safe:animate-bounce`} />
                                             <span className="text-sm text-slate-500">Thinking...</span>
                                         </div>
                                     </div>
@@ -599,7 +701,7 @@ export default function SaintChat({
                         <button
                             onClick={handleSend}
                             disabled={!input.trim() || loading || bootstrapping || chatBlocked}
-                            className={`p-2 rounded-lg bg-${primaryColor}-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-${primaryColor}-700 transition-colors shadow-sm`}
+                            className={`p-2 rounded-lg ${colors.sendButton} text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm`}
                         >
                             <Send className="w-4 h-4" />
                         </button>
@@ -612,7 +714,7 @@ export default function SaintChat({
                 <div className="w-80 border-l border-slate-200 bg-white flex flex-col h-full shadow-xl z-10 transition-all duration-300 transform">
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                         <div className="flex items-center gap-2 text-slate-700">
-                            <Brain className={`w-4 h-4 text-${primaryColor}-600`} />
+                            <Brain className={`w-4 h-4 ${colors.icon}`} />
                             <h4 className="font-semibold text-sm">Knowledge Base</h4>
                         </div>
                         <button
@@ -624,7 +726,7 @@ export default function SaintChat({
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
-                        <div className={`p-3 rounded-lg border border-${primaryColor}-100 bg-${primaryColor}-50/50 text-xs text-${primaryColor}-700`}>
+                        <div className={`p-3 rounded-lg border text-xs ${colors.knowledgePanel}`}>
                             <p className="flex items-start gap-2">
                                 <Sparkles className="w-3 h-3 mt-0.5 shrink-0" />
                                 <span>I learn and remember important details from our conversations to serve you better.</span>

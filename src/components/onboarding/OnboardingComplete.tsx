@@ -83,19 +83,19 @@ export default function OnboardingComplete({ onFinish, saving }: OnboardingCompl
         </div>
       </div>
 
-      {/* Stats Preview */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-indigo-500/20">
-          <p className="text-2xl font-bold text-indigo-400">365</p>
-          <p className="text-xs text-gray-400">Daily Questions</p>
+      {/* Completion summary: what you just set up */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-indigo-500/20 flex items-center gap-2 justify-center sm:justify-start">
+          <CheckCircle className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+          <p className="text-sm font-medium text-white text-left">Profile saved</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-500/20">
-          <p className="text-2xl font-bold text-green-400">∞</p>
-          <p className="text-xs text-gray-400">Memories to Create</p>
+        <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-500/20 flex items-center gap-2 justify-center sm:justify-start">
+          <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <p className="text-sm font-medium text-white text-left">First engram started</p>
         </div>
-        <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-500/20">
-          <p className="text-2xl font-bold text-pink-400">24/7</p>
-          <p className="text-xs text-gray-400">AI Companion</p>
+        <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-500/20 flex items-center gap-2 justify-center sm:justify-start">
+          <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0" />
+          <p className="text-sm font-medium text-white text-left">Five Saints ready</p>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export default function OnboardingComplete({ onFinish, saving }: OnboardingCompl
       <button
         onClick={onFinish}
         disabled={saving}
-        className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mx-auto text-lg"
+        className="w-full sm:w-auto min-h-11 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mx-auto text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
       >
         {saving ? (
           <Loader2 className="w-6 h-6 animate-spin" />

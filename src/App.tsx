@@ -376,6 +376,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route path="/ceremonies" element={<Navigate to="/rituals" replace />} />
                   <Route
                     path="/personality-training"
                     element={

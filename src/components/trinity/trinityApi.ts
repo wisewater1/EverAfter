@@ -10,6 +10,7 @@ import {
     getFamilyMembers,
     getRelationships,
 } from '../../lib/joseph/genealogy';
+import { getCachedTrinitySignals, wellnessFromLiveHealth, type LiveTrinitySignals } from '../../lib/trinity/liveSignals';
 
 const TRINITY_GOALS_KEY = 'everafter_trinity_goals';
 const TRINITY_WHATIF_HISTORY_KEY = 'everafter_trinity_whatif_history';
@@ -168,7 +169,22 @@ function getHealthProfile(member: AnyRecord) {
     };
 }
 
-function getLocalBudgetContext(body: AnyRecord) {
+function getLocalBudgetContext(body: AnyRecord, live?: LiveTrinitySignals | null) {
+    // Prefer the signed-in user's real budget envelopes (St. Gabriel) when
+    // they are loaded; only fall back to the sample envelopes for demo and
+    // brand-new accounts.
+    if (live?.finance?.source === 'live' && live.finance.envelopes.length > 0) {
+        const f = live.finance;
+        return {
+            envelopes: f.envelopes,
+            totalAssigned: f.totalAssigned,
+            overspentEnvelopes: f.overspentEnvelopes,
+            healthBudget: f.healthBudget,
+            elderBudget: f.elderBudget,
+            netWorth: Number(body.net_worth || Math.max(f.totalAssigned * 26, 285000)),
+            monthlyIncome: Number(body.monthly_income || Math.max(f.totalAssigned * 1.55, 7800)),
+        };
+    }
     const envelopes = Array.isArray(body.budget_envelopes) ? body.budget_envelopes : [];
     if (envelopes.length > 0) {
         const totalAssigned = envelopes.reduce((sum: number, env: AnyRecord) => sum + Number(env.assigned || 0), 0);
@@ -208,6 +224,7 @@ function getLocalBudgetContext(body: AnyRecord) {
 }
 
 function getLocalTrinityContext(body: AnyRecord = {}) {
+    const live = getCachedTrinitySignals();
     const members = getFamilyMembers();
     const events = getFamilyEvents();
     const relationships = getRelationships();
@@ -217,7 +234,21 @@ function getLocalTrinityContext(body: AnyRecord = {}) {
         : livingMembers.find(member => member.generation === 0) || livingMembers[0] || members[0];
     const elders = livingMembers.filter(member => calculateAge(member) >= 65);
     const healthProfiles = members.map(member => ({ member, ...getHealthProfile(member) }));
-    const finances = getLocalBudgetContext(body);
+    const finances = getLocalBudgetContext(body, live);
+
+    // St. Raphael's real signal (only the account owner has live vitals):
+    // override the primary person's synthetic wellness with measured data.
+    const liveWellness = live ? wellnessFromLiveHealth(live.health) : null;
+    const primaryHealth = getHealthProfile(primaryMember || {});
+    if (liveWellness !== null) {
+        primaryHealth.wellnessScore = liveWellness;
+        primaryHealth.riskScore = clamp(100 - liveWellness, 14, 92);
+        primaryHealth.riskLevel = getRiskLevel(primaryHealth.riskScore);
+        const primaryIndex = healthProfiles.findIndex(p => p.member.id === primaryMember?.id);
+        if (primaryIndex >= 0) {
+            healthProfiles[primaryIndex] = { ...healthProfiles[primaryIndex], ...primaryHealth };
+        }
+    }
 
     return {
         members,
@@ -226,9 +257,11 @@ function getLocalTrinityContext(body: AnyRecord = {}) {
         livingMembers,
         elders,
         primaryMember,
-        primaryHealth: getHealthProfile(primaryMember || {}),
+        primaryHealth,
         healthProfiles,
         finances,
+        live,
+        liveWellness,
     };
 }
 
@@ -593,18 +626,46 @@ function buildCrossSaintGoalFallback(body: AnyRecord, context = getLocalTrinityC
 }
 
 function buildFamilyVitalityFallback(context = getLocalTrinityContext()) {
+    const live = context.live;
     const averageWellness = context.healthProfiles.reduce((sum, member) => sum + member.wellnessScore, 0) / Math.max(context.healthProfiles.length, 1);
-    const josephScore = clamp(56 + context.livingMembers.length * 3 + context.events.length * 0.4, 40, 92);
-    const raphaelScore = clamp(averageWellness, 32, 90);
+
+    // Family continuity (St. Joseph, with a supporting signal from St. Anthony,
+    // guidance): living family anchored in the tree, life events recorded, and
+    // ongoing guidance engagement through daily responses.
+    const guidanceSupport = live ? clamp(live.engagement.responses30d * 1.4, 0, 12) : 0;
+    const josephScore = clamp(52 + context.livingMembers.length * 3 + context.events.length * 0.4 + guidanceSupport, 30, 96);
+
+    // Recovery and resilience (St. Raphael): measured wellness from real
+    // vitals when available, else the family health model.
+    const raphaelScore = context.liveWellness !== null ? clamp(context.liveWellness, 20, 98) : clamp(averageWellness, 32, 90);
+
+    // Financial readiness (St. Gabriel): real budget envelopes when linked.
     const gabrielScore = clamp(46 + context.finances.healthBudget / 18 + context.finances.elderBudget / 60 - context.finances.overspentEnvelopes * 8, 28, 90);
+
     const vitalityScore = Math.round(josephScore * 0.32 + raphaelScore * 0.38 + gabrielScore * 0.30);
+
+    // St. Michael governs the access layer around all three rather than adding
+    // his own bar: report how much of the estate he is actively protecting.
+    const protection = live
+        ? { emergency_contacts: live.protection.emergencyContacts, vault_items: live.protection.vaultItems }
+        : null;
 
     return {
         vitality_score: vitalityScore,
+        data_source: {
+            family: 'live',
+            recovery: context.liveWellness !== null ? 'live' : 'model',
+            financial: context.finances && live?.finance?.source === 'live' ? 'live' : 'model',
+        },
         breakdown: {
-            joseph: { label: 'Family continuity', score: josephScore, weight: 32 },
-            raphael: { label: 'Recovery and resilience', score: raphaelScore, weight: 38 },
-            gabriel: { label: 'Financial readiness', score: gabrielScore, weight: 30 },
+            joseph: { label: 'Family continuity', score: josephScore, weight: 32, source: 'St. Joseph and St. Anthony' },
+            raphael: { label: 'Recovery and resilience', score: raphaelScore, weight: 38, source: 'St. Raphael' },
+            gabriel: { label: 'Financial readiness', score: gabrielScore, weight: 30, source: 'St. Gabriel' },
+        },
+        access_layer: {
+            steward: 'St. Michael',
+            label: 'Protection and access',
+            ...(protection || {}),
         },
         insights: {
             condition_density: Number((context.healthProfiles.reduce((sum, member) => sum + member.conditions.length, 0) / Math.max(context.members.length, 1)).toFixed(1)),
@@ -1248,7 +1309,7 @@ function normalizeInheritanceDirectivePayload(payload: AnyRecord, context = getL
         source_notes: [
             'Pedigree continuity is derived from Joseph family graph coverage and record density.',
             'Hereditary signals use family-pattern inference inspired by variant inheritance workflows, but do not diagnose disease.',
-            'Continuity automation models dead-man-switch style release readiness for legacy and executor handoff.',
+            'Continuity automation models inactivity-based release readiness for legacy transition and executor handoff.',
         ],
         generated_at: payload.generated_at || new Date().toISOString(),
     };

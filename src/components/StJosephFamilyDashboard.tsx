@@ -4,7 +4,7 @@ import {
     CheckSquare, Clock, MapPin, Info, MessageSquare,
     Activity, RefreshCw, ArrowLeft, Bell, Link as LinkIcon,
     GitBranch, UserCheck, History, MessageCircle, Search,
-    Sparkles, Brain
+    Sparkles, Brain, Flame
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -330,6 +330,14 @@ export default function StJosephFamilyDashboard() {
                     </div>
 
                     <div className="flex items-center justify-center gap-3 shrink-0 md:ml-auto md:justify-end">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/rituals')}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/20 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                        >
+                            <Flame className="h-4 w-4" />
+                            Ceremonies
+                        </button>
                         <SecurityIntegrityBadge />
                     </div>
                 </div>
