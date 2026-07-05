@@ -13,8 +13,27 @@ import { Shield, GitBranch, Heart, Wallet, RefreshCw, Loader2, Lock } from 'luci
 import { trinitySynapse } from './trinityApi';
 import { refreshTrinitySignals } from '../../lib/trinity/liveSignals';
 
+interface VitalityBar {
+    label: string;
+    score: number;
+    weight: number;
+    source?: string;
+}
+
+interface VitalityData {
+    vitality_score: number;
+    breakdown?: Record<string, VitalityBar>;
+    access_layer?: { steward: string; label: string; emergency_contacts?: number; vault_items?: number } | null;
+    insights?: {
+        condition_density?: number;
+        savings_rate?: number;
+        emergency_months?: number;
+        overspent_envelopes?: number;
+    };
+}
+
 export default function FamilyVitalityScore() {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<VitalityData | null>(null);
     const [loading, setLoading] = useState(true);
 
     async function load(force = false) {
