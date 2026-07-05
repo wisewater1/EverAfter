@@ -384,8 +384,8 @@ export default function StRaphaelHealthHub() {
                         />
                         <div className="pt-4 mt-4 border-t border-white/5">
                             <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-4 px-4 font-bold">Autonomous Status</h4>
-                            <div className="p-4 rounded-2x bg-white/[0.02] border border-white/5 space-y-3">
-                                <StatusLine label="Model Stability" value="98.2%" color="text-teal-400" />
+                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+                                <StatusLine label="Model Stability" value={lastRun ? 'Nominal' : 'Standby'} color="text-teal-400" />
                                 <StatusLine label="Last Synapse" value={lastRun ? formatTime(lastRun) : 'N/A'} color="text-slate-400" />
                             </div>
                         </div>
@@ -577,10 +577,22 @@ function StatusLine({ label, value, color }: any) {
 }
 
 function HubInsightCard({ insight }: { insight: Insight }) {
+    const [showContext, setShowContext] = useState(false);
+    const [logged, setLogged] = useState(false);
     const colors = {
         info: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
         warning: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
         attention: 'text-red-400 bg-red-500/10 border-red-500/20'
+    };
+
+    const logToAkashic = () => {
+        try {
+            const raw = localStorage.getItem('everafter_akashic_log');
+            const list = raw ? JSON.parse(raw) : [];
+            list.push({ text: insight.text, category: insight.category, severity: insight.severity, at: new Date().toISOString() });
+            localStorage.setItem('everafter_akashic_log', JSON.stringify(list.slice(-200)));
+        } catch { /* storage may be unavailable; the acknowledgment still applies this session */ }
+        setLogged(true);
     };
 
     return (
@@ -590,11 +602,28 @@ function HubInsightCard({ insight }: { insight: Insight }) {
             </div>
             <div className="flex-1">
                 <p className="text-sm font-medium leading-relaxed italic">"{insight.text}"</p>
+                {showContext && (
+                    <p className="mt-2 text-[11px] leading-relaxed text-white/60">
+                        This {insight.severity === 'attention' ? 'priority' : insight.severity} insight is derived from your recent {insight.category.toLowerCase()} signals. It reflects patterns across your linked measurements, not a diagnosis. Review it alongside your care team.
+                    </p>
+                )}
                 <div className="mt-2 flex items-center justify-between">
                     <span className="text-[10px] uppercase font-black tracking-widest opacity-60">{insight.category}</span>
                     <div className="flex items-center gap-3">
-                        <button className="text-[9px] font-bold uppercase tracking-widest hover:underline text-white/40 hover:text-white">Scientific Context</button>
-                        <button className="text-[9px] font-bold uppercase tracking-widest hover:underline text-teal-400">Log to Akashic</button>
+                        <button
+                            onClick={() => setShowContext((v) => !v)}
+                            aria-expanded={showContext}
+                            className="min-h-11 text-[9px] font-bold uppercase tracking-widest hover:underline text-white/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 rounded"
+                        >
+                            {showContext ? 'Hide Context' : 'Scientific Context'}
+                        </button>
+                        <button
+                            onClick={logToAkashic}
+                            disabled={logged}
+                            className="min-h-11 text-[9px] font-bold uppercase tracking-widest hover:underline text-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 rounded disabled:text-emerald-400 disabled:no-underline"
+                        >
+                            {logged ? 'Logged' : 'Log to Akashic'}
+                        </button>
                     </div>
                 </div>
             </div>

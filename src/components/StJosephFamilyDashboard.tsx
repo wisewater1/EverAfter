@@ -234,9 +234,16 @@ export default function StJosephFamilyDashboard() {
         const text = newBulletin.trim();
         if (!text) return;
         const author = user?.email?.split('@')[0] || 'Me';
-        await apiClient.postBulletinMessage(text, author);
+        // Add the note optimistically and clear the input immediately so the
+        // control never looks stuck, then attempt to sync. A backend outage
+        // keeps the note locally instead of throwing an unhandled rejection.
         setBulletin(prev => [{ id: `local_${Date.now()}`, text, author }, ...prev]);
         setNewBulletin('');
+        try {
+            await apiClient.postBulletinMessage(text, author);
+        } catch (error) {
+            console.warn('Bulletin sync failed; note kept locally for now:', error);
+        }
     };
 
     const syncEngrams = async () => {

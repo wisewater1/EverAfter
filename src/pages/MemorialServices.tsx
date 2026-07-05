@@ -642,53 +642,80 @@ export default function MemorialServices() {
                 <h2 className="text-2xl font-bold text-white mb-1">Important Documents</h2>
                 <p className="text-slate-400">Upload and manage memorial-related documents</p>
               </div>
-              <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2">
+              <button
+                onClick={handleUploadClick}
+                disabled={uploadingDocument}
+                className="min-h-11 px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-medium hover:opacity-90 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 disabled:opacity-60"
+              >
                 <Upload className="w-5 h-5" />
-                Upload Document
+                {uploadingDocument ? 'Uploading...' : 'Upload Document'}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { name: 'Pre-Need Contract', icon: FileText, status: 'Uploaded' },
-                { name: 'Cemetery Deed', icon: MapPin, status: 'Pending' },
-                { name: 'Service Preferences', icon: Heart, status: 'Uploaded' },
-                { name: 'Obituary Draft', icon: BookOpen, status: 'Uploaded' },
-                { name: 'Music Selections', icon: Music, status: 'Pending' },
-                { name: 'Photo Collection', icon: Camera, status: 'Uploaded' }
-              ].map((doc, index) => {
-                const Icon = doc.icon;
-                return (
+            <input ref={fileInputRef} type="file" onChange={handleFileSelected} className="hidden" />
+
+            {documentNotice && (
+              <div className={`rounded-xl px-4 py-3 text-sm border ${
+                documentNotice.tone === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-200'
+              }`}>
+                {documentNotice.message}
+              </div>
+            )}
+
+            {documentsLoading ? (
+              <div className="flex items-center justify-center py-16 text-slate-400">
+                <div className="w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : documents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                  <FileText className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-1">No documents yet</h3>
+                <p className="text-slate-400 max-w-md">
+                  Keep pre-need contracts, service preferences, and other memorial documents together in one secure place.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {documents.map((file) => (
                   <div
-                    key={index}
+                    key={file.id}
                     className="p-5 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-teal-500/30 transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-teal-400" />
+                        <FileText className="w-6 h-6 text-teal-400" />
                       </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        doc.status === 'Uploaded'
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      }`}>
-                        {doc.status}
+                      <span className="px-2 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        Stored
                       </span>
                     </div>
-                    <h3 className="text-white font-semibold mb-2">{doc.name}</h3>
+                    <h3 className="text-white font-semibold mb-2 truncate" title={file.file_name}>{file.file_name}</h3>
                     <div className="flex gap-2">
-                      <button className="flex-1 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleDownloadDocument(file)}
+                        disabled={documentActionId === file.id}
+                        className="flex-1 min-h-11 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 disabled:opacity-60"
+                      >
                         <Download className="w-4 h-4" />
                         Download
                       </button>
-                      <button className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white text-sm transition-all">
+                      <button
+                        onClick={() => handleShareDocument(file)}
+                        disabled={documentActionId === file.id}
+                        aria-label={`Copy a secure sharing link for ${file.file_name}`}
+                        className="min-h-11 min-w-11 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white text-sm transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 disabled:opacity-60"
+                      >
                         <Share2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
