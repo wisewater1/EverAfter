@@ -102,7 +102,7 @@ export default function InsuranceConnection() {
 
   const handleConnect = () => {
     if (selectedPlan) {
-      window.location.href = 'https://crystal-blockchain-a-uwvs.bolt.host';
+      navigate('/dashboard');
     }
   };
 
@@ -268,13 +268,13 @@ export default function InsuranceConnection() {
           >
             Cancel
           </button>
-          <a
-            href="https://crystal-blockchain-a-uwvs.bolt.host"
-            className="px-8 py-3 rounded-xl font-medium transition-all flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-500/20"
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="min-h-11 px-8 py-3 rounded-xl font-medium transition-all flex items-center gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg shadow-teal-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
           >
             Continue to Dashboard
             <ArrowRight className="w-4 h-4" />
-          </a>
+          </button>
         </div>
 
         <div className="mt-8 text-center">

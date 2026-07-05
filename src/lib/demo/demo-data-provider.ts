@@ -470,7 +470,7 @@ const DEMO_FAMILY_MOMENTS = [
   ...Array.from({ length: 2 }, () => ({ family_member_id: 'dm-alice' })),
 ];
 
-// Ceremonies (see src/lib/ceremonies/ceremonies.ts) — one scheduled remembrance
+// Ceremonies (see src/lib/ceremonies/ceremonies.ts): one scheduled remembrance
 // coming up and one completed gratitude gathering with a written reflection,
 // so the Ceremonies screen, Seasonal Calendar, and Chronicle all have
 // something real to show on stage. Demo mode itself reads ceremonies from

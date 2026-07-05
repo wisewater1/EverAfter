@@ -269,7 +269,7 @@ export default function RitualAltar() {
             try {
                 setFamilyMembers(getFamilyMembers());
             } catch {
-                // No family data yet — the form still works with an empty list.
+                // No family data yet; the form still works with an empty list.
             }
             await loadCeremonies();
             if (mounted) setLoading(false);
@@ -405,7 +405,7 @@ export default function RitualAltar() {
                 showNotification('Loaded an alternate script suggestion.', 'success');
             }
         } catch {
-            // Silent by design — the suggested template is already in place.
+            // Silent by design; the suggested template is already in place.
         } finally {
             window.clearTimeout(timeoutId);
             setSuggestingScript(false);
