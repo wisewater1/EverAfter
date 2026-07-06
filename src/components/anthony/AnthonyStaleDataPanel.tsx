@@ -147,7 +147,7 @@ export default function AnthonyStaleDataPanel({ personId }: AnthonyStaleDataPane
                         <Clock className="w-3 h-3 text-slate-600" />
                         <span style={{ color: stalenessColor }}>{formatAge(freshnessSeconds)}</span>
                     </div>
-                    <button onClick={() => navigate('/health')}
+                    <button onClick={() => navigate('/health-dashboard')}
                         className="flex items-center gap-1 text-amber-400 font-bold hover:text-amber-300 transition-colors">
                         <ExternalLink className="w-3 h-3" /> Open Delphi
                     </button>

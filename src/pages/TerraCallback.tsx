@@ -28,7 +28,7 @@ export default function TerraCallback() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else if (countdown === 0) {
-      navigate('/health/devices');
+      navigate('/devices');
     }
   }, [status, countdown, navigate]);
 
@@ -213,7 +213,7 @@ export default function TerraCallback() {
               </div>
 
               <button
-                onClick={() => navigate('/health/devices')}
+                onClick={() => navigate('/devices')}
                 className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700"
               >
                 Go to Devices Dashboard
@@ -244,13 +244,13 @@ export default function TerraCallback() {
 
               <div className="space-y-3">
                 <button
-                  onClick={() => navigate('/health/devices')}
+                  onClick={() => navigate('/devices')}
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700"
                 >
                   Try Again
                 </button>
                 <button
-                  onClick={() => navigate('/health')}
+                  onClick={() => navigate('/health-dashboard')}
                   className="w-full py-3 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600"
                 >
                   Back to Dashboard
@@ -263,12 +263,12 @@ export default function TerraCallback() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
             Having trouble?{' '}
-            <a
-              href="/support"
-              className="text-blue-400 hover:text-blue-300"
+            <button
+              onClick={() => navigate('/devices')}
+              className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
             >
-              Contact Support
-            </a>
+              Open device troubleshooting
+            </button>
           </p>
         </div>
       </div>
