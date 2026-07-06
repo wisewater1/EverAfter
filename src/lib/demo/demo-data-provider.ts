@@ -794,6 +794,8 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   if (path.includes('/audit/ledger')) return mockResponse(MOCK_AUDIT_LEDGER);
   // No pending guardian intercessions in the demo (keeps the family dashboard console clean).
   if (path.includes('/saints/intercessions/pending')) return mockResponse([]);
+  // No standing saint missions in the demo; the timeline renders without them.
+  if (path.includes('/saints/missions/active')) return mockResponse([]);
 
   // Society feed endpoints: the feed simulates locally, so return empty
   // collections here to keep the demo console clean.
