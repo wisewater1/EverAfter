@@ -71,7 +71,35 @@ Single shared client created once in `src/lib/supabase.ts` and imported everywhe
 - `fix(works)`: `@vitest/coverage-v8` added; `npm run test:coverage` was broken (config referenced an uninstalled reporter) and now runs.
 - `fix(works)`: CouncilOracle (route `/council`) no longer calls the backend with raw axios (no timeout, invisible to the demo interceptor, errors swallowed with a stub comment). It now shares the grounded local deliberation with SocietyFeed via `src/lib/saints/deliberation.ts`, races the live service against a 2.5s deadline, always answers, and states provenance honestly. The five guardians now sit in a real circle around a central You node.
 
-## 3. Phase 1C: Runtime smoke test (pending)
+## 3. Phase 1C: Runtime smoke test
+
+Method: production build served by `vite preview`, driven headlessly (Playwright, scripts committed as `scripts/audit-walk.mjs` and `scripts/audit-flows.mjs`). Demo mode entered through the landing CTA so the app exercises its real fetch paths against the demo interceptor. Screenshots for every route at 1440x900 and 390x844 are in `audit-artifacts/before/` (54 files, captured at the end of Mission 1, before any directionality change).
+
+### Route walk results
+Every reachable route renders with no console errors, no page errors, no unexpected failed requests, no error-boundary triggers, and zero horizontal scroll at 390px.
+
+| Route set | Result |
+| --- | --- |
+| Public: `/`, `/login`, `/signup`, `/forgot-password`, `/reset-password` | All clean. Empty submits on login and signup show validation instead of crashing. |
+| `/quiz/demo-token` (public, invalid token) | Renders the honest "Quiz unavailable" state. The one console line is the browser logging the failed HTTP request itself, which is expected with an invalid token and no backend. |
+| App: `/dashboard`, `/trinity`, `/health-dashboard`, `/security-dashboard`, `/family-dashboard`, `/family-intelligence`, `/finance-dashboard`, `/anthony-dashboard`, `/monitor`, `/legacy-vault`, `/digital-legacy`, `/rituals`, `/time-capsules`, `/council`, `/career`, `/devices`, `/personality-training`, `/portal`, `/portal/profile` | All clean after the fixes below. |
+| Redirects: `/raphael`, `/michael-dashboard`, `/saints`, `/ceremonies`, and the non-core gates (`/pricing`, `/marketplace`, `/beyond-modules`) | All resolve to their intended targets. |
+
+### Core flows (9 of 9 pass)
+1. Council Circle renders five guardian nodes plus the central You seat (the request named six saints; the roster discrepancy is parked under Needs Joshua's decision).
+2. Council deliberation produces a consensus with honest provenance.
+3. Ancestry tree renders on the family dashboard.
+4. Timeline Echoes toggle works.
+5. Soul profile cards on family intelligence open a detail view.
+6. Comparison mode (Delphi, Compare with family) opens.
+7. Auth screens validate.
+8. No page errors anywhere in the walk.
+9. Demo entry lands on the dashboard.
+
+### Bugs found by the runtime walk, and fixed
+1. `/saints/missions/active` was not mocked in demo mode, so the family timeline logged a console error on every visit. Mocked to an empty list, matching the intercessions pattern.
+2. ProtectedRoute unmounted every page right after its first render to show a "Checking runtime dependencies" spinner, then remounted it. Consequences: page state reset (which silently destroyed every `/family-dashboard?tab=` deep link, because the dashboard had already consumed and deleted the param), double data loading on every protected page visit, and a visible flash. Children now stay mounted while the gate resolves; a confirmed hard blocker still replaces the page.
+3. The family dashboard now treats the URL as the source of truth for its active tab: deep links (`?tab=delphi`), refreshes, shared quiz links (`?memberId=`), and the Michael to Anthony ledger links all land on the right tab. Verified end to end.
 
 ## 4. Phase 2A: Wording changes (pending)
 
