@@ -50,11 +50,11 @@ export default function MemberCalendarPanel({ member, onClose, onSaved }: Props)
                         </div>
                         <div className="min-w-0">
                             <h3 className="text-lg font-bold text-white break-words">{name}'s Calendar</h3>
-                            <p className="text-xs text-slate-400">Add their dates to any calendar — or connect theirs.</p>
+                            <p className="text-xs text-slate-400">Add their dates to any calendar, or connect theirs.</p>
                         </div>
                     </div>
 
-                    {/* Birthday / remembrance — keyless, works with every calendar */}
+                    {/* Birthday / remembrance: keyless, works with every calendar */}
                     {bday && (
                         <div className="mb-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
                             <p className="text-sm font-semibold text-white">{bday.title}</p>
@@ -82,7 +82,7 @@ export default function MemberCalendarPanel({ member, onClose, onSaved }: Props)
                             <Link2 className="w-3.5 h-3.5" /> Connect {member.firstName}'s calendar
                         </label>
                         <p className="mt-1 text-[11px] text-slate-500">
-                            Paste an iCal/ICS link — Google "secret address in iCal format", Apple or Outlook published calendar. Stays on your device.
+                            Paste an iCal/ICS link, Google "secret address in iCal format", Apple or Outlook published calendar. Stays on your device.
                         </p>
                         <div className="mt-2 flex gap-2">
                             <input
@@ -99,11 +99,11 @@ export default function MemberCalendarPanel({ member, onClose, onSaved }: Props)
                         {status === 'loading' && <p className="mt-3 text-xs text-slate-500">Loading events…</p>}
                         {status === 'unreachable' && (
                             <p className="mt-3 flex items-center gap-1.5 text-xs text-amber-300/80">
-                                <CheckCircle className="w-3.5 h-3.5" /> Calendar saved — live events appear when the provider allows it.
+                                <CheckCircle className="w-3.5 h-3.5" /> Calendar saved, live events appear when the provider allows it.
                             </p>
                         )}
                         {status === 'connected' && events.length === 0 && (
-                            <p className="mt-3 text-xs text-slate-500">Connected — no upcoming events found.</p>
+                            <p className="mt-3 text-xs text-slate-500">Connected, no upcoming events found.</p>
                         )}
                         {events.length > 0 && (
                             <div className="mt-3 space-y-1.5">

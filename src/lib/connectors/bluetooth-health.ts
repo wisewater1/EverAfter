@@ -267,7 +267,7 @@ export class BluetoothHealthConnector {
     }
 
     private parseHeartRate(data: DataView): HealthReading {
-        // Byte 0: Flags — bit 0 indicates format (0 = UINT8, 1 = UINT16)
+        // Byte 0: Flags: bit 0 indicates format (0 = UINT8, 1 = UINT16)
         const flags = data.getUint8(0);
         const is16Bit = (flags & 0x01) !== 0;
         const heartRate = is16Bit ? data.getUint16(1, true) : data.getUint8(1);

@@ -142,7 +142,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                     updated_at: new Date().toISOString(),
                 });
             } catch {
-                // Non-blocking — table may not exist yet, continue
+                // Non-blocking: table may not exist yet, continue
             }
         }
         setStep('quiz-intro');
@@ -443,7 +443,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                                 <CheckCircle className="w-4 h-4 shrink-0" />
                                 <span>
                                     Connected as <strong>{RELATIONSHIP_OPTIONS.find(o => o.value === connection.relationship)?.label}</strong>
-                                    {linkedMember ? ` — linked to ${linkedMember.firstName} ${linkedMember.lastName}` : ''}
+                                    {linkedMember ? `, linked to ${linkedMember.firstName} ${linkedMember.lastName}` : ''}
                                 </span>
                             </div>
                         )}
@@ -455,7 +455,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                             <h3 className="text-xl font-bold text-white">50-Question Personality Assessment</h3>
                             <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
                                 Based on the scientifically validated <strong className="text-violet-300">OCEAN / Big Five model</strong>,
-                                this quiz will generate a detailed personality profile for <strong className="text-white">{ai.name}</strong> —
+                                this quiz will generate a detailed personality profile for <strong className="text-white">{ai.name}</strong>, 
                                 including traits, archetypes, communication style, strengths, and family role.
                             </p>
                         </div>
@@ -501,7 +501,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                             onClick={() => setStep('memory')}
                             className="w-full py-2.5 text-slate-500 hover:text-slate-300 text-sm transition-colors underline underline-offset-2"
                         >
-                            Skip quiz — add memories manually instead
+                            Skip quiz, add memories manually instead
                         </button>
                     </div>
                 )}
@@ -683,7 +683,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                         {profile && (
                             <div className="flex items-center gap-3 p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl text-xs text-violet-300">
                                 <Sparkles className="w-4 h-4 shrink-0" />
-                                <span>Personality profile saved — <strong>{profile.archetype?.name}</strong>. Keep adding memories to reinforce {ai.name}'s responses.</span>
+                                <span>Personality profile saved, <strong>{profile.archetype?.name}</strong>. Keep adding memories to reinforce {ai.name}'s responses.</span>
                             </div>
                         )}
 
@@ -708,7 +708,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                             <textarea
                                 value={memory}
                                 onChange={e => setMemory(e.target.value)}
-                                placeholder={`Share a memory, story, or experience that will shape ${ai.name}'s responses...\n\nExamples:\n• "I love hiking at sunset and feel most alive outdoors"\n• "My biggest challenge was learning to trust after heartbreak"\n• "Music has always been my emotional anchor — especially jazz"`}
+                                placeholder={`Share a memory, story, or experience that will shape ${ai.name}'s responses...\n\nExamples:\n• "I love hiking at sunset and feel most alive outdoors"\n• "My biggest challenge was learning to trust after heartbreak"\n• "Music has always been my emotional anchor, especially jazz"`}
                                 rows={6}
                                 className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none"
                             />
@@ -858,8 +858,8 @@ function computeLocalProfile(name: string, id: string, answers: Record<string, n
         trait_details: {},
         traits: [dominant, Object.entries(scores).sort((a, b) => b[1] - a[1])[1]?.[0] || ''].filter(Boolean),
         communication_style: scores.extraversion > 60
-            ? 'Direct and expressive — prefers open conversations and group discussions.'
-            : 'Thoughtful and measured — prefers one-on-one and reflective exchanges.',
+            ? 'Direct and expressive, prefers open conversations and group discussions.'
+            : 'Thoughtful and measured, prefers one-on-one and reflective exchanges.',
         archetype: archetypes[dominant],
         family_role: familyRoles[dominant],
         strengths: [

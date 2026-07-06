@@ -302,7 +302,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                                     setVignette('');
                                                     alert("Memory ingested! This will shape the agent's responses.");
                                                 } else {
-                                                    // Local mode — just clear and confirm
+                                                    // Local mode: just clear and confirm
                                                     setVignette('');
                                                     alert("Memory saved locally. Connect the backend to persist it to the Saint Runtime.");
                                                 }

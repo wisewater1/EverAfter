@@ -750,7 +750,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                   <div className="flex-1 min-w-0">
                     <h5 className="text-xs sm:text-sm font-semibold text-amber-300 mb-1">Your 50-Day Journey</h5>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      Most users complete activation in 6-8 weeks. You can go at your own pace—there's no rush!
+                      Most users complete activation in 6-8 weeks. You can go at your own pace, there's no rush!
                     </p>
                   </div>
                 </div>

@@ -6,7 +6,7 @@ import { requestBackendJson } from '../lib/backend-request';
 /**
  * Public, no-account personality quiz reached via a shared /quiz/:token link.
  * A friend or relative answers on their own device; answers post back to the
- * owner's invite server-side. Deliberately self-contained — no auth, no
+ * owner's invite server-side. Deliberately self-contained: no auth, no
  * family-dashboard coupling.
  */
 
@@ -149,7 +149,7 @@ export default function PublicPersonalityQuiz() {
       <h1 className="text-lg sm:text-xl font-light text-white mb-1">
         Help us understand <span className="font-medium">{invite?.subject_name || 'your loved one'}</span>
       </h1>
-      <p className="text-slate-500 text-xs mb-4">Answer honestly — there are no wrong answers. {answeredCount}/{total} answered.</p>
+      <p className="text-slate-500 text-xs mb-4">Answer honestly, there are no wrong answers. {answeredCount}/{total} answered.</p>
 
       <div className="h-1.5 w-full bg-white/5 rounded-full mb-5 overflow-hidden">
         <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />

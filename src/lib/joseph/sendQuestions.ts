@@ -37,7 +37,7 @@ export async function sendPersonalityQuestions(
             markQuizInviteSent(memberId);
             return { ok: true, method: 'shared', link };
         } catch (error) {
-            // User dismissed the share sheet — not an error, and don't double-handle.
+            // User dismissed the share sheet: not an error, and don't double-handle.
             if (error instanceof Error && error.name === 'AbortError') {
                 return { ok: false, method: 'cancelled', link };
             }

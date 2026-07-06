@@ -415,7 +415,7 @@ export default function FamilyTrajectoryCompare({
                                     <span className="text-[11px] text-slate-400 tabular-nums w-20 text-right hidden sm:inline">
                                         {hasData && t.predictedValue !== null
                                             ? `pred ${t.predictedValue.toFixed(1)}`
-                                            : '—'}
+                                            : ', '}
                                     </span>
                                     <ConfidenceBar value={t.confidence} />
                                 </div>

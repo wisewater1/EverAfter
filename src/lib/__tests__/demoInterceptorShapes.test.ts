@@ -4,7 +4,7 @@ import { matchEndpoint } from '../demo/demo-data-provider';
 // Guards the recurring crash class: demo mocks returning the WRONG container
 // shape (object where a bare array is expected) blew up callers doing
 // `.map`/`.filter`/`.length` ("c.filter is not a function"). These assert the
-// contract — list endpoints return arrays, unmocked endpoints 404 (so callers
+// contract: list endpoints return arrays, unmocked endpoints 404 (so callers
 // take their graceful fallback instead of crashing on a stub object).
 
 async function bodyOf(r: Response | null) {

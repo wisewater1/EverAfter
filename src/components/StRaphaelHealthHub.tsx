@@ -266,7 +266,7 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
                 ✦ Trinity Insights
               </h2>
               <p className="text-xs text-slate-500">
-                Cross-domain intelligence from St. Joseph (genealogy), St. Raphael (health), and St. Gabriel (finance) — unified through Trinity Synapse.
+                Cross-domain intelligence from St. Joseph (genealogy), St. Raphael (health), and St. Gabriel (finance), unified through Trinity Synapse.
               </p>
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">

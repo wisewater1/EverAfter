@@ -1,5 +1,5 @@
 /**
- * DHTAnomalyAlertChain — St. Michael's DHT anomaly → security alert bridge.
+ * DHTAnomalyAlertChain: St. Michael's DHT anomaly → security alert bridge.
  *
  * Polls the DHT API for anomalies on the current user's trajectory, then
  * renders them as Guardian-styled health security alerts that Michael can
@@ -97,7 +97,7 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
                                         <span className={`text-[9px] uppercase font-black tracking-widest ${cfg.text}`}>
-                                            DHT ANOMALY — {a.severity?.toUpperCase() || 'MODERATE'}
+                                            DHT ANOMALY, {a.severity?.toUpperCase() || 'MODERATE'}
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-300">

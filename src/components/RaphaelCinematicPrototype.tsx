@@ -176,7 +176,7 @@ export default function RaphaelCinematicPrototype() {
               "Your record endures."
             </p>
             <p className="text-xs text-teal-400/40 uppercase tracking-widest">
-              — Raphael
+             , Raphael
             </p>
           </div>
         )}

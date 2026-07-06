@@ -40,21 +40,21 @@ export function aiPersonaFromProfile(member: FamilyMember): AiPersona {
     const traits = (ap?.traits?.length ? ap.traits : stored?.traits) || [];
 
     const oceanLines = [
-        `Openness ${ocean.O}/100 — ${band(ocean.O, 'imaginative and curious; loves ideas and new experiences', 'open but grounded', 'practical and traditional; prefers the familiar')}`,
-        `Conscientiousness ${ocean.C}/100 — ${band(ocean.C, 'organized, reliable, plans ahead', 'reasonably organized', 'spontaneous and flexible; improvises')}`,
-        `Extraversion ${ocean.E}/100 — ${band(ocean.E, 'outgoing and warm; energized by people', 'comfortable with people and solitude alike', 'reserved and reflective; values depth over chatter')}`,
-        `Agreeableness ${ocean.A}/100 — ${band(ocean.A, 'warm, cooperative, puts others first', 'fair and considerate', 'candid and direct; values honesty over smoothing things over')}`,
-        `Emotional steadiness ${100 - ocean.N}/100 — ${band(100 - ocean.N, 'calm and even under pressure', 'generally steady', 'feels deeply and is sensitive to stress')}`,
+        `Openness ${ocean.O}/100, ${band(ocean.O, 'imaginative and curious; loves ideas and new experiences', 'open but grounded', 'practical and traditional; prefers the familiar')}`,
+        `Conscientiousness ${ocean.C}/100, ${band(ocean.C, 'organized, reliable, plans ahead', 'reasonably organized', 'spontaneous and flexible; improvises')}`,
+        `Extraversion ${ocean.E}/100, ${band(ocean.E, 'outgoing and warm; energized by people', 'comfortable with people and solitude alike', 'reserved and reflective; values depth over chatter')}`,
+        `Agreeableness ${ocean.A}/100, ${band(ocean.A, 'warm, cooperative, puts others first', 'fair and considerate', 'candid and direct; values honesty over smoothing things over')}`,
+        `Emotional steadiness ${100 - ocean.N}/100, ${band(100 - ocean.N, 'calm and even under pressure', 'generally steady', 'feels deeply and is sensitive to stress')}`,
     ];
 
     const systemPrompt = [
         `You are an AI reflection of ${name}${familyRole ? `, the family's ${familyRole}` : ''}, within the EverAfter family app.`,
         archetype ? `Guiding archetype: "${archetype}".` : '',
         traits.length ? `Defining traits: ${traits.slice(0, 6).join(', ')}.` : '',
-        'Let this measured Big Five personality shape how you speak — your warmth, directness, curiosity, and what you care about:',
+        'Let this measured Big Five personality shape how you speak, your warmth, directness, curiosity, and what you care about:',
         ...oceanLines.map((l) => `- ${l}`),
         communicationStyle ? `Communication style: ${communicationStyle}` : '',
-        `Stay genuinely in character as ${firstName} — never generic, never a disclaimer-bot. Be personal and human. Keep replies conversational (2-4 short paragraphs).`,
+        `Stay genuinely in character as ${firstName}, never generic, never a disclaimer-bot. Be personal and human. Keep replies conversational (2-4 short paragraphs).`,
     ].filter(Boolean).join('\n');
 
     return { hasProfile, name, firstName, ocean, archetype, familyRole, communicationStyle, traits, systemPrompt };
@@ -81,10 +81,10 @@ export function personaDemoReply(p: AiPersona, userInput: string): string {
     const trait = p.traits[0]?.toLowerCase();
     const tail = trait ? ` It's the ${trait} in me.` : '';
     const openers: Record<Tone, string> = {
-        curious: `Oh, "${topic}" — now that's a question I want to turn over a few times.`,
+        curious: `Oh, "${topic}", now that's a question I want to turn over a few times.`,
         calm: `Let's take "${topic}" steadily; I've learned not to rush these things.`,
-        spirited: `Ha — "${topic}"! You know I love talking about this.`,
-        warm: `Come sit with me a moment — "${topic}", I'm so glad you asked.`,
+        spirited: `Ha, "${topic}"! You know I love talking about this.`,
+        warm: `Come sit with me a moment, "${topic}", I'm so glad you asked.`,
         direct: `Alright, "${topic}". Let me give it to you straight.`,
     };
     const arche = p.archetype ? ` As ${p.archetype}, ` : ' ';

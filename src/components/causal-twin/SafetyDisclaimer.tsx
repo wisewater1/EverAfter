@@ -7,7 +7,7 @@ export default function SafetyDisclaimer({ compact = false }: { compact?: boolea
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/5 border border-amber-500/10">
                 <Shield className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                 <span className="text-xs text-amber-300/70">
-                    Wellness insight — not medical advice
+                    Wellness insight, not medical advice
                 </span>
             </div>
         );

@@ -1,5 +1,5 @@
 /**
- * GabrielDHTSummary — OCEAN-aware health summary for St. Gabriel.
+ * GabrielDHTSummary: OCEAN-aware health summary for St. Gabriel.
  *
  * St. Gabriel is the messenger/communicator Saint. He reads the DHT trajectory
  * and OCEAN behavioral modifiers for the user, then produces a tone-calibrated
@@ -46,7 +46,7 @@ function generateSummary(dht: any, modifiers: any): string {
     const openings: Record<string, string> = {
         calm: `Based on ${obs} data points, your overall health picture looks ${dir === 'improving' ? 'encouraging' : dir === 'stable' ? 'steady' : 'worth paying attention to'}.`,
         moderate: `Your Delphi trajectory (${obs} observations, ${conf}% confidence) shows ${dir} health momentum.`,
-        high: `Health status: ${dir.toUpperCase()} — ${conf}% model confidence across ${obs} observations.`,
+        high: `Health status: ${dir.toUpperCase()}, ${conf}% model confidence across ${obs} observations.`,
     };
     const opening = openings[alertStyle] || openings.moderate;
 
@@ -161,7 +161,7 @@ export default function GabrielDHTSummary({ personId }: GabrielDHTSummaryProps) 
                     <div className="px-4 py-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 relative">
                         <Sparkles className="w-3 h-3 text-emerald-500/40 absolute top-3 right-3" />
                         <p className="text-xs text-slate-200 leading-relaxed">{summary}</p>
-                        <p className="text-[10px] text-emerald-600/60 mt-3 font-medium">— St. Gabriel, Messenger & Health Communicator</p>
+                        <p className="text-[10px] text-emerald-600/60 mt-3 font-medium">- St. Gabriel, Messenger & Health Communicator</p>
                     </div>
 
                     {/* Plan style badge */}

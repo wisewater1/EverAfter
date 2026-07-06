@@ -1,5 +1,5 @@
 /**
- * TrinityCouncilChat — Option 1
+ * TrinityCouncilChat: Option 1
  * All 3 Saints respond to a single user message.
  */
 import { useState, useRef, useEffect } from 'react';
@@ -64,7 +64,7 @@ export default function TrinityCouncilChat() {
                 {messages.length === 0 && (
                     <div className="text-center py-12">
                         <Sparkles className="w-8 h-8 text-amber-400/30 mx-auto mb-3" />
-                        <p className="text-sm text-slate-500">Ask a question — all three Saints will respond with their domain expertise.</p>
+                        <p className="text-sm text-slate-500">Ask a question, all three Saints will respond with their domain expertise.</p>
                         <p className="text-xs text-slate-600 mt-1">Try: "Should I start a running routine?" or "How can I reduce my family's health risk?"</p>
                     </div>
                 )}

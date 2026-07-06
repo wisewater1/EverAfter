@@ -1,5 +1,5 @@
 /**
- * ElderCareCoordination — Option 7
+ * ElderCareCoordination: Option 7
  * Elder member care planning across all 3 Saints.
  */
 import { useEffect, useState } from 'react';
@@ -289,7 +289,7 @@ export default function ElderCareCoordination() {
         ]);
 
         // getBudget() resolves to the envelopes array (real backend) OR a budget
-        // object { envelopes: [...] } (demo mock) — normalize so .reduce can't crash.
+        // object { envelopes: [...] } (demo mock): normalize so .reduce can't crash.
         const budgetRaw: any = budgetResult.status === 'fulfilled' ? budgetResult.value : [];
         const budgetEnvelopes = Array.isArray(budgetRaw) ? budgetRaw : (budgetRaw?.envelopes ?? []);
         const emergencyContacts = contactsResult.status === 'fulfilled' ? contactsResult.value : [];

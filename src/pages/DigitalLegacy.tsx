@@ -102,7 +102,7 @@ export default function DigitalLegacy() {
 
     if (data) {
       // PostgREST resolves a to-one embed to null when the related row is missing,
-      // while `data` itself stays truthy — optional-chain so a missing tier reads as not-premium.
+      // while `data` itself stays truthy: optional-chain so a missing tier reads as not-premium.
       const tierData = data as { subscription_tiers?: { tier_name?: string } | null };
       const tierName = tierData.subscription_tiers?.tier_name;
       setHasPremiumLegacy(

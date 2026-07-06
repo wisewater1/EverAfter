@@ -42,7 +42,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     const [sentId, setSentId] = useState<string | null>(null);
     const [calendarMember, setCalendarMember] = useState<FamilyMember | null>(null);
 
-    // Seamless "send the personality questionnaire to this person" — mints a
+    // Seamless "send the personality questionnaire to this person": mints a
     // public link and hands it off (share sheet / clipboard), with quick feedback.
     const handleSendQuestions = async (member: FamilyMember) => {
         const name = `${member.firstName} ${member.lastName}`.trim() || 'your family member';
@@ -54,7 +54,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     };
 
     // Whole-family connection win: one .ics with every birthday & remembrance,
-    // recurring yearly — imports into Google, Apple, or Outlook in one tap.
+    // recurring yearly: imports into Google, Apple, or Outlook in one tap.
     const downloadAllBirthdays = () => {
         const events = familyDateEvents(members).map((x) => x.event);
         if (events.length) downloadICS(events, 'everafter-family-birthdays.ics');
@@ -177,7 +177,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                 }
             });
 
-            // Persist to local storage via genealogy API — keep the engram id so
+            // Persist to local storage via genealogy API: keep the engram id so
             // the "Chat" button talks to the agent we just created from the analysis.
             const updatedMember = activateAgent(member.id);
             if (updatedMember) {
@@ -225,7 +225,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                         </div>
                         <button
                             onClick={downloadAllBirthdays}
-                            title="Download every family birthday & remembrance as one calendar file — imports into Google, Apple, or Outlook"
+                            title="Download every family birthday & remembrance as one calendar file, imports into Google, Apple, or Outlook"
                             className="flex flex-shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-amber-200 transition-all hover:bg-amber-500/25"
                         >
                             <CalendarPlus className="w-4 h-4" />
@@ -320,7 +320,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                                 {member.engramId && elohimAnchors[member.engramId] && (
                                                     <span
                                                         className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-tighter"
-                                                        title={`Sealed in the Elohim ledger — sigil ${elohimAnchors[member.engramId].sigil}`}
+                                                        title={`Sealed in the Elohim ledger, sigil ${elohimAnchors[member.engramId].sigil}`}
                                                     >
                                                         <ShieldCheck className="w-2.5 h-2.5 mr-0.5" />
                                                         Sealed
@@ -416,7 +416,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
 
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); void handleSendQuestions(member); }}
-                                                title="Send the personality questionnaire to this person — no account needed"
+                                                title="Send the personality questionnaire to this person, no account needed"
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-[10px] font-bold uppercase tracking-wider transition-all border border-cyan-500/20"
                                             >
                                                 <Send className="w-3 h-3" />
@@ -425,7 +425,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
 
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setCalendarMember(member); }}
-                                                title="Calendar — add their birthday to any calendar, or connect theirs"
+                                                title="Calendar, add their birthday to any calendar, or connect theirs"
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-[10px] font-bold uppercase tracking-wider transition-all border border-amber-500/20"
                                             >
                                                 <Calendar className="w-3 h-3" />
@@ -588,7 +588,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                                 saintIcon={User}
                                 systemPrompt={persona.systemPrompt}
                                 demoReply={(input) => personaDemoReply(persona, input)}
-                                initialMessage={`Hello, I'm ${chatMember.firstName}. It's good to talk with you — what's on your mind?`}
+                                initialMessage={`Hello, I'm ${chatMember.firstName}. It's good to talk with you, what's on your mind?`}
                                 onClose={() => setChatMember(null)}
                             />
                         </div>
@@ -604,7 +604,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                 />
             )}
 
-            {/* Per-member calendar — add their dates to any calendar, or connect theirs */}
+            {/* Per-member calendar: add their dates to any calendar, or connect theirs */}
             {calendarMember && (
                 <MemberCalendarPanel
                     member={calendarMember}

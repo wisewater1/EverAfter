@@ -4,10 +4,10 @@ import type { FamilyMember } from './genealogy';
  * Keyless family-calendar helpers for St Joseph.
  *
  * Two directions, both with NO API keys:
- *  1. EXPORT — turn the family tree's birthdays/anniversaries into "Add to
+ *  1. EXPORT: turn the family tree's birthdays/anniversaries into "Add to
  *     calendar" links that work with ANY provider (Google, Apple, Outlook) via
  *     the standard render URL + a downloadable .ics. Always works, fully private.
- *  2. IMPORT — connect a member's calendar by its iCal/ICS feed URL (Google
+ *  2. IMPORT: connect a member's calendar by its iCal/ICS feed URL (Google
  *     "secret address in iCal format", Apple/Outlook published calendar) and
  *     show their upcoming events. Best-effort (some providers block cross-origin
  *     reads); birthdays + add-to-calendar never depend on this.
@@ -111,7 +111,7 @@ export function downloadICS(events: CalEvent[], filename = 'everafter-family.ics
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// ── Connected calendar (iCal feed) — best-effort, privacy-preserving ──────
+// ── Connected calendar (iCal feed): best-effort, privacy-preserving ──────
 
 function parseICSDate(v: string): Date | null {
     const m = v.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?/);
@@ -140,7 +140,7 @@ export function parseICS(text: string): CalEvent[] {
 /**
  * Fetch + parse a member's connected calendar. Direct request only (we never
  * route a private calendar URL through a third party). If the provider blocks
- * cross-origin reads, returns reachable:false — the UI then leans on birthdays
+ * cross-origin reads, returns reachable:false: the UI then leans on birthdays
  * + add-to-calendar, which never need this.
  */
 export async function fetchCalendarEvents(url: string, limit = 6): Promise<{ events: CalEvent[]; reachable: boolean }> {

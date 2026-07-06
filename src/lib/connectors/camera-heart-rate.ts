@@ -1,5 +1,5 @@
 /**
- * Camera-Based Heart Rate (PPG — Photoplethysmography)
+ * Camera-Based Heart Rate (PPG: Photoplethysmography)
  * 
  * Uses the phone's rear camera + flashlight to detect pulse by measuring
  * red channel intensity changes in the fingertip blood flow.
@@ -92,7 +92,7 @@ export class CameraHeartRate {
                     advanced: [{ torch: true }],
                 });
             } catch {
-                // Flash not available — still works but with lower quality
+                // Flash not available: still works but with lower quality
                 console.warn('Camera flash not available. Signal quality may be reduced.');
             }
 

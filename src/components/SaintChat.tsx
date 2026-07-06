@@ -21,7 +21,7 @@ interface SaintChatProps {
     primaryColor?: string;
     initialMessage?: string;
     userContext?: string;
-    /** Persona system prompt (e.g. a family member's analyzed personality) — conditions server + on-device replies. */
+    /** Persona system prompt (e.g. a family member's analyzed personality): conditions server + on-device replies. */
     systemPrompt?: string;
     /** Keyless persona-flavoured demo reply generator (used in demo mode instead of the generic canned line). */
     demoReply?: (userInput: string) => string;
@@ -309,7 +309,7 @@ export default function SaintChat({
 
                 if (isDemoMode) {
                     // Demo mode: self-contained canned conversation, no backend
-                    // or session required — leave the chat usable (no blocker).
+                    // or session required: leave the chat usable (no blocker).
                     setKnowledge([]);
                     setBootstrapping(false);
                     return;
@@ -434,7 +434,7 @@ export default function SaintChat({
 
         try {
             if (onDeviceMode) {
-                // Generate the reply entirely in the user's browser — no server,
+                // Generate the reply entirely in the user's browser: no server,
                 // no key, fully private. Takes precedence over demo/backend.
                 const history = [...messages, userMsg]
                     .filter((m) => m.id !== 'init' && (m.role === 'user' || m.role === 'assistant'))
@@ -519,10 +519,10 @@ export default function SaintChat({
     };
 
     const knowledgeDisabled = Boolean(blockedReason) || !availability.knowledgeAvailable && knowledge.length === 0;
-    // On-device mode keeps the chat usable even if the backend is unavailable —
+    // On-device mode keeps the chat usable even if the backend is unavailable, 
     // it runs entirely in the browser, so a blocked backend shouldn't lock input.
     // Don't hard-block the chat when the backend is degraded if we can still
-    // answer on-device — let the input through so the fail-safe can kick in.
+    // answer on-device: let the input through so the fail-safe can kick in.
     const chatBlocked = Boolean(blockedReason) && !onDeviceMode && !webgpuAvailable;
 
     return (
@@ -640,7 +640,7 @@ export default function SaintChat({
                             <span aria-hidden className="mt-0.5">⚡</span>
                             <span>
                                 <strong>On-device AI active.</strong> {saintName} is running privately in your browser
-                                ({ON_DEVICE_MODEL_LABEL}) using this device's own compute — your conversation never leaves this device.
+                                ({ON_DEVICE_MODEL_LABEL}) using this device's own compute, your conversation never leaves this device.
                             </span>
                         </div>
                     </div>
@@ -652,7 +652,7 @@ export default function SaintChat({
                                 <div className="flex-1">
                                     <p className="font-semibold">Run {saintName} privately on your device</p>
                                     <p className="mt-0.5 leading-relaxed text-indigo-800/90">
-                                        No account, no server — the AI ({ON_DEVICE_MODEL_LABEL}) runs entirely in your
+                                        No account, no server, the AI ({ON_DEVICE_MODEL_LABEL}) runs entirely in your
                                         browser and nothing you type leaves your device. Heads-up: it runs on your own
                                         device's compute and needs {ON_DEVICE_DOWNLOAD_NOTE} the first time, on a modern computer.
                                     </p>

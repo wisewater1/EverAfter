@@ -143,7 +143,7 @@ export default function StMichaelSecurityDashboard() {
     /**
      * Race a promise against a timeout so a slow / hung backend can't
      * leave the whole dashboard stuck on the spinner. Returns null if
-     * the promise doesn't resolve in time — caller handles the gap.
+     * the promise doesn't resolve in time: caller handles the gap.
      */
     function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T | null> {
         return new Promise<T | null>((resolve) => {
@@ -166,7 +166,7 @@ export default function StMichaelSecurityDashboard() {
         if (!user) return;
         setLoading(true);
         // Per-call 8-second timeout. allSettled so one slow / failing
-        // backend doesn't poison the others — each section updates as
+        // backend doesn't poison the others: each section updates as
         // its own fetch resolves.
         const [integrityData, auditData, caiAudit] = await Promise.all([
             withTimeout(getSecurityIntegrity(user.id), 8000, 'getSecurityIntegrity'),

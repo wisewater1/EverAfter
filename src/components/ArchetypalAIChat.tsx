@@ -315,7 +315,7 @@ INSTRUCTIONS:
     */
 
     // Condition the reply on THIS engram's actual personality (traits / values /
-    // communication style) + a real memory snippet — keyless, no name hardcodes.
+    // communication style) + a real memory snippet: keyless, no name hardcodes.
     const traits = ai.personality_traits?.slice(0, 3).join(', ') || 'thoughtful and reflective';
     const values = ai.core_values?.slice(0, 2).join(' and ') || 'authenticity and growth';
     const style = ai.communication_style || 'warm and conversational';

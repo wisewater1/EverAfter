@@ -1,5 +1,5 @@
 /**
- * BehavioralNudgeEngine — Option 8
+ * BehavioralNudgeEngine: Option 8
  * OCEAN × stress × budget real-time nudges.
  */
 import { useState, useEffect } from 'react';

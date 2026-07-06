@@ -40,7 +40,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m St. Raphael — The Healer. I analyze your health data with your consent, generate daily insights, and preserve meaningful observations to your Vault. I run autonomously each morning at 9 AM, but you can also chat with me anytime. How can I assist your wellness journey today?',
+      content: 'Hello! I\'m St. Raphael - The Healer. I analyze your health data with your consent, generate daily insights, and preserve meaningful observations to your Vault. I run autonomously each morning at 9 AM, but you can also chat with me anytime. How can I assist your wellness journey today?',
       timestamp: new Date()
     }
   ]);

@@ -649,7 +649,7 @@ export default function StJosephFamilyDashboard() {
                                         {bulletin.map((msg, i) => (
                                             <div key={msg.id} className={`p-4 ${i === 0 ? 'bg-amber-500/5 border border-amber-500/10' : 'bg-white/5 border border-white/5'} rounded-2xl`}>
                                                 <p className="text-sm text-slate-300 leading-relaxed">"{msg.text}"</p>
-                                                <div className="mt-2 text-[10px] text-slate-500 uppercase font-bold text-right">— {msg.author}</div>
+                                                <div className="mt-2 text-[10px] text-slate-500 uppercase font-bold text-right">, {msg.author}</div>
                                             </div>
                                         ))}
                                         {bulletin.length === 0 && (

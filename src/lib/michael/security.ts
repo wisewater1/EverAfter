@@ -449,7 +449,7 @@ async function axiosWithAuthRetry<T = any>(
             method,
             url,
             responseType,
-            // Never hang the guardian UI on a cold/unreachable backend — fail fast
+            // Never hang the guardian UI on a cold/unreachable backend: fail fast
             // (≤9s) so each caller falls back to its curated data instead of spinning.
             timeout: 9000,
         };
@@ -1139,7 +1139,7 @@ export function getFileIntegrityEvents(): FileIntegrityEvent[] {
 export function getComplianceChecks(): ComplianceCheck[] {
     const now = new Date().toISOString();
     return [
-        { id: 'cc1', framework: 'HIPAA', control: '164.312(a)(1)', description: 'Access Control — Unique User Identification', status: 'pass', lastChecked: now, details: 'All user accounts have unique identifiers and MFA enabled' },
+        { id: 'cc1', framework: 'HIPAA', control: '164.312(a)(1)', description: 'Access Control, Unique User Identification', status: 'pass', lastChecked: now, details: 'All user accounts have unique identifiers and MFA enabled' },
         { id: 'cc2', framework: 'HIPAA', control: '164.312(a)(2)(iv)', description: 'Encryption and Decryption', status: 'pass', lastChecked: now, details: 'AES-256 encryption at rest, TLS 1.3 in transit' },
         { id: 'cc3', framework: 'HIPAA', control: '164.312(b)', description: 'Audit Controls', status: 'pass', lastChecked: now, details: 'St. Michael audit logging active for all PHI access' },
         { id: 'cc4', framework: 'PCI-DSS', control: 'Req 6.5', description: 'Secure Coding Guidelines', status: 'warning', lastChecked: now, details: '1 open vulnerability in Legacy Vault API' },

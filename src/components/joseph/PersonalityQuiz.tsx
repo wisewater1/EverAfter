@@ -434,7 +434,7 @@ export default function PersonalityQuiz({
                             traits: data.traits,
                             communicationStyle: data.communication_style || '',
                             keyMemories: selectedMember.aiPersonality?.keyMemories || [],
-                            voiceDescription: `${data.archetype?.emoji || ''} ${data.archetype?.name || 'Balanced'} — ${data.archetype?.description || ''}`,
+                            voiceDescription: `${data.archetype?.emoji || ''} ${data.archetype?.name || 'Balanced'}, ${data.archetype?.description || ''}`,
                             isActive: selectedMember.aiPersonality?.isActive || false,
                             archetype: data.archetype?.name || 'Balanced',
                             archetypeEmoji: data.archetype?.emoji || '⚖️',

@@ -195,7 +195,7 @@ export default function TrinitySynapsePanel({
             await Promise.all(tasks);
             setInsights(results);
         } catch (err: any) {
-            setError('Trinity Synapse offline — insights unavailable');
+            setError('Trinity Synapse offline, insights unavailable');
         }
         setLoading(false);
     }, [memberId, birthYear, metricsHistory, familyMembers, budgetEnvelopes, healthRiskScore, oceanScores]);
@@ -218,7 +218,7 @@ export default function TrinitySynapsePanel({
     }
 
     if (error || !hasContent) {
-        return null;  // Fail silently — this panel is additive, not critical
+        return null;  // Fail silently, this panel is additive, not critical
     }
 
     return (

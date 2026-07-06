@@ -531,11 +531,11 @@ export default function StGabrielFinanceDashboard() {
                                     ♥ Health × Finance
                                 </h2>
                                 <p className="text-xs text-slate-500">
-                                    How your financial decisions affect — and are affected by — your health.
+                                    How your financial decisions affect, and are affected by, your health.
                                     Powered by Trinity Synapse cross-referencing St. Raphael and St. Joseph.
                                 </p>
                             </div>
-                            {/* Gabriel DHT Summary — OCEAN-calibrated health message */}
+                            {/* Gabriel DHT Summary: OCEAN-calibrated health message */}
                             {user?.id && <GabrielDHTSummary personId={user.id} />}
                             <TrinitySynapsePanel
                                 saint="gabriel"

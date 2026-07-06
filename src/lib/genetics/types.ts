@@ -1,12 +1,12 @@
 /**
- * Genetic data — shared types.
+ * Genetic data: shared types.
  *
  * PR 1 of the genetics roadmap. Types here mirror the schema in
  * supabase/migrations/20260620190000_create_genetic_storage.sql so the
  * frontend can pass strongly-typed values into the parser, encrypt
  * helper, and upload flow without each consumer re-deriving the shape.
  *
- * Nothing in this PR uses these types yet — they're the stable contract
+ * Nothing in this PR uses these types yet: they're the stable contract
  * that PRs 2-6 will import.
  */
 
@@ -15,8 +15,8 @@ export type GeneticFormat =
     | '23andme'        // gzipped tab-delimited rsid/chr/pos/genotype, ~20 MB
     | 'ancestrydna'    // similar shape with .txt extension
     | 'myheritage'     // CSV with extra metadata
-    | 'familytree'     // FamilyTreeDNA — close to 23andMe layout
-    | 'vcf'            // Variant Call Format — clinical-grade variants
+    | 'familytree'     // FamilyTreeDNA, close to 23andMe layout
+    | 'vcf'            // Variant Call Format, clinical-grade variants
     | 'cram'           // reference-compressed aligned reads
     | 'bam'            // aligned reads (large; usually not direct upload)
     | 'fastq';         // raw reads (very large; rarely direct upload)
@@ -24,7 +24,7 @@ export type GeneticFormat =
 export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'no_call';
 
 /**
- * Posthumous directive — what happens to this DNA file after the user
+ * Posthumous directive: what happens to this DNA file after the user
  * dies. This is the EverAfter differentiator: every other genetic
  * platform punts on this; we ship it first-class.
  *
@@ -33,10 +33,10 @@ export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'no_call';
 export interface PosthumousDirective {
     /**
      * Top-level policy.
-     *   'destroy'           — wipe the blob + variant_calls on verified death
-     *   'preserve_locked'   — keep encrypted, no survivor access ever
-     *   'release_to_pdg'    — release to the named PDG(s) on verified death
-     *   'ask_pdg'           — default: PDG must affirm a per-finding decision
+     *   'destroy'          : wipe the blob + variant_calls on verified death
+     *   'preserve_locked'  : keep encrypted, no survivor access ever
+     *   'release_to_pdg'   : release to the named PDG(s) on verified death
+     *   'ask_pdg'          : default: PDG must affirm a per-finding decision
      */
     policy: 'destroy' | 'preserve_locked' | 'release_to_pdg' | 'ask_pdg';
     /**
@@ -53,21 +53,21 @@ export interface PosthumousDirective {
     actionable_findings_to_pdg: boolean;
     /**
      * Should the PDG receive the raw encrypted blob + decryption key?
-     * Default false — most users will want findings, not raw data.
+     * Default false: most users will want findings, not raw data.
      */
     raw_data_to_pdg: boolean;
     /**
      * What to do for blood relatives whose own health is implicated by
      * findings in this file:
-     *   'auto'  — proactively notify on death
-     *   'ask'   — PDG decides per-finding (default)
-     *   'never' — no notification
+     *   'auto' : proactively notify on death
+     *   'ask'  : PDG decides per-finding (default)
+     *   'never': no notification
      */
     notify_blood_relatives: 'auto' | 'ask' | 'never';
 }
 
 /**
- * A row in public.genetic_profiles — one uploaded DNA dataset.
+ * A row in public.genetic_profiles: one uploaded DNA dataset.
  *
  * The blob itself lives in Supabase Storage (bucket 'genetic-profiles')
  * encrypted with Crypt4GH; this row carries the metadata + the storage

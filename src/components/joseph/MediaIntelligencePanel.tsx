@@ -494,7 +494,7 @@ export default function MediaIntelligencePanel() {
                             {uploading ? 'Uploading…' : extracting ? 'AI Extracting…' : 'Drop files here or click to browse'}
                         </p>
                         <p className="text-[11px] text-slate-500 mt-1">
-                            Images, videos, text files — AI will extract insights about {selectedMember.firstName}
+                            Images, videos, text files, AI will extract insights about {selectedMember.firstName}
                         </p>
                         <div className="flex items-center justify-center gap-4 mt-3">
                             <span className="flex items-center gap-1 text-[10px] text-slate-600"><Image className="w-3 h-3" /> Images</span>

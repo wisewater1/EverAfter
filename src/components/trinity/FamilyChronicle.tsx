@@ -1,5 +1,5 @@
 /**
- * FamilyChronicle — Option 6
+ * FamilyChronicle: Option 6
  * Unified life + health + financial milestone timeline.
  */
 import { useState, useEffect } from 'react';
