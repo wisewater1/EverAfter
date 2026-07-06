@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-    Upload, FileText, Image, Video, Shield, Check, X, Edit3,
-    Trash2, Plus, Lock, Unlock, ChevronDown, Sparkles, Eye, Waves
-} from 'lucide-react';
+import { Upload, FileText, Image, Video, Shield, Check, X, Edit3, Trash2, Plus, Lock, Unlock, ChevronRight, Sparkles, Eye, Waves } from 'lucide-react';
 import { getFamilyMembers, updateFamilyMember, addFamilyEvent } from '../../lib/joseph/genealogy';
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
 import { requestBackendJson } from '../../lib/backend-request';
@@ -414,7 +411,7 @@ export default function MediaIntelligencePanel() {
                             <span className="text-white">
                                 {selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Select member…'}
                             </span>
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
                         </button>
                         {showMemberPicker && (
                             <div className="absolute right-0 top-full mt-1 w-56 bg-[#1a1a24] border border-white/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto">

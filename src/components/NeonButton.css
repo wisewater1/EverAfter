@@ -162,12 +162,12 @@
 }
 
 .neon-button:not(.neon-button--disabled):hover {
-  transform: translateY(-1px);
+  transform: scale(1.02);
 }
 
 /* Active State */
 .neon-button:not(.neon-button--disabled):active {
-  transform: translateY(0);
+  transform: scale(1);
 }
 
 .neon-button:not(.neon-button--disabled):active .neon-button__border {

@@ -80,7 +80,7 @@
   }
 
   .ea-panel:hover {
-    transform: translateY(-2px);
+    transform: scale(1.005);
   }
 
   /* Responsive edge glow follows cursor/touch */
@@ -128,7 +128,7 @@
   }
 
   .ea-btn:hover {
-    transform: translateY(-1px);
+    transform: scale(1.02);
     background: rgba(16, 24, 32, 0.85);
   }
 
@@ -731,12 +731,12 @@
   @keyframes fadeInSlide {
     0% {
       opacity: 0;
-      transform: translateY(-10px);
+      transform: translateX(-10px);
     }
 
     100% {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(0);
     }
   }
 
@@ -888,7 +888,7 @@
   /* Neon button hover effect */
   .neon-hover:hover {
     box-shadow: var(--shadow-neon-md);
-    transform: translateY(-1px);
+    transform: scale(1.02);
     transition: all var(--transition-fast) ease-out;
   }
 
@@ -969,12 +969,12 @@
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateX(-10px);
     }
 
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(0);
     }
   }
 
@@ -1026,7 +1026,7 @@
   }
 
   .glass-card:hover {
-    transform: translateY(-2px);
+    transform: scale(1.005);
     box-shadow: var(--glow-teal), 0 14px 40px rgba(0, 0, 0, 0.45);
   }
 
@@ -1048,7 +1048,7 @@
   }
 
   .btn-reactive:hover {
-    transform: translateY(-1px);
+    transform: scale(1.02);
   }
 
   .btn-reactive .edge {
@@ -1116,16 +1116,16 @@
   /* Spring animation for key actions */
   @keyframes spring-in {
     0% {
-      transform: scale(0.92) translateY(10px);
+      transform: scale(0.92) translateX(-10px);
       opacity: 0;
     }
 
     60% {
-      transform: scale(1.02) translateY(-2px);
+      transform: scale(1.02) translateX(2px);
     }
 
     100% {
-      transform: scale(1) translateY(0);
+      transform: scale(1) translateX(0);
       opacity: 1;
     }
   }
@@ -1169,7 +1169,7 @@
   }
 
   .ea-panel:hover {
-    transform: translateY(-2px);
+    transform: scale(1.005);
   }
 
   /* Responsive edge glow follows cursor/touch */
@@ -1218,7 +1218,7 @@
   }
 
   .ea-btn:hover {
-    transform: translateY(-1px);
+    transform: scale(1.02);
     background: rgba(16, 24, 32, 0.85);
   }
 

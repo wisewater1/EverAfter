@@ -1,18 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-    AlertTriangle,
-    Beaker,
-    Brain,
-    ChevronDown,
-    ChevronUp,
-    Eye,
-    Gavel,
-    Lock,
-    Scale,
-    Shield,
-    XCircle,
-    Zap,
-} from 'lucide-react';
+import { AlertTriangle, Beaker, Brain, ChevronRight, ChevronLeft, Eye, Gavel, Lock, Scale, Shield, XCircle, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiClient } from '../../lib/api-client';
 import { requestBackendJson } from '../../lib/backend-request';
@@ -344,7 +331,7 @@ function ProposalCard({
                             onClick={onToggle}
                             className="rounded-xl bg-white/5 p-2 text-slate-400 transition-all hover:text-white"
                         >
-                            {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                            {isExpanded ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                         </button>
                     </div>
                 </div>
@@ -352,9 +339,9 @@ function ProposalCard({
                 <AnimatePresence>
                     {isExpanded && (
                         <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             className="overflow-hidden"
                         >
                             <div className="mt-6 grid grid-cols-1 gap-8 border-t border-white/10 pt-6 md:grid-cols-2">

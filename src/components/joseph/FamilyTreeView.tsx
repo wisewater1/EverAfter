@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DHTScorePanel from '../dht/DHTScorePanel';
-import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar, Activity } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar, Activity } from 'lucide-react';
 import StarfieldBackground from '../StarfieldBackground';
 import SaintChat from '../SaintChat';
 import MemberCalendarPanel from './MemberCalendarPanel';
@@ -80,7 +80,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                 <div className="flex flex-wrap items-center gap-2 mb-2 group">
                     {hasChildren && (
                         <button onClick={() => toggle(member.id)} className="p-1 text-slate-600 hover:text-amber-400 transition-colors shrink-0">
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
                     )}
                     {!hasChildren && <div className="w-6 shrink-0" />}

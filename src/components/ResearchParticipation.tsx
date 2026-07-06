@@ -158,7 +158,7 @@ export default function ResearchParticipation({ userId }: ResearchParticipationP
             <Info className="w-4 h-4 text-slate-400" />
             <span className="text-sm font-medium text-white">Privacy & Data Usage</span>
           </div>
-          <div className={`text-slate-500 transition-transform ${showDetails ? 'rotate-180' : ''}`}>▼</div>
+          <div className={`text-slate-500 transition-transform ${showDetails ? 'rotate-180' : ''}`}>▸</div>
         </button>
 
         {showDetails && (

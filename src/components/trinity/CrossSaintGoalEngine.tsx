@@ -3,21 +3,7 @@
  * Rich cross-Saint goal creation, review, recalculation, and archive flow.
  */
 import { useMemo, useState } from 'react';
-import {
-    Archive,
-    CalendarDays,
-    CheckCircle2,
-    ChevronDown,
-    ChevronUp,
-    GitBranch,
-    Heart,
-    Loader2,
-    Plus,
-    RefreshCw,
-    Target,
-    Users,
-    Wallet,
-} from 'lucide-react';
+import { Archive, CalendarDays, CheckCircle2, ChevronRight, ChevronLeft, GitBranch, Heart, Loader2, Plus, RefreshCw, Target, Users, Wallet } from 'lucide-react';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import {
     getStoredTrinityGoals,
@@ -343,7 +329,7 @@ export default function CrossSaintGoalEngine() {
                                         className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-white/5"
                                         title={expanded ? 'Collapse goal' : 'Expand goal'}
                                     >
-                                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                        {expanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                     </button>
                                 </div>
                             </div>

@@ -145,7 +145,7 @@ export default function SaintsNavigation() {
                   title={saint.route ? blockedRoutes[saint.route] || undefined : undefined}
                   className={`group flex flex-col items-center gap-1.5 transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
                     } ${saint.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                  style={{ transform: isCenter ? 'translateY(-8px)' : 'translateY(0)' }}
+                  style={{ transform: isCenter ? 'scale(1.08)' : 'scale(1)' }}
                 >
                   {/* Card Square */}
                   <div className={`relative w-full aspect-square rounded-2xl transition-all duration-500 ease-out ${saint.available ? 'hover:scale-105 active:scale-95' : ''}`}>

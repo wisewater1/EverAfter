@@ -531,7 +531,7 @@ const SocietyFeed: React.FC = () => {
         <div className="w-full h-[calc(100vh-12rem)] flex flex-col space-y-4 relative">
             {/* Error Notification */}
             {errorMsg && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-500/90 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 backdrop-blur border border-rose-400/50 flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-500/90 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 backdrop-blur border border-rose-400/50 flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
                     <span>{errorMsg}</span>
                     <button onClick={() => setErrorMsg(null)} className="ml-2 opacity-70 hover:opacity-100">x</button>
                 </div>

@@ -527,7 +527,7 @@ function MotionPanel({ active, steps, onStart, onStop }: {
             {active ? (
                 <div className="space-y-3">
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
-                        <Footprints className="w-8 h-8 text-emerald-400 mx-auto mb-2 motion-safe:animate-bounce" />
+                        <Footprints className="w-8 h-8 text-emerald-400 mx-auto mb-2 motion-safe:animate-pulse" />
                         <span className="text-4xl font-bold text-emerald-400">{steps}</span>
                         <span className="text-zinc-400 text-sm ml-2">steps</span>
                         <p className="text-xs text-zinc-500 mt-1">Counting...</p>

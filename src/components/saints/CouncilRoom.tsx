@@ -380,7 +380,7 @@ export default function CouncilRoom() {
                             {result?.transcript.map((item, idx) => {
                                 const saint = COUNCIL_MEMBERS.find(s => s.id === item.saint) || COUNCIL_MEMBERS[0];
                                 return (
-                                    <div key={idx} className="group animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards">
+                                    <div key={idx} className="group animate-in fade-in slide-in-from-left-4 duration-700 fill-mode-forwards">
                                         <div className="flex gap-4 items-start max-w-3xl">
                                             {/* Avatar Column */}
                                             <div className="flex flex-col items-center gap-1 mt-1 shrink-0">

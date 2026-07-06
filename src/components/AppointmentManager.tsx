@@ -43,11 +43,9 @@ export default function AppointmentManager() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewingFiles, setViewingFiles] = useState<string | null>(null);
   const [appointmentFiles, setAppointmentFiles] = useState<Record<string, AttachedFile[]>>({});
-  const touchStartY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
@@ -84,46 +82,9 @@ export default function AppointmentManager() {
     }
   }, [user]);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('touchstart', handleTouchStart as any);
-      container.addEventListener('touchmove', handleTouchMove as any);
-      container.addEventListener('touchend', handleTouchEnd as any);
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener('touchstart', handleTouchStart as any);
-        container.removeEventListener('touchmove', handleTouchMove as any);
-        container.removeEventListener('touchend', handleTouchEnd as any);
-      }
-    };
-  }, [pullDistance]);
 
-  const handleTouchStart = (e: TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    const scrollTop = containerRef.current?.scrollTop || 0;
-    if (scrollTop === 0) {
-      const currentY = e.touches[0].clientY;
-      const distance = Math.max(0, currentY - touchStartY.current);
-      setPullDistance(Math.min(distance, 100));
-    }
-  };
 
-  const handleTouchEnd = async () => {
-    if (pullDistance > 60) {
-      setIsRefreshing(true);
-      if ('vibrate' in navigator) {
-        navigator.vibrate(50);
-      }
-      await fetchAppointments();
-      setIsRefreshing(false);
-    }
-    setPullDistance(0);
-  };
 
   const fetchAppointments = async () => {
     try {
@@ -378,18 +339,7 @@ export default function AppointmentManager() {
   }
 
   return (
-    <div ref={containerRef} className="space-y-4 sm:space-y-6 relative overflow-y-auto" style={{ paddingTop: pullDistance }}>
-      {/* Pull-to-Refresh Indicator */}
-      {pullDistance > 0 && (
-        <div
-          className="absolute top-0 left-0 right-0 flex items-center justify-center transition-all duration-200 z-10"
-          style={{ height: pullDistance }}
-        >
-          <div className={`transform transition-transform ${pullDistance > 60 ? 'rotate-180' : ''}`}>
-            <RefreshCw className={`w-6 h-6 text-orange-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </div>
-        </div>
-      )}
+    <div ref={containerRef} className="space-y-4 sm:space-y-6 relative overflow-y-auto">
 
       <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
         {/* Header */}
@@ -398,17 +348,31 @@ export default function AppointmentManager() {
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1">Appointments</h2>
             <p className="text-sm sm:text-base text-slate-400">Manage your medical appointments and reminders</p>
           </div>
-          <button
-            onClick={() => {
-              setEditingId(null);
-              resetForm();
-              setShowCreateModal(true);
-            }}
-            className="w-full sm:w-auto px-6 py-3.5 min-h-[48px] bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2.5 text-base font-medium active:scale-[0.97] touch-manipulation focus:outline-none focus:ring-2 focus:ring-orange-500/50"
-          >
-            <Plus className="w-5 h-5" />
-            New Appointment
-          </button>
+          <div className="flex w-full sm:w-auto items-center gap-2">
+            <button
+              onClick={async () => {
+                if (isRefreshing) return;
+                setIsRefreshing(true);
+                await fetchAppointments();
+                setIsRefreshing(false);
+              }}
+              title="Refresh appointments"
+              className="p-3.5 min-h-[48px] min-w-[48px] bg-slate-800/70 hover:bg-slate-700/70 text-slate-300 rounded-xl transition-all border border-slate-700/60 flex items-center justify-center active:scale-[0.97] touch-manipulation focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+            >
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => {
+                setEditingId(null);
+                resetForm();
+                setShowCreateModal(true);
+              }}
+              className="flex-1 sm:flex-none px-6 py-3.5 min-h-[48px] bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2.5 text-base font-medium active:scale-[0.97] touch-manipulation focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+            >
+              <Plus className="w-5 h-5" />
+              New Appointment
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}

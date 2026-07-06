@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Heart, Crown, Star, Clock, CheckCircle, ChevronDown, ChevronUp, Activity, Users } from 'lucide-react';
+import { Shield, Heart, Crown, Star, Clock, CheckCircle, ChevronRight, ChevronLeft, Activity, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -215,9 +215,9 @@ export default function CompactSaintsOverlay() {
               <span className="text-xs font-semibold text-emerald-300 uppercase tracking-wider">Active</span>
             </div>
             {isExpanded ? (
-              <ChevronUp className="w-5 h-5 text-slate-400" />
+              <ChevronLeft className="w-5 h-5 text-slate-400" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-slate-400" />
+              <ChevronRight className="w-5 h-5 text-slate-400" />
             )}
           </div>
         </div>
@@ -338,9 +338,9 @@ export default function CompactSaintsOverlay() {
                         {isTrainable && (
                           <div className="flex-shrink-0">
                             {isSelected ? (
-                              <ChevronUp className="w-4 h-4 text-slate-400" />
+                              <ChevronLeft className="w-4 h-4 text-slate-400" />
                             ) : (
-                              <ChevronDown className="w-4 h-4 text-slate-400" />
+                              <ChevronRight className="w-4 h-4 text-slate-400" />
                             )}
                           </div>
                         )}
@@ -435,11 +435,11 @@ export default function CompactSaintsOverlay() {
         @keyframes slideDown {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateX(-10px);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
           }
         }
         .animate-slideDown {

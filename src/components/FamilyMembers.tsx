@@ -613,9 +613,9 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
                     </div>
                     <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl px-4 py-3">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '300ms' }}></div>
                       </div>
                     </div>
                   </div>

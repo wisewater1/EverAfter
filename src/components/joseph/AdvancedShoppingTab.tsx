@@ -294,7 +294,7 @@ export function AdvancedShoppingTab() {
                                             disabled={activeItemId === item.id}
                                             className="px-3 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-950 border border-amber-500/30 transition-all rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg group"
                                         >
-                                            {activeItemId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4 group-hover:motion-safe:animate-bounce" />} Negotiator
+                                            {activeItemId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4 group-hover:motion-safe:animate-pulse" />} Negotiator
                                         </button>
                                     )}
 

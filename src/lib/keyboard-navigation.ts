@@ -46,10 +46,10 @@ export const handleArrowNavigation = (
   onNavigate: (newIndex: number) => void,
   options: {
     loop?: boolean; // Whether to loop from end to start
-    horizontal?: boolean; // Use left/right instead of up/down
+    horizontal?: boolean; // Left/right is the default; vertical arrows are opt-in for native listbox patterns only
   } = {}
 ) => {
-  const { loop = true, horizontal = false } = options;
+  const { loop = true, horizontal = true } = options;
   const upKey = horizontal ? 'ArrowLeft' : 'ArrowUp';
   const downKey = horizontal ? 'ArrowRight' : 'ArrowDown';
 

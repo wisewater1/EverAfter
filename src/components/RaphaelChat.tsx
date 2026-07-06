@@ -342,9 +342,9 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
               </div>
               <div className="rounded-2xl p-4 bg-emerald-500/20 border border-emerald-500/30">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
