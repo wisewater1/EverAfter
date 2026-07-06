@@ -364,7 +364,7 @@
     --transition-smooth: 300ms;
     --transition-slow: 500ms;
 
-    /* Mobile typography scale — tuned for phone viewports */
+    /* Mobile typography scale: tuned for phone viewports */
     --fs-0: clamp(13px, 0.8rem + 0.1vw, 15px);
     /* body / buttons */
     --fs-1: clamp(15px, 0.9rem + 0.2vw, 17px);
@@ -1233,7 +1233,7 @@
 }
 
 /* ============================================================================
-   SMOOTHNESS LAYER — buttery scroll + transitions on mobile and desktop.
+   SMOOTHNESS LAYER: buttery scroll + transitions on mobile and desktop.
    Kept at file end so it overrides any earlier defaults without surprises.
    ============================================================================ */
 
@@ -1294,7 +1294,7 @@
     overscroll-behavior: contain;
   }
 
-  /* Tailwind's `transition-all` is "transition every property" — which the
+  /* Tailwind's `transition-all` is "transition every property": which the
      browser has to subscribe to literally every CSS property for. Scope it
      to the properties that actually animate in this codebase. Cheaper
      animations + fewer layout invalidations during scroll. */

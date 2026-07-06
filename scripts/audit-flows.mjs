@@ -7,6 +7,7 @@
 import { chromium } from 'playwright';
 
 const BASE = process.env.SMOKE_BASE || 'http://localhost:4340';
+const PASS = process.argv[2] || 'before';
 const results = [];
 const errors = [];
 const check = (name, pass, detail = '') => results.push({ name, pass, detail });
@@ -34,7 +35,7 @@ await page.waitForTimeout(5200);
 const councilText = await page.locator('body').innerText();
 check('Council deliberation produces a consensus', /Council's Consensus/i.test(councilText), '');
 check('Council states its answer provenance', /live council service|family record on this device/i.test(councilText), '');
-await page.screenshot({ path: 'audit-artifacts/before/council-deliberated-desktop.jpg', type: 'jpeg', quality: 65 });
+await page.screenshot({ path: `audit-artifacts/${PASS}/council-deliberated-desktop.jpg`, type: 'jpeg', quality: 65 });
 
 // 2. Ancestry tree renders on the family dashboard tree tab.
 await page.goto(BASE + '/family-dashboard', { waitUntil: 'load' });
@@ -52,7 +53,7 @@ try {
     await page.waitForTimeout(900);
     const after = await page.locator('body').innerText();
     check('Timeline Echoes toggle works', !/something went wrong/i.test(after), '');
-    await page.screenshot({ path: 'audit-artifacts/before/family-timeline-echoes-desktop.jpg', type: 'jpeg', quality: 65 });
+    await page.screenshot({ path: `audit-artifacts/${PASS}/family-timeline-echoes-desktop.jpg`, type: 'jpeg', quality: 65 });
   } else {
     check('Timeline Echoes toggle works', false, 'Echoes toggle not found on timeline tab');
   }
@@ -69,7 +70,7 @@ try {
     await page.waitForTimeout(900);
     const after = await page.locator('body').innerText();
     check('Soul profile card opens a detail view', after !== before && !/something went wrong/i.test(after), '');
-    await page.screenshot({ path: 'audit-artifacts/before/family-intelligence-profile-desktop.jpg', type: 'jpeg', quality: 65 });
+    await page.screenshot({ path: `audit-artifacts/${PASS}/family-intelligence-profile-desktop.jpg`, type: 'jpeg', quality: 65 });
   } else {
     check('Soul profile card opens a detail view', false, 'no member card found');
   }
@@ -85,7 +86,7 @@ try {
     await page.waitForTimeout(1100);
     const t = await page.locator('body').innerText();
     check('Comparison mode opens', !/something went wrong/i.test(t), '');
-    await page.screenshot({ path: 'audit-artifacts/before/family-compare-desktop.jpg', type: 'jpeg', quality: 65 });
+    await page.screenshot({ path: `audit-artifacts/${PASS}/family-compare-desktop.jpg`, type: 'jpeg', quality: 65 });
   } else {
     const t = await page.locator('body').innerText();
     check('Comparison mode opens', /compare|trajectory/i.test(t), 'no explicit compare button; checked tab content');

@@ -51,7 +51,7 @@ Every route defined in `src/App.tsx` resolves to a real component (verified by t
 | `/creator/new` (2 uses) | CreatorDashboard | NOT fixed; page is behind `VITE_ENABLE_NON_CORE_ROUTES` and the create-template destination was never built. Parked under Needs Joshua's decision. |
 
 ### Dead code inventory (knip)
-163 unused files repo-wide, of which 47 are in `src/`. The repo-wide number includes `health-api/`, `smart-contracts/`, and `nextjs-implementation/`, which are separate deployables and not truly dead for their own runtimes. The 47 `src/` files are genuinely unreferenced by the app build, including: `TerraIntegration.tsx`, `terra-client.ts`, `terra-config.ts`, `AkashicStream.tsx`, `saints/CouncilRoom.tsx`, `saints/MissionBoard.tsx`, `ScrollIndicator.tsx`, `useKeyboardNavigation.tsx`, `LandingRecovery.tsx`, and a family of showcase/button demo components. Full list in the PR description. Recommendation: delete in a dedicated cleanup PR so this audit stays reviewable; not deleted here.
+163 unused files repo-wide, of which 47 are in `src/`. The repo-wide number includes `health-api/`, `smart-contracts/`, and `nextjs-implementation/`, which are separate deployables and not truly dead for their own runtimes. The 47 `src/` files are genuinely unreferenced by the app build, including: `TerraIntegration.tsx`, `terra-client.ts`, `terra-config.ts`, `AkashicStream.tsx`, `saints/CouncilRoom.tsx`, `saints/MissionBoard.tsx`, `ScrollIndicator.tsx`, `useKeyboardNavigation.tsx`, `LandingRecovery.tsx`, and a family of showcase/button demo components. The full list is reproducible with `npx knip --reporter compact`. Recommendation: delete in a dedicated cleanup PR so this audit stays reviewable; not deleted here.
 
 Also from knip: unused dependencies `@netlify/neon`, `@types/lodash`, `lodash` (lodash is only imported by the dead AkashicStream), and 40 unused exports.
 
@@ -101,14 +101,119 @@ Every reachable route renders with no console errors, no page errors, no unexpec
 2. ProtectedRoute unmounted every page right after its first render to show a "Checking runtime dependencies" spinner, then remounted it. Consequences: page state reset (which silently destroyed every `/family-dashboard?tab=` deep link, because the dashboard had already consumed and deleted the param), double data loading on every protected page visit, and a visible flash. Children now stay mounted while the gate resolves; a confirmed hard blocker still replaces the page.
 3. The family dashboard now treats the URL as the source of truth for its active tab: deep links (`?tab=delphi`), refreshes, shared quiz links (`?memberId=`), and the Michael to Anthony ledger links all land on the right tab. Verified end to end.
 
-## 4. Phase 2A: Wording changes (pending)
+## 4. Phase 2A: Wording changes
 
-## 5. Phase 2B: Interaction, animation, icon changes (pending)
+### Adjudication policy
+Directional wording was matched with judgment, not blind replace. Left untouched by design:
+- Non-directional words from the brief's safe list: update, upload, upcoming, setup, signup, backup, popup, breakdown, download.
+- Idioms with no spatial meaning: "passed down" (inheritance), "writing down", "strike up", "speak up", "follow up", "caught up", "breaks down (mentally)".
+- Quantity comparisons: "above 180 mg/dL", "below target", "keep reserves above N months". These are thresholds, not navigation.
+- Rankings: "Top adverse reactions", "top priority".
+- Code comments (not user-visible).
 
-## 6. Phase 2C: Layout and flow changes (pending)
+### Genuine directional hits, all rewritten
+| File | Before | After |
+| --- | --- | --- |
+| `components/DashboardViewer.tsx:131` | Add widgets ... using the "Add Widget" button above | ... using the "Add Widget" button in the toolbar |
+| `components/UnifiedFamilyInterface.tsx:258` | The invite link is available below for reference. | The invite link is ready here for reference. |
+| `components/UnifiedFamilyInterface.tsx:260` | share the link below manually. | share the link shown here manually. |
+| `components/UnifiedFamilyInterface.tsx:262` | Share the link below manually. | Share the link shown here manually. |
+| `components/UnifiedFamilyInterface.tsx:264` | Share the link below or open it in your email client. | Share the link shown here or open it in your email client. |
+| `components/UnifiedFamilyInterface.tsx:284` | Copy it manually from the field below. | Copy it manually from the link field. |
+| `components/LegacyVaultEnhanced.tsx:2119` | You may submit a new one below. | You are welcome to submit a new one. |
+| `components/HealthConnectionManager.tsx:488` | Connect health sources above to get started | Connect a health source to get started |
+| `components/RaphaelConnectors.tsx:753` | Connect health sources above to get started | Connect a health source to get started |
+| `components/joseph/JosephVoiceAnswerPanel.tsx:113` | Type what you said above, then ... | Type what you said, then ... |
+| `components/dht/DelphiView.tsx:212` | The measurement below would reduce ... | This measurement would reduce ... |
+| `components/trinity/FamilyVitalityScore.tsx:179` | guards access to every score above. | guards access to every score in this view. |
+| `components/TerraSetupWizard.tsx:316` | Add the Webhook URL above | Add the Webhook URL from this guide |
+| `components/EdgeSparkleButtonShowcase.tsx:136` | Click the button below to see it in action | Click the button to see it in action |
+| `components/rituals/RitualAltar.tsx:1052` | title "Move step up" | title "Move step earlier" |
+| `components/rituals/RitualAltar.tsx:1061` | title "Move step down" | title "Move step later" |
+
+### Em dash sweep (global rule 1)
+229 em dash lines across 71 files in `src/` were replaced: comment headers use a colon, prose joints use a comma, quote attributions use a plain hyphen. One additional em dash lived in a visible UI label (ELEVATED RISK label in `DHTAnomalyAlertChain`) and now uses a colon. Zero em dashes remain in `src/` or `scripts/`.
+
+## 5. Phase 2B: Interaction, animation, icon changes
+
+### Keyboard
+- No live code path used ArrowUp/ArrowDown for navigation. The two implementations found (`lib/keyboard-navigation.ts` list helper, `hooks/useKeyboardNavigation.tsx`) are unused exports; the shared helper's `horizontal` option now defaults to true so any future caller is horizontal-first. Home/End in the same helper are sequence jumps (first/last), not vertical semantics, and no live caller exists.
+- Modal focus handling (Tab/Escape via ModalManager) is untouched; it has no directional semantics.
+
+### Gestures
+- `AppointmentManager` and `MedicationTracker` implemented vertical pull-to-refresh (touch deltaY at the container edge). The vertical gesture is removed entirely and each panel now has a visible refresh button using the same fetchers and spinner state. Rationale: a horizontal pull would collide with the browser's native edge-swipe navigation, and a visible control is more discoverable than any hidden gesture.
+- No other touch handlers used vertical deltas for navigation. No `onWheel` navigation handlers exist.
+
+### Animations and transitions
+| Change | Instances | Files |
+| --- | --- | --- |
+| `animate-bounce` (vertical) to `animate-pulse` | 15 | CareerChat, RaphaelChat, SaintChat typing dots; PhoneHealthConnect footprints; AdvancedShoppingTab negotiator; OnboardingComplete badge; HealthReportGenerator download; StRaphaelHealthHub pulse button; FamilyMembers, CouncilRoom (dead files, swept anyway) |
+| `slide-in-from-bottom/top-N` to `slide-in-from-left-N` | 10 | StRaphaelHealthHub tab panels, SocietyFeed notice, VulnerabilityScanner, CouncilRoom |
+| `hover:-translate-y-N` lifts to `hover:scale` | 2 | StRaphaelHealthHub, EdgeSparkleButton |
+| `index.css` hover lifts (`.ea-panel`, `.ea-btn`, `.glass-card`, `.btn-reactive`, `.neon-hover`) to scale | 5 | index.css |
+| `index.css` entrance keyframes (`fadeIn`, `fadeInSlide`, `spring-in`) translateY to translateX | 3 | index.css |
+| Inline keyframe entrances translateY to translateX | 4 | OAuthCallback, BeyondModules, CompactSaintsOverlay, RaphaelCinematicPrototype |
+| Saints navigation center emphasis `translateY(-8px)` to `scale(1.08)` | 1 | SaintsNavigation |
+| Governance accordion `height` animation to opacity fade | 1 | causal-twin/GovernanceView (framer-motion) |
+
+Static `top-1/2 -translate-y-1/2` icon centering inside inputs is geometry, not motion, and is untouched.
+
+Ambient vertical drift flagged per the brief (allowed to stay, listed for the record):
+- `StarfieldBackground` stars twinkle and parallax in place (no directional travel; drift vector is horizontal-biased).
+- `RaphaelCinematicPrototype` has an upward particle float; the file is dead code (never imported) and its entrance animation was converted anyway. Recommend deletion with the dead-code batch.
+
+### Iconography
+- Every ChevronUp/ChevronDown disclosure pair now uses the horizontal disclosure pattern: closed points right, open points left. Files: TrinitySynapsePanel, CompactSaintsOverlay, ExperimentLab, GovernanceView, MediaIntelligencePanel, FamilyTreeView, RiskCards, OceanBehavioralLayer, CrossSaintGoalEngine, RitualAltar (step reorder now ChevronLeft/ChevronRight, archived disclosure likewise).
+- `SharedPredictionPanel` what-if chevron rotated to point at 90 degrees (which reads as pointing at the ground) when open; it now flips 180 to point back instead.
+- `TransactionLedger` sort toggle used the vertical ArrowDownUp glyph; now ArrowLeftRight.
+- `ResearchParticipation` used a literal caret glyph pointing at the ground; now a right-pointing glyph that flips when open.
+- Zero ArrowUp/ArrowDown/ChevronsUpDown icons remain anywhere in `src/`.
+
+## 6. Phase 2C: Layout and flow changes
+
+- Screen-to-screen navigation now pages horizontally: a `PageTransition` wrapper in `App.tsx` keys on `location.pathname` and plays a motion-safe fade plus slide-in-from-left on every route change. Keyed on pathname only, so query-param changes (dashboard tabs) do not retrigger it. Verified against the production build: all routes render, deep links work, zero console errors.
+- Onboarding was already a one-step-at-a-time flow; each step now pages in from the left (keyed on step).
+- The engram training wizard's six stages (family-pre, family-connect, quiz-intro, quiz, results, memory) now page in from the left the same way.
+- Long-form vertical overflow: 74 `overflow-y-auto` containers remain across 40 files (chat message lists, ledgers, transcripts, modal bodies). Policy check for each class of container: none carries vertical wording, none has up/down arrows or scroll-down prompts decorating it (verified by the wording and icon sweeps in 2A/2B). Recommendation: keep physical vertical overflow for chat histories, ledgers, and transcripts, where horizontal pagination would harm readability; these are listed as compliant physical overflow, not directional affordances. Candidates that could become horizontal pagers in a later pass: `PersonalityProfileViewer` sections and `WidgetRenderer` long widget lists.
 
 ## 7. Needs Joshua's decision
 
+1. Council Circle roster: the brief expects six saint nodes plus the central You. The product's real roster is five saints (Michael, Joseph, Raphael, Gabriel, Anthony); the front page was aligned to those five in an earlier pass. The circle now renders five plus the central You. Decide: name a sixth saint (and its domain) or accept five.
+2. `/creator/new`: the Creator dashboard's Create Template buttons target a route that was never built (page is behind `VITE_ENABLE_NON_CORE_ROUTES`). Decide: build the create-template flow, point the buttons at `/my-ais`, or remove the buttons until the flow exists.
+3. TrendingUp/TrendingDown icons (56 uses): these are data-trend semantics on health and finance metrics (improving vs declining), not navigation, so they were left. Strictly they are diagonal up/down glyphs. Decide: keep as data semantics (recommended), or replace with signed percentage chips (+4% / -2%) with color, which would remove the last up/down glyphs from the product.
+4. Native select elements: browsers render their own dropdown caret on `<select>`. Restyling every select to suppress the native caret would fight platform form patterns and hurt accessibility. Left native; no custom ChevronDown decorates any select.
+5. Dead-code deletion: 47 unused `src/` files (list in section 2), including the frontend Terra config that reads secret-shaped env vars. Recommend a dedicated cleanup PR; deleting them here would bloat this audit's diff.
+6. `npm audit fix`: would resolve the critical (vitest) and high (form-data) advisories within semver. Recommend running it in a dedicated PR with the full gate battery.
+7. Onboarding flow direction word: "Back" buttons across the app retain the word "Back" (with left arrows). "Back" is not vertical, so it complies; flagging only because the brief says forward equals right, back equals left, which is exactly how these render.
+
 ## 8. Known issues ranked by severity
 
-## 9. FINAL verification proof (pending)
+1. HIGH: The Python backend on Render (`everafter-api-voac.onrender.com`) is the live path for saint chat, engrams, council deliberation, time capsules, and family-home data. On the free tier it cold-starts slower than the client's 8s timeout, so first requests routinely fall back. Healthy `raphael-chat` and `engram-chat` Supabase edge functions exist and are unused by the in-app chat path. Repointing chat at the edge functions would remove the single point of failure. (Unchanged in this audit; out of its scope.)
+2. HIGH: Health provider OAuth secrets (Terra, Dexcom, Fitbit, Oura) are documented as not yet set in Supabase secrets, so real device connections cannot complete even though all edge functions are deployed.
+3. MEDIUM: 2 critical and 2 high npm audit advisories (dev-time tooling; see section 1).
+4. MEDIUM: `web-llm` chunk is 6 MB (2.1 MB gzip) in the production bundle from the Crystal evaluation; it is lazy-loaded but still shipped. Consider gating it behind a dynamic feature flag or removing until needed.
+5. LOW: 47 dead files in `src/` plus unused dependencies (`@netlify/neon`, `lodash`, `@types/lodash`).
+6. LOW: `/quiz/:token` logs one browser console line (the failed HTTP request itself) when a token is invalid or the backend is absent; the page shows an honest error state. Cosmetic.
+7. LOW: Six env vars referenced in code are undocumented in `.env.example` (section 2); all have safe fallbacks.
+
+## 9. FINAL verification proof
+
+Fresh output at the end of the pass, on the final tree of `audit/horizontal-directionality`:
+
+| Gate | Baseline | Final |
+| --- | --- | --- |
+| `npx tsc --noEmit` | clean, exit 0 | clean, exit 0 |
+| `npm run build` | success, 15.41s | success, 13.90s |
+| `npx eslint . --ext .ts,.tsx` | 1210 problems (1096 errors, 114 warnings) | 1194 problems (1082 errors, 112 warnings): 16 under baseline |
+| `npx vitest run` | 96/96 passing | 96/96 passing |
+| Runtime walk (all routes, demo mode) | 1 unmocked-endpoint console error, deep links broken | zero console errors, deep links verified |
+| Core flows | 8/9 (comparison unverified) | 9/9 |
+
+Self-check sweeps on the final tree:
+- Directional phrases (scroll/swipe/pull up-down, see above/below, back to top): 0 hits.
+- Vertical motion classes (animate-bounce, slide-in-from-top/bottom, hover translate-y lifts): 0 hits.
+- Vertical navigation icons (ChevronUp, ChevronDown, ArrowUp, ArrowDown, ChevronsUpDown): 0 rendered.
+- Animated translateY: 0 in live code. 4 lines remain in `RaphaelCinematicPrototype.tsx`, a dead file's ambient particle float, kept under the brief's ambience exception and flagged in section 5.
+- Em dashes in `src/`, `scripts/`, and this report: 0.
+
+Screenshot sets: `audit-artifacts/before/` (54 files, end of Mission 1) and `audit-artifacts/after/` (54 files, end of Mission 2), both at 1440x900 and 390x844 per route plus interaction captures (council deliberation, timeline echoes, soul profile, comparison mode).
