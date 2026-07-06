@@ -38,7 +38,38 @@ This report covers two missions: (1) verify everything works, (2) enforce left-t
 
 All are dev-time or transitive; none ship in the production bundle directly. Recommendation: run `npm audit fix` (no `--force`) in a dedicated PR and re-run the full gate battery.
 
-## 2. Phase 1B: Static integrity (in progress)
+## 2. Phase 1B: Static integrity
+
+### Routing
+Every route defined in `src/App.tsx` resolves to a real component (verified by tsc plus a link cross-check). Four navigation targets pointed at routes that do not exist; the catch-all was silently dumping them on /dashboard. Fixed:
+
+| Broken target | Where | Fix |
+| --- | --- | --- |
+| `/health/devices` (4 uses) | TerraCallback, TerraSetupWizard | Now `/devices` |
+| `/health` (5 uses) | TerraCallback, TerraSetupWizard, AnthonyStaleDataPanel, DHTAnomalyAlertChain | Now `/health-dashboard` |
+| `/support` (1 use) | TerraCallback | No support page exists anywhere; the link now opens device troubleshooting at `/devices` |
+| `/creator/new` (2 uses) | CreatorDashboard | NOT fixed; page is behind `VITE_ENABLE_NON_CORE_ROUTES` and the create-template destination was never built. Parked under Needs Joshua's decision. |
+
+### Dead code inventory (knip)
+163 unused files repo-wide, of which 47 are in `src/`. The repo-wide number includes `health-api/`, `smart-contracts/`, and `nextjs-implementation/`, which are separate deployables and not truly dead for their own runtimes. The 47 `src/` files are genuinely unreferenced by the app build, including: `TerraIntegration.tsx`, `terra-client.ts`, `terra-config.ts`, `AkashicStream.tsx`, `saints/CouncilRoom.tsx`, `saints/MissionBoard.tsx`, `ScrollIndicator.tsx`, `useKeyboardNavigation.tsx`, `LandingRecovery.tsx`, and a family of showcase/button demo components. Full list in the PR description. Recommendation: delete in a dedicated cleanup PR so this audit stays reviewable; not deleted here.
+
+Also from knip: unused dependencies `@netlify/neon`, `@types/lodash`, `lodash` (lodash is only imported by the dead AkashicStream), and 40 unused exports.
+
+### Environment variables
+Referenced in `src/` but absent from `.env.example`: `VITE_API_URL` (RaphaelInsights), `VITE_HEALTH_API_URL` (ComprehensiveHealthConnectors, falls back to localhost:4000), `VITE_API_FALLBACK_URL`, `VITE_API_TUNNEL_URL`, `VITE_RENDER_API_URL`, `VITE_LOCAL_API_URL` (backend-request.ts). These silently resolve to undefined in production builds; the code paths fall back, but the variables should either be documented or removed.
+
+Finding requiring attention: `src/lib/terra-config.ts` reads `import.meta.env.TERRA_API_KEY`, `TERRA_DEV_ID`, and `TERRA_WEBHOOK_SECRET`. Non-VITE variables are never exposed by Vite, so this validation can never pass in the browser; worse, the pattern invites putting Terra secrets into frontend env where they would ship in the bundle. The entire file (and its importers `terra-client.ts`, `TerraIntegration.tsx`) is dead code per knip. Severity is contained because it is unreachable, but it should be deleted. Parked with the dead-code cleanup recommendation.
+
+### Secrets in source
+None found. No hardcoded `*.supabase.co` project URLs outside generic pattern matching in the demo interceptor, and no JWT-shaped strings in `src/`.
+
+### Supabase client usage
+Single shared client created once in `src/lib/supabase.ts` and imported everywhere else. Auth session handling lives in `src/lib/auth-session.ts` plus `AuthContext`. Critical-path queries (save, load, auth) carry error handling; remaining silently-swallowed errors are in decorative paths (for example sealed-status lookups) and are intentional per their comments.
+
+### Fixes shipped in this phase
+- `fix(works)`: dead navigation targets repaired (see table).
+- `fix(works)`: `@vitest/coverage-v8` added; `npm run test:coverage` was broken (config referenced an uninstalled reporter) and now runs.
+- `fix(works)`: CouncilOracle (route `/council`) no longer calls the backend with raw axios (no timeout, invisible to the demo interceptor, errors swallowed with a stub comment). It now shares the grounded local deliberation with SocietyFeed via `src/lib/saints/deliberation.ts`, races the live service against a 2.5s deadline, always answers, and states provenance honestly. The five guardians now sit in a real circle around a central You node.
 
 ## 3. Phase 1C: Runtime smoke test (pending)
 
