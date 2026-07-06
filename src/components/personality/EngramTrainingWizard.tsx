@@ -287,6 +287,8 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                     </button>
                 </div>
 
+                {/* Keyed on the step so each stage pages in from the left. */}
+                <div key={step} className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-6 motion-safe:duration-300">
                 {/* ─ Step: Family Pre-Question ─ */}
                 {step === 'family-pre' && (
                     <div className="p-6 space-y-6">
@@ -731,6 +733,7 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                         </p>
                     </div>
                 )}
+                </div>
             </div>
         </div>
     );

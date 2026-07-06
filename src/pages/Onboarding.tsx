@@ -396,7 +396,8 @@ export default function Onboarding() {
         {/* Step Content */}
         <div className="relative overflow-hidden rounded-[32px] border border-cyan-400/10 bg-slate-950/55 p-6 shadow-[0_0_0_1px_rgba(15,23,42,0.45),0_24px_120px_rgba(2,6,23,0.75)] sm:backdrop-blur-2xl sm:p-8">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.12),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(168,85,247,0.08),_transparent_26%)]" />
-          <div className="relative">
+          {/* Keyed on the step so each step pages in from the left, like turning to the next card. */}
+          <div key={currentStep} className="relative motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-6 motion-safe:duration-300">
           {loadWarning && (
             <div className="mb-6 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
               {loadWarning}
