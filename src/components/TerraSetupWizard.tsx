@@ -313,7 +313,7 @@ export default function TerraSetupWizard() {
                     <p className="font-medium mb-1">Configuration Steps:</p>
                     <ol className="list-decimal list-inside space-y-1 opacity-80">
                       <li>Open Terra Dashboard → Settings → Webhooks</li>
-                      <li>Add the Webhook URL above</li>
+                      <li>Add the Webhook URL from this guide</li>
                       <li>Enable all event types</li>
                       <li>Go to Settings → OAuth</li>
                       <li>Add both redirect URLs</li>

@@ -128,7 +128,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
           <h3 className="text-xl font-semibold text-white mb-2">No Widgets Yet</h3>
           <p className="text-slate-400 mb-6 max-w-md mx-auto">
             {editMode
-              ? 'Add widgets to this dashboard using the "Add Widget" button above'
+              ? 'Add widgets to this dashboard using the "Add Widget" button in the toolbar'
               : 'This dashboard is empty. Switch to edit mode to add widgets.'}
           </p>
         </div>

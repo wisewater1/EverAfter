@@ -176,7 +176,7 @@ export default function FamilyVitalityScore() {
                 <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2 text-[10px] text-slate-500">
                     <Lock className="w-3 h-3 text-blue-400" />
                     <span className="text-slate-400">{access.steward}</span>
-                    <span>guards access to every score above.</span>
+                    <span>guards access to every score in this view.</span>
                     {typeof access.vault_items === 'number' && (
                         <span className="ml-auto text-slate-600">
                             {access.vault_items} sealed {access.vault_items === 1 ? 'item' : 'items'}

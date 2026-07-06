@@ -5,10 +5,8 @@ import {
     ArrowLeft,
     Calendar,
     CheckCircle,
-    ChevronDown,
     ChevronLeft,
     ChevronRight,
-    ChevronUp,
     Flame,
     MapPin,
     Pencil,
@@ -675,7 +673,7 @@ export default function RitualAltar() {
                                     onClick={() => setShowArchived((v) => !v)}
                                     className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium uppercase tracking-[0.2em] text-amber-500/50 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                                 >
-                                    {showArchived ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                    {showArchived ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                                     Archived ({grouped.archived.length})
                                 </button>
                                 {showArchived && (
@@ -1049,19 +1047,19 @@ export default function RitualAltar() {
                                                         type="button"
                                                         onClick={() => moveStep(index, -1)}
                                                         disabled={index === 0}
-                                                        title="Move step up"
+                                                        title="Move step earlier"
                                                         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-200/50 transition-colors hover:text-amber-100 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                                                     >
-                                                        <ChevronUp className="h-4 w-4" />
+                                                        <ChevronLeft className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => moveStep(index, 1)}
                                                         disabled={index === formState.script.length - 1}
-                                                        title="Move step down"
+                                                        title="Move step later"
                                                         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-200/50 transition-colors hover:text-amber-100 disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                                                     >
-                                                        <ChevronDown className="h-4 w-4" />
+                                                        <ChevronRight className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         type="button"

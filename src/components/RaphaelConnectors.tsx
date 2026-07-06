@@ -750,7 +750,7 @@ export default function RaphaelConnectors() {
             {accounts.filter(a => a.status === 'active').length > 0 ? (
               <span>Ready to integrate {accounts.filter(a => a.status === 'active').length} connected source{accounts.filter(a => a.status === 'active').length > 1 ? 's' : ''}</span>
             ) : (
-              <span>Connect health sources above to get started</span>
+              <span>Connect a health source to get started</span>
             )}
           </div>
         </div>
