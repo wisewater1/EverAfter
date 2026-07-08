@@ -842,7 +842,12 @@ function computeLocalProfile(name: string, id: string, answers: Record<string, n
         agreeableness: ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'],
         neuroticism: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10'],
     };
-    const reverseIds = new Set(['O4', 'O6', 'O10', 'C4', 'C8', 'E3', 'E9', 'N3', 'N6', 'N8', 'N10']);
+    // O10 ("I find beauty in everyday objects and ordinary situations") is a
+    // positively-phrased Openness item - agreeing means genuinely high
+    // openness, so it must NOT be reverse-scored (unlike O4/O6, which are
+    // phrased as the opposite of openness). Reversing it was silently
+    // pulling the Openness score down for anyone who answered honestly.
+    const reverseIds = new Set(['O4', 'O6', 'C4', 'C8', 'E3', 'E9', 'N3', 'N6', 'N8', 'N10']);
 
     const scores: Record<string, number> = {};
     for (const [trait, ids] of Object.entries(traitMap)) {
@@ -857,7 +862,24 @@ function computeLocalProfile(name: string, id: string, answers: Record<string, n
         scores[trait] = count > 0 ? Math.round((sum / (count * 5)) * 100) : 50;
     }
 
-    const dominant = Object.entries(scores).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0];
+    // Object.entries(scores) always iterates in openness/conscientiousness/
+    // extraversion/agreeableness/neuroticism order, and Array.sort is stable
+    // - so a plain "sort descending, take [0]" silently favored openness on
+    // every exact tie, collapsing any evenly-scored profile onto "The
+    // Visionary" regardless of that person's actual answers. Break ties with
+    // a hash of the member id instead, so different tied people land on
+    // different (but individually reproducible) dominant traits.
+    const traitOrder = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+    const maxScore = Math.max(...traitOrder.map((t) => scores[t]));
+    const tiedTraits = traitOrder.filter((t) => scores[t] === maxScore);
+    let dominant: string;
+    if (tiedTraits.length === 1) {
+        dominant = tiedTraits[0];
+    } else {
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+        dominant = tiedTraits[hash % tiedTraits.length];
+    }
     const archetypes: Record<string, { name: string; emoji: string; description: string }> = {
         openness: { name: 'The Visionary', emoji: '🔮', description: 'Imaginative, curious, and open to new experiences.' },
         conscientiousness: { name: 'The Steward', emoji: '🏰', description: 'Organized, reliable, and driven by duty and excellence.' },
