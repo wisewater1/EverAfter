@@ -252,6 +252,18 @@ const SEED_REL_IDS = new Set(DEFAULT_RELATIONSHIPS.map((r) => r.id));
 const SEED_EVENT_IDS = new Set(DEFAULT_EVENTS.map((e) => e.id));
 
 /**
+ * True for the sample "William Anderson"/"Margaret Anderson"/etc. roster.
+ * seedsEnabled() (dev builds, demo sessions) merges these into
+ * getFamilyMembers() so the UI never looks empty while testing - but nothing
+ * that pushes a member into a REAL per-account backend store (e.g. syncing
+ * engrams) should ever treat a seed member as if it were the signed-in
+ * user's real data, even in a dev build where seedsEnabled() is true.
+ */
+export function isSeedMemberId(id: string): boolean {
+    return SEED_MEMBER_IDS.has(id);
+}
+
+/**
  * Remove seeded sample rows that older builds persisted into real users'
  * localStorage, along with any edges/events left dangling by the removal.
  */

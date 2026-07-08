@@ -22,7 +22,7 @@ import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
 import MediaIntelligencePanel from './joseph/MediaIntelligencePanel';
 import PersonalityQuiz from './joseph/PersonalityQuiz';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
-import { getFamilyMembers, hydrateGenealogyInBackground } from '../lib/joseph/genealogy';
+import { getFamilyMembers, getGenerationLabel, hydrateGenealogyInBackground, isSeedMemberId } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
 import FamilyPredictionIntelligencePanel from './joseph/FamilyPredictionIntelligencePanel';
 import CustomEngramsDashboard from './CustomEngramsDashboard';
@@ -65,13 +65,19 @@ function sanitizeDashboardCopy(value: string) {
 }
 
 function deriveFamilyStatus() {
+    // There is no real presence signal anywhere in the app (no location,
+    // calendar-busy, or device data feeds this) - this used to fabricate a
+    // "home"/"away"/"busy" state purely from generation number, which looked
+    // like live status but was the same for every account with the same
+    // family structure. Show the one thing that's actually real: how each
+    // person relates to you.
     return getFamilyMembers()
         .filter(member => !member.deathDate)
         .sort((left, right) => right.generation - left.generation || left.firstName.localeCompare(right.firstName))
         .slice(0, 6)
         .map(member => ({
             name: `${member.firstName} ${member.lastName}`,
-            status: member.generation >= 1 ? 'home' : member.generation === 0 ? 'busy' : 'away',
+            generationLabel: getGenerationLabel(member.generation),
         }));
 }
 
@@ -260,7 +266,14 @@ export default function StJosephFamilyDashboard() {
     };
 
     const syncEngrams = async () => {
-        const members = getFamilyMembers();
+        // Seed/sample members (the "William Anderson" roster shown in dev
+        // builds and demo sessions so the UI never looks empty) must never
+        // be synced into the backend's real, per-account engram store - that
+        // would permanently attach sample names to this real account, which
+        // then resurface in features like the Society feed as if they were
+        // genuine family members.
+        const members = getFamilyMembers().filter((m) => !isSeedMemberId(m.id));
+        if (members.length === 0) return;
         try {
             console.log('St. Joseph: Synchronizing family engrams...');
             await apiClient.batchSyncEngrams(members);
@@ -596,24 +609,22 @@ export default function StJosephFamilyDashboard() {
 
                         {activeTab === 'tasks' && (
                             <>
-                                {/* Family Presence */}
+                                {/* Family Members */}
                                 <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-8 overflow-hidden relative group">
                                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                         <Home className="w-32 h-32 text-amber-500" />
                                     </div>
                                     <h3 className="text-xl font-light text-white mb-6 flex items-center gap-2">
                                         <MapPin className="w-5 h-5 text-amber-400" />
-                                        Family Status
+                                        Family Members
                                     </h3>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         {resolvedSummary.familyStatus.map((member, i) => (
                                             <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-3">
-                                                <div className={`w-2 h-2 rounded-full ${member.status === 'home' ? 'bg-emerald-400' :
-                                                    member.status === 'away' ? 'bg-slate-500' : 'bg-amber-400'
-                                                    }`} />
+                                                <div className="w-2 h-2 rounded-full bg-amber-400/60" />
                                                 <div>
                                                     <div className="text-sm font-medium text-white">{member.name}</div>
-                                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">{member.status}</div>
+                                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">{member.generationLabel}</div>
                                                 </div>
                                             </div>
                                         ))}

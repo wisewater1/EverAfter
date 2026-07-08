@@ -47,49 +47,11 @@ export interface HouseholdSummary {
     activeTasks: number;
     upcomingEvents: number;
     shoppingListCount: number;
-    familyStatus: { name: string; status: 'home' | 'away' | 'busy' }[];
-}
-
-export async function getHouseholdSummary(userId: string): Promise<HouseholdSummary> {
-    try {
-        // This would normally fetch from specialized tables
-        // For now, we mock it based on established patterns in EverAfter
-        return {
-            activeTasks: 5,
-            upcomingEvents: 2,
-            shoppingListCount: 8,
-            familyStatus: [
-                { name: 'Alice', status: 'home' },
-                { name: 'Bob', status: 'away' },
-                { name: 'Charlie', status: 'busy' }
-            ]
-        };
-    } catch (error) {
-        console.error('Error fetching household summary:', error);
-        return {
-            activeTasks: 0,
-            upcomingEvents: 0,
-            shoppingListCount: 0,
-            familyStatus: []
-        };
-    }
-}
-
-export async function getFamilyTasks(userId: string): Promise<FamilyTask[]> {
-    // Mocking family tasks
-    return [
-        { id: '1', action: 'Mow Lawn', description: 'Front and back yard', status: 'pending', category: 'chore' },
-        { id: '2', action: 'Fix Faucet', description: 'Kitchen sink leak', status: 'pending', category: 'maintenance' },
-        { id: '3', action: 'Pick up Dry Cleaning', description: 'Suits for the wedding', status: 'completed', category: 'errand' }
-    ];
-}
-
-export async function getShoppingList(userId: string): Promise<ShoppingItem[]> {
-    return [
-        { id: 's1', name: 'Milk', quantity: '2 gallons', addedBy: 'Alice', status: 'needed' },
-        { id: 's2', name: 'Eggs', quantity: '1 dozen', addedBy: 'Bob', status: 'needed' },
-        { id: 's3', name: 'Bread', quantity: '2 loaves', addedBy: 'Charlie', status: 'bought' }
-    ];
+    // generationLabel (e.g. "Your Generation", "Parents") is real data drawn
+    // from the family tree. There is no real presence/activity signal
+    // anywhere in the app (no location, calendar-busy, or device data feeds
+    // this), so this must never claim a live status like "home"/"away"/"busy".
+    familyStatus: { name: string; generationLabel: string }[];
 }
 
 export async function getFamilyCalendar(userId: string): Promise<FamilyEvent[]> {
