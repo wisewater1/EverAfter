@@ -90,21 +90,32 @@ export default function TerraCallback() {
 
       const { data: session } = await supabase.auth.getSession();
       if (session?.session?.access_token) {
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/terra-backfill`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.session.access_token}`,
-            },
-            body: JSON.stringify({
-              user_id: user?.id,
-              provider: provider.toUpperCase(),
-              days: 30,
-            }),
-          }
-        );
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/terra-backfill`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.session.access_token}`,
+              },
+              body: JSON.stringify({
+                user_id: user?.id,
+                provider: provider.toUpperCase(),
+                days: 30,
+              }),
+              signal: controller.signal,
+            }
+          );
+          clearTimeout(timeoutId);
+        } catch (backfillError) {
+          // The connection row above already wrote successfully; a slow or
+          // failed backfill kickoff is a best-effort nicety and must not
+          // block or invalidate the connection success shown below.
+          console.warn('Terra backfill kickoff failed (connection still succeeded):', backfillError);
+        }
       }
 
       setResult({
