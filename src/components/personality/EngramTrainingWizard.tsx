@@ -234,6 +234,17 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
                 updated_at: new Date().toISOString(),
             }).catch(() => {/* non-blocking */ });
 
+            // Also write the computed traits onto the engram itself, since
+            // this is what engram-chat and ArchetypalAIChat actually read to
+            // condition replies - without this, taking the quiz changed
+            // nothing about how the engram talks.
+            await supabase.from('archetypal_ais').update({
+                personality_traits: profileData.traits,
+                core_values: profileData.strengths,
+                communication_style: profileData.communication_style,
+                updated_at: new Date().toISOString(),
+            }).eq('id', ai.id).catch(() => {/* non-blocking */ });
+
             setStep('results');
         } catch (err) {
             console.error('Quiz submit error:', err);
