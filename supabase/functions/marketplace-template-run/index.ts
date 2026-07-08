@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -102,7 +103,7 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = manifest.system_prompt;
 
     // 5. Call OpenAI with manifest configuration
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    const { apiKey: openaiKey } = await resolveApiKey(supabase, user.id, "openai", "OPENAI_API_KEY");
     if (!openaiKey) {
       return jsonResponse({ error: "OpenAI API key not configured" }, 500);
     }
