@@ -6,6 +6,7 @@ import { buildAccessTokenHeaders, getAccessToken } from './auth-session';
 import type { EdgeFunctionResponse, ChatResponse, DailyQuestionResponseData, FamilyTask, ShoppingItem, CalendarEvent, BulletinMessage, EngramResponse, EngramCreatePayload } from '../types/database.types';
 import { API_BASE_URL } from '../lib/env';
 import { getFamilyCalendar as getLocalFamilyCalendar } from './joseph/family';
+import { BackendCircuitOpenError, isBackendCircuitOpen, isUnreachableError, recordBackendReachable, recordBackendUnreachable } from './backend-health';
 
 /**
  * Enhanced API Client with Retry Logic, Error Handling, and Request Deduplication
@@ -54,12 +55,18 @@ export interface SaintStatusSummary {
   knowledge_available?: boolean;
 }
 
+// One retry only: a cold/unreachable Render backend won't recover within a
+// single interactive request regardless of how many times it's retried, so
+// extra attempts just multiply dead time. The one retry left is for genuine
+// transient blips (a dropped packet, a momentary 502) where trying again a
+// beat later plausibly helps.
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
+  maxRetries: 1,
+  baseDelay: 800,
+  maxDelay: 2000,
 };
-const DEFAULT_BACKEND_TIMEOUT_MS = 8000;
+// See src/lib/backend-request.ts for why this is short, not the 8s it used to be.
+const DEFAULT_BACKEND_TIMEOUT_MS = 3500;
 
 class APIClient {
   private pendingRequests: Map<string, Promise<unknown>> = new Map();
@@ -171,7 +178,12 @@ class APIClient {
     init: RequestInit,
     fallbackLabel: string,
   ): Promise<T> {
+    if (isBackendCircuitOpen()) {
+      throw new BackendCircuitOpenError(endpoint);
+    }
+
     let lastError: Error | null = null;
+    let sawUnreachable = false;
 
     for (const candidateUrl of this.getBackendCandidateUrls(endpoint)) {
       try {
@@ -196,13 +208,18 @@ class APIClient {
             lastError = backendError;
             continue;
           }
+          recordBackendReachable();
           throw backendError;
         }
 
+        recordBackendReachable();
         return await this.parseJsonBody<T>(response, endpoint);
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          lastError = new Error(`${fallbackLabel}: request timed out`);
+        if (isUnreachableError(error)) {
+          sawUnreachable = true;
+          lastError = error instanceof DOMException
+            ? new Error(`${fallbackLabel}: request timed out`)
+            : (error instanceof Error ? error : new Error(fallbackLabel));
         } else {
           lastError = error instanceof Error ? error : new Error(fallbackLabel);
         }
@@ -210,6 +227,10 @@ class APIClient {
           break;
         }
       }
+    }
+
+    if (sawUnreachable) {
+      recordBackendUnreachable();
     }
 
     throw lastError || new Error(fallbackLabel);
@@ -228,20 +249,28 @@ class APIClient {
   }
 
   /**
-   * Determine if error is retryable
+   * Determine if error is retryable. Deliberately excludes timeouts/aborts:
+   * a cold or unreachable backend will not answer any faster on a second
+   * attempt within the same interactive request, so retrying one just
+   * doubles the wait for no benefit. Only genuine transient network errors
+   * (a dropped connection attempt, not a slow/absent one) get one retry.
    */
   private isRetryableError(error: unknown): boolean {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return false;
+    }
     if (error instanceof NetworkError) {
+      return true;
+    }
+    if (error instanceof TypeError) {
       return true;
     }
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
-      return (
-        message.includes('network') ||
-        message.includes('timeout') ||
-        message.includes('503') ||
-        message.includes('502')
-      );
+      if (message.includes('timed out') || message.includes('timeout')) {
+        return false;
+      }
+      return message.includes('network') || message.includes('503') || message.includes('502');
     }
     return false;
   }
