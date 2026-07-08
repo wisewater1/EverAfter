@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { buildAccessTokenHeaders } from '../../lib/auth-session';
+import { requestBackendJson } from '../../lib/backend-request';
 import {
     Archive,
     ArrowLeft,
@@ -370,8 +371,6 @@ export default function RitualAltar() {
     // unavailable or fails, it fails silently and the template stands.
     const tryAlternateScript = async () => {
         setSuggestingScript(true);
-        const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 4000);
         try {
             const honoree = findMemberByClientId(familyMembers, formState.honoreeMemberId);
             const participantNames = formState.participantMemberIds
@@ -379,18 +378,23 @@ export default function RitualAltar() {
                 .filter((member): member is FamilyMember => Boolean(member))
                 .map(memberDisplayName);
 
-            const response = await axios.post(
+            const headers = await buildAccessTokenHeaders({ 'Content-Type': 'application/json' });
+            const data = await requestBackendJson<{ steps?: unknown[] }>(
                 '/api/v1/rituals/generate',
                 {
-                    ritual_type: formState.ceremonyType,
-                    context: formState.description,
-                    participants: participantNames,
-                    ancestor_id: honoree ? honoree.id : null,
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        ritual_type: formState.ceremonyType,
+                        context: formState.description,
+                        participants: participantNames,
+                        ancestor_id: honoree ? honoree.id : null,
+                    }),
                 },
-                { signal: controller.signal },
+                'Failed to generate an alternate ceremony script.',
             );
 
-            const rawSteps = Array.isArray(response.data?.steps) ? response.data.steps : [];
+            const rawSteps = Array.isArray(data?.steps) ? data.steps : [];
             const mapped: CeremonyStep[] = rawSteps
                 .map((step: { title?: string; actor?: string; dialogue?: string; action?: string }, index: number) => ({
                     title: step.title || step.actor || `Step ${index + 1}`,
@@ -405,7 +409,6 @@ export default function RitualAltar() {
         } catch {
             // Silent by design; the suggested template is already in place.
         } finally {
-            window.clearTimeout(timeoutId);
             setSuggestingScript(false);
         }
     };

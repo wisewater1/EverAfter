@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { buildApiUrl } from '../../lib/env';
 import { buildAccessTokenHeaders } from '../../lib/auth-session';
+import { requestBackendJson } from '../../lib/backend-request';
 
 
 interface SacredState {
@@ -27,14 +27,12 @@ export default function SacredOverlay() {
         // Fetch active shroud from backend
         const fetchShroud = async () => {
             try {
-                const res = await fetch(buildApiUrl('/api/v1/sacred/shroud'), {
-                    headers: await buildAccessTokenHeaders(),
-                });
-                if (!res.ok) {
-                    return;
-                }
-
-                const data = await res.json();
+                const headers = await buildAccessTokenHeaders();
+                const data = await requestBackendJson<{ active_shroud?: 'gold' | 'void' | 'crimson' | 'none' }>(
+                    '/api/v1/sacred/shroud',
+                    { headers },
+                    'Failed to load the active shroud.',
+                );
                 if (data.active_shroud && data.active_shroud !== 'none') {
                     setState(prev => ({
                         ...prev,
