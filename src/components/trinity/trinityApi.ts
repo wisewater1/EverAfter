@@ -1439,6 +1439,8 @@ function buildWhatIfFallback(body: AnyRecord, context = getLocalTrinityContext(b
 }
 
 function buildFallbackPayload(action: string, body: AnyRecord) {
+    if (action === 'family_pattern_reflection') return buildFamilyPatternReflectionFallback(body);
+
     const context = getLocalTrinityContext(body);
     switch (action) {
         case 'trinity_council':
@@ -1464,6 +1466,90 @@ function buildFallbackPayload(action: string, body: AnyRecord) {
         default:
             return null;
     }
+}
+
+// ── Family Pattern Reflection fallback ──────────────────────────────────────
+// Mirrors backend/app/services/trinity_synapse.py::family_pattern_reflection
+// exactly (regression-toward-the-mean blend + Circumplex derivation) so the
+// client-only path produces the same honest, non-Mendelian result as the
+// server path. Inputs are self-contained in the request body (the two
+// members' trait scores + tagged life experiences), unlike the other Trinity
+// actions which need the whole family/live-signal context.
+
+const FAMILY_PATTERN_TRAIT_KEYS = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'] as const;
+const FAMILY_PATTERN_HERITABILITY_FACTOR = 0.45;
+const FAMILY_PATTERN_POPULATION_MEAN = 50;
+
+const FAMILY_PATTERN_TRAIT_LABELS: Record<string, string> = {
+    openness: 'Openness',
+    conscientiousness: 'Conscientiousness',
+    extraversion: 'Extraversion',
+    agreeableness: 'Agreeableness',
+    neuroticism: 'Emotional Sensitivity',
+};
+
+const FAMILY_PATTERN_EXPERIENCE_NOTES: Record<string, string> = {
+    significant_loss: 'Bereavement and grief often temporarily heighten emotional sensitivity and can lower baseline mood — a well-documented experiential effect, not an inherited trait.',
+    major_achievement: 'A major achievement can reinforce confidence and openness to future risk-taking, especially when it happens early in life.',
+    caregiving_role: 'Sustained caregiving is associated with higher expressed conscientiousness and agreeableness, alongside elevated stress load.',
+    relocation: 'Relocation and cultural adjustment are linked to short-term increases in openness and stress-related emotional sensitivity.',
+    financial_hardship: 'Financial hardship is one of the most consistent environmental correlates of elevated emotional sensitivity (stress reactivity) found in longitudinal studies.',
+    health_challenge: 'Navigating a personal or family health challenge often shows up as increased vigilance (conscientiousness) and emotional sensitivity.',
+    creative_breakthrough: 'Creative breakthroughs tend to correlate with — and reinforce — existing openness rather than create it from nothing.',
+    community_leadership: "Leadership roles are associated with expressed extraversion and conscientiousness, whether or not those were a person's dominant tendencies beforehand.",
+};
+
+function familyPatternCircumplexQuadrant(valence: number, arousal: number) {
+    if (valence >= 0 && arousal >= 0) return 'Excited / Engaged';
+    if (valence >= 0 && arousal < 0) return 'Calm / Content';
+    if (valence < 0 && arousal >= 0) return 'Tense / Stressed';
+    return 'Fatigued / Withdrawn';
+}
+
+function buildFamilyPatternReflectionFallback(body: AnyRecord) {
+    const aTraits: Record<string, number> = body.member_a_traits || {};
+    const bTraits: Record<string, number> = body.member_b_traits || {};
+    const experiences: AnyRecord[] = body.life_experiences || [];
+
+    const blended: Record<string, number> = {};
+    for (const key of FAMILY_PATTERN_TRAIT_KEYS) {
+        const aVal = Number(aTraits[key] ?? FAMILY_PATTERN_POPULATION_MEAN);
+        const bVal = Number(bTraits[key] ?? FAMILY_PATTERN_POPULATION_MEAN);
+        const midParent = (aVal + bVal) / 2;
+        const estimate = FAMILY_PATTERN_POPULATION_MEAN + FAMILY_PATTERN_HERITABILITY_FACTOR * (midParent - FAMILY_PATTERN_POPULATION_MEAN);
+        blended[key] = Math.round(clamp(estimate, 0, 100) * 10) / 10;
+    }
+
+    const valence = Math.round(clamp(
+        ((blended.agreeableness - FAMILY_PATTERN_POPULATION_MEAN) * 0.5
+            + (blended.extraversion - FAMILY_PATTERN_POPULATION_MEAN) * 0.2
+            - (blended.neuroticism - FAMILY_PATTERN_POPULATION_MEAN) * 0.7) / 50,
+        -1, 1,
+    ) * 100) / 100;
+    const arousal = Math.round(clamp(
+        ((blended.extraversion - FAMILY_PATTERN_POPULATION_MEAN) * 0.7
+            + (blended.neuroticism - FAMILY_PATTERN_POPULATION_MEAN) * 0.3) / 50,
+        -1, 1,
+    ) * 100) / 100;
+
+    const experienceNotes = experiences
+        .map((exp) => {
+            const note = FAMILY_PATTERN_EXPERIENCE_NOTES[exp.tag];
+            return note ? { tag: exp.tag, member_name: exp.member_name || 'a family member', note } : null;
+        })
+        .filter((entry): entry is { tag: string; member_name: string; note: string } => Boolean(entry));
+
+    return {
+        member_a_name: body.member_a_name || 'Family Member A',
+        member_b_name: body.member_b_name || 'Family Member B',
+        blended_tendencies: blended,
+        trait_labels: FAMILY_PATTERN_TRAIT_LABELS,
+        circumplex: { valence, arousal, quadrant: familyPatternCircumplexQuadrant(valence, arousal) },
+        experience_notes: experienceNotes,
+        methodology_note: 'This is a reflective illustration, not a genetic prediction. Personality traits are polygenic and shaped substantially by environment and life experience — there is no single dominant or recessive gene for traits like openness or extraversion. The blended tendencies above use a regression-toward-the-mean estimate (heritability factor ~45%, consistent with published twin-study ranges), not Mendelian inheritance math.',
+        disclaimer: "Illustrative estimate only — not a diagnosis, clinical prediction, or statement of fact about any real person's mental or emotional health. Real descendants' personalities are shaped by countless factors this tool cannot capture.",
+        generated_at: new Date().toISOString(),
+    };
 }
 
 /**

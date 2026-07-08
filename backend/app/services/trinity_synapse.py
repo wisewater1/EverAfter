@@ -1654,3 +1654,127 @@ def _whatif_recommendation(raphael, gabriel):
         return "Favorable outcome projected across all dimensions. Proceed with monitoring."
     else:
         return "Health projections are positive. Financial impact is neutral — maintain current savings discipline."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 17. FAMILY PATTERN REFLECTION (Joseph OCEAN tendencies → reflective blend)
+#     Deliberately NOT a Mendelian/Punnett-square genetic predictor. Big Five
+#     traits are polygenic and environmentally co-determined — there is no
+#     single dominant/recessive allele for a trait like extraversion. This
+#     uses regression toward the population mean (the standard behavioral-
+#     genetics approximation for how polygenic traits blend across a
+#     generation) with a heritability factor drawn from published twin-study
+#     meta-analyses (~40-50%, e.g. Vukasović & Bratko 2015; Bouchard & McGue
+#     2003). Every output is an illustrative reflection, never a diagnosis or
+#     a claim of fact about a real descendant.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_TRAIT_KEYS = ("openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism")
+_HERITABILITY_FACTOR = 0.45
+_POPULATION_MEAN = 50.0
+
+_TRAIT_LABELS = {
+    "openness": "Openness",
+    "conscientiousness": "Conscientiousness",
+    "extraversion": "Extraversion",
+    "agreeableness": "Agreeableness",
+    "neuroticism": "Emotional Sensitivity",
+}
+
+# Narrative context only — these describe documented environmental
+# correlates of trait expression. They never modify the numeric blended
+# estimate; life experience is not a mathematical "modifier" on inheritance.
+_LIFE_EXPERIENCE_NOTES = {
+    "significant_loss": "Bereavement and grief often temporarily heighten emotional sensitivity and can lower baseline mood — a well-documented experiential effect, not an inherited trait.",
+    "major_achievement": "A major achievement can reinforce confidence and openness to future risk-taking, especially when it happens early in life.",
+    "caregiving_role": "Sustained caregiving is associated with higher expressed conscientiousness and agreeableness, alongside elevated stress load.",
+    "relocation": "Relocation and cultural adjustment are linked to short-term increases in openness and stress-related emotional sensitivity.",
+    "financial_hardship": "Financial hardship is one of the most consistent environmental correlates of elevated emotional sensitivity (stress reactivity) found in longitudinal studies.",
+    "health_challenge": "Navigating a personal or family health challenge often shows up as increased vigilance (conscientiousness) and emotional sensitivity.",
+    "creative_breakthrough": "Creative breakthroughs tend to correlate with — and reinforce — existing openness rather than create it from nothing.",
+    "community_leadership": "Leadership roles are associated with expressed extraversion and conscientiousness, whether or not those were a person's dominant tendencies beforehand.",
+}
+
+
+def family_pattern_reflection(
+    member_a_name: str,
+    member_a_traits: Dict[str, float],
+    member_b_name: str,
+    member_b_traits: Dict[str, float],
+    life_experiences: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """
+    Reflective (not predictive) blend of two family members' OCEAN trait
+    tendencies, plus an Affective Circumplex (valence/arousal) illustration
+    and narrative notes from tagged life experiences.
+    """
+    life_experiences = life_experiences or []
+
+    a_scores = {k: float(member_a_traits.get(k, _POPULATION_MEAN)) for k in _TRAIT_KEYS}
+    b_scores = {k: float(member_b_traits.get(k, _POPULATION_MEAN)) for k in _TRAIT_KEYS}
+
+    blended: Dict[str, float] = {}
+    for k in _TRAIT_KEYS:
+        mid_parent = (a_scores[k] + b_scores[k]) / 2.0
+        estimate = _POPULATION_MEAN + _HERITABILITY_FACTOR * (mid_parent - _POPULATION_MEAN)
+        blended[k] = round(max(0.0, min(100.0, estimate)), 1)
+
+    # Affective Circumplex (Russell 1980) — an illustrative overlay derived
+    # from the blended traits via documented general-direction correlations,
+    # not a separate prediction channel.
+    valence = round(max(-1.0, min(1.0, (
+        (blended["agreeableness"] - _POPULATION_MEAN) * 0.5
+        + (blended["extraversion"] - _POPULATION_MEAN) * 0.2
+        - (blended["neuroticism"] - _POPULATION_MEAN) * 0.7
+    ) / 50.0)), 2)
+    arousal = round(max(-1.0, min(1.0, (
+        (blended["extraversion"] - _POPULATION_MEAN) * 0.7
+        + (blended["neuroticism"] - _POPULATION_MEAN) * 0.3
+    ) / 50.0)), 2)
+
+    experience_notes = []
+    for exp in life_experiences:
+        tag = exp.get("tag", "")
+        note = _LIFE_EXPERIENCE_NOTES.get(tag)
+        if note:
+            experience_notes.append({
+                "tag": tag,
+                "member_name": exp.get("member_name", "a family member"),
+                "note": note,
+            })
+
+    return {
+        "member_a_name": member_a_name,
+        "member_b_name": member_b_name,
+        "blended_tendencies": blended,
+        "trait_labels": _TRAIT_LABELS,
+        "circumplex": {
+            "valence": valence,
+            "arousal": arousal,
+            "quadrant": _circumplex_quadrant(valence, arousal),
+        },
+        "experience_notes": experience_notes,
+        "methodology_note": (
+            "This is a reflective illustration, not a genetic prediction. Personality traits are "
+            "polygenic and shaped substantially by environment and life experience — there is no "
+            "single dominant or recessive gene for traits like openness or extraversion. The blended "
+            "tendencies above use a regression-toward-the-mean estimate (heritability factor ~45%, "
+            "consistent with published twin-study ranges), not Mendelian inheritance math."
+        ),
+        "disclaimer": (
+            "Illustrative estimate only — not a diagnosis, clinical prediction, or statement of fact "
+            "about any real person's mental or emotional health. Real descendants' personalities are "
+            "shaped by countless factors this tool cannot capture."
+        ),
+        "generated_at": datetime.utcnow().isoformat(),
+    }
+
+
+def _circumplex_quadrant(valence: float, arousal: float) -> str:
+    if valence >= 0 and arousal >= 0:
+        return "Excited / Engaged"
+    if valence >= 0 and arousal < 0:
+        return "Calm / Content"
+    if valence < 0 and arousal >= 0:
+        return "Tense / Stressed"
+    return "Fatigued / Withdrawn"

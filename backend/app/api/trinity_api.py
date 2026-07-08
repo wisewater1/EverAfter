@@ -27,6 +27,7 @@ from app.services.trinity_synapse import (
     behavioral_nudge,
     inheritance_directive,
     cross_saint_whatif,
+    family_pattern_reflection,
 )
 
 router = APIRouter(prefix="/api/v1/trinity", tags=["Trinity Synapse"])
@@ -111,12 +112,20 @@ class TrinitySynapseRequest(BaseModel):
     duration_months: Optional[int] = None
     current_metrics: Optional[Dict[str, float]] = None
 
+    # Family Pattern Reflection (Option 11)
+    member_a_name: Optional[str] = None
+    member_a_traits: Optional[Dict[str, float]] = None
+    member_b_name: Optional[str] = None
+    member_b_traits: Optional[Dict[str, float]] = None
+    life_experiences: Optional[List[Dict[str, Any]]] = None
+
 
 _VALID_ACTIONS = (
     "ancestry_priors, family_heatmap, personality_rx, timeline, contagion, "
     "financial_bridge, trinity_council, cross_saint_goal, family_vitality, "
     "emergency_alert, seasonal_calendar, family_chronicle, elder_care, "
-    "behavioral_nudge, inheritance_directive, cross_saint_whatif"
+    "behavioral_nudge, inheritance_directive, cross_saint_whatif, "
+    "family_pattern_reflection"
 )
 
 
@@ -280,6 +289,16 @@ async def trinity_synapse(req: TrinitySynapseRequest) -> Dict[str, Any]:
                 monthly_income=req.monthly_income or 0.0,
                 family_members=req.family_members or [],
                 ocean_scores=req.ocean_scores,
+            )
+
+        # ── Option 11: Family Pattern Reflection ────────────────────────
+        elif action == "family_pattern_reflection":
+            return family_pattern_reflection(
+                member_a_name=req.member_a_name or "Family Member A",
+                member_a_traits=req.member_a_traits or {},
+                member_b_name=req.member_b_name or "Family Member B",
+                member_b_traits=req.member_b_traits or {},
+                life_experiences=req.life_experiences or [],
             )
 
         else:
