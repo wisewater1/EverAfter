@@ -39,15 +39,20 @@ export default function TrinityCouncilChat() {
         setInput('');
         setLoading(true);
 
-        const data = await trinitySynapse<{ responses: CouncilResponse[] }>('trinity_council', { user_message: input });
-        const councilMsg: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'council',
-            responses: data?.responses || [],
-            timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, councilMsg]);
-        setLoading(false);
+        try {
+            const data = await trinitySynapse<{ responses: CouncilResponse[] }>('trinity_council', { user_message: input });
+            const councilMsg: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'council',
+                responses: data?.responses || [],
+                timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, councilMsg]);
+        } catch (err) {
+            console.warn('TrinityCouncilChat: failed to load council response', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (

@@ -2,6 +2,8 @@
  * DHT API helper: shared fetch wrapper for Delphi Health Trajectory endpoints.
  */
 import { buildApiUrl } from './env';
+import { requestBackendJson } from './backend-request';
+import { buildAccessTokenHeaders } from './auth-session';
 import type { DelphiTrajectory } from '../types/database.types';
 
 const BASE = buildApiUrl('');
@@ -84,13 +86,10 @@ export interface DHTResponse {
 
 async function dhtFetch<T = any>(path: string, options?: RequestInit): Promise<T | null> {
     try {
-        const res = await fetch(`${BASE}/api/v1/dht${path}`, {
-            headers: { 'Content-Type': 'application/json' },
-            ...options,
-        });
-        if (!res.ok) return null;
-        return await res.json();
-    } catch {
+        const headers = await buildAccessTokenHeaders({ 'Content-Type': 'application/json' });
+        return await requestBackendJson<T>(`/api/v1/dht${path}`, { ...options, headers }, 'Failed to reach the DHT service');
+    } catch (err) {
+        console.warn(`DHT request failed for ${path}:`, err);
         return null;
     }
 }

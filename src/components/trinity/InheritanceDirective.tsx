@@ -162,10 +162,19 @@ export default function InheritanceDirective() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const result = await trinitySynapse<InheritanceData>('inheritance_directive', {});
-      if (mounted) {
-        setData(result);
-        setLoading(false);
+      try {
+        const result = await trinitySynapse<InheritanceData>('inheritance_directive', {});
+        if (mounted) {
+          setData(result);
+        }
+      } catch (err) {
+        if (mounted) {
+          console.warn('InheritanceDirective: failed to load trinity synapse data', err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     })();
     return () => {

@@ -192,17 +192,26 @@ export default function PersonalityProfileViewer({
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/generate-personality-profile`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          family_member_id: familyMemberId,
-          force_regenerate: forceRegenerate,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(`${supabaseUrl}/functions/v1/generate-personality-profile`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            family_member_id: familyMemberId,
+            force_regenerate: forceRegenerate,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const result = await response.json();
 

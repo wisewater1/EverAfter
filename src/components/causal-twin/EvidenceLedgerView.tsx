@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronRight, Clock, Database, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
-import { buildApiUrl } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 
 const EVIDENCE_ICONS: Record<string, React.ReactNode> = {
     causal_trial: <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />,
@@ -23,8 +24,12 @@ export default function EvidenceLedgerView({ memberId }: { memberId?: string }) 
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const res = await fetch(buildApiUrl(`/api/v1/causal-twin/evidence${params}`));
-            const data = await res.json();
+            const headers = await apiClient.getAuthHeaders();
+            const data = await requestBackendJson<any>(
+                `/api/v1/causal-twin/evidence${params}`,
+                { headers },
+                'Failed to load evidence ledger.',
+            );
             setEntries(data.entries || []);
             setQuality(data.quality_trend || null);
         } catch (e) { console.error(e); }
@@ -33,8 +38,12 @@ export default function EvidenceLedgerView({ memberId }: { memberId?: string }) 
 
     async function loadDetail(id: string) {
         try {
-            const res = await fetch(buildApiUrl(`/api/v1/causal-twin/evidence/${id}`));
-            const data = await res.json();
+            const headers = await apiClient.getAuthHeaders();
+            const data = await requestBackendJson<any>(
+                `/api/v1/causal-twin/evidence/${id}`,
+                { headers },
+                'Failed to load evidence detail.',
+            );
             setSelectedEntry(data);
         } catch (e) { console.error(e); }
     }

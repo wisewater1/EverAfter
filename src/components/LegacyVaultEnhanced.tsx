@@ -1370,6 +1370,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
       if (error) throw error;
       setSelectedBeneficiaries(data.map((d: any) => ({ id: d.beneficiary_id, role: d.role })));
     } catch (err) {
+      console.warn('Failed to load beneficiaries for this item:', err);
     }
   };
 
@@ -1384,6 +1385,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
       if (error) throw error;
       setAvailableBeneficiaries(data || []);
     } catch (err) {
+      console.warn('Failed to load available beneficiaries:', err);
     }
   };
 
@@ -1889,6 +1891,7 @@ function ItemDetailModal({
   const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [decryptedPayload, setDecryptedPayload] = useState<any>(null);
+  const [decryptFailed, setDecryptFailed] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [requestReason, setRequestReason] = useState('');
   const [requestEvidence, setRequestEvidence] = useState('');
@@ -1940,6 +1943,7 @@ function ItemDetailModal({
 
   const handleDecrypt = async () => {
     if (!item.is_encrypted || !item.payload?.ciphertext || !item.payload?.iv || !item.encryption_key_id) return;
+    setDecryptFailed(false);
     try {
       const key = await importKey(item.encryption_key_id);
       if (!key) throw new Error('Could not import encryption key.');
@@ -1951,6 +1955,8 @@ function ItemDetailModal({
         setDecryptedPayload({ message: decrypted });
       }
     } catch (err) {
+      console.warn('Failed to decrypt vault item:', err);
+      setDecryptFailed(true);
     }
   };
 
@@ -1973,6 +1979,7 @@ function ItemDetailModal({
       if (error) throw error;
       setBeneficiaries(data || []);
     } catch (err) {
+      console.warn('Failed to load beneficiaries for this vault item:', err);
     } finally {
       setLoading(false);
     }
@@ -1980,6 +1987,20 @@ function ItemDetailModal({
 
   const renderPayload = () => {
     const payload = decryptedPayload || item.payload;
+    if (item.is_encrypted && decryptFailed) {
+      return (
+        <div className="p-8 text-center rounded-xl bg-slate-900/50 border border-slate-700/50">
+          <Lock className="w-12 h-12 text-red-500/60 mx-auto mb-4" />
+          <p className="text-slate-400">This item could not be decrypted.</p>
+          <button
+            onClick={handleDecrypt}
+            className="mt-4 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-sm border border-white/10 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
     if (item.is_encrypted && !decryptedPayload) {
       return (
         <div className="p-8 text-center rounded-xl bg-slate-900/50 border border-slate-700/50">

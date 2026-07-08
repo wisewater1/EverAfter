@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { readDemoStorage, writeDemoStorage, createDemoId } from '../lib/demo-storage';
+import { buildHealthApiUrl } from '../lib/env';
+import { buildAccessTokenHeaders } from '../lib/auth-session';
 import {
   Activity, Watch, Heart, Zap, Cloud, Shield,
   CheckCircle, Plus, Droplet, Stethoscope, FlaskConical, Link2,
@@ -468,21 +470,26 @@ export default function ComprehensiveHealthConnectors() {
 
       if (dbError) throw dbError;
 
-      // Ensure we have a valid session to authenticate with the health-api
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('No valid session found for health API authentication.');
-      }
-
       // Hit our new custom node.js rest API
-      const API_BASE_URL = import.meta.env.VITE_HEALTH_API_URL || 'http://localhost:4000';
-      const response = await fetch(`${API_BASE_URL}/api/connections/me/connect/${serviceId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
+      const headers = await buildAccessTokenHeaders({ 'Content-Type': 'application/json' });
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(buildHealthApiUrl(`/api/connections/me/connect/${serviceId}`), {
+          method: 'POST',
+          headers,
+          signal: controller.signal
+        });
+      } catch (fetchError) {
+        if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+          throw new Error('Health API request timed out. Please try again.');
         }
-      });
+        throw fetchError;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
 
       const resData = await response.json();
 

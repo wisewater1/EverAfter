@@ -34,7 +34,20 @@ export default function BehavioralNudgeEngine() {
     const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => { (async () => { setData(await trinitySynapse('behavioral_nudge', {})); setLoading(false); })(); }, []);
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const result = await trinitySynapse('behavioral_nudge', {});
+                if (mounted) setData(result);
+            } catch (err) {
+                console.warn('BehavioralNudgeEngine: failed to load trinity synapse data', err);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+        return () => { mounted = false; };
+    }, []);
 
     if (loading) return <div className="flex items-center gap-2 text-xs text-slate-500 p-4"><Loader2 className="w-4 h-4 animate-spin" />Generating nudges…</div>;
     if (!data) return null;

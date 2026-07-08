@@ -1487,7 +1487,8 @@ export async function trinitySynapse<T = any>(action: string, body: AnyRecord = 
             return normalizeInheritanceDirectivePayload(data) as T;
         }
         return data;
-    } catch {
+    } catch (err) {
+        console.warn('Trinity synapse fallback for', action, err);
         // Fall through to local fallback below.
     }
 

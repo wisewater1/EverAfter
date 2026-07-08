@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { buildApiUrl } from '../../lib/env';
+import { useAuth } from '../../contexts/AuthContext';
+import { requestBackendJson } from '../../lib/backend-request';
+import { buildAccessTokenHeaders } from '../../lib/auth-session';
 
 interface MetricPoint {
     time: string;
@@ -40,47 +42,65 @@ interface SystemMetrics {
 
 export default function SystemMonitorDashboard() {
     const navigate = useNavigate();
+    const { loading: authLoading, session, isDemoMode } = useAuth();
     const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const fetchMetrics = async () => {
-        try {
-            const { data: { session } } = await import('../../lib/supabase').then(m => m.supabase.auth.getSession());
-            const token = session?.access_token;
-            const response = await fetch(buildApiUrl('/api/v1/monitoring/metrics'), {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
+        if (authLoading || isDemoMode || !session?.access_token) {
+            setLoading(false);
+            return;
+        }
 
-            if (response.ok) {
-                const data = await response.json();
-                // The JSX dereferences resources/history unconditionally: only
-                // accept payloads that actually have the metrics shape.
-                if (data?.resources && Array.isArray(data?.history?.cpu) && Array.isArray(data?.history?.memory)) {
-                    data.history.cpu = data.history.cpu.map((p: any) => ({
-                        ...p,
-                        time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                    }));
-                    data.history.memory = data.history.memory.map((p: any) => ({
-                        ...p,
-                        time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                    }));
-                    setMetrics(data);
-                    setLastUpdated(new Date());
-                }
+        try {
+            const headers = await buildAccessTokenHeaders();
+            const data = await requestBackendJson<SystemMetrics>(
+                '/api/v1/monitoring/metrics',
+                {
+                    method: 'GET',
+                    headers,
+                },
+                'Unable to load system metrics.'
+            );
+
+            // The JSX dereferences resources/history unconditionally: only
+            // accept payloads that actually have the metrics shape.
+            if (data?.resources && Array.isArray(data?.history?.cpu) && Array.isArray(data?.history?.memory)) {
+                data.history.cpu = data.history.cpu.map((p: any) => ({
+                    ...p,
+                    time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                }));
+                data.history.memory = data.history.memory.map((p: any) => ({
+                    ...p,
+                    time: new Date(p.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                }));
+                setMetrics(data);
+                setLastUpdated(new Date());
             }
         } catch (err) {
-            console.error("Failed to fetch metrics", err);
+            // Non-fatal: metrics state only updates on a validated success, so
+            // a failed poll just leaves the last-known-good reading on screen.
+            console.warn("Failed to fetch metrics", err);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
+        // Always run once so `loading` resolves (and any last-known metrics
+        // stay visible) even when gated below; fetchMetrics no-ops internally
+        // for demo/logged-out/still-loading-auth states instead of firing a
+        // request that would only 401.
         fetchMetrics();
+
+        if (authLoading || isDemoMode || !session?.access_token) {
+            return;
+        }
+
         const interval = setInterval(fetchMetrics, 5000); // Poll every 5s
         return () => clearInterval(interval);
-    }, []);
+    }, [authLoading, isDemoMode, session?.access_token]);
 
     const formatUptime = (seconds: number) => {
         const h = Math.floor(seconds / 3600);

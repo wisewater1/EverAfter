@@ -46,7 +46,7 @@ export default function WidgetRenderer({
   onPositionChange,
   onSizeChange,
 }: WidgetRendererProps) {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,13 +62,177 @@ export default function WidgetRenderer({
       setLoading(true);
       setError(null);
 
-      const mockData = generateMockData(widget.widget_type);
-      setData(mockData);
+      if (isDemoMode) {
+        setData(generateMockData(widget.widget_type));
+        return;
+      }
+
+      if (!user?.id) {
+        setData(null);
+        return;
+      }
+
+      const real = await loadRealWidgetData(widget.widget_type, user.id);
+      setData(real);
     } catch (err: any) {
-      console.error('Error loading widget data:', err);
+      console.warn('Error loading widget data:', err);
       setError('Failed to load data');
     } finally {
       setLoading(false);
+    }
+  }
+
+  /**
+   * Real (non-demo) data for this widget from the user's own health_metrics
+   * rows. Returns null when there isn't enough recorded data yet, or when a
+   * widget shape (zone-bucketed minutes, sleep-stage breakdown, AI narrative
+   * text) has no honest source in health_metrics today - the caller renders
+   * an explicit "no data yet" state rather than inventing numbers.
+   */
+  async function loadRealWidgetData(widgetType: string, userId: string): Promise<any> {
+    if (!supabase) return null;
+
+    const since14d = new Date(Date.now() - 14 * 86_400_000).toISOString();
+    const { data: rows, error } = await supabase
+      .from('health_metrics')
+      .select('metric_type, metric_value, recorded_at')
+      .eq('user_id', userId)
+      .gte('recorded_at', since14d)
+      .order('recorded_at', { ascending: true })
+      .limit(500);
+
+    if (error || !rows || rows.length === 0) return null;
+
+    const byType = new Map<string, Array<{ value: number; at: string }>>();
+    for (const row of rows) {
+      const type = String((row as any).metric_type || '');
+      const value = Number((row as any).metric_value);
+      if (!type || !Number.isFinite(value)) continue;
+      if (!byType.has(type)) byType.set(type, []);
+      byType.get(type)!.push({ value, at: String((row as any).recorded_at || '') });
+    }
+
+    const seriesOf = (...types: string[]): Array<{ value: number; at: string }> => {
+      for (const t of types) {
+        const series = byType.get(t);
+        if (series && series.length > 0) return series;
+      }
+      return [];
+    };
+    const latestOf = (...types: string[]): number | null => {
+      const series = seriesOf(...types);
+      return series.length > 0 ? series[series.length - 1].value : null;
+    };
+
+    switch (widgetType) {
+      case 'glucose_trend': {
+        const series = seriesOf('glucose');
+        if (series.length === 0) return null;
+        const recent = series.slice(-24);
+        const current = series[series.length - 1].value;
+        const earlier = series.length > 1 ? series[0].value : current;
+        const trend = current > earlier + 5 ? 'up' : current < earlier - 5 ? 'down' : 'stable';
+        const storedTir = latestOf('tir');
+        const computedTir = Math.round(
+          (series.filter((r) => r.value >= 70 && r.value <= 180).length / series.length) * 100,
+        );
+        return {
+          current: Math.round(current),
+          trend,
+          readings: recent.map((r) => ({
+            time: new Date(r.at).toLocaleTimeString(undefined, { hour: 'numeric' }),
+            value: r.value,
+          })),
+          tir: storedTir !== null ? Math.round(storedTir) : computedTir,
+        };
+      }
+
+      case 'glucose_stats': {
+        const series = seriesOf('glucose');
+        if (series.length === 0) return null;
+        const mean = series.reduce((s, r) => s + r.value, 0) / series.length;
+        const variance = series.reduce((s, r) => s + (r.value - mean) ** 2, 0) / series.length;
+        const cv = mean > 0 ? (Math.sqrt(variance) / mean) * 100 : 0;
+        const gmi = 3.31 + 0.02392 * mean; // published GMI formula (mg/dL)
+        const storedTir = latestOf('tir');
+        const computedTir = Math.round(
+          (series.filter((r) => r.value >= 70 && r.value <= 180).length / series.length) * 100,
+        );
+        return {
+          mean: Math.round(mean),
+          gmi: Number(gmi.toFixed(1)),
+          cv: Math.round(cv),
+          tir: storedTir !== null ? Math.round(storedTir) : computedTir,
+        };
+      }
+
+      case 'hrv_trend': {
+        const series = seriesOf('hrv');
+        if (series.length === 0) return null;
+        const current = series[series.length - 1].value;
+        const baseline = series.reduce((s, r) => s + r.value, 0) / series.length;
+        return {
+          current: Math.round(current),
+          baseline: Math.round(baseline),
+          trend: series.slice(-7).map((r) => ({
+            day: new Date(r.at).toLocaleDateString(undefined, { weekday: 'short' }),
+            value: r.value,
+          })),
+        };
+      }
+
+      case 'activity_summary': {
+        const steps = latestOf('steps');
+        if (steps === null) return null;
+        const calories = latestOf('calories') ?? 0;
+        return { steps: Math.round(steps), goal: 10000, calories: Math.round(calories), activeMinutes: 0 };
+      }
+
+      case 'health_summary': {
+        const metrics: Array<{ label: string; value: number; unit: string; status: string }> = [];
+        const glucose = latestOf('glucose');
+        if (glucose !== null) {
+          metrics.push({
+            label: 'Glucose',
+            value: Math.round(glucose),
+            unit: 'mg/dL',
+            status: glucose < 70 || glucose > 180 ? 'warning' : 'good',
+          });
+        }
+        const hr = latestOf('resting_hr', 'resting_heart_rate', 'heart_rate');
+        if (hr !== null) {
+          metrics.push({ label: 'Heart Rate', value: Math.round(hr), unit: 'bpm', status: hr > 100 ? 'warning' : 'good' });
+        }
+        const sleep = latestOf('sleep_efficiency', 'sleep_score');
+        if (sleep !== null) {
+          metrics.push({ label: 'Sleep', value: Math.round(sleep), unit: '%', status: sleep < 70 ? 'warning' : 'good' });
+        }
+        const steps = latestOf('steps');
+        if (steps !== null) {
+          metrics.push({ label: 'Steps', value: Math.round(steps), unit: 'steps', status: steps < 5000 ? 'warning' : 'good' });
+        }
+        return metrics.length > 0 ? { metrics } : null;
+      }
+
+      case 'metric_gauge': {
+        const metricKey = widget.config?.metric;
+        if (!metricKey) return null;
+        const value = latestOf(metricKey);
+        if (value === null) return null;
+        return {
+          value: Math.round(value),
+          goal: Number(widget.config?.goal) || 100,
+          label: widget.config?.label || 'Progress',
+          unit: widget.config?.unit || '',
+        };
+      }
+
+      // heart_rate_zones, sleep_stages, sleep_score, and deep_dive_insight
+      // have no honest source in health_metrics yet (zone-bucketed minutes,
+      // sleep-stage breakdowns, and AI narrative text aren't stored there) -
+      // fall through to the empty state instead of inventing numbers.
+      default:
+        return null;
     }
   }
 
@@ -188,6 +352,18 @@ export default function WidgetRenderer({
           <div className="text-center">
             <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
             <p className="text-sm text-red-400">{error}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!data) {
+      return (
+        <div className="flex items-center justify-center h-full p-4">
+          <div className="text-center">
+            <Activity className="w-6 h-6 mx-auto mb-2 text-slate-600" />
+            <p className="text-sm text-slate-400">No data yet</p>
+            <p className="text-xs text-slate-500 mt-1">Connect a device or log entries to populate this widget.</p>
           </div>
         </div>
       );

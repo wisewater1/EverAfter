@@ -88,6 +88,7 @@ export default function CouncilRoom() {
     const [result, setResult] = useState<DeliberationResult | null>(null);
     const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
     const [showConsensus, setShowConsensus] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // New State for Saint Runtime
     const [coordinationMode, setCoordinationMode] = useState(false);
@@ -107,6 +108,7 @@ export default function CouncilRoom() {
         setResult(null);
         setShowConsensus(false);
         setActiveSpeaker(null);
+        setError(null);
 
         try {
             // Summoning Sequence
@@ -138,8 +140,9 @@ export default function CouncilRoom() {
             setShowConsensus(true);
             setResult(fullResult); // Ensure full result is set
 
-        } catch (error) {
-            console.error("Council failed:", error);
+        } catch (deliberateError) {
+            console.error("Council failed:", deliberateError);
+            setError('The Council could not be reached. Please try again.');
         } finally {
             setIsDeliberating(false);
         }
@@ -366,12 +369,25 @@ export default function CouncilRoom() {
                             {/* Empty State */}
                             {!result && !isDeliberating && (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-4 min-h-[200px]">
-                                    <div className="p-4 rounded-full bg-white/5 border border-white/5">
-                                        <Sparkles className="w-8 h-8 opacity-40" />
+                                    <div className={`p-4 rounded-full border ${error ? 'bg-rose-500/10 border-rose-500/20' : 'bg-white/5 border-white/5'}`}>
+                                        <Sparkles className={`w-8 h-8 ${error ? 'text-rose-400 opacity-70' : 'opacity-40'}`} />
                                     </div>
                                     <div className="text-center max-w-sm">
-                                        <h3 className="text-sm font-medium text-slate-400 mb-1">The Council is Assembled</h3>
-                                        <p className="text-xs text-slate-600">The saints await your query to begin their deliberation.</p>
+                                        <h3 className="text-sm font-medium text-slate-400 mb-1">
+                                            {error ? 'The Council Did Not Answer' : 'The Council is Assembled'}
+                                        </h3>
+                                        <p className="text-xs text-slate-600">
+                                            {error || 'The saints await your query to begin their deliberation.'}
+                                        </p>
+                                        {error && (
+                                            <button
+                                                onClick={handleDeliberate}
+                                                disabled={!query.trim()}
+                                                className="mt-4 px-4 py-2 rounded-full border border-rose-400/30 bg-rose-500/10 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors disabled:opacity-40"
+                                            >
+                                                Try again
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}

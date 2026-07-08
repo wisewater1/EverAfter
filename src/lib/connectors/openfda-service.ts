@@ -68,7 +68,15 @@ export async function searchDrugs(query: string, limit = 5): Promise<DrugInfo[]>
     const url = `${BASE_URL}/drug/label.json?search=(openfda.brand_name:${encoded}+openfda.generic_name:${encoded})&limit=${limit}`;
 
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+        let response: Response;
+        try {
+            response = await fetch(url, { signal: controller.signal });
+        } finally {
+            clearTimeout(timeoutId);
+        }
         if (!response.ok) {
             if (response.status === 404) return [];
             throw new Error(`OpenFDA API error: ${response.status}`);
@@ -106,7 +114,15 @@ export async function getDrugEvents(drugName: string, limit = 10): Promise<DrugE
     const url = `${BASE_URL}/drug/event.json?search=patient.drug.medicinalproduct:${encoded}&limit=${limit}`;
 
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+        let response: Response;
+        try {
+            response = await fetch(url, { signal: controller.signal });
+        } finally {
+            clearTimeout(timeoutId);
+        }
         if (!response.ok) {
             if (response.status === 404) return [];
             throw new Error(`OpenFDA API error: ${response.status}`);
@@ -138,7 +154,15 @@ export async function getDrugRecalls(drugName: string, limit = 5): Promise<DrugR
     const url = `${BASE_URL}/drug/enforcement.json?search=product_description:${encoded}&limit=${limit}`;
 
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+        let response: Response;
+        try {
+            response = await fetch(url, { signal: controller.signal });
+        } finally {
+            clearTimeout(timeoutId);
+        }
         if (!response.ok) {
             if (response.status === 404) return [];
             throw new Error(`OpenFDA API error: ${response.status}`);
@@ -213,7 +237,15 @@ export async function getTopAdverseReactions(drugName: string, limit = 10): Prom
     const url = `${BASE_URL}/drug/event.json?search=patient.drug.medicinalproduct:${encoded}&count=patient.reaction.reactionmeddrapt.exact&limit=${limit}`;
 
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+        let response: Response;
+        try {
+            response = await fetch(url, { signal: controller.signal });
+        } finally {
+            clearTimeout(timeoutId);
+        }
         if (!response.ok) {
             if (response.status === 404) return [];
             throw new Error(`OpenFDA API error: ${response.status}`);

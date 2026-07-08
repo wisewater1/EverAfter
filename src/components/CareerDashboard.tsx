@@ -72,6 +72,7 @@ export default function CareerDashboard() {
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Profile form state
   const [formData, setFormData] = useState({
@@ -133,7 +134,7 @@ export default function CareerDashboard() {
   };
 
   const fetchGoals = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('career_goals')
       .select('*')
       .eq('user_id', user?.id)
@@ -141,22 +142,30 @@ export default function CareerDashboard() {
       .order('created_at', { ascending: false })
       .limit(5);
 
+    if (error) {
+      throw error;
+    }
+
     setGoals(data || []);
   };
 
   const fetchLeads = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('career_leads')
       .select('*')
       .eq('user_id', user?.id)
       .order('created_at', { ascending: false })
       .limit(5);
 
+    if (error) {
+      throw error;
+    }
+
     setLeads(data || []);
   };
 
   const fetchQuestions = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('career_unknown_questions')
       .select('*')
       .eq('user_id', user?.id)
@@ -164,25 +173,39 @@ export default function CareerDashboard() {
       .order('created_at', { ascending: false })
       .limit(5);
 
+    if (error) {
+      throw error;
+    }
+
     setQuestions(data || []);
   };
 
   const saveProfile = async () => {
+    setProfileError(null);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const session = await supabase.auth.getSession();
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/career-profile-update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          generate_new_token: formData.public_chat_enabled && !profile?.public_chat_token
-        })
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(`${supabaseUrl}/functions/v1/career-profile-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.data.session?.access_token}`
+          },
+          body: JSON.stringify({
+            ...formData,
+            generate_new_token: formData.public_chat_enabled && !profile?.public_chat_token
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -191,6 +214,7 @@ export default function CareerDashboard() {
       }
     } catch (error) {
       console.error('Error saving profile:', error);
+      setProfileError('Failed to save profile. Please try again.');
     }
   };
 
@@ -393,6 +417,13 @@ export default function CareerDashboard() {
                 </div>
               )}
             </div>
+
+            {profileError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-sm">{profileError}</p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3">
               <button

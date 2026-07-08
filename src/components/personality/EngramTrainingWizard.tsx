@@ -8,7 +8,8 @@ import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
 import { supabase } from '../../lib/supabase';
 import { apiClient } from '../../lib/api-client';
-import { buildApiUrl } from '../../lib/env';
+import { buildAccessTokenHeaders } from '../../lib/auth-session';
+import { requestBackendJson } from '../../lib/backend-request';
 
 import type { EngramResponse } from '../../types/database.types';
 type ArchetypalAI = EngramResponse;
@@ -153,22 +154,24 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
     const startQuiz = useCallback(async () => {
         setQuizLoading(true);
         try {
-            const res = await fetch(buildApiUrl('/api/v1/personality-quiz/start'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    member_id: ai.id,
-                    member_name: ai.name,
-                }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setSessionId(data.session_id);
-                setQuestions(data.questions);
-                setAnswers({});
-                setCurrentQ(0);
-                setStep('quiz');
-            }
+            const headers = await buildAccessTokenHeaders({ 'Content-Type': 'application/json' });
+            const data = await requestBackendJson<{ session_id: string; questions: QuizQuestion[] }>(
+                '/api/v1/personality-quiz/start',
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        member_id: ai.id,
+                        member_name: ai.name,
+                    }),
+                },
+                'Failed to start personality quiz.',
+            );
+            setSessionId(data.session_id);
+            setQuestions(data.questions);
+            setAnswers({});
+            setCurrentQ(0);
+            setStep('quiz');
         } catch {
             // Fallback: generate simple local questions
             const localQs = generateLocalQuestions();
@@ -198,13 +201,19 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
             let profileData: PersonalityProfile | null = null;
 
             if (!sessionId.startsWith('local-')) {
-                const res = await fetch(buildApiUrl('/api/v1/personality-quiz/submit'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId, answers }),
-                });
-                if (res.ok) {
-                    profileData = await res.json();
+                try {
+                    const headers = await buildAccessTokenHeaders({ 'Content-Type': 'application/json' });
+                    profileData = await requestBackendJson<PersonalityProfile>(
+                        '/api/v1/personality-quiz/submit',
+                        {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ session_id: sessionId, answers }),
+                        },
+                        'Failed to submit personality quiz.',
+                    );
+                } catch {
+                    profileData = null;
                 }
             }
 

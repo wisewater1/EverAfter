@@ -47,20 +47,29 @@ export default function FamilyVitalityScore() {
 
     async function load(force = false) {
         setLoading(true);
-        // Warm the live per-user signals first so the score reflects real
-        // health, finance, family, and guidance data rather than the sample.
-        await refreshTrinitySignals(force);
-        const d = await trinitySynapse('family_vitality', {});
-        setData(d);
-        setLoading(false);
+        try {
+            // Warm the live per-user signals first so the score reflects real
+            // health, finance, family, and guidance data rather than the sample.
+            await refreshTrinitySignals(force);
+            const d = await trinitySynapse('family_vitality', {});
+            setData(d);
+        } catch (err) {
+            console.warn('FamilyVitalityScore: failed to load vitality data', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     useEffect(() => {
         load();
         const onSignals = () => {
             void (async () => {
-                const d = await trinitySynapse('family_vitality', {});
-                setData(d);
+                try {
+                    const d = await trinitySynapse('family_vitality', {});
+                    setData(d);
+                } catch (err) {
+                    console.warn('FamilyVitalityScore: failed to refresh vitality data', err);
+                }
             })();
         };
         window.addEventListener('everafter:trinity-signals-updated', onSignals);

@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, Brain, Play, Sliders, Sparkles, TrendingUp } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
-import { buildApiUrl } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 
 const BEHAVIOR_SLIDERS = [
     { key: 'sleep_hours', label: 'Sleep', min: 4, max: 10, step: 0.5, default: 7, unit: 'hours', group: 'Recovery' },
@@ -48,12 +49,18 @@ export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const response = await fetch(buildApiUrl(`/api/v1/causal-twin/simulate${params}`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ behavior_changes: values }),
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
             });
-            const data = await response.json();
+            const data = await requestBackendJson<any>(
+                `/api/v1/causal-twin/simulate${params}`,
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ behavior_changes: values }),
+                },
+                'Simulation failed.',
+            );
             setResult(data);
         } catch (error) {
             console.error('Simulation failed:', error);

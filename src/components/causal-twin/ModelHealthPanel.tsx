@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, TrendingUp, AlertTriangle, RefreshCw, CheckCircle, Activity } from 'lucide-react';
-import { buildApiUrl } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 
 export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     const [health, setHealth] = useState<any>(null);
@@ -12,8 +13,12 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
         setLoading(true);
         try {
             const params = memberId ? `?member_id=${memberId}` : '';
-            const res = await fetch(buildApiUrl(`/api/v1/causal-twin/model-health${params}`));
-            const data = await res.json();
+            const headers = await apiClient.getAuthHeaders();
+            const data = await requestBackendJson<any>(
+                `/api/v1/causal-twin/model-health${params}`,
+                { headers },
+                'Failed to load model health.',
+            );
             setHealth(data);
         } catch (e) { console.error(e); }
         setLoading(false);

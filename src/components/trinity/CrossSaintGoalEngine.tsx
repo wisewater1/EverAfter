@@ -95,40 +95,50 @@ export default function CrossSaintGoalEngine() {
         if (!goalName.trim()) return;
 
         setLoading(true);
-        const result = await trinitySynapse<TrinityGoal>('cross_saint_goal', {
-            goal_name: goalName.trim(),
-            goal_type: goalType,
-            health_target: { metric: healthMetric, target_value: targetValue },
-            budget_allocation: { category: budgetCategory, monthly_amount: monthlyAmount },
-            family_tracking: trackedMembers,
-        });
+        try {
+            const result = await trinitySynapse<TrinityGoal>('cross_saint_goal', {
+                goal_name: goalName.trim(),
+                goal_type: goalType,
+                health_target: { metric: healthMetric, target_value: targetValue },
+                budget_allocation: { category: budgetCategory, monthly_amount: monthlyAmount },
+                family_tracking: trackedMembers,
+            });
 
-        if (result) {
-            const nextGoals = persistTrinityGoal(result);
-            setGoals(nextGoals);
-            setExpandedGoalId(nextGoals[0]?.id || null);
+            if (result) {
+                const nextGoals = persistTrinityGoal(result);
+                setGoals(nextGoals);
+                setExpandedGoalId(nextGoals[0]?.id || null);
+            }
+
+            resetCreateForm();
+            setShowCreate(false);
+        } catch (err) {
+            console.warn('CrossSaintGoalEngine: failed to create goal', err);
+        } finally {
+            setLoading(false);
         }
-
-        resetCreateForm();
-        setShowCreate(false);
-        setLoading(false);
     }
 
     async function recalculateGoal(goal: TrinityGoal) {
         setBusyGoalId(goal.id || goal.goal_name);
-        const result = await trinitySynapse<TrinityGoal>('cross_saint_goal', {
-            goal_name: goal.goal_name,
-            goal_type: goal.goal_type,
-            health_target: goal.health_target,
-            budget_allocation: goal.budget_allocation,
-            family_tracking: goal.family_tracking || [],
-        });
+        try {
+            const result = await trinitySynapse<TrinityGoal>('cross_saint_goal', {
+                goal_name: goal.goal_name,
+                goal_type: goal.goal_type,
+                health_target: goal.health_target,
+                budget_allocation: goal.budget_allocation,
+                family_tracking: goal.family_tracking || [],
+            });
 
-        if (result) {
-            const nextGoals = persistTrinityGoal({ ...goal, ...result, id: goal.id });
-            setGoals(nextGoals);
+            if (result) {
+                const nextGoals = persistTrinityGoal({ ...goal, ...result, id: goal.id });
+                setGoals(nextGoals);
+            }
+        } catch (err) {
+            console.warn('CrossSaintGoalEngine: failed to recalculate goal', err);
+        } finally {
+            setBusyGoalId(null);
         }
-        setBusyGoalId(null);
     }
 
     function markGoalReviewed(goal: TrinityGoal) {

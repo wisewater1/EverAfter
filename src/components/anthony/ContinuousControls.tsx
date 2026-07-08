@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheck, AlertCircle, Activity, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { buildApiUrl } from '../../lib/env';
+import { getComplianceReadiness } from '../../lib/michael/security';
 
 interface Control {
     id: string;
@@ -38,19 +38,28 @@ export default function ContinuousControls() {
     useEffect(() => {
         const fetchControls = async () => {
             try {
-                const res = await fetch(buildApiUrl('/api/v1/audit/controls/readiness'));
-                if (res.ok) {
-                    const data = await res.json();
-                    setScore(Number.isFinite(data?.readiness_score) ? data.readiness_score : null);
-                    setControls(Array.isArray(data?.controls) ? data.controls : FALLBACK_CONTROLS);
-                    setUnavailable(!Number.isFinite(data?.readiness_score));
-                } else {
-                    // No live readiness data. Show an honest unavailable state
-                    // rather than a fabricated perfect score.
-                    setUnavailable(true);
-                    setControls(FALLBACK_CONTROLS);
-                }
+                // Same live readiness endpoint St. Michael's CompliancePanel uses
+                // (src/lib/michael/security.ts), so it carries real auth instead
+                // of an unauthenticated fetch that would 401 every time.
+                const data = await getComplianceReadiness();
+                const readinessScore = data?.readiness_score;
+                const hasValidScore = Number.isFinite(readinessScore);
+                setScore(hasValidScore ? readinessScore : null);
+                setControls(
+                    Array.isArray(data?.controls)
+                        ? data.controls.map((control) => ({
+                            id: control.id,
+                            controlId: control.controlId,
+                            description: control.description,
+                            isPassing: control.isPassing,
+                            lastCheckedAt: control.lastCheckedAt || new Date().toISOString(),
+                        }))
+                        : FALLBACK_CONTROLS
+                );
+                setUnavailable(!hasValidScore);
             } catch (err) {
+                // Genuine failure (network outage, backend down, auth failure):
+                // show an honest unavailable state rather than a fabricated score.
                 console.warn("Failed to fetch compliance readiness", err);
                 setUnavailable(true);
                 setControls(FALLBACK_CONTROLS);

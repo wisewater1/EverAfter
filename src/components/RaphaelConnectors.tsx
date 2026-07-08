@@ -353,16 +353,25 @@ export default function RaphaelConnectors() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cgm-manual-upload`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: formData,
-          }
-        );
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        let response: Response;
+        try {
+          response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cgm-manual-upload`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: formData,
+              signal: controller.signal,
+            }
+          );
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -412,17 +421,26 @@ export default function RaphaelConnectors() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-health-now`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ provider: providerId, days: 7 }),
-        }
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-health-now`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ provider: providerId, days: 7 }),
+            signal: controller.signal,
+          }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

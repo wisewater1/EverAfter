@@ -106,20 +106,29 @@ export default function ComprehensiveAnalyticsDashboard() {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-aggregator`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            timePeriod,
-            refreshCache,
-          }),
-        }
-      );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics-aggregator`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              timePeriod,
+              refreshCache,
+            }),
+            signal: controller.signal,
+          }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         throw new Error('Failed to fetch analytics');

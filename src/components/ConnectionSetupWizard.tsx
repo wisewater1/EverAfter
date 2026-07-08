@@ -72,15 +72,23 @@ export default function ConnectionSetupWizard({ onComplete, onCancel }: Connecti
 
     try {
       if (selectedService.requiresOAuth) {
-        const state = btoa(JSON.stringify({
-          userId: user.id,
-          serviceType: selectedService.type
-        }));
+        // connect-start is the real OAuth entry point (see RaphaelConnectors.tsx)
+        // and only knows how to start these provider flows server-side today.
+        const supportedProviders = ['fitbit', 'oura', 'dexcom', 'terra'];
+        if (!supportedProviders.includes(selectedService.type)) {
+          setError(`${selectedService.name} isn't connected through this flow yet. Check the Devices page for supported integrations.`);
+          setLoading(false);
+          return;
+        }
 
-        const redirectUri = `${window.location.origin}/oauth/callback`;
-        const oauthUrl = `https://oauth-provider.example.com/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=${redirectUri}&state=${state}&service=${selectedService.name}`;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('Please log in to connect providers.');
+          setLoading(false);
+          return;
+        }
 
-        window.location.href = oauthUrl;
+        window.location.href = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-start?provider=${selectedService.type}`;
       } else {
         const { error: insertError } = await supabase
           .from('health_connections')

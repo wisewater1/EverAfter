@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, DollarSign, Heart, Users, Calendar, Brain, Shield, Sparkles } from 'lucide-react';
-import { API_BASE_URL } from '../lib/env';
+import { requestBackendJson } from '../lib/backend-request';
+import { buildAccessTokenHeaders } from '../lib/auth-session';
 
 interface TimelineEvent {
     id: string;
@@ -19,18 +20,13 @@ export default function HolisticTimeline() {
     useEffect(() => {
         async function fetchNeuralGraph() {
             try {
-                const token = localStorage.getItem('token');
-                const headers: Record<string, string> = {};
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const res = await fetch(`${API_BASE_URL}/api/v1/saints/memory/dump`, {
-                    headers
-                });
-
-                if (!res.ok) throw new Error('Failed to fetch Akashic records');
-
-                const raw = await res.json();
-                const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.events) ? raw.events : []);
+                const headers = await buildAccessTokenHeaders();
+                const raw = await requestBackendJson<unknown>(
+                    '/api/v1/saints/memory/dump',
+                    { headers },
+                    'Failed to fetch Akashic records',
+                );
+                const list = Array.isArray(raw) ? raw : (Array.isArray((raw as { events?: unknown })?.events) ? (raw as { events: unknown[] }).events : []);
 
                 // Filter and map out Neural Graph Events
                 const globalEvents: TimelineEvent[] = list
@@ -51,7 +47,10 @@ export default function HolisticTimeline() {
                 globalEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
                 setEvents(globalEvents);
             } catch (err) {
-                console.error('Error fetching Neural Graph:', err);
+                // The Neural Graph has an honest empty state below; a
+                // console.error here would just be noise every time the
+                // backend is slow to wake, so this warns instead.
+                console.warn('Neural Graph is unavailable right now:', err);
             } finally {
                 setLoading(false);
             }

@@ -154,17 +154,38 @@ export default function ConnectionRotationConfig() {
 
       // If enabled, schedule the first rotation
       if (config.enabled) {
-        const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connection-rotation?action=schedule_rotation`;
-        const { data: { session } } = await supabase.auth.getSession();
+        try {
+          const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connection-rotation?action=schedule_rotation`;
+          const { data: { session } } = await supabase.auth.getSession();
 
-        await fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ user_id: user?.id }),
-        });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+          try {
+            const response = await fetch(functionUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({ user_id: user?.id }),
+              signal: controller.signal,
+            });
+
+            if (!response.ok) {
+              throw new Error(`Schedule rotation request failed: ${response.status}`);
+            }
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        } catch (scheduleError) {
+          console.error('Error scheduling rotation:', scheduleError);
+          setMessage({
+            type: 'error',
+            text: 'Configuration saved, but scheduling the first rotation failed. Please try saving again.',
+          });
+          return;
+        }
       }
 
       setMessage({ type: 'success', text: 'Configuration saved successfully!' });
