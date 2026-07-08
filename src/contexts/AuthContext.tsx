@@ -6,6 +6,7 @@ import { withTimeout } from '../lib/withTimeout';
 import { attemptAuthConfigRecovery, isInvalidApiKeyError } from '../lib/auth-config-recovery';
 import { clearDemoAuth, enableDemoAuth, isDemoAuthEnabled, readDemoAuthState } from '../lib/demo-auth';
 import { initDemoInterceptor, removeDemoInterceptor } from '../lib/demo/demo-data-provider';
+import { warmupBackend } from '../lib/backend-request';
 
 export interface ErrorNotificationHook {
   showError: (message: string, severity?: 'critical' | 'warning' | 'info') => void;
@@ -101,6 +102,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
+
+    // Fire-and-forget: a free-tier backend instance can take 30-60s to wake
+    // from cold. Pinging it now, before the user reaches any screen that
+    // actually needs it, gives it the largest possible head start instead
+    // of waiting for the first real feature request to trigger the wake-up.
+    warmupBackend();
 
     const persistSnapshot = (nextSession: Session | null) => {
       if (typeof window === 'undefined') return;
