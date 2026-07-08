@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Brain, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Brain, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { getBehavioralModifiers, getOcean, type BehavioralModifier, type OceanMetrics } from '../../lib/dhtApi';
 
 const TRAIT_CONFIG: Record<string, { label: string; color: string; description: string }> = {
@@ -91,7 +91,7 @@ export default function OceanBehavioralLayer({ personId }: OceanLayerProps) {
                         <p className="text-[10px] text-slate-500">Behavior-aware care tone, adherence, and recovery style</p>
                     </div>
                 </div>
-                {expanded ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
+                {expanded ? <ChevronLeft className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
             </div>
 
             <div className="space-y-4 p-4">

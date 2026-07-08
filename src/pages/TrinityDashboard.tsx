@@ -1,5 +1,5 @@
 /**
- * TrinityDashboard — Central hub for all 10 cross-Saint features.
+ * TrinityDashboard: Central hub for all 10 cross-Saint features.
  * Route: /trinity
  */
 import { useState } from 'react';
@@ -57,7 +57,7 @@ export default function TrinityDashboard() {
                         </div>
                         <div>
                             <h1 className="text-sm font-bold text-white">Trinity Dashboard</h1>
-                            <p className="text-[10px] text-slate-500">Joseph · Raphael · Gabriel — Unified Intelligence</p>
+                            <p className="text-[10px] text-slate-500">Joseph · Raphael · Gabriel, Unified Intelligence</p>
                         </div>
                     </div>
                     <div className="ml-auto hidden sm:block">
@@ -127,7 +127,7 @@ export default function TrinityDashboard() {
                                 <div>
                                     <p className="text-[10px] uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1">
                                         <span className="w-1 h-1 rounded-full bg-teal-500 inline-block"></span>
-                                        Delphi Health Trajectory — {user.email?.split('@')[0]}
+                                        Delphi Health Trajectory, {user.email?.split('@')[0]}
                                     </p>
                                     <DHTPanel personId={user.id} compact={false} />
                                 </div>

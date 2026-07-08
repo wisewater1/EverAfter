@@ -171,7 +171,7 @@ export default function WhatIfSimulator({ memberId }: { memberId?: string }) {
                                     <div key={metric} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/20 transition-colors">
                                         <span className="text-xs text-slate-500 uppercase tracking-wider block mb-2">{prettyMetric(metric)}</span>
                                         <div className="flex items-baseline gap-1">
-                                            <span className={`text-2xl font-bold ${data.direction === 'lower_better' ? 'text-blue-400' : 'text-emerald-400'}`}>{data.mid ?? '—'}</span>
+                                            <span className={`text-2xl font-bold ${data.direction === 'lower_better' ? 'text-blue-400' : 'text-emerald-400'}`}>{data.mid ?? ', '}</span>
                                             <span className="text-xs text-slate-500">{data.unit || ''}</span>
                                         </div>
                                         <div className="mt-2 h-2 rounded-full bg-slate-700/50 overflow-hidden">

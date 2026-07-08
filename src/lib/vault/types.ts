@@ -1,5 +1,5 @@
 /**
- * Legacy Vault — shared types.
+ * Legacy Vault: shared types.
  *
  * Extracted from src/components/LegacyVaultEnhanced.tsx (2102 LOC) so the
  * vault types are reusable across sub-components without forcing
@@ -33,7 +33,7 @@ export interface VaultItem {
     title: string;
     slug?: string;
     status: VaultItemStatus;
-    // payload is unmodelled jsonb — kept as Record so consumers can read
+    // payload is unmodelled jsonb: kept as Record so consumers can read
     // common fields like recipients without losing the rest.
     payload: Record<string, unknown> & {
         recipients?: unknown[];

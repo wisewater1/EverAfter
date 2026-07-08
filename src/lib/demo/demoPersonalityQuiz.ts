@@ -1,10 +1,10 @@
 /**
- * Demo-mode personality quiz — a real, answer-driven OCEAN model.
+ * Demo-mode personality quiz: a real, answer-driven OCEAN model.
  *
  * In demo mode there is no backend, so the questions AND the analysis must be
  * computed locally. This module mirrors the backend's Big-Five scoring closely
  * enough that the profile genuinely reflects what the user answered (the whole
- * point — "no real connection between the questions and the personality" was
+ * point: "no real connection between the questions and the personality" was
  * the demo serving a generic stub instead of scoring the answers).
  */
 
@@ -91,16 +91,16 @@ function deriveCommunicationStyle(s: Scores): string {
 
 function resolveArchetype(s: Scores): { name: string; emoji: string; description: string } {
   const { openness: o, conscientiousness: c, extraversion: e, agreeableness: a, neuroticism: n } = s;
-  if (o > 70 && e > 65) return { name: 'The Explorer', emoji: '🧭', description: 'Adventurous and magnetic — you seek the unknown and bring everyone along.' };
-  if (c > 70 && a > 65) return { name: 'The Guardian', emoji: '🛡️', description: 'Dependable and caring — you protect others while keeping things in order.' };
-  if (o > 65 && n < 35) return { name: 'The Visionary', emoji: '🔮', description: 'Creative and steady — you imagine bold futures with quiet confidence.' };
-  if (a > 70 && n > 60) return { name: 'The Healer', emoji: '💚', description: 'Deeply empathetic — you sense and soothe what others miss.' };
-  if (e > 70 && c > 60) return { name: 'The Commander', emoji: '👑', description: 'Assertive and organized — you inspire action and lead with competence.' };
-  if (o > 60 && e < 35) return { name: 'The Sage', emoji: '📚', description: 'Introspective and rich in thought — you seek deep truth in solitude.' };
-  if (e > 65 && a > 60) return { name: 'The Connector', emoji: '🤝', description: 'Warm and outgoing — you build bridges and create community.' };
-  if (c > 65 && n < 35) return { name: 'The Architect', emoji: '📐', description: 'Precise and unflappable — you build reliable systems with calm mastery.' };
-  if (a > 65) return { name: 'The Nurturer', emoji: '🌿', description: 'Kind and supportive — you make people feel safe and seen.' };
-  return { name: 'The Balanced Soul', emoji: '⚖️', description: 'Even and adaptable — you meet each moment with measured grace.' };
+  if (o > 70 && e > 65) return { name: 'The Explorer', emoji: '🧭', description: 'Adventurous and magnetic, you seek the unknown and bring everyone along.' };
+  if (c > 70 && a > 65) return { name: 'The Guardian', emoji: '🛡️', description: 'Dependable and caring, you protect others while keeping things in order.' };
+  if (o > 65 && n < 35) return { name: 'The Visionary', emoji: '🔮', description: 'Creative and steady, you imagine bold futures with quiet confidence.' };
+  if (a > 70 && n > 60) return { name: 'The Healer', emoji: '💚', description: 'Deeply empathetic, you sense and soothe what others miss.' };
+  if (e > 70 && c > 60) return { name: 'The Commander', emoji: '👑', description: 'Assertive and organized, you inspire action and lead with competence.' };
+  if (o > 60 && e < 35) return { name: 'The Sage', emoji: '📚', description: 'Introspective and rich in thought, you seek deep truth in solitude.' };
+  if (e > 65 && a > 60) return { name: 'The Connector', emoji: '🤝', description: 'Warm and outgoing, you build bridges and create community.' };
+  if (c > 65 && n < 35) return { name: 'The Architect', emoji: '📐', description: 'Precise and unflappable, you build reliable systems with calm mastery.' };
+  if (a > 65) return { name: 'The Nurturer', emoji: '🌿', description: 'Kind and supportive, you make people feel safe and seen.' };
+  return { name: 'The Balanced Soul', emoji: '⚖️', description: 'Even and adaptable, you meet each moment with measured grace.' };
 }
 
 function deriveFamilyRole(s: Scores): { role: string; description: string } {

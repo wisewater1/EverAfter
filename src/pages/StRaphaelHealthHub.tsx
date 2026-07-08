@@ -466,7 +466,7 @@ export default function StRaphaelHealthHub() {
                         )}
 
                         {activeView === 'simulation' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700">
                                 <div className="p-8 rounded-[32px] bg-gradient-to-br from-[#12121a] to-[#0d0d12] border border-white/[0.03]">
                                     <div className="mb-8">
                                         <h3 className="text-2xl font-bold text-white mb-2">Decision Simulator</h3>
@@ -478,13 +478,13 @@ export default function StRaphaelHealthHub() {
                         )}
 
                         {activeView === 'lab' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700">
                                 <ExperimentLab />
                             </div>
                         )}
 
                         {activeView === 'analytics' && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
                                 <DeviceMonitorDashboard />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <ConnectionRotationConfig />
@@ -495,7 +495,7 @@ export default function StRaphaelHealthHub() {
                         )}
 
                         {activeView === 'trajectory' && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
                                 <TrajectoryDashboard userId={user?.id || ''} />
                                 <PredictiveHealthInsights />
                                 <div className="p-8 rounded-[32px] bg-gradient-to-br from-[#0d0d12] to-[#13131a] border border-white/[0.03]">
@@ -505,7 +505,7 @@ export default function StRaphaelHealthHub() {
                         )}
 
                         {activeView === 'governance' && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
                                 <GovernanceView
                                     biometricsReady={hasData}
                                     biometricNotice={hasData ? null : (hubNotice || 'Raphael is still waiting for live biometric sync.')}
@@ -518,7 +518,7 @@ export default function StRaphaelHealthHub() {
                         )}
 
                         {activeView === 'chat' && (
-                            <div className="h-[600px] animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="h-[600px] animate-in fade-in slide-in-from-left-4 duration-700">
                                 <RaphaelChat />
                             </div>
                         )}
@@ -680,10 +680,10 @@ function SynapsePulse() {
                     disabled={pulsing}
                     className={`px-8 py-4 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all flex items-center gap-3 shadow-lg shadow-teal-500/20 active:scale-95 ${pulsing
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        : 'bg-teal-500 text-white hover:bg-teal-400 hover:-translate-y-1'
+                        : 'bg-teal-500 text-white hover:bg-teal-400 hover:scale-[1.02]'
                         }`}
                 >
-                    <Zap className={`w-4 h-4 ${pulsing ? 'motion-safe:animate-bounce' : ''}`} />
+                    <Zap className={`w-4 h-4 ${pulsing ? 'motion-safe:animate-pulse' : ''}`} />
                     {pulsing ? 'Processing...' : 'Trigger Pulse'}
                 </button>
             </div>
@@ -695,7 +695,7 @@ function SynapsePulse() {
             )}
 
             {result && (
-                <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-left-4 duration-700">
                     <div>
                         <h4 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-4">Neural Trajectory Prediction</h4>
                         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">

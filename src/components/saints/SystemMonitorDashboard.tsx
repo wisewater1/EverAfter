@@ -54,7 +54,7 @@ export default function SystemMonitorDashboard() {
 
             if (response.ok) {
                 const data = await response.json();
-                // The JSX dereferences resources/history unconditionally — only
+                // The JSX dereferences resources/history unconditionally: only
                 // accept payloads that actually have the metrics shape.
                 if (data?.resources && Array.isArray(data?.history?.cpu) && Array.isArray(data?.history?.memory)) {
                     data.history.cpu = data.history.cpu.map((p: any) => ({

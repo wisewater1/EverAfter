@@ -327,7 +327,7 @@ export default function WiseGoldPanel() {
       setWill(walletData.living_will);
       setPolicy(walletData.policy);
       setSocialStanding(walletData.social_standing);
-      // Coerce to arrays — the demo finance mock can hand back an object,
+      // Coerce to arrays: the demo finance mock can hand back an object,
       // and `.map`/`.length` on a non-array would crash this tab.
       setCovenants(Array.isArray(covenantData) ? covenantData : []);
       setLedger(Array.isArray(ledgerData) ? ledgerData : []);

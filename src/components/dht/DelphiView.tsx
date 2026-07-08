@@ -209,7 +209,7 @@ export default function DelphiView({ personId, memberName = 'You' }: DelphiViewP
 
             {activeTab === 'next-best' && (
                 <div className="space-y-3">
-                    <p className="text-xs text-slate-500">The measurement below would reduce your trajectory uncertainty the most.</p>
+                    <p className="text-xs text-slate-500">This measurement would reduce your trajectory uncertainty the most.</p>
                     <NextBestMeasurement personId={personId} />
                 </div>
             )}

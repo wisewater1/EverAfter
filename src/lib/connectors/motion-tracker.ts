@@ -39,9 +39,9 @@ export class MotionTracker {
     private session: ActivitySession | null = null;
     private stepCount = 0;
     private lastAccelMagnitude = 0;
-    private stepThreshold = 1.2; // m/s² — threshold for step detection
+    private stepThreshold = 1.2; // m/s², threshold for step detection
     private lastStepTime = 0;
-    private minStepInterval = 250; // ms — minimum time between steps
+    private minStepInterval = 250; // ms, minimum time between steps
     private listeners: StepCallback[] = [];
     private watchId: number | null = null;
     private motionHandler: ((e: DeviceMotionEvent) => void) | null = null;

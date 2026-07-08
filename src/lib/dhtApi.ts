@@ -1,5 +1,5 @@
 /**
- * DHT API helper — shared fetch wrapper for Delphi Health Trajectory endpoints.
+ * DHT API helper: shared fetch wrapper for Delphi Health Trajectory endpoints.
  */
 import { buildApiUrl } from './env';
 import type { DelphiTrajectory } from '../types/database.types';

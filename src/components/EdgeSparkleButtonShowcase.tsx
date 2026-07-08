@@ -133,7 +133,7 @@ export default function EdgeSparkleButtonShowcase() {
           <div className="bg-slate-900/50 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-8">
             <div className="text-center space-y-6">
               <p className="text-slate-300">
-                Click the button below to see it in action
+                Click the button to see it in action
               </p>
               <EdgeSparkleButton
                 variant="primary"

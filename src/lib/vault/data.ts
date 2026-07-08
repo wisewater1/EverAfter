@@ -1,10 +1,10 @@
 /**
- * Legacy Vault — Supabase data layer.
+ * Legacy Vault: Supabase data layer.
  *
  * Extracted from src/components/LegacyVaultEnhanced.tsx so the vault's
  * Supabase access can be reused (and unit-tested) outside of the giant
- * component. The functions here are pure async helpers — no React state,
- * no setLoading — so the caller stays in charge of UI lifecycle.
+ * component. The functions here are pure async helpers: no React state,
+ * no setLoading: so the caller stays in charge of UI lifecycle.
  *
  * Slice 1 of the LegacyVaultEnhanced refactor: pure code movement,
  * matching the original semantics one-to-one. Behavior change is
@@ -33,7 +33,7 @@ function ensureClient() {
 
 /**
  * Load every vault item of `type` owned by `user`. Matches the existing
- * "Continuity" section query — newest first.
+ * "Continuity" section query: newest first.
  */
 export async function fetchVaultItems(
     user: AuthUser,
@@ -52,7 +52,7 @@ export async function fetchVaultItems(
 }
 
 /**
- * Items shared TO the current user — items where they appear as a
+ * Items shared TO the current user: items where they appear as a
  * beneficiary by email match. Used by the "Shared" section.
  */
 export async function fetchSharedVaultItems(
@@ -95,7 +95,7 @@ export async function fetchBeneficiaries(
     return (data || []) as Beneficiary[];
 }
 
-/** Recent vault receipts (audit / export proofs) — last 20. */
+/** Recent vault receipts (audit / export proofs): last 20. */
 export async function fetchReceipts(user: AuthUser): Promise<Receipt[]> {
     const client = ensureClient();
     const { data, error } = await client

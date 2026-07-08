@@ -135,7 +135,7 @@ export default function CausalTwinDashboard({ memberId }: { memberId?: string })
                                                 {metric.replace(/_/g, ' ')}
                                             </span>
                                             <div className="mt-1">
-                                                <span className="text-lg font-bold text-white">{sevenDay.mid || '—'}</span>
+                                                <span className="text-lg font-bold text-white">{sevenDay.mid || ', '}</span>
                                                 <span className="text-xs text-slate-500 ml-1">{sevenDay.unit || ''}</span>
                                             </div>
                                             <div className="text-xs text-slate-600 mt-0.5">

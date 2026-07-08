@@ -255,13 +255,13 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       setInviteForm({ name: '', email: '', relationship: '' });
       setGeneratedInviteLink(inviteLink);
       if (invitation.delivery_status === 'sent') {
-        setInviteSuccess('Invitation sent successfully. The invite link is available below for reference.');
+        setInviteSuccess('Invitation sent successfully. The invite link is ready here for reference.');
       } else if (invitation.delivery_status === 'pending_config') {
-        setInviteSuccess('Invitation created. Email delivery is not configured, so share the link below manually.');
+        setInviteSuccess('Invitation created. Email delivery is not configured, so share the link shown here manually.');
       } else if (invitation.delivery_status === 'failed') {
-        setInviteSuccess(`Invitation created, but email delivery failed. Share the link below manually.${invitation.delivery_error ? ` (${invitation.delivery_error})` : ''}`);
+        setInviteSuccess(`Invitation created, but email delivery failed. Share the link shown here manually.${invitation.delivery_error ? ` (${invitation.delivery_error})` : ''}`);
       } else {
-        setInviteSuccess('Invitation created. Share the link below or open it in your email client.');
+        setInviteSuccess('Invitation created. Share the link shown here or open it in your email client.');
       }
       await loadFamilyMembers();
     } catch (error) {
@@ -281,7 +281,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       setInviteError('');
     } catch (error) {
       console.error('Failed to copy invite link:', error);
-      setInviteError('Failed to copy invite link. Copy it manually from the field below.');
+      setInviteError('Failed to copy invite link. Copy it manually from the link field.');
     }
   };
 

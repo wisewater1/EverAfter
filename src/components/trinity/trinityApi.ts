@@ -494,7 +494,7 @@ export interface FamilyTreeAnalysis {
 }
 
 /**
- * The high-level family-tree analysis — Trinity interlacing St. Joseph (the
+ * The high-level family-tree analysis: Trinity interlacing St. Joseph (the
  * family graph) with St. Raphael (per-member health) and St. Gabriel (finance).
  * Computed locally from genealogy + the health model, so it works keyless in
  * both demo and the real app, and is the single source for the family-tree

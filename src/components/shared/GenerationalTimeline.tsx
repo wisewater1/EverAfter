@@ -183,7 +183,7 @@ export default function GenerationalTimeline({ familyMembers = [], liveHeatmap, 
                                         key={member.member_id}
                                         className={`flex flex-col p-3 rounded-xl bg-white/[0.02] border ${member.is_living ? 'border-white/8' : 'border-white/[0.03]'} min-w-[140px] max-w-[180px]`}
                                     >
-                                        {/* Joseph layer — Name + dates */}
+                                        {/* Joseph layer: Name + dates */}
                                         <div className="flex items-start justify-between mb-1.5">
                                             <div>
                                                 <p className={`text-xs font-medium ${member.is_living ? 'text-white' : 'text-slate-500'}`}>
@@ -213,7 +213,7 @@ export default function GenerationalTimeline({ familyMembers = [], liveHeatmap, 
                                             </div>
                                         )}
 
-                                        {/* Raphael layer — live health */}
+                                        {/* Raphael layer: live health */}
                                         {member.health && (
                                             <div className="flex items-center gap-1.5 mt-auto pt-1.5 border-t border-white/5">
                                                 <div
@@ -241,7 +241,7 @@ export default function GenerationalTimeline({ familyMembers = [], liveHeatmap, 
                 })}
             </div>
 
-            {/* Gabriel layer — wealth trend footer */}
+            {/* Gabriel layer: wealth trend footer */}
             {data.wealth_trend && (
                 <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-1.5">

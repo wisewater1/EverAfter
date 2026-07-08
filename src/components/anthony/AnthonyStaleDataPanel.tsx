@@ -1,5 +1,5 @@
 /**
- * AnthonyStaleDataPanel — St. Anthony's "Finder of Lost Things" DHT integration.
+ * AnthonyStaleDataPanel: St. Anthony's "Finder of Lost Things" DHT integration.
  *
  * St. Anthony surfaces stale, missing, and low-confidence data in the user's
  * Delphi Health Trajectory. He "finds" what is lost: measurements that haven't
@@ -73,7 +73,7 @@ export default function AnthonyStaleDataPanel({ personId }: AnthonyStaleDataPane
     const stalenessKey = classifyStaleness(freshnessSeconds);
     const stalenessColor = STALENESS_COLORS[stalenessKey];
 
-    // Build "lost items" list — things Anthony needs to find
+    // Build "lost items" list: things Anthony needs to find
     const lostItems: Array<{ label: string; detail: string; severity: string; action?: string }> = [];
 
     if (stalenessKey === 'stale' || stalenessKey === 'missing') {
@@ -147,7 +147,7 @@ export default function AnthonyStaleDataPanel({ personId }: AnthonyStaleDataPane
                         <Clock className="w-3 h-3 text-slate-600" />
                         <span style={{ color: stalenessColor }}>{formatAge(freshnessSeconds)}</span>
                     </div>
-                    <button onClick={() => navigate('/health')}
+                    <button onClick={() => navigate('/health-dashboard')}
                         className="flex items-center gap-1 text-amber-400 font-bold hover:text-amber-300 transition-colors">
                         <ExternalLink className="w-3 h-3" /> Open Delphi
                     </button>

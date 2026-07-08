@@ -145,7 +145,7 @@ export default function AgentPersonalityModal({ member, onClose, onActivated }: 
             await new Promise(r => setTimeout(r, 1200));
             const updated = activateAgent(member.id);
             if (updated) {
-                // Emit event to the saint bridge — Michael will pick it up
+                // Emit event to the saint bridge: Michael will pick it up
                 emitSaintEvent(
                     'joseph',
                     'michael',

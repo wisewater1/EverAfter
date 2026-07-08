@@ -485,7 +485,7 @@ export default function HealthConnectionManager() {
                 Start Building Your Custom Plugin
               </button>
               {connections.filter(c => c.status === 'connected').length === 0 && (
-                <p className="text-slate-500 text-xs mt-2">Connect health sources above to get started</p>
+                <p className="text-slate-500 text-xs mt-2">Connect a health source to get started</p>
               )}
             </div>
           </div>

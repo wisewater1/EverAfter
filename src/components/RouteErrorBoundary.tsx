@@ -21,7 +21,7 @@ function RouteErrorFallback() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-white">This page hit a snag</h1>
             <p className="text-slate-400 text-sm">
-              Something on this screen failed to load. The rest of the app is fine —
+              Something on this screen failed to load. The rest of the app is fine, 
               head back and try again.
             </p>
           </div>
@@ -51,7 +51,7 @@ function RouteErrorFallback() {
  * Wraps the routed view in an ErrorBoundary keyed by pathname. The key is the
  * mechanism that isolates failures: when the path changes the boundary
  * remounts fresh (hasError reset), so navigating away from a crashed route
- * auto-recovers — no full reload, no app-wide blank screen.
+ * auto-recovers: no full reload, no app-wide blank screen.
  */
 export default function RouteErrorBoundary({ children }: { children: ReactNode }) {
   const location = useLocation();

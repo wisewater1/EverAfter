@@ -4,9 +4,9 @@
  * The codebase has two separate Delphi trajectory shapes that need to be
  * shown on the same overlay chart:
  *
- *   1. DelphiPrediction (logged-in user) — built locally from
+ *   1. DelphiPrediction (logged-in user): built locally from
  *      health_metrics rows via generateDelphiPrediction(userId).
- *   2. DelphiTrajectory (any family member) — served by the FastAPI
+ *   2. DelphiTrajectory (any family member): served by the FastAPI
  *      backend at GET /api/v1/dht/{personId}, returned through
  *      getDHT(personId).
  *

@@ -40,7 +40,7 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m St. Raphael — The Healer. I analyze your health data with your consent, generate daily insights, and preserve meaningful observations to your Vault. I run autonomously each morning at 9 AM, but you can also chat with me anytime. How can I assist your wellness journey today?',
+      content: 'Hello! I\'m St. Raphael - The Healer. I analyze your health data with your consent, generate daily insights, and preserve meaningful observations to your Vault. I run autonomously each morning at 9 AM, but you can also chat with me anytime. How can I assist your wellness journey today?',
       timestamp: new Date()
     }
   ]);
@@ -342,9 +342,9 @@ export default function RaphaelChat({ engramId }: RaphaelChatProps) {
               </div>
               <div className="rounded-2xl p-4 bg-emerald-500/20 border border-emerald-500/30">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full motion-safe:animate-pulse" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>

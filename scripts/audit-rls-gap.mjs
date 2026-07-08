@@ -8,11 +8,11 @@
  * RLS enabled and are candidates for the next sweep migration.
  *
  * Exit codes:
- *   0 — every backend table has a matching Supabase migration
- *   1 — gaps exist; printed to stderr and listed
+ *   0: every backend table has a matching Supabase migration
+ *   1: gaps exist; printed to stderr and listed
  *
- * Used in CI / pre-merge audits. Not a security guarantee on its own — a
- * table can exist in migrations without RLS — but it's a fast first signal.
+ * Used in CI / pre-merge audits. Not a security guarantee on its own: a
+ * table can exist in migrations without RLS: but it's a fast first signal.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -55,7 +55,7 @@ const sb = collectSupabaseTables();
 const gap = [...sql].filter((t) => !sb.has(t)).sort();
 
 if (gap.length === 0) {
-    console.log(`OK — all ${sql.size} backend tables covered by Supabase migrations.`);
+    console.log(`OK, all ${sql.size} backend tables covered by Supabase migrations.`);
     process.exit(0);
 }
 

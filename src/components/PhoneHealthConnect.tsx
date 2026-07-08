@@ -1,5 +1,5 @@
 /**
- * PhoneHealthConnect — Unified phone health data connection hub
+ * PhoneHealthConnect: Unified phone health data connection hub
  * 
  * Integrates ALL free health data sources:
  * 
@@ -297,7 +297,7 @@ export default function PhoneHealthConnect() {
                     <div className="flex items-center justify-between flex-wrap gap-4">
                         <div>
                             <h2 className="text-3xl font-bold text-white mb-2">Connect Your Phone</h2>
-                            <p className="text-zinc-400">Real health data — 100% free. No API keys, no subscriptions.</p>
+                            <p className="text-zinc-400">Real health data, 100% free. No API keys, no subscriptions.</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-center px-4">
@@ -527,7 +527,7 @@ function MotionPanel({ active, steps, onStart, onStop }: {
             {active ? (
                 <div className="space-y-3">
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
-                        <Footprints className="w-8 h-8 text-emerald-400 mx-auto mb-2 motion-safe:animate-bounce" />
+                        <Footprints className="w-8 h-8 text-emerald-400 mx-auto mb-2 motion-safe:animate-pulse" />
                         <span className="text-4xl font-bold text-emerald-400">{steps}</span>
                         <span className="text-zinc-400 text-sm ml-2">steps</span>
                         <p className="text-xs text-zinc-500 mt-1">Counting...</p>
@@ -550,7 +550,7 @@ function MedicationPanel({ query, setQuery, results, searching, onSearch }: {
 }) {
     return (
         <div className="space-y-3">
-            <p className="text-zinc-400 text-xs">Search FDA drug database — free, no key needed. Get warnings, interactions, and recalls.</p>
+            <p className="text-zinc-400 text-xs">Search FDA drug database, free, no key needed. Get warnings, interactions, and recalls.</p>
             <div className="flex gap-2">
                 <input
                     value={query}
@@ -568,7 +568,7 @@ function MedicationPanel({ query, setQuery, results, searching, onSearch }: {
                     {results.map((drug, i) => (
                         <div key={i} className="p-3 bg-white/5 border border-white/5 rounded-lg">
                             <p className="text-sm font-medium text-white">{drug.brand_name}</p>
-                            <p className="text-xs text-zinc-500">{drug.generic_name} — {drug.manufacturer}</p>
+                            <p className="text-xs text-zinc-500">{drug.generic_name}, {drug.manufacturer}</p>
                             <p className="text-xs text-amber-400/80 mt-1">{drug.purpose.slice(0, 120)}{drug.purpose.length > 120 ? '...' : ''}</p>
                             {drug.warnings && drug.warnings !== 'No warnings available' && (
                                 <p className="text-xs text-rose-400/70 mt-1">⚠ {drug.warnings.slice(0, 100)}...</p>

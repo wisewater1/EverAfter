@@ -1,16 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-    AlertTriangle,
-    ChevronDown,
-    ChevronUp,
-    HeartPulse,
-    Loader2,
-    Moon,
-    Shield,
-    Sparkles,
-    TrendingDown,
-    TrendingUp,
-} from 'lucide-react';
+import { AlertTriangle, ChevronRight, ChevronLeft, HeartPulse, Loader2, Moon, Shield, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { fetchHealthMetrics, type HealthDataPoint } from '../../lib/raphael/healthDataService';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import { readStoredPersonalityProfile, toLongTraitScores } from '../../lib/joseph/personalityProfiles';
@@ -362,9 +351,9 @@ export default function RiskCards({ personId }: RiskCardsProps) {
                                         </div>
                                     </div>
                                     {isExpanded ? (
-                                        <ChevronUp className="mt-1 h-4 w-4 text-slate-500" />
+                                        <ChevronLeft className="mt-1 h-4 w-4 text-slate-500" />
                                     ) : (
-                                        <ChevronDown className="mt-1 h-4 w-4 text-slate-500" />
+                                        <ChevronRight className="mt-1 h-4 w-4 text-slate-500" />
                                     )}
                                 </div>
                             </button>

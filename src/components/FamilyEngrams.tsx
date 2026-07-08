@@ -342,7 +342,7 @@ export default function FamilyEngrams() {
         </div>
       )}
 
-      {/* In-place personality questionnaire — Continue Here / Answer on Their Behalf
+      {/* In-place personality questionnaire: Continue Here / Answer on Their Behalf
           open it here rather than navigating away to the St Joseph dashboard. */}
       {quizMemberId && (
         <div
@@ -474,7 +474,7 @@ function FamilyMemberCard({ member, onClick }: FamilyMemberCardProps) {
 
       <button
         onClick={(e) => { e.stopPropagation(); void handleSend(); }}
-        title="Send the personality questionnaire to this person — no account needed"
+        title="Send the personality questionnaire to this person, no account needed"
         className="mb-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-semibold uppercase tracking-wider transition-all border border-cyan-500/20"
       >
         <Send className="w-3.5 h-3.5" />

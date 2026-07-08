@@ -1,5 +1,5 @@
 /**
- * Family members — DB persistence layer.
+ * Family members: DB persistence layer.
  *
  * Bridges the in-memory genealogy graph (buildFamilyTree() / FamilyMember
  * in genealogy.ts) with the Supabase `family_members` table. Designed to
@@ -38,7 +38,7 @@ export interface DbFamilyMember {
 
 /**
  * Convert an in-memory FamilyMember into the columns expected by the
- * `family_members` table. The two shapes are close but not identical —
+ * `family_members` table. The two shapes are close but not identical, 
  * camelCase vs snake_case, `id` becomes `legacy_id`, and the AI
  * personality / media permissions / info stack live in `metadata` jsonb.
  */
@@ -79,7 +79,7 @@ function toDbShape(
 /**
  * Upsert a family member, keyed by (user_id, legacy_id). Returns the
  * DB row (id is the canonical UUID future PRs should FK against). Safe
- * to call even when the user already has a row — it updates in place.
+ * to call even when the user already has a row: it updates in place.
  */
 export async function upsertFamilyMember(
     member: FamilyMember,
@@ -99,7 +99,7 @@ export async function upsertFamilyMember(
         .upsert(
             {
                 ...shape,
-                // Legacy required columns — only used by the invitation flow,
+                // Legacy required columns: only used by the invitation flow,
                 // but NOT NULL on the table.
                 name: fullName,
                 email: `${member.id}@in-tree.local`,
@@ -151,7 +151,7 @@ export async function bulkUpsertFamilyMembers(
     if (!supabase || !members.length || !userId) return 0;
 
     let count = 0;
-    // Sequential is fine — ~30 members max in practice — and keeps the
+    // Sequential is fine: ~30 members max in practice: and keeps the
     // error path easy to reason about.
     for (const member of members) {
         const result = await upsertFamilyMember(member, userId);

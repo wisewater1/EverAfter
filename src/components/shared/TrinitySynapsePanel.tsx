@@ -10,11 +10,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-    GitBranch, Heart, Wallet, AlertTriangle, Sparkles,
-    TrendingUp, TrendingDown, Minus, RefreshCw, ChevronDown, ChevronUp,
-    Brain, Users, Shield
-} from 'lucide-react';
+import { GitBranch, Heart, Wallet, AlertTriangle, Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ChevronRight, ChevronLeft, Brain, Users, Shield } from 'lucide-react';
 import { requestBackendJson } from '../../lib/backend-request';
 
 interface AncestryInsight {
@@ -195,7 +191,7 @@ export default function TrinitySynapsePanel({
             await Promise.all(tasks);
             setInsights(results);
         } catch (err: any) {
-            setError('Trinity Synapse offline — insights unavailable');
+            setError('Trinity Synapse offline, insights unavailable');
         }
         setLoading(false);
     }, [memberId, birthYear, metricsHistory, familyMembers, budgetEnvelopes, healthRiskScore, oceanScores]);
@@ -218,7 +214,7 @@ export default function TrinitySynapsePanel({
     }
 
     if (error || !hasContent) {
-        return null;  // Fail silently — this panel is additive, not critical
+        return null;  // Fail silently, this panel is additive, not critical
     }
 
     return (
@@ -251,7 +247,7 @@ export default function TrinitySynapsePanel({
                     >
                         <RefreshCw className="w-3 h-3" />
                     </button>
-                    {expanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                    {expanded ? <ChevronLeft className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
                 </div>
             </button>
 

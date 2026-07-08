@@ -49,9 +49,7 @@ export default function MedicationTracker() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const touchStartY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -263,46 +261,9 @@ export default function MedicationTracker() {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleTouchStart = (e: TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    const scrollTop = containerRef.current?.scrollTop || 0;
-    if (scrollTop === 0) {
-      const currentY = e.touches[0].clientY;
-      const distance = Math.max(0, currentY - touchStartY.current);
-      setPullDistance(Math.min(distance, 100));
-    }
-  };
 
-  const handleTouchEnd = async () => {
-    if (pullDistance > 60) {
-      setIsRefreshing(true);
-      if ('vibrate' in navigator) {
-        navigator.vibrate(50);
-      }
-      await Promise.all([fetchMedications(), fetchLogs()]);
-      setIsRefreshing(false);
-    }
-    setPullDistance(0);
-  };
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('touchstart', handleTouchStart as any);
-      container.addEventListener('touchmove', handleTouchMove as any);
-      container.addEventListener('touchend', handleTouchEnd as any);
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener('touchstart', handleTouchStart as any);
-        container.removeEventListener('touchmove', handleTouchMove as any);
-        container.removeEventListener('touchend', handleTouchEnd as any);
-      }
-    };
-  }, [pullDistance]);
 
   if (loading) {
     return (
@@ -313,18 +274,7 @@ export default function MedicationTracker() {
   }
 
   return (
-    <div ref={containerRef} className="space-y-6 relative overflow-y-auto" style={{ paddingTop: pullDistance }}>
-      {/* Pull-to-Refresh Indicator */}
-      {pullDistance > 0 && (
-        <div
-          className="absolute top-0 left-0 right-0 flex items-center justify-center transition-all duration-200 z-10"
-          style={{ height: pullDistance }}
-        >
-          <div className={`transform transition-transform ${pullDistance > 60 ? 'rotate-180' : ''}`}>
-            <RefreshCw className={`w-6 h-6 text-emerald-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </div>
-        </div>
-      )}
+    <div ref={containerRef} className="space-y-6 relative overflow-y-auto">
 
       <div className="bg-slate-900/60 sm:backdrop-blur-xl rounded-2xl p-4 sm:p-6 lg:p-8 border border-slate-800/50 shadow-2xl">
         <div className="flex flex-col gap-4 mb-6">
@@ -333,13 +283,27 @@ export default function MedicationTracker() {
               <h2 className="text-xl font-bold text-white tracking-tight truncate">Medication Tracker</h2>
               <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Sovereign Regimen</p>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl transition-all border border-emerald-500/20 active:scale-95"
-              title="Add Medication"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  if (isRefreshing) return;
+                  setIsRefreshing(true);
+                  await Promise.all([fetchMedications(), fetchLogs()]);
+                  setIsRefreshing(false);
+                }}
+                className="p-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl transition-all border border-white/10 active:scale-95"
+                title="Refresh medications"
+              >
+                <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl transition-all border border-emerald-500/20 active:scale-95"
+                title="Add Medication"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">

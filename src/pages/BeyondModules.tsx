@@ -470,7 +470,7 @@ export default function BeyondModules() {
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateX(-30px);
           }
           to {
             opacity: 1;
@@ -516,7 +516,7 @@ export default function BeyondModules() {
             transform: translateY(0px);
           }
           50% {
-            transform: translateY(-10px);
+            transform: translateX(10px);
           }
         }
 

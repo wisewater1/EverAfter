@@ -341,7 +341,7 @@ export default function JosephVoiceProfileCard({
                 );
                 if (ok) setSpeaking(true);
               }}
-              title="Preview voice — a generic stand-in until this person's voice model is trained"
+              title="Preview voice, a generic stand-in until this person's voice model is trained"
               className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1.5 text-[11px] font-medium text-cyan-200 transition hover:border-cyan-300/40 hover:text-white"
             >
               <Volume2 className="h-3.5 w-3.5" />

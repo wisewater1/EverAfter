@@ -194,7 +194,7 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
                                                 {metric.replace(/_/g, ' ')}
                                             </p>
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-2xl font-bold text-white">{data.mid ?? '—'}</span>
+                                                <span className="text-2xl font-bold text-white">{data.mid ?? ', '}</span>
                                                 <span className="text-xs text-slate-500">{data.unit ?? ''}</span>
                                             </div>
                                             {data.low != null && data.high != null && (

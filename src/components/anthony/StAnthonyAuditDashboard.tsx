@@ -67,7 +67,7 @@ export default function StAnthonyAuditDashboard() {
                                 Audit trails, recovery, and event proofs.
                             </p>
                             <p className="hidden max-w-2xl text-xs leading-relaxed text-slate-400 sm:block sm:text-sm">
-                                "The Finder of Lost Things" — Tracking your digital assets, recovering lost data, and maintaining a ledger of all system events.
+                                "The Finder of Lost Things", Tracking your digital assets, recovering lost data, and maintaining a ledger of all system events.
                             </p>
                         </div>
                     </div>
@@ -185,7 +185,7 @@ export default function StAnthonyAuditDashboard() {
                     <div className="space-y-4">
                         <div className="px-3 py-2 rounded-xl bg-amber-500/5 border border-amber-500/10">
                             <p className="text-[10px] text-amber-400/70">
-                                St. Anthony finds what is lost in your Delphi Health Trajectory — stale readings, data gaps, and high-uncertainty signals that need to be recovered.
+                                St. Anthony finds what is lost in your Delphi Health Trajectory, stale readings, data gaps, and high-uncertainty signals that need to be recovered.
                             </p>
                         </div>
                         <AnthonyStaleDataPanel personId={user.id} />

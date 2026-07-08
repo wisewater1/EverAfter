@@ -121,7 +121,7 @@ export default function SaintsNavigation() {
 
       <div className="relative px-3 pb-3 pt-3 sm:px-4 sm:pb-6 sm:pt-8">
         <div className="max-w-4xl mx-auto">
-          {/* Title — hidden on phones to reclaim vertical space */}
+          {/* Title: hidden on phones to reclaim vertical space */}
           <div className="hidden sm:block text-center mb-4 sm:mb-6">
             <h2 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wider mb-1">
               Your Saints
@@ -131,7 +131,7 @@ export default function SaintsNavigation() {
             </p>
           </div>
 
-          {/* Saints Grid — each button is a flex-col card+name */}
+          {/* Saints Grid: each button is a flex-col card+name */}
           <div className="grid grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4">
             {renderedSaints.map((saint, index) => {
               const Icon = saint.icon;
@@ -145,7 +145,7 @@ export default function SaintsNavigation() {
                   title={saint.route ? blockedRoutes[saint.route] || undefined : undefined}
                   className={`group flex flex-col items-center gap-1.5 transition-all duration-500 ease-out ${isCenter ? 'scale-105 sm:scale-110' : 'scale-100'
                     } ${saint.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                  style={{ transform: isCenter ? 'translateY(-8px)' : 'translateY(0)' }}
+                  style={{ transform: isCenter ? 'scale(1.08)' : 'scale(1)' }}
                 >
                   {/* Card Square */}
                   <div className={`relative w-full aspect-square rounded-2xl transition-all duration-500 ease-out ${saint.available ? 'hover:scale-105 active:scale-95' : ''}`}>
@@ -200,7 +200,7 @@ export default function SaintsNavigation() {
                     </div>
                   </div>
 
-                  {/* Name + Role — normal flow, always visible at every screen size */}
+                  {/* Name + Role: normal flow, always visible at every screen size */}
                   <div className="text-center w-full px-0.5">
                     <p className={`font-semibold leading-tight truncate ${isCenter ? 'text-[11px] sm:text-xs' : 'text-[10px] sm:text-[11px]'
                       } ${saint.available ? 'text-white' : 'text-slate-400'}`}>
@@ -216,7 +216,7 @@ export default function SaintsNavigation() {
             })}
           </div>
 
-          {/* Footer hint — hidden on phones to keep the bar compact */}
+          {/* Footer hint: hidden on phones to keep the bar compact */}
           <div className="hidden sm:block text-center mt-2 sm:mt-4">
             <p className="text-[10px] sm:text-xs text-slate-500">
               Tap <span className="text-emerald-400 font-medium">St. Raphael Hub</span> or <span className="text-sky-400 font-medium">St. Michael</span> to access active features

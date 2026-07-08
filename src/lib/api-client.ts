@@ -448,7 +448,7 @@ class APIClient {
   /**
    * Create a shareable personality-quiz invite for a subject. Returns the
    * server token + share path so a friend can answer at /quiz/<token> with no
-   * account. Never throws — callers fall back to a local-only flow.
+   * account. Never throws: callers fall back to a local-only flow.
    */
   async createQuizInvite(
     subjectName: string,
@@ -481,7 +481,7 @@ class APIClient {
       }, 'Engrams API Error');
       // Every caller does array ops on this. Demo/proxy layers have returned
       // object payloads ({ engrams: [...] }) here, which hard-crashed pages
-      // ("c.filter is not a function") — normalize instead of trusting the wire.
+      // ("c.filter is not a function"): normalize instead of trusting the wire.
       if (Array.isArray(data)) return data;
       const nested = (data as { engrams?: unknown } | null)?.engrams;
       return Array.isArray(nested) ? (nested as EngramResponse[]) : [];
@@ -493,7 +493,7 @@ class APIClient {
 
   /**
    * Which of the given artifacts are sealed in the Elohim ledger.
-   * Sealed-status is decorative — this never throws; absence means "not sealed
+   * Sealed-status is decorative: this never throws; absence means "not sealed
    * (or status unavailable)".
    */
   async getElohimAnchors(

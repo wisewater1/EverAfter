@@ -1,5 +1,5 @@
 /**
- * DHTAnomalyAlertChain — St. Michael's DHT anomaly → security alert bridge.
+ * DHTAnomalyAlertChain: St. Michael's DHT anomaly → security alert bridge.
  *
  * Polls the DHT API for anomalies on the current user's trajectory, then
  * renders them as Guardian-styled health security alerts that Michael can
@@ -97,7 +97,7 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
                                         <span className={`text-[9px] uppercase font-black tracking-widest ${cfg.text}`}>
-                                            DHT ANOMALY — {a.severity?.toUpperCase() || 'MODERATE'}
+                                            DHT ANOMALY, {a.severity?.toUpperCase() || 'MODERATE'}
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-300">
@@ -110,7 +110,7 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
                                         </p>
                                     )}
                                 </div>
-                                <button onClick={() => navigate('/health')}
+                                <button onClick={() => navigate('/health-dashboard')}
                                     className={`text-[10px] font-bold ${cfg.text} flex items-center gap-1 shrink-0`}>
                                     <ExternalLink className="w-3 h-3" /> Delphi
                                 </button>
@@ -126,14 +126,14 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
                                 <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${cfg.text}`} />
                                 <div className="flex-1 min-w-0">
                                     <span className={`text-[9px] uppercase font-black tracking-widest ${cfg.text}`}>
-                                        ELEVATED RISK — {card.domain?.toUpperCase()}
+                                        ELEVATED RISK: {card.domain?.toUpperCase()}
                                     </span>
                                     <p className="text-xs text-slate-300 mt-0.5">{card.current_level} risk · {Math.round(card.confidence * 100)}% confidence</p>
                                     {card.suggested_action && (
                                         <p className="text-[10px] text-slate-500 mt-1">💡 {card.suggested_action}</p>
                                     )}
                                 </div>
-                                <button onClick={() => navigate('/health')}
+                                <button onClick={() => navigate('/health-dashboard')}
                                     className={`text-[10px] font-bold ${cfg.text} flex items-center gap-1 shrink-0`}>
                                     <ExternalLink className="w-3 h-3" /> Review
                                 </button>
