@@ -44,32 +44,48 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [aiTyping, setAiTyping] = useState(false);
+  const [loadWarning, setLoadWarning] = useState<string | null>(null);
 
   const loadFamilyMembers = useCallback(async () => {
-    const { data } = await supabase
-      .from('family_members')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    if (!supabase) {
+      setLoadWarning('Family members are unavailable because the backend is not configured.');
+      return;
+    }
 
-    if (data) {
-      setFamilyMembers(data.map(member => ({
-        id: member.id,
-        name: member.name,
-        email: member.email,
-        relationship: member.relationship,
-        status: member.status,
-        access_level: member.access_level || 'view',
-        invited_at: member.invited_at,
-        accepted_at: member.accepted_at,
-        personality_questions_sent: 0,
-        personality_questions_answered: 0
-      })));
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setFamilyMembers(data.map(member => ({
+          id: member.id,
+          name: member.name,
+          email: member.email,
+          relationship: member.relationship,
+          status: member.status,
+          access_level: member.access_level || 'view',
+          invited_at: member.invited_at,
+          accepted_at: member.accepted_at,
+          personality_questions_sent: 0,
+          personality_questions_answered: 0
+        })));
+      }
+      setLoadWarning(null);
+    } catch (error) {
+      console.error('Error loading family members:', error);
+      setLoadWarning('We could not load your family members right now. Showing the latest data available.');
     }
   }, [userId]);
 
   useEffect(() => {
-    loadFamilyMembers();
+    loadFamilyMembers().catch((error) => {
+      console.warn('Unhandled error loading family members:', error);
+    });
   }, [loadFamilyMembers]);
 
   const inviteFamilyMember = async () => {
@@ -238,6 +254,12 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
             Invite Family Member
           </button>
         </div>
+
+        {loadWarning && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-900/20 px-4 py-3 text-sm text-amber-200">
+            <span>{loadWarning}</span>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

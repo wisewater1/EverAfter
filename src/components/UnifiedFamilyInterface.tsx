@@ -71,6 +71,9 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     responses: true,
     profiles: true
   });
+  const [membersLoadWarning, setMembersLoadWarning] = useState<string | null>(null);
+  const [questionsLoadWarning, setQuestionsLoadWarning] = useState<string | null>(null);
+  const [raphaelLoadWarning, setRaphaelLoadWarning] = useState<string | null>(null);
 
   const mapFamilyMember = (member: any): FamilyMember => {
     const permissions =
@@ -93,61 +96,106 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   };
 
   const loadFamilyMembers = useCallback(async () => {
-    const { data } = await supabase
-      .from('family_members')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    if (!supabase) {
+      setMembersLoadWarning('Family members are unavailable because the backend is not configured.');
+      return;
+    }
 
-    if (Array.isArray(data)) setFamilyMembers(data.map(mapFamilyMember));
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (Array.isArray(data)) setFamilyMembers(data.map(mapFamilyMember));
+      setMembersLoadWarning(null);
+    } catch (error) {
+      console.error('Error loading family members:', error);
+      setMembersLoadWarning('We could not load your family members right now. Showing the latest data available.');
+    }
   }, [userId]);
 
   const loadQuestionResponses = useCallback(async () => {
-    const { data } = await supabase
-      .from('daily_question_responses')
-      .select(`
-        id,
-        question_text,
-        response_text,
-        created_at,
-        archetypal_ais!inner(name)
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    if (!supabase) {
+      setQuestionsLoadWarning('OCEAN responses are unavailable because the backend is not configured.');
+      return;
+    }
 
-    if (data) {
-      setQuestionResponses(data.map((item: any) => ({
-        id: item.id,
-        question: item.question_text,
-        response: item.response_text,
-        timestamp: item.created_at,
-        member_name: (item.archetypal_ais as any)?.name || 'Unknown'
-      })));
+    try {
+      const { data, error } = await supabase
+        .from('daily_question_responses')
+        .select(`
+          id,
+          question_text,
+          response_text,
+          created_at,
+          archetypal_ais!inner(name)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (data) {
+        setQuestionResponses(data.map((item: any) => ({
+          id: item.id,
+          question: item.question_text,
+          response: item.response_text,
+          timestamp: item.created_at,
+          member_name: (item.archetypal_ais as any)?.name || 'Unknown'
+        })));
+      }
+      setQuestionsLoadWarning(null);
+    } catch (error) {
+      console.error('Error loading OCEAN question responses:', error);
+      setQuestionsLoadWarning('We could not load your OCEAN responses right now. Showing the latest data available.');
     }
   }, [userId]);
 
   // Load St. Raphael engram ID
   useEffect(() => {
     async function fetchRaphaelEngram() {
-      const { data } = await supabase
-        .from('archetypal_ais')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('name', 'St. Raphael')
-        .limit(1)
-        .maybeSingle();
+      if (!supabase) {
+        setRaphaelLoadWarning('St. Raphael lookup is unavailable because the backend is not configured.');
+        return;
+      }
 
-      if (data) {
-        setRaphaelEngramId(data.id);
+      try {
+        const { data, error } = await supabase
+          .from('archetypal_ais')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('name', 'St. Raphael')
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setRaphaelEngramId(data.id);
+        }
+        setRaphaelLoadWarning(null);
+      } catch (error) {
+        console.error('Error fetching St. Raphael engram id:', error);
+        setRaphaelLoadWarning('We could not look up your St. Raphael engram right now.');
       }
     }
-    fetchRaphaelEngram();
+    fetchRaphaelEngram().catch((error) => {
+      console.warn('Unhandled error fetching St. Raphael engram id:', error);
+    });
   }, [userId]);
 
   useEffect(() => {
-    loadFamilyMembers();
-    loadQuestionResponses();
+    loadFamilyMembers().catch((error) => {
+      console.warn('Unhandled error loading family members:', error);
+    });
+    loadQuestionResponses().catch((error) => {
+      console.warn('Unhandled error loading OCEAN question responses:', error);
+    });
   }, [loadFamilyMembers, loadQuestionResponses]);
 
   useEffect(() => {
@@ -312,7 +360,9 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       setShowQuestionModal(false);
       setQuestionText('');
       setSelectedMember(null);
-      loadFamilyMembers();
+      loadFamilyMembers().catch((error) => {
+        console.warn('Unhandled error reloading family members after sending a question:', error);
+      });
     } catch (error) {
       console.error('Error sending question:', error);
     } finally {
@@ -329,7 +379,9 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
         .delete()
         .eq('id', memberId);
 
-      loadFamilyMembers();
+      loadFamilyMembers().catch((error) => {
+        console.warn('Unhandled error reloading family members after deleting a member:', error);
+      });
     } catch (error) {
       console.error('Error deleting member:', error);
     }
@@ -423,6 +475,10 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     }
   };
 
+  const loadWarning = [membersLoadWarning, questionsLoadWarning, raphaelLoadWarning]
+    .filter((message): message is string => Boolean(message))
+    .join(' ');
+
   return (
     <div className="space-y-6">
       {/* Header with Tabs */}
@@ -447,6 +503,12 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
             </button>
           </div>
         </div>
+
+        {loadWarning && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            <span>{loadWarning}</span>
+          </div>
+        )}
 
         {/* Tab Navigation - Mobile Optimized */}
         <div className="flex gap-1 sm:gap-2 border-b border-slate-700/50 overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
