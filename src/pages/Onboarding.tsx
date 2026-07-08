@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { withTimeout } from '../lib/withTimeout';
 import { loadHealthProfileDraft, loadStarterEngramDraft, saveStarterEngramDraft } from '../lib/onboardingDraft';
 import { getOnboardingStatus, reconcileOnboarding } from '../lib/onboardingApi';
+import { DEFAULT_BACKEND_TIMEOUT_MS } from '../lib/backend-request';
 
 export type OnboardingStep =
   | 'welcome'
@@ -71,8 +72,17 @@ export interface OnboardingData {
   };
 }
 
+// getOnboardingStatus() tries the backend (bounded by
+// DEFAULT_BACKEND_TIMEOUT_MS) and, on failure, reads the same data straight
+// from Supabase. This outer timeout exists only to catch the rare case
+// where BOTH the backend attempt and the Supabase fallback hang; it must
+// stay comfortably longer than the backend attempt alone, or it fires first
+// and the working fallback never gets a chance to run. (That mismatch,
+// 7000ms outer vs. an 8000ms inner backend timeout, used to make this
+// screen fail almost every time the backend was cold.)
+const ONBOARDING_LOAD_TIMEOUT_MS = DEFAULT_BACKEND_TIMEOUT_MS + 3500;
+
 export default function Onboarding() {
-  const ONBOARDING_LOAD_TIMEOUT_MS = 7000;
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
@@ -205,7 +215,7 @@ export default function Onboarding() {
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
-      setLoadWarning('Failed to load canonical onboarding status. You can still start from a fresh onboarding state.');
+      setLoadWarning('We could not reach your saved progress right now. Starting from the first step, your answers will still be saved as you go.');
     } finally {
       setLoading(false);
     }
@@ -215,7 +225,7 @@ export default function Onboarding() {
     if (!authLoading && loading) {
       const watchdog = window.setTimeout(() => {
         console.warn('Onboarding: Loading watchdog released spinner');
-        setLoadWarning('Onboarding took too long to load. Please verify backend readiness before continuing.');
+        setLoadWarning('This is taking longer than expected. You can continue now; your progress will still be saved.');
         setLoading(false);
       }, ONBOARDING_LOAD_TIMEOUT_MS + 2000);
 

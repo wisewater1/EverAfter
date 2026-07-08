@@ -111,4 +111,64 @@ describe('ProtectedRoute', () => {
 
     expect(screen.queryByText(/This route is unavailable/i)).not.toBeInTheDocument();
   });
+
+  it('renders children immediately instead of a blocking spinner while readiness is still resolving', async () => {
+    // A backend that never answers (cold Render instance) must not prevent
+    // the page from rendering. Previously this unmounted the page behind a
+    // "Checking runtime dependencies..." spinner for as long as the
+    // readiness call took; the fix keeps children mounted throughout.
+    let resolveReadiness: (value: unknown) => void = () => {};
+    getRuntimeReadinessMock.mockReturnValue(new Promise((resolve) => { resolveReadiness = resolve; }));
+
+    render(
+      <MemoryRouter initialEntries={['/finance-dashboard']}>
+        <Routes>
+          <Route
+            path="/finance-dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Finance Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Readiness is still pending; children should already be visible, and the
+    // old "Checking runtime dependencies..." spinner must not appear at all.
+    expect(await screen.findByText('Finance Dashboard')).toBeInTheDocument();
+    expect(screen.queryByText(/Checking runtime dependencies/i)).not.toBeInTheDocument();
+
+    resolveReadiness({ route_map: {}, routes: [] });
+    await waitFor(() => {
+      expect(screen.getByText('Finance Dashboard')).toBeInTheDocument();
+    });
+  });
+
+  it('treats a runtime readiness call that never resolves as an open gate, not a permanent block', async () => {
+    // getRuntimeReadiness() that hangs forever (the exact shape of an
+    // unreachable/cold backend with no timeout of its own) must not be able
+    // to block the route forever; ProtectedRoute races it against its own
+    // short timeout and fails open.
+    getRuntimeReadinessMock.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <MemoryRouter initialEntries={['/finance-dashboard']}>
+        <Routes>
+          <Route
+            path="/finance-dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Finance Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Finance Dashboard')).toBeInTheDocument();
+    expect(screen.queryByText(/This route is unavailable/i)).not.toBeInTheDocument();
+  });
 });
