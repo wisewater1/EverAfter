@@ -32,7 +32,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
   const routeHasHardBlocker = hasHardRouteBlocker(routeGate);
 
   // Routes that should skip onboarding check
-  const onboardingExemptRoutes = ['/onboarding', '/portal/profile'];
+  const onboardingExemptRoutes = ['/onboarding', '/portal/profile', '/settings'];
   const isExemptRoute = onboardingExemptRoutes.some(route => location.pathname.startsWith(route));
 
   useEffect(() => {
@@ -130,7 +130,14 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
           // Ignore storage failures.
         }
       } catch (err) {
-        console.error('Error in onboarding check:', err);
+        // A failed check (cold backend, timeout, network blip) must not leave
+        // a stale cached "needs onboarding" value in charge - that traps an
+        // already-onboarded user in a redirect loop back to /onboarding on
+        // every refresh until a live check happens to succeed. Fail open,
+        // the same way the route-readiness gate above does: an onboarding
+        // check we can't complete should never block navigation.
+        console.warn('Onboarding check failed, not blocking navigation:', err);
+        setNeedsOnboarding(false);
       } finally {
         setCheckingOnboarding(false);
       }
