@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, FileText, Image, Video, Shield, Check, X, Edit3, Trash2, Plus, Lock, Unlock, ChevronRight, Sparkles, Eye, Waves } from 'lucide-react';
 import { getFamilyMembers, updateFamilyMember, addFamilyEvent } from '../../lib/joseph/genealogy';
 import type { FamilyMember, InfoStackEntry } from '../../lib/joseph/genealogy';
+import { apiClient } from '../../lib/api-client';
 import { requestBackendJson } from '../../lib/backend-request';
 import { getJosephVoiceProfile, type JosephVoiceProfileBundle } from '../../lib/joseph/voice';
 import { useAuth } from '../../contexts/AuthContext';
@@ -85,9 +86,10 @@ export default function MediaIntelligencePanel() {
 
     const loadInfoStack = useCallback(async (memberId: string) => {
         try {
+            const headers = await apiClient.getAuthHeaders();
             const data = await requestBackendJson<{ entries?: InfoStackEntry[] }>(
                 `/api/v1/media-intelligence/info-stack/${memberId}`,
-                {},
+                { headers },
                 'Failed to load media intelligence stack.',
             );
             setInfoStack(data.entries || []);
@@ -149,13 +151,15 @@ export default function MediaIntelligencePanel() {
             }
         });
 
+        const headers = await apiClient.getAuthHeaders({ 'Content-Type': 'application/json' });
+
         // Upload
         try {
             await requestBackendJson(
                 '/api/v1/media-intelligence/upload',
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({
                         member_id: selectedMember.id,
                         media_type: mediaType,
@@ -179,7 +183,7 @@ export default function MediaIntelligencePanel() {
                     '/api/v1/media-intelligence/extract',
                     {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers,
                         body: JSON.stringify({
                             member_id: selectedMember.id,
                             member_name: `${selectedMember.firstName} ${selectedMember.lastName}`,
@@ -244,11 +248,12 @@ export default function MediaIntelligencePanel() {
         });
 
         try {
+            const headers = await apiClient.getAuthHeaders({ 'Content-Type': 'application/json' });
             await requestBackendJson(
                 `/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ insights: approved }),
                 },
                 'Failed to commit approved media insights.',
@@ -275,11 +280,12 @@ export default function MediaIntelligencePanel() {
         if (!entry) return;
 
         try {
+            const headers = await apiClient.getAuthHeaders({ 'Content-Type': 'application/json' });
             await requestBackendJson(
                 `/api/v1/media-intelligence/info-stack/${selectedMember.id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({
                         entries: [{ ...entry, value: editValue }],
                         deleted_ids: [],
@@ -298,11 +304,12 @@ export default function MediaIntelligencePanel() {
     const deleteEntry = async (entryId: string) => {
         if (!selectedMember) return;
         try {
+            const headers = await apiClient.getAuthHeaders({ 'Content-Type': 'application/json' });
             await requestBackendJson(
                 `/api/v1/media-intelligence/info-stack/${selectedMember.id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ entries: [], deleted_ids: [entryId] }),
                 },
                 'Failed to delete media intelligence entry.',
@@ -326,11 +333,12 @@ export default function MediaIntelligencePanel() {
         };
 
         try {
+            const headers = await apiClient.getAuthHeaders({ 'Content-Type': 'application/json' });
             await requestBackendJson(
                 `/api/v1/media-intelligence/info-stack/${selectedMember.id}/commit`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ insights: [newEntry] }),
                 },
                 'Failed to add media intelligence entry.',
@@ -365,11 +373,12 @@ export default function MediaIntelligencePanel() {
 
         // Update backend
         try {
+            const headers = await apiClient.getAuthHeaders({ 'Content-Type': 'application/json' });
             await requestBackendJson(
                 `/api/v1/media-intelligence/permissions/${selectedMember.id}`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({
                         allow_ai_processing: newVal,
                         allow_image_analysis: newVal,
