@@ -4,7 +4,8 @@
  */
 import { useMemo, useState } from 'react';
 import { Beaker, Heart, Wallet, GitBranch, Loader2, Play, Shield, Sparkles, Clock3, Users } from 'lucide-react';
-import { getStoredTrinityWhatIfHistory, getTrinitySummarySnapshot, trinitySynapse } from './trinityApi';
+import { getStoredTrinityWhatIfHistory, getTrinitySummarySnapshot, buildTrinityCommonContext, trinitySynapse } from './trinityApi';
+import { getCachedTrinitySignals } from '../../lib/trinity/liveSignals';
 
 const SCENARIOS = [
     { type: 'career', label: 'High-Stress Career Change', placeholder: 'e.g. Take a VP role at a startup', example: 'Take a VP role at a startup' },
@@ -31,10 +32,17 @@ export default function CrossSaintWhatIf() {
         if (!scenario.trim()) return;
         setLoading(true);
         try {
+            const signals = getCachedTrinitySignals();
             const d = await trinitySynapse('cross_saint_whatif', {
                 scenario,
                 scenario_type: scenarioType,
                 duration_months: months,
+                current_net_worth: snapshot.projectedNetWorth,
+                monthly_income: snapshot.monthlyIncome,
+                ...(signals?.health.hrv !== null && signals?.health.hrv !== undefined
+                    ? { current_metrics: { hrv: signals.health.hrv } }
+                    : {}),
+                ...buildTrinityCommonContext(),
             });
             if (d) {
                 setResult(d);

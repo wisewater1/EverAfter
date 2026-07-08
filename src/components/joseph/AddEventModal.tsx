@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { X, Calendar, User, Image as ImageIcon, CheckCircle2, Loader2 } from 'lucide-react';
-import { EventType, FamilyMember } from '../../lib/joseph/genealogy';
-import { apiClient } from '../../lib/api-client';
-import { requestBackendJson } from '../../lib/backend-request';
+import { EventType, FamilyEvent, FamilyMember, addFamilyEvent } from '../../lib/joseph/genealogy';
 
 interface AddEventModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (eventData: any) => void;
+    onSuccess: (eventData: FamilyEvent) => void;
     members: FamilyMember[];
 }
 
@@ -29,38 +27,20 @@ export default function AddEventModal({ isOpen, onClose, onSuccess, members }: A
             const selectedMember = members.find(m => m.id === memberId);
             const memberName = selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : 'Unknown';
 
-            // Attempt to submit to backend API
-            let returnedEvent = null;
+            // addFamilyEvent is the same genealogy write-through every other
+            // family tree mutation uses: it updates the in-memory graph,
+            // localStorage, and (for real sessions) the canonical Supabase
+            // family_tree_events row. A prior version of this modal posted
+            // to a Python backend endpoint that wrote into a separate,
+            // disconnected SQLAlchemy table - the event would "save"
+            // successfully but never appear anywhere the rest of the app
+            // (or another device) actually reads family events from.
+            const newEvent = addFamilyEvent({
+                title, type, date, description: description || undefined,
+                memberId, memberName, mediaUrl: mediaUrl || undefined,
+            });
 
-            try {
-                const headers = await apiClient.getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    'Bypass-Tunnel-Reminder': 'true',
-                });
-                const data = await requestBackendJson<{ event?: any }>(
-                    '/api/v1/genealogy/events',
-                    {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({
-                            title, type, date, description, memberId, memberName, mediaUrl,
-                        }),
-                    },
-                    'Failed to save genealogy event.',
-                );
-                returnedEvent = data.event;
-            } catch (e) {
-                // Ignore API failures for MVP (local state handles it)
-                console.error("Backend event save failed:", e);
-            }
-
-            // Fallback object structure if backend fails or doesn't exist yet
-            const fallbackObj = {
-                id: returnedEvent?.id || `evt_${Date.now()}`,
-                title, type, date, description, memberId, memberName, mediaUrl
-            };
-
-            onSuccess(returnedEvent || fallbackObj);
+            onSuccess(newEvent);
 
             // Reset
             setTitle('');

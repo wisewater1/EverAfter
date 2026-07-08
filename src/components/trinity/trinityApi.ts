@@ -464,6 +464,7 @@ export function getTrinitySummarySnapshot() {
         vitalityScore: vitality.vitality_score,
         emergencyFundMonths: Number((context.finances.netWorth / Math.max(context.finances.monthlyIncome, 1)).toFixed(1)),
         projectedNetWorth: context.finances.netWorth,
+        monthlyIncome: context.finances.monthlyIncome,
         elderGap: elder.family_coverage_gap,
     };
 }
@@ -1463,6 +1464,56 @@ function buildFallbackPayload(action: string, body: AnyRecord) {
         default:
             return null;
     }
+}
+
+/**
+ * Real cross-Saint context for the backend /trinity/synapse call: the
+ * signed-in user's actual family roster, recent health metrics, and budget
+ * envelopes. Several Trinity tabs used to call trinitySynapse(action, {})
+ * with none of this attached - the backend defaults every missing field to
+ * empty/zero, so it silently computed the same generic result for every
+ * user regardless of their real data. Call this and spread its result into
+ * the request body instead of sending {}.
+ *
+ * net_worth/monthly_income are deliberately left out: nothing in the app
+ * actually tracks either yet, and inventing a plausible-looking number
+ * (the old client-side fallback estimates one from budget totals) would
+ * just be fabricating data for what's supposed to be a real-data path.
+ */
+export function buildTrinityCommonContext(): AnyRecord {
+    const signals = getCachedTrinitySignals();
+    const members = getFamilyMembers();
+
+    const family_members = members.map((m) => ({
+        id: m.id,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        name: `${m.firstName} ${m.lastName}`.trim(),
+        generation: m.generation,
+        occupation: m.occupation,
+        birthYear: m.birthDate ? Number(m.birthDate.slice(0, 4)) : undefined,
+        deathDate: m.deathDate,
+        // No structured "known conditions" field exists on a family member
+        // yet - leave empty rather than guessing from free-text bio/notes.
+        conditions: [] as string[],
+    }));
+
+    const metrics_history: AnyRecord[] = [];
+    const health = signals?.health;
+    if (health) {
+        if (health.restingHr !== null) metrics_history.push({ metric: 'resting_hr', value: health.restingHr });
+        if (health.steps !== null) metrics_history.push({ metric: 'steps', value: health.steps });
+        if (health.sleepEfficiency !== null) metrics_history.push({ metric: 'sleep_efficiency', value: health.sleepEfficiency });
+        if (health.hrv !== null) metrics_history.push({ metric: 'hrv', value: health.hrv });
+    }
+
+    const budget_envelopes = (signals?.finance.envelopes || []).map((e) => ({
+        category_name: e.category_name,
+        assigned: e.assigned,
+        available: e.available,
+    }));
+
+    return { family_members, metrics_history, budget_envelopes };
 }
 
 export async function trinitySynapse<T = any>(action: string, body: AnyRecord = {}): Promise<T | null> {

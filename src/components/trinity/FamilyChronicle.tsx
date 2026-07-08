@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { BookOpen, Flame, GitBranch, Heart, Wallet, Loader2 } from 'lucide-react';
-import { trinitySynapse } from './trinityApi';
+import { trinitySynapse, buildTrinityCommonContext } from './trinityApi';
 import { listCeremonies, type Ceremony } from '../../lib/ceremonies/ceremonies';
 
 const SAINT_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
@@ -48,7 +48,7 @@ export default function FamilyChronicle() {
         let mounted = true;
         (async () => {
             try {
-                const result = await trinitySynapse('family_chronicle', {});
+                const result = await trinitySynapse('family_chronicle', buildTrinityCommonContext());
                 if (mounted) setData(result);
             } catch (err) {
                 console.warn('FamilyChronicle: failed to load trinity synapse data', err);

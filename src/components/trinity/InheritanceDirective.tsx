@@ -15,6 +15,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
+import { getFamilyMembers } from '../../lib/joseph/genealogy';
+import { getCachedTrinitySignals, refreshTrinitySignals, wellnessFromLiveHealth } from '../../lib/trinity/liveSignals';
 
 type InheritanceCardStatus = 'ready' | 'needs_attention' | 'missing';
 
@@ -163,7 +165,22 @@ export default function InheritanceDirective() {
     let mounted = true;
     (async () => {
       try {
-        const result = await trinitySynapse<InheritanceData>('inheritance_directive', {});
+        // Estate value/assets/heirs aren't tracked anywhere in the app yet
+        // (that would need real Legacy Vault plumbing this pass didn't reach)
+        // so those stay on the backend's defaults rather than being
+        // invented here - but the account owner's own identity and real
+        // health trajectory ARE available and were previously never sent,
+        // making this briefing generic for every single user.
+        await refreshTrinitySignals();
+        const members = getFamilyMembers();
+        const primary = members.filter((m) => !m.deathDate).find((m) => m.generation === 0) || members[0];
+        const signals = getCachedTrinitySignals();
+        const wellness = signals ? wellnessFromLiveHealth(signals.health) : null;
+
+        const result = await trinitySynapse<InheritanceData>('inheritance_directive', {
+          ...(primary ? { member_id: primary.id, member_name: `${primary.firstName} ${primary.lastName}`.trim() } : {}),
+          ...(wellness !== null ? { health_risk_score: 100 - wellness } : {}),
+        });
         if (mounted) {
           setData(result);
         }

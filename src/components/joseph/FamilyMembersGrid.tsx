@@ -124,6 +124,17 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     useEffect(() => {
         syncEngrams();
     }, []);
+
+    // members was seeded from whatever genealogy.ts had in memory at mount -
+    // for a real (non-demo) session that's frequently a pre-hydration
+    // snapshot (empty on a new device, or a stale cache otherwise). Refresh
+    // once Supabase hydration completes, and again on every realtime change
+    // (another tab/device editing the same tree), both signalled here.
+    useEffect(() => {
+        const handleHydrated = () => setMembers(getFamilyMembers());
+        window.addEventListener('everafter:genealogy-hydrated', handleHydrated);
+        return () => window.removeEventListener('everafter:genealogy-hydrated', handleHydrated);
+    }, []);
     const [personalityMember, setPersonalityMember] = useState<FamilyMember | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
     const [societyEvents, setSocietyEvents] = useState<InteractionEvent[]>([]);
