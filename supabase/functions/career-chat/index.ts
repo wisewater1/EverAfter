@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -358,18 +359,9 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
       return errorResponse("CONFIG_MISSING", "Supabase configuration missing");
-    }
-
-    if (!openaiKey) {
-      return errorResponse(
-        "CONFIG_MISSING",
-        "OPENAI_API_KEY not configured",
-        "Contact administrator to configure OpenAI integration"
-      );
     }
 
     // 2. Determine authentication mode (JWT or public token)
@@ -460,6 +452,18 @@ Deno.serve(async (req: Request) => {
         "Missing authentication",
         "Provide Authorization header or X-Public-Token header",
         401
+      );
+    }
+
+    // The career profile owner's own key covers usage on their public chat
+    // widget too, not the anonymous visitor's - profileOwnerId is set
+    // correctly in both auth branches above.
+    const { apiKey: openaiKey } = await resolveApiKey(serviceClient, profileOwnerId, "openai", "OPENAI_API_KEY");
+    if (!openaiKey) {
+      return errorResponse(
+        "CONFIG_MISSING",
+        "OPENAI_API_KEY not configured",
+        "Contact administrator to configure OpenAI integration"
       );
     }
 
