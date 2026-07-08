@@ -40,6 +40,17 @@ export interface SaintChatResult extends ChatResponse {
   knowledge_available?: boolean;
 }
 
+export interface QuizInviteSummary {
+  token: string;
+  subject_name: string;
+  subject_member_id: string | null;
+  status: string;
+  share_path: string;
+  created_at: string | null;
+  completed_at: string | null;
+  profile: Record<string, unknown> | null;
+}
+
 export interface SaintStatusSummary {
   saint_id: string;
   name: string;
@@ -467,6 +478,25 @@ class APIClient {
       return null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * List quiz invites this user has sent, with their completed profile once
+   * the recipient has answered. Never throws: an empty list reads as "no
+   * invites yet" rather than an error.
+   */
+  async getQuizInvites(): Promise<QuizInviteSummary[]> {
+    try {
+      const headers = await this.buildAuthHeaders({ 'Bypass-Tunnel-Reminder': 'true' });
+      const data = await this.requestBackendJson<{ invites?: QuizInviteSummary[] }>(
+        `/api/v1/personality-quiz/invites`,
+        { method: 'GET', headers },
+        'Could not load quiz invites.',
+      );
+      return Array.isArray(data?.invites) ? data.invites : [];
+    } catch {
+      return [];
     }
   }
 
