@@ -4,7 +4,7 @@ import {
     CheckSquare, Clock, MapPin, Info, MessageSquare,
     Activity, RefreshCw, ArrowLeft, Bell, Link as LinkIcon,
     GitBranch, UserCheck, History, MessageCircle, Search,
-    Sparkles, Brain, Flame
+    Sparkles, Brain, Flame, GitMerge
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,7 @@ import CouncilAlerts from './CouncilAlerts';
 import PersonalityTrainingCenter from './personality/PersonalityTrainingCenter';
 import MediaIntelligencePanel from './joseph/MediaIntelligencePanel';
 import PersonalityQuiz from './joseph/PersonalityQuiz';
+import FamilyPatternExplorer from './joseph/FamilyPatternExplorer';
 import SharedPredictionPanel from './shared/SharedPredictionPanel';
 import { getFamilyMembers, getGenerationLabel, hydrateGenealogyInBackground, isSeedMemberId } from '../lib/joseph/genealogy';
 import FamilyHealthHeatmap from './joseph/FamilyHealthHeatmap';
@@ -35,12 +36,13 @@ import { buildTellMyStoryReferralCode, buildTellMyStoryUrl } from '../lib/tellMy
 import { AdvancedTasksTab } from './joseph/AdvancedTasksTab';
 import { AdvancedShoppingTab } from './joseph/AdvancedShoppingTab';
 
-type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams' | 'create-ai';
+type TabKey = 'tree' | 'members' | 'media' | 'quiz' | 'patterns' | 'predictions' | 'society' | 'timeline' | 'tasks' | 'shopping' | 'calendar' | 'chat' | 'genealogy' | 'training' | 'delphi' | 'engrams' | 'create-ai';
 
 const TABS: { key: TabKey; label: string; mobileLabel: string; icon: ComponentType<{ className?: string }> }[] = [
     { key: 'tree', label: 'Family Tree', mobileLabel: 'Tree', icon: GitBranch },
     { key: 'members', label: 'Members', mobileLabel: 'Members', icon: UserCheck },
     { key: 'quiz', label: 'Personality Quiz', mobileLabel: 'Quiz', icon: Brain },
+    { key: 'patterns', label: 'Family Patterns', mobileLabel: 'Patterns', icon: GitMerge },
     { key: 'media', label: 'Media Intel', mobileLabel: 'Media', icon: Info },
     { key: 'predictions', label: 'Predictions', mobileLabel: 'Predict', icon: Activity },
     { key: 'create-ai', label: 'Create Your AI', mobileLabel: 'Create AI', icon: Sparkles },
@@ -433,7 +435,7 @@ export default function StJosephFamilyDashboard() {
             </div>
 
             {/* Full-width genealogy tabs */}
-            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams' || activeTab === 'create-ai') && (
+            {(activeTab === 'tree' || activeTab === 'members' || activeTab === 'timeline' || activeTab === 'genealogy' || activeTab === 'society' || activeTab === 'training' || activeTab === 'media' || activeTab === 'quiz' || activeTab === 'patterns' || activeTab === 'predictions' || activeTab === 'delphi' || activeTab === 'engrams' || activeTab === 'create-ai') && (
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'tree' && (
                         <FamilyTreeView
@@ -463,6 +465,11 @@ export default function StJosephFamilyDashboard() {
                                 description="Use TellMyStory.ai to collect the narrative context behind each family member’s OCEAN profile, then carry that memory layer back into EverAfter."
                                 compact
                             />
+                        </div>
+                    )}
+                    {activeTab === 'patterns' && (
+                        <div className="bg-slate-900/40 sm:backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-8">
+                            <FamilyPatternExplorer />
                         </div>
                     )}
                     {activeTab === 'media' && (
