@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Activity, Heart, BarChart3, Target, Users, Bell, TrendingUp, FolderOpen, Link2, Cpu, Brain, Stethoscope, LayoutGrid, Calendar, Pill, Zap, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
+import { getFamilyMembers } from '../lib/joseph/genealogy';
+import { refreshTrinitySignals, wellnessFromLiveHealth } from '../lib/trinity/liveSignals';
+import { financeApi, type BudgetEnvelope } from '../lib/gabriel/finance';
 import RaphaelHealthInterface from './RaphaelHealthInterface';
 import RaphaelInsightsPanel from './RaphaelInsightsPanel';
 import RaphaelChat from './RaphaelChat';
@@ -56,8 +60,42 @@ type TabView =
 
 export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramId?: string }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { openConnectionsPanel, getActiveConnectionsCount } = useConnections();
   const [activeTab, setActiveTab] = useState<TabView>('overview');
+  const [trinityMetrics, setTrinityMetrics] = useState<Array<{ metric: string; value: number }>>([]);
+  const [trinityBudget, setTrinityBudget] = useState<BudgetEnvelope[]>(() => financeApi.getCachedBudget());
+  const [trinityRiskScore, setTrinityRiskScore] = useState(50);
+  const trinityFamilyMembers = useMemo(() => getFamilyMembers(), []);
+
+  // The Trinity tab used to render with hardcoded empty metrics/family/budget
+  // props, so its cross-Saint cards showed the same generic output for every
+  // user regardless of their real health, family, or finances.
+  useEffect(() => {
+    if (activeTab !== 'trinity' || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [signals, budget] = await Promise.all([refreshTrinitySignals(), financeApi.getBudget()]);
+        if (cancelled) return;
+        const health = signals?.health;
+        const metrics: Array<{ metric: string; value: number }> = [];
+        if (health) {
+          if (health.restingHr !== null) metrics.push({ metric: 'resting_hr', value: health.restingHr });
+          if (health.steps !== null) metrics.push({ metric: 'steps', value: health.steps });
+          if (health.sleepEfficiency !== null) metrics.push({ metric: 'sleep_efficiency', value: health.sleepEfficiency });
+          if (health.hrv !== null) metrics.push({ metric: 'hrv', value: health.hrv });
+        }
+        setTrinityMetrics(metrics);
+        setTrinityBudget(budget);
+        const wellness = health ? wellnessFromLiveHealth(health) : null;
+        if (wellness !== null) setTrinityRiskScore(100 - wellness);
+      } catch (err) {
+        console.warn('StRaphaelHealthHub: failed to load Trinity context', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, user?.id]);
 
   const activeConnectionsCount = getActiveConnectionsCount();
 
@@ -272,13 +310,13 @@ export default function StRaphaelHealthHub({ raphaelEngramId }: { raphaelEngramI
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
               <TrinitySynapsePanel
                 saint="raphael"
-                metricsHistory={[]}
-                familyMembers={[]}
-                budgetEnvelopes={[]}
-                healthRiskScore={50}
+                metricsHistory={trinityMetrics}
+                familyMembers={trinityFamilyMembers}
+                budgetEnvelopes={trinityBudget}
+                healthRiskScore={trinityRiskScore}
               />
               <GenerationalTimeline
-                familyMembers={[]}
+                familyMembers={trinityFamilyMembers}
               />
             </div>
           </div>

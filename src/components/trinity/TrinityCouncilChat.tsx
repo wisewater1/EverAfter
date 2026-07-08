@@ -4,7 +4,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { Send, GitBranch, Heart, Wallet, Loader2, Sparkles } from 'lucide-react';
-import { trinitySynapse } from './trinityApi';
+import { trinitySynapse, buildTrinityCommonContext } from './trinityApi';
 
 interface CouncilResponse {
     saint: string;
@@ -40,7 +40,10 @@ export default function TrinityCouncilChat() {
         setLoading(true);
 
         try {
-            const data = await trinitySynapse<{ responses: CouncilResponse[] }>('trinity_council', { user_message: input });
+            const data = await trinitySynapse<{ responses: CouncilResponse[] }>('trinity_council', {
+                user_message: input,
+                ...buildTrinityCommonContext(),
+            });
             const councilMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'council',

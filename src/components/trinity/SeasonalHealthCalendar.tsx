@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Bell, Calendar, Clock, Flame, Link as LinkIcon, Loader2, MapPin, Users } from 'lucide-react';
-import { trinitySynapse } from './trinityApi';
+import { trinitySynapse, buildTrinityCommonContext } from './trinityApi';
 import { listCeremonies, type Ceremony } from '../../lib/ceremonies/ceremonies';
 
 function formatCeremonyTime(scheduledAt: string): string {
@@ -71,7 +71,7 @@ export default function SeasonalHealthCalendar() {
 
         (async () => {
             try {
-                const result = await trinitySynapse('seasonal_calendar', {});
+                const result = await trinitySynapse('seasonal_calendar', buildTrinityCommonContext());
                 if (!mounted) return;
                 setData(result);
             } catch (err) {

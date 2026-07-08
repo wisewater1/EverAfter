@@ -10,7 +10,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Shield, GitBranch, Heart, Wallet, RefreshCw, Loader2, Lock } from 'lucide-react';
-import { trinitySynapse } from './trinityApi';
+import { trinitySynapse, buildTrinityCommonContext } from './trinityApi';
 import { refreshTrinitySignals } from '../../lib/trinity/liveSignals';
 
 interface VitalityBar {
@@ -51,7 +51,7 @@ export default function FamilyVitalityScore() {
             // Warm the live per-user signals first so the score reflects real
             // health, finance, family, and guidance data rather than the sample.
             await refreshTrinitySignals(force);
-            const d = await trinitySynapse('family_vitality', {});
+            const d = await trinitySynapse('family_vitality', buildTrinityCommonContext());
             setData(d);
         } catch (err) {
             console.warn('FamilyVitalityScore: failed to load vitality data', err);
@@ -65,7 +65,7 @@ export default function FamilyVitalityScore() {
         const onSignals = () => {
             void (async () => {
                 try {
-                    const d = await trinitySynapse('family_vitality', {});
+                    const d = await trinitySynapse('family_vitality', buildTrinityCommonContext());
                     setData(d);
                 } catch (err) {
                     console.warn('FamilyVitalityScore: failed to refresh vitality data', err);

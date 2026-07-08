@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Check, Clock, Loader2 } from 'lucide-react';
 import { trinitySynapse } from './trinityApi';
+import { getCachedTrinitySignals, refreshTrinitySignals } from '../../lib/trinity/liveSignals';
 
 const PRIORITY_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
     immediate: { color: '#ef4444', icon: Zap, label: 'Now' },
@@ -38,7 +39,34 @@ export default function BehavioralNudgeEngine() {
         let mounted = true;
         (async () => {
             try {
-                const result = await trinitySynapse('behavioral_nudge', {});
+                // This action wants scalar stress/HRV/budget-pressure fields,
+                // not the family_members/metrics_history shape most other
+                // Trinity tabs use - build it from the same live signals used
+                // elsewhere instead of sending {} (which made every user see
+                // the exact same generic nudges regardless of their real
+                // biometrics or budget).
+                await refreshTrinitySignals();
+                const signals = getCachedTrinitySignals();
+                const finance = signals?.finance;
+                const overspentCategories = (finance?.envelopes || [])
+                    .filter((e) => e.available < 0)
+                    .map((e) => e.category_name);
+                const budgetPressure = finance && finance.totalAssigned > 0
+                    ? Math.min(100, (finance.overspentEnvelopes / Math.max(finance.envelopes.length, 1)) * 100)
+                    : undefined;
+
+                const result = await trinitySynapse('behavioral_nudge', {
+                    ...(signals?.health.hrv !== null && signals?.health.hrv !== undefined ? { current_hrv: signals.health.hrv } : {}),
+                    ...(budgetPressure !== undefined ? { budget_pressure: budgetPressure } : {}),
+                    ...(overspentCategories.length > 0 ? { overspent_categories: overspentCategories } : {}),
+                    time_of_day: (() => {
+                        const hour = new Date().getHours();
+                        if (hour < 12) return 'morning';
+                        if (hour < 17) return 'afternoon';
+                        if (hour < 21) return 'evening';
+                        return 'night';
+                    })(),
+                });
                 if (mounted) setData(result);
             } catch (err) {
                 console.warn('BehavioralNudgeEngine: failed to load trinity synapse data', err);

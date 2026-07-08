@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Archive, CalendarDays, CheckCircle2, ChevronRight, ChevronLeft, GitBranch, Heart, Loader2, Plus, RefreshCw, Target, Users, Wallet } from 'lucide-react';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import {
+    buildTrinityCommonContext,
     getStoredTrinityGoals,
     persistTrinityGoal,
     removeStoredTrinityGoal,
@@ -102,6 +103,7 @@ export default function CrossSaintGoalEngine() {
                 health_target: { metric: healthMetric, target_value: targetValue },
                 budget_allocation: { category: budgetCategory, monthly_amount: monthlyAmount },
                 family_tracking: trackedMembers,
+                ...buildTrinityCommonContext(),
             });
 
             if (result) {
@@ -128,6 +130,7 @@ export default function CrossSaintGoalEngine() {
                 health_target: goal.health_target,
                 budget_allocation: goal.budget_allocation,
                 family_tracking: goal.family_tracking || [],
+                ...buildTrinityCommonContext(),
             });
 
             if (result) {
