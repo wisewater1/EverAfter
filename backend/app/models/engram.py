@@ -16,6 +16,8 @@ class ArchetypalAI(Base):
     name = Column(String, nullable=False)
     description = Column(Text, default="My personal AI created from my memories and experiences")
     personality_traits = Column(JSON, default=dict)
+    core_values = Column(ARRAY(String), default=list)
+    communication_style = Column(Text)
     total_memories = Column(Integer, default=0)
     training_status = Column(String, default='untrained')
     avatar_url = Column(String)

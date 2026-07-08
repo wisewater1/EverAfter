@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck, Send, Calendar, CalendarPlus } from 'lucide-react';
+import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck, Send, Calendar, CalendarPlus, Inbox } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
 import { sendPersonalityQuestions } from '../../lib/joseph/sendQuestions';
 import MemberCalendarPanel from './MemberCalendarPanel';
+import SentQuizInvitesPanel from './SentQuizInvitesPanel';
 import { familyDateEvents, downloadICS } from '../../lib/joseph/familyCalendar';
 import {
     getFamilyMembers, FamilyMember, getSpouse,
@@ -41,6 +42,7 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
     const [ancestryTarget, setAncestryTarget] = useState<FamilyMember | null>(null);
     const [sentId, setSentId] = useState<string | null>(null);
     const [calendarMember, setCalendarMember] = useState<FamilyMember | null>(null);
+    const [showSentInvites, setShowSentInvites] = useState(false);
 
     // Seamless "send the personality questionnaire to this person": mints a
     // public link and hands it off (share sheet / clipboard), with quick feedback.
@@ -230,6 +232,14 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                         >
                             <CalendarPlus className="w-4 h-4" />
                             <span>Add family birthdays</span>
+                        </button>
+                        <button
+                            onClick={() => setShowSentInvites(true)}
+                            title="See the personality questionnaires you've sent and what's come back"
+                            className="flex flex-shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/15 px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-cyan-200 transition-all hover:bg-cyan-500/25"
+                        >
+                            <Inbox className="w-4 h-4" />
+                            <span>Sent Questionnaires</span>
                         </button>
                         <div className="flex items-center gap-2 overflow-x-auto">
                             <button
@@ -611,6 +621,11 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                     onClose={() => setCalendarMember(null)}
                     onSaved={() => setMembers(getFamilyMembers())}
                 />
+            )}
+
+            {/* Sent questionnaires: what's come back from anyone we've invited */}
+            {showSentInvites && (
+                <SentQuizInvitesPanel onClose={() => setShowSentInvites(false)} />
             )}
         </>
     );

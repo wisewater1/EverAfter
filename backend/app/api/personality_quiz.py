@@ -13,11 +13,12 @@ from typing import Any, Deque, Dict, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.db.session import get_async_session
+from app.models.engram import Engram
 from app.models.quiz_invite import QuizInvite
 
 # Lightweight, dependency-free per-IP sliding-window limiter for the public
@@ -212,6 +213,31 @@ async def submit_public_invite(
     invite.status = "completed"
     invite.completed_at = datetime.now(timezone.utc)
     await session.commit()
+
+    # Also condition the linked engram (if any) on what this person actually
+    # answered, so their engram's chat replies reflect it instead of every
+    # family member's engram sounding the same. Non-blocking: the invite's
+    # own result above is already saved regardless of what happens here.
+    if invite.subject_member_id and isinstance(profile, dict):
+        try:
+            link_row = (
+                await session.execute(
+                    text(
+                        "SELECT engram_id FROM engram_family_links "
+                        "WHERE user_id = :owner_id AND joseph_member_id = :member_id"
+                    ),
+                    {"owner_id": str(invite.owner_user_id), "member_id": invite.subject_member_id},
+                )
+            ).first()
+            if link_row:
+                engram = await session.get(Engram, link_row[0])
+                if engram:
+                    engram.personality_traits = profile.get("traits") or []
+                    engram.core_values = profile.get("strengths") or []
+                    engram.communication_style = profile.get("communication_style") or ""
+                    await session.commit()
+        except Exception:
+            pass
 
     # The friend gets a gracious confirmation + the headline archetype, not the
     # full profile (that belongs to the owner).
