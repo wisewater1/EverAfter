@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Brain, Sparkles, RefreshCw, Info, Users, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { chatWithEngram } from '../lib/edge-functions';
 
 interface ArchetypalAI {
   id: string;
@@ -280,41 +281,18 @@ ${ai.interaction_count > 0 ? `We've had ${ai.interaction_count} conversations so
       ?.map(c => `User: ${c.user_message}\nAI: ${c.ai_response}`)
       .join('\n\n') || '';
 
-    const foundationalQs = Array.isArray(ai.foundational_questions)
-      ? ai.foundational_questions
-      : [];
+    try {
+      const conversationId = `${user!.id}_${ai.id}`;
+      const result = await chatWithEngram({ engramId: ai.id, message: userInput, conversationId });
+      if (result?.response) {
+        return result.response;
+      }
+    } catch (err) {
+      console.warn(`Live AI response unavailable for ${ai.name}, using personality-template fallback:`, err);
+    }
 
-    // System prompt for AI context (reserved for future AI API integration)
-    // When implementing AI responses, uncomment and use the following prompt structure:
-    /*
-    const systemPrompt = `You are ${ai.name}, an Archetypal AI with a distinct personality shaped by lived experiences.
-
-CORE IDENTITY:
-${ai.description}
-
-PERSONALITY:
-- Traits: ${ai.personality_traits?.join(', ') || 'thoughtful, authentic, insightful'}
-- Core Values: ${ai.core_values?.join(', ') || 'growth, understanding, wisdom'}
-- Communication Style: ${ai.communication_style || 'warm, engaging, and reflective'}
-
-FOUNDATIONAL QUESTIONS (that shaped your essence):
-${foundationalQs.length > 0 ? foundationalQs.map((q, i) => `${i + 1}. ${typeof q === 'string' ? q : q.text || 'Unknown question'}`).join('\n') : 'Your personality is still forming through daily conversations.'}
-
-YOUR MEMORIES (from ${ai.total_memories} training responses):
-${memoryContext ? memoryContext.substring(0, 1500) : 'You are still building memories...'}
-
-${conversationHistory ? `RECENT CONVERSATION HISTORY:\n${conversationHistory}\n` : ''}
-
-INSTRUCTIONS:
-- Respond authentically as this archetypal personality
-- Draw on your memories and values when relevant
-- Be conversational and natural, not robotic
-- Show personality through your word choices and perspective
-- Keep responses focused and meaningful (2-4 paragraphs)
-- Reference your foundational questions when they're relevant to the topic`;
-    */
-
-    // Condition the reply on THIS engram's actual personality (traits / values /
+    // Fallback when the real engram-chat call fails: condition a templated
+    // reply on THIS engram's actual personality (traits / values /
     // communication style) + a real memory snippet: keyless, no name hardcodes.
     const traits = ai.personality_traits?.slice(0, 3).join(', ') || 'thoughtful and reflective';
     const values = ai.core_values?.slice(0, 2).join(' and ') || 'authenticity and growth';

@@ -174,6 +174,26 @@ export async function getDailyProgress(): Promise<DailyProgressResponse> {
 }
 
 /**
+ * Archetypal / Custom Engram Chat - retrieves relevant trained memories via
+ * vector search and generates a real personality-conditioned reply.
+ */
+export interface EngramChatRequest {
+  engramId: string;
+  message: string;
+  conversationId: string;
+}
+
+export interface EngramChatResponse {
+  response: string;
+  relevantMemories?: number;
+  fallback?: boolean;
+}
+
+export async function chatWithEngram(request: EngramChatRequest): Promise<EngramChatResponse> {
+  return callEdgeFunction<EngramChatResponse>('engram-chat', request);
+}
+
+/**
  * Career Agent Chat
  */
 export interface CareerChatRequest {
