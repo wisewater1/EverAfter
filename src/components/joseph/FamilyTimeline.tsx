@@ -100,11 +100,26 @@ function computeImpactScore(event: FamilyEventType, members: FamilyMember[]): nu
 
 export default function FamilyTimeline() {
     const [events, setEvents] = useState<FamilyEventType[]>(() => getFamilyEvents());
-    const [members] = useState<FamilyMember[]>(() => getFamilyMembers());
+    const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
     const [filterType, setFilterType] = useState<EventType | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
     const [chatEventTitle, setChatEventTitle] = useState<string>('');
     const [zoomLevel, setZoomLevel] = useState(1); // 1 = Normal, 0.5 = Zoomed Out
+
+    // events/members were seeded from whatever genealogy.ts had in memory at
+    // mount - for a real (non-demo) session that's frequently empty (Supabase
+    // hydration hasn't finished yet), and unlike every sibling feature in this
+    // area (FamilyTreeView, FamilyMembersGrid, StJosephFamilyDashboard) this
+    // component never refreshed once hydration completed, so real events
+    // loaded from Supabase after mount never reached the timeline.
+    useEffect(() => {
+        const handleHydrated = () => {
+            setEvents(getFamilyEvents());
+            setMembers(getFamilyMembers());
+        };
+        window.addEventListener('everafter:genealogy-hydrated', handleHydrated);
+        return () => window.removeEventListener('everafter:genealogy-hydrated', handleHydrated);
+    }, []);
 
     // Drag-to-scroll state
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -695,6 +710,15 @@ export default function FamilyTimeline() {
             </div>
 
             {/* Cinematic Horizontal Timeline */}
+            {filteredEvents.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-16 text-center">
+                    <Clock className="w-8 h-8 mx-auto mb-3 text-slate-600" />
+                    <p className="text-sm text-slate-300">No events match this filter yet.</p>
+                    <p className="mt-2 text-xs text-slate-500">
+                        Add a birth, marriage, or milestone to start building the timeline.
+                    </p>
+                </div>
+            ) : (
             <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 bg-slate-950/50 sm:backdrop-blur-xl shadow-2xl transition-all duration-1000" style={{ backgroundImage: heatmapLayer !== 'transparent' ? heatmapLayer : 'none' }}>
                 {/* Horizontal central line */}
                 <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 bg-gradient-to-r from-amber-500/10 via-amber-500/30 to-indigo-500/20 z-0" />
@@ -894,12 +918,6 @@ export default function FamilyTimeline() {
                     ))}
                 </div>
             </div>
-
-            {filteredEvents.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                    <Clock className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">No events match this filter.</p>
-                </div>
             )}
 
             {/* Saint Chat Modal */}

@@ -41,9 +41,9 @@ class OasisService:
         if any(w in traits_str for w in ["lead", "bold", "direct"]): return "direct"
         return "balanced"
 
-    async def get_social_clusters(self, session: AsyncSession) -> Dict[str, List[str]]:
-        """Groups engrams into interest-based clusters."""
-        query = select(Engram)
+    async def get_social_clusters(self, session: AsyncSession, user_id: uuid.UUID) -> Dict[str, List[str]]:
+        """Groups this user's own engrams into interest-based clusters."""
+        query = select(Engram).where(Engram.user_id == user_id)
         result = await session.execute(query)
         engrams = result.scalars().all()
         
@@ -92,19 +92,21 @@ class OasisService:
         await session.commit()
         return interaction
 
-    async def trigger_vignette_propagation(self, session: AsyncSession, engram_id: str, vignette: str):
+    async def trigger_vignette_propagation(self, session: AsyncSession, engram_id: str, vignette: str, user_id: uuid.UUID):
         """
         Simulates the 'viral spread' of a legacy lesson.
         The selected ancestor shares this story, and others respond/amplify it.
+        Amplifiers are drawn only from this user's own engrams - the caller is
+        responsible for having already verified engram_id itself belongs to them.
         """
         logger.info(f"OasisService: Starting propagation of vignette from {engram_id}")
-        
+
         # 1. Initiator posts the vignette
         initiator_post = await self.generate_agora_post(session, engram_id)
         if not initiator_post: return
 
         # 2. Select 2-3 'amplifiers' (descendants or like-minded spirits)
-        query = select(Engram).where(Engram.id != uuid.UUID(engram_id)).limit(3)
+        query = select(Engram).where(Engram.id != uuid.UUID(engram_id), Engram.user_id == user_id).limit(3)
         result = await session.execute(query)
         amplifiers = result.scalars().all()
 
