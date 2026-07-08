@@ -9,6 +9,10 @@ import SaintChat from '../SaintChat';
 import AddEventModal from './AddEventModal';
 import { apiClient } from '../../lib/api-client';
 import { requestBackendJson } from '../../lib/backend-request';
+import { trinitySynapse, buildTrinityCommonContext, getFamilyTreeAnalysis } from '../trinity/trinityApi';
+
+const RISK_COLOR: Record<string, string> = { low: '#10b981', moderate: '#f59e0b', high: '#fb923c', critical: '#ef4444' };
+const TRAJECTORY_ARROW: Record<string, string> = { improving: '↑', stable: '→', declining: '↓' };
 
 const EVENT_COLORS: Record<EventType, { bg: string; border: string; text: string; dot: string }> = {
     birth: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', dot: 'bg-emerald-400' },
@@ -271,6 +275,55 @@ export default function FamilyTimeline() {
                 }
             } catch (e) {
                 console.warn('Timeline: Health milestone ingestion skipped', e);
+            }
+
+            // 1b. Trinity: per-member generational health timeline. This is
+            // genuinely additive to the family-wide healthSummary block above
+            // (which only covers aggregate sleep/activity/HRV scores) - it
+            // surfaces each living member's own current wellness/risk via the
+            // already-implemented generational_timeline() backend action,
+            // rather than another scattered ad-hoc call.
+            try {
+                const analysis = getFamilyTreeAnalysis();
+                const liveHeatmap = analysis.members
+                    .filter((m) => !m.deceased)
+                    .map((m) => ({
+                        member_id: m.id,
+                        wellness_score: m.wellnessScore,
+                        risk_level: m.riskLevel,
+                        trend: m.trajectory,
+                        trend_arrow: TRAJECTORY_ARROW[m.trajectory] || '→',
+                        colour: RISK_COLOR[m.riskLevel] || RISK_COLOR.moderate,
+                    }));
+
+                interface TimelineGenerationEntry {
+                    member_id: string;
+                    name: string;
+                    is_living: boolean;
+                    health: { wellness_score: number; risk_level: string; trend: string; trend_arrow: string } | null;
+                }
+                const timeline = await trinitySynapse<{ generations?: Record<string, TimelineGenerationEntry[]> }>('timeline', {
+                    ...buildTrinityCommonContext(),
+                    live_heatmap: liveHeatmap,
+                });
+
+                for (const generationMembers of Object.values(timeline?.generations || {})) {
+                    for (const entry of generationMembers) {
+                        if (!entry?.health || !entry.is_living) continue;
+                        milestones.push({
+                            id: `trinity_health_${entry.member_id}_${currentYear}`,
+                            memberId: entry.member_id,
+                            memberName: entry.name || 'Family member',
+                            type: 'milestone',
+                            date: `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`,
+                            title: `${entry.health.trend_arrow || ''} ${entry.name} - ${entry.health.risk_level} risk`.trim(),
+                            description: `Wellness score ${entry.health.wellness_score}/100, trending ${entry.health.trend}.`,
+                            source: 'health',
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Timeline: Trinity generational health ingestion skipped', e);
             }
 
             // 2. St. Gabriel: Finance milestones
