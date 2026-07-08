@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -340,13 +341,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 5. Get OpenAI API key
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    // 5. Get an OpenAI API key: the user's own saved key first, then the
+    // shared server key. This means a signed-in user who has added their own
+    // OpenAI key in Settings can chat even if the shared key is missing,
+    // rate-limited, or unconfigured.
+    const { apiKey: openaiKey } = await resolveApiKey(supabase, user.id, "openai", "OPENAI_API_KEY");
     if (!openaiKey) {
       return errorResponse(
         "CONFIG_MISSING",
         "OPENAI_API_KEY not configured",
-        "Contact administrator to configure OpenAI integration"
+        "Add your own OpenAI API key in Settings, or contact the administrator to configure OpenAI integration"
       );
     }
 
