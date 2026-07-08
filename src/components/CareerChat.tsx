@@ -165,11 +165,20 @@ export default function CareerChat({ publicToken }: CareerChatProps) {
       }
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/career-chat`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(request),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${supabaseUrl}/functions/v1/career-chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

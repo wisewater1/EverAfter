@@ -34,19 +34,28 @@ export default function TerraSetupWizard() {
     setValidation(null);
 
     try {
-      const response = await fetch(`${supabaseUrl}/functions/v1/terra-test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'validate_credentials',
-          api_key: apiKey,
-          dev_id: devId,
-          webhook_secret: webhookSecret,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(`${supabaseUrl}/functions/v1/terra-test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'validate_credentials',
+            api_key: apiKey,
+            dev_id: devId,
+            webhook_secret: webhookSecret,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const result = await response.json();
 
@@ -80,17 +89,26 @@ export default function TerraSetupWizard() {
     setValidation(null);
 
     try {
-      const response = await fetch(`${supabaseUrl}/functions/v1/terra-test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'test_webhook',
-          webhook_secret: webhookSecret,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(`${supabaseUrl}/functions/v1/terra-test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'test_webhook',
+            webhook_secret: webhookSecret,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const result = await response.json();
 
@@ -124,16 +142,25 @@ export default function TerraSetupWizard() {
     setValidation(null);
 
     try {
-      const response = await fetch(`${supabaseUrl}/functions/v1/terra-test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'full_integration_test',
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch(`${supabaseUrl}/functions/v1/terra-test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'full_integration_test',
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const result = await response.json();
 
