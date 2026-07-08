@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { resolveApiKey } from '../_shared/user-api-keys.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,7 +53,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const { apiKey: openaiApiKey } = await resolveApiKey(supabase, user.id, 'openai', 'OPENAI_API_KEY');
     if (!openaiApiKey) {
       console.warn('OpenAI API key not configured, using mock embeddings');
       const mockEmbedding = Array(1536).fill(0).map(() => Math.random() * 0.1);

@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,11 +43,6 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-
-    if (!openaiApiKey) {
-      throw new Error("OPENAI_API_KEY not configured");
-    }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -68,6 +64,11 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       throw new Error("Unauthorized");
+    }
+
+    const { apiKey: openaiApiKey } = await resolveApiKey(supabase, user.id, "openai", "OPENAI_API_KEY");
+    if (!openaiApiKey) {
+      throw new Error("OPENAI_API_KEY not configured");
     }
 
     const { family_member_id, force_regenerate = false } = await req.json();
