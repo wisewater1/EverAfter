@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, Heart, LogOut, Brain, ChevronRight, Sparkles, Settings } from 'lucide-react';
+import { acquireScrollLock, releaseScrollLock } from '../lib/keyboard-navigation';
 
 interface MobileMenuProps {
     isOpen: boolean;
@@ -18,18 +19,15 @@ export default function MobileMenu({
     onNavigateToSettings,
     onSignOut,
 }: MobileMenuProps) {
-    // Lock background scroll while the drawer is open (mirrors ModalManager's
-    // enableScrollLock, so the dashboard behind the drawer can't scroll on touch).
+    // Lock background scroll while the drawer is open, through the same
+    // reference-counted lock Modal.tsx's ModalManager uses. A separate,
+    // uncoordinated lock here could remove the shared 'modal-open' class
+    // (or restore the wrong scroll position) while another modal was still
+    // open, leaving the page unable to scroll after this drawer closed.
     useEffect(() => {
         if (!isOpen) return;
-        const scrollY = window.scrollY;
-        document.body.classList.add('modal-open');
-        document.body.style.top = `-${scrollY}px`;
-        return () => {
-            document.body.classList.remove('modal-open');
-            document.body.style.top = '';
-            window.scrollTo(0, scrollY);
-        };
+        acquireScrollLock();
+        return () => releaseScrollLock();
     }, [isOpen]);
 
     if (!isOpen) return null;

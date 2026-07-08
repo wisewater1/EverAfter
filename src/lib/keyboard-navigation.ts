@@ -423,6 +423,42 @@ export const getNextFocusableSibling = (
 // MODAL UTILITIES
 // ========================================
 
+// Shared across every ModalManager instance (each modal creates its own),
+// so overlapping/nested modals coordinate one body-level scroll lock instead
+// of each independently adding/removing it. Without this, closing modal B
+// while modal A is still open removed the lock class outright - modal A's
+// own close() would then remove an already-removed class (harmless), but
+// the reverse ordering (A closes first) unlocked scroll while B was still
+// showing, and further overlap could leave document.body's `top`/scroll
+// position out of sync with reality, making the page appear stuck.
+let scrollLockCount = 0;
+let scrollLockRestorePosition = 0;
+
+export function acquireScrollLock(): void {
+  if (scrollLockCount === 0) {
+    scrollLockRestorePosition = window.pageYOffset;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.classList.add('modal-open');
+    document.body.style.top = `-${scrollLockRestorePosition}px`;
+
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+  }
+  scrollLockCount++;
+}
+
+export function releaseScrollLock(): void {
+  scrollLockCount = Math.max(0, scrollLockCount - 1);
+  if (scrollLockCount === 0) {
+    document.body.classList.remove('modal-open');
+    document.body.style.top = '';
+    document.body.style.paddingRight = '';
+    window.scrollTo(0, scrollLockRestorePosition);
+  }
+}
+
 /**
  * Comprehensive modal manager with focus trap, ESC handler, and scroll lock
  */
@@ -430,7 +466,7 @@ export class ModalManager {
   private modalElement: HTMLElement | null = null;
   private previousFocus: HTMLElement | null = null;
   private cleanupFocusTrap: (() => void) | null = null;
-  private scrollPosition: number = 0;
+  private scrollLockHeld = false;
 
   /**
    * Open modal with full accessibility support
@@ -462,29 +498,25 @@ export class ModalManager {
   }
 
   /**
-   * Enable scroll lock without layout shift
+   * Enable scroll lock without layout shift. Idempotent per instance so a
+   * double open() (or a re-render that calls open() again while already
+   * open) can never acquire the shared lock twice for the same modal.
    */
   private enableScrollLock() {
-    this.scrollPosition = window.pageYOffset;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-    document.body.classList.add('modal-open');
-    document.body.style.top = `-${this.scrollPosition}px`;
-
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
+    if (this.scrollLockHeld) return;
+    this.scrollLockHeld = true;
+    acquireScrollLock();
   }
 
   /**
-   * Disable scroll lock and restore scroll position
+   * Disable scroll lock and restore scroll position. Idempotent per
+   * instance so a double close() can never release the shared lock more
+   * times than this modal actually acquired it.
    */
   private disableScrollLock() {
-    document.body.classList.remove('modal-open');
-    document.body.style.top = '';
-    document.body.style.paddingRight = '';
-
-    window.scrollTo(0, this.scrollPosition);
+    if (!this.scrollLockHeld) return;
+    this.scrollLockHeld = false;
+    releaseScrollLock();
   }
 
   /**
