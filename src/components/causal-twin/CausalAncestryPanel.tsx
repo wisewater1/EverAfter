@@ -3,7 +3,8 @@ import { X, TrendingUp, AlertTriangle, CheckCircle, Lightbulb, Archive, ChevronR
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
-import { buildApiUrl } from '../../lib/env';
+import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 
 interface AncestryResult {
     member_name: string;
@@ -57,21 +58,26 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch(buildApiUrl('/api/v1/causal-twin/ancestry/predict'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    member_id: member.id,
-                    first_name: member.firstName,
-                    last_name: member.lastName,
-                    traits,
-                    birth_year: birthYear,
-                    occupation: member.occupation,
-                    generation: member.generation,
-                }),
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
             });
-            if (!res.ok) throw new Error('Prediction failed');
-            const data = await res.json();
+            const data = await requestBackendJson<AncestryResult>(
+                '/api/v1/causal-twin/ancestry/predict',
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        member_id: member.id,
+                        first_name: member.firstName,
+                        last_name: member.lastName,
+                        traits,
+                        birth_year: birthYear,
+                        occupation: member.occupation,
+                        generation: member.generation,
+                    }),
+                },
+                'Prediction failed.',
+            );
             setResult(data);
         } catch (e) {
             setError('Could not load prediction. Backend may be offline.');
@@ -82,16 +88,27 @@ export default function CausalAncestryPanel({ member, onClose }: Props) {
     async function archiveToLegacy() {
         if (!result) return;
         // Record in evidence ledger
-        await fetch(buildApiUrl('/api/v1/causal-twin/evidence'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                recommendation_text: `Causal Ancestry Trajectory for ${result.member_name}: ${result.narrative}`,
-                data_sources: ['causal_ancestry', `family_member:${member.id}`],
-                confidence: result.confidence?.score || 50,
-                evidence_type: 'population_prior',
-            }),
-        }).catch(() => { });
+        try {
+            const headers = await apiClient.getAuthHeaders({
+                'Content-Type': 'application/json',
+            });
+            await requestBackendJson(
+                '/api/v1/causal-twin/evidence',
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        recommendation_text: `Causal Ancestry Trajectory for ${result.member_name}: ${result.narrative}`,
+                        data_sources: ['causal_ancestry', `family_member:${member.id}`],
+                        confidence: result.confidence?.score || 50,
+                        evidence_type: 'population_prior',
+                    }),
+                },
+                'Failed to archive to legacy vault.',
+            );
+        } catch (e) {
+            console.warn('Failed to archive ancestry prediction to legacy vault:', e);
+        }
         setArchived(true);
     }
 

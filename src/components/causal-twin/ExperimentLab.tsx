@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Beaker, CheckCircle, ChevronRight, ChevronLeft, Clock, FileWarning, Pause, Pill, Play, Plus, Search, ShieldAlert, XCircle } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
-import { buildApiUrl } from '../../lib/env';
 import { apiClient } from '../../lib/api-client';
+import { requestBackendJson } from '../../lib/backend-request';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -253,8 +253,11 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
       const headers = await apiClient.getAuthHeaders({
         'Bypass-Tunnel-Reminder': 'true',
       });
-      const res = await fetch(buildApiUrl(`/api/v1/causal-twin/experiments${params}`), { headers });
-      const data = await res.json();
+      const data = await requestBackendJson<{ experiments?: ExperimentRecord[] }>(
+        `/api/v1/causal-twin/experiments${params}`,
+        { headers },
+        'Failed to load experiments.',
+      );
       setExperiments(data.experiments || []);
     } catch (error) {
       console.error(error);
@@ -379,21 +382,24 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
       });
-      const res = await fetch(buildApiUrl(`/api/v1/causal-twin/experiments${params}`), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: name.trim(),
-          intervention_a: intA.trim(),
-          intervention_b: intB.trim(),
-          outcome_metrics: metrics,
-          duration_days: days,
-        }),
-      });
+      const data = await requestBackendJson<{ error?: string; detail?: string }>(
+        `/api/v1/causal-twin/experiments${params}`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: name.trim(),
+            intervention_a: intA.trim(),
+            intervention_b: intB.trim(),
+            outcome_metrics: metrics,
+            duration_days: days,
+          }),
+        },
+        'Failed to create experiment.',
+      );
 
-      const data = await res.json();
-      if (!res.ok || data.error || data.detail) {
-        setCreateError(data.error || data.detail || `Failed to create experiment (${res.status})`);
+      if (data.error || data.detail) {
+        setCreateError(data.error || data.detail || 'Failed to create experiment.');
         return;
       }
 
@@ -404,7 +410,7 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
       await loadExperiments();
     } catch (error) {
       console.error(error);
-      setCreateError('Failed to create experiment.');
+      setCreateError(error instanceof Error ? error.message : 'Failed to create experiment.');
     } finally {
       setSubmitting(false);
     }
@@ -416,11 +422,15 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
       });
-      await fetch(buildApiUrl(`/api/v1/causal-twin/experiments/${id}`), {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ action }),
-      });
+      await requestBackendJson(
+        `/api/v1/causal-twin/experiments/${id}`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ action }),
+        },
+        'Failed to update experiment.',
+      );
       await loadExperiments();
     } catch (error) {
       console.error(error);
