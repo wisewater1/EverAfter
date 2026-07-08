@@ -1,12 +1,18 @@
-import { AlertTriangle, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
 
 interface FeatureBlockedStateProps {
   title: string;
   reason: string;
   detail?: string;
+  /** Free-tier hosts (e.g. Render) sleep after idle and take 30-60s+ to wake
+   * on the next request, so a single failed check at page-load is often
+   * transient rather than a real outage. Pass onRetry so the caller can
+   * re-check without forcing a full page reload. */
+  onRetry?: () => void;
+  retrying?: boolean;
 }
 
-export default function FeatureBlockedState({ title, reason, detail }: FeatureBlockedStateProps) {
+export default function FeatureBlockedState({ title, reason, detail, onRetry, retrying }: FeatureBlockedStateProps) {
   return (
     <div className="min-h-[50vh] flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-2xl rounded-3xl border border-rose-500/20 bg-slate-950/85 p-8 shadow-[0_30px_80px_rgba(2,6,23,0.45)]">
@@ -22,6 +28,16 @@ export default function FeatureBlockedState({ title, reason, detail }: FeatureBl
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white">{title}</h1>
             <p className="mt-3 text-sm leading-7 text-slate-300">{reason}</p>
             {detail ? <p className="mt-3 text-sm leading-7 text-slate-500">{detail}</p> : null}
+            {onRetry ? (
+              <button
+                onClick={onRetry}
+                disabled={retrying}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                {retrying ? 'Checking again...' : 'Try again'}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

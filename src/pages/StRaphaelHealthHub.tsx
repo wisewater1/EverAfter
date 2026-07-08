@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Activity, Heart, Droplet, Moon, Footprints,
     CheckCircle, Shield, Clock,
@@ -163,16 +163,55 @@ export default function StRaphaelHealthHub() {
     const [statusAura, setStatusAura] = useState<'stable' | 'drift' | 'critical'>('stable');
     const [hubNotice, setHubNotice] = useState<string | null>(null);
     const [hubBlockedReason, setHubBlockedReason] = useState<string | null>(null);
+    const [retrying, setRetrying] = useState(false);
 
     const activeConnectionsCount = getActiveConnectionsCount();
 
+    // Free-tier hosts (Render, etc.) sleep after idle and take 30-60s+ to
+    // wake on the next request. Without this, one failed check at page-load
+    // left the hub showing "Unavailable" for the rest of the session even
+    // after the backend woke up seconds later - the only recovery was a full
+    // reload. Auto-retry a bounded number of times with backoff, and expose
+    // a manual retry so the user isn't stuck waiting either way.
+    const RETRY_DELAYS_MS = [8000, 20000];
+    const mountedRef = useRef(true);
+    const retryAttemptRef = useRef(0);
+    const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useEffect(() => {
+        mountedRef.current = true;
         loadHubData();
+        return () => {
+            mountedRef.current = false;
+            if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+        };
     }, []);
 
-    async function loadHubData() {
+    function scheduleAutoRetry() {
+        if (retryTimeoutRef.current || retryAttemptRef.current >= RETRY_DELAYS_MS.length) return;
+        const delay = RETRY_DELAYS_MS[retryAttemptRef.current];
+        retryAttemptRef.current += 1;
+        retryTimeoutRef.current = setTimeout(() => {
+            retryTimeoutRef.current = null;
+            if (mountedRef.current) loadHubData(true);
+        }, delay);
+    }
+
+    function handleManualRetry() {
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+        }
+        retryAttemptRef.current = 0;
+        setRetrying(true);
+        loadHubData(true).finally(() => {
+            if (mountedRef.current) setRetrying(false);
+        });
+    }
+
+    async function loadHubData(isRetry = false) {
         try {
-            setLoading(true);
+            if (!isRetry) setLoading(true);
             setHubBlockedReason(null);
             const readiness = await getRuntimeReadiness();
             const hubCapability = getCapability(readiness, 'raphael.hub');
@@ -184,6 +223,7 @@ export default function StRaphaelHealthHub() {
                 setStatusAura('stable');
                 setHubBlockedReason(hubCapability.reason || 'Raphael hub runtime dependencies are unavailable.');
                 setHubNotice(null);
+                scheduleAutoRetry();
                 return;
             }
 
@@ -218,6 +258,7 @@ export default function StRaphaelHealthHub() {
             }
             setHubNotice(null);
             setHubBlockedReason(null);
+            retryAttemptRef.current = 0;
         } catch (error) {
             setHasData(false);
             setVitals(null);
@@ -228,8 +269,9 @@ export default function StRaphaelHealthHub() {
             setHubBlockedReason(nextReason);
             setHubNotice(null);
             console.warn('Raphael hub unavailable:', error);
+            scheduleAutoRetry();
         } finally {
-            setLoading(false);
+            if (!isRetry) setLoading(false);
         }
     }
 
@@ -318,7 +360,9 @@ export default function StRaphaelHealthHub() {
                         <FeatureBlockedState
                             title="Raphael Hub Unavailable"
                             reason={hubBlockedReason}
-                            detail="Raphael waits for live health dependencies instead of fabricating local biometric state."
+                            detail="Raphael waits for live health dependencies instead of fabricating local biometric state. Free-tier hosting can take up to a minute to wake from idle — this retries automatically, or try again now."
+                            onRetry={handleManualRetry}
+                            retrying={retrying}
                         />
                     ) : (
                         <div className="rounded-2xl border border-teal-500/10 bg-teal-500/5 p-6 text-center sm:p-8">
