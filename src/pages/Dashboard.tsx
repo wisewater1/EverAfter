@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MobileMenu from '../components/MobileMenu';
 import SaintsNavigation from '../components/SaintsNavigation';
@@ -221,6 +221,7 @@ export default function Dashboard() {
         onClose={() => setIsMobileMenuOpen(false)}
         onNavigateToLegacy={() => navigate('/legacy-vault')}
         onNavigateToTrinity={() => navigate('/trinity')}
+        onNavigateToSettings={() => navigate('/settings')}
         onSignOut={handleSignOut}
       />
 
@@ -257,6 +258,14 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <Heart className="w-4 h-4 relative z-10 text-purple-400 group-hover:text-purple-300" />
                 <span className="hidden sm:inline relative z-10">Legacy Vault</span>
+              </button>
+              <button
+                onClick={() => navigate('/settings')}
+                className="relative px-4 py-2 bg-slate-900/40 sm:backdrop-blur-xl border border-slate-600/30 hover:border-slate-500/50 text-slate-300 hover:text-white rounded-xl transition-all flex items-center gap-2 text-sm font-medium shadow-lg shadow-slate-900/20 hover:shadow-slate-700/30 hover:bg-slate-900/60 group overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-slate-800/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <SettingsIcon className="w-4 h-4 relative z-10" />
+                <span className="hidden sm:inline relative z-10">Settings</span>
               </button>
               <button
                 onClick={handleSignOut}
