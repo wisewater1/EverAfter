@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { getFamilyMembers, updateFamilyMember } from '../../lib/joseph/genealogy';
 import type { FamilyMember } from '../../lib/joseph/genealogy';
+import { useAuth } from '../../contexts/AuthContext';
+import { syncPersonalityToEngram } from '../../lib/joseph/engramBridge';
 import CausalTwinDashboard from '../causal-twin/CausalTwinDashboard';
 import WhatIfSimulator from '../causal-twin/WhatIfSimulator';
 import ExperimentLab from '../causal-twin/ExperimentLab';
@@ -139,6 +141,7 @@ export default function PersonalityQuiz({
     onAutoStartConsumed,
     onActiveMemberChange,
 }: PersonalityQuizProps = {}) {
+    const { user, isDemoMode } = useAuth();
     const members = getFamilyMembers();
 
     const [phase, setPhase] = useState<'select' | 'quiz' | 'results'>('select');
@@ -451,6 +454,22 @@ export default function PersonalityQuiz({
                         console.error('Failed to sync OCEAN profile to DHT:', err);
                         setPersistStatus('local-only');
                         setStatusMessage(`Saved ${selectedMember.firstName}'s profile locally, but canonical OCEAN sync failed.`);
+                    }
+
+                    // Also condition this member's own engram on what was just
+                    // answered, so their AI actually reflects their answers
+                    // instead of every family member's engram sounding the same.
+                    if (!isDemoMode && user?.id) {
+                        void syncPersonalityToEngram(
+                            user.id,
+                            selectedMember.id,
+                            `${selectedMember.firstName} ${selectedMember.lastName}`.trim(),
+                            {
+                                traits: data.traits || [],
+                                coreValues: data.strengths || [],
+                                communicationStyle: data.communication_style || '',
+                            },
+                        );
                     }
 
                     // Trigger Guardian Word bulletin
