@@ -212,7 +212,7 @@ export default function FamilyTimeline() {
             const milestones: EnrichedEvent[] = [];
             const currentYear = new Date().getFullYear();
 
-            // 1. St. Raphael — Health milestones
+            // 1. St. Raphael: Health milestones
             try {
                 const healthSummary = await apiClient.getHealthSummary();
                 if (healthSummary) {
@@ -258,7 +258,7 @@ export default function FamilyTimeline() {
                 console.warn('Timeline: Health milestone ingestion skipped', e);
             }
 
-            // 2. St. Gabriel — Finance milestones
+            // 2. St. Gabriel: Finance milestones
             try {
                 const headers = await getBackendHeaders();
 
@@ -306,7 +306,7 @@ export default function FamilyTimeline() {
                 console.warn('Timeline: Finance milestone ingestion skipped', e);
             }
 
-            // 3. Council — Intercessions milestones
+            // 3. Council: Intercessions milestones
             try {
                 const intercessions = await apiClient.getPendingIntercessions();
                 const missions = await apiClient.getActiveMissions();

@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
@@ -80,6 +80,20 @@ function RouteFallback() {
   );
 }
 
+/**
+ * Screen-to-screen navigation pages in from the left, so moving through the
+ * app always reads as travel along a horizontal line. Keyed on pathname only,
+ * so query-param changes (like dashboard tabs) do not retrigger it.
+ */
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  return (
+    <div key={location.pathname} className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-4 motion-safe:duration-300">
+      {children}
+    </div>
+  );
+}
+
 function ErrorNotifierConnector() {
   const { showNotification } = useNotification();
   const { setErrorNotifier } = useAuth();
@@ -119,6 +133,7 @@ function App() {
             <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
               <Suspense fallback={<RouteFallback />}>
                 <RouteErrorBoundary>
+                <PageTransition>
                 <Routes>
                   <Route path="/" element={<Landing />} />
                   {/* Public, no-account quiz reached via a shared link. */}
@@ -390,6 +405,7 @@ function App() {
                       ProtectedRoute sends logged-out users on to /login. */}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
+                </PageTransition>
                 </RouteErrorBoundary>
                 <ConnectionsPanel />
                 <SacredOverlay />

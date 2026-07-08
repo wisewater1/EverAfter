@@ -2116,7 +2116,7 @@ function ItemDetailModal({
                       {myRequest.status === 'pending' && 'Your request is with the custodian for review.'}
                       {myRequest.status === 'approved' && 'Your request was approved. This item will open once released.'}
                       {myRequest.status === 'declined' && 'The custodian could not verify this request. The item remains sealed. You may submit again with more detail.'}
-                      {myRequest.status === 'expired' && 'Your earlier request expired. You may submit a new one below.'}
+                      {myRequest.status === 'expired' && 'Your earlier request expired. You are welcome to submit a new one.'}
                     </div>
                   ) : null}
                   {(!myRequest || myRequest.status === 'declined' || myRequest.status === 'expired') && onRequestAccess && (

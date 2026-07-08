@@ -36,7 +36,7 @@ export default function MeetRaphaelStep({ onNext, onBack, saving }: MeetRaphaelS
       {/* Introduction */}
       <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-xl p-6 mb-6">
         <p className="text-emerald-100 leading-relaxed">
-          "Hello! I'm <strong>St. Raphael</strong> — named after the angel of healing.
+          "Hello! I'm <strong>St. Raphael</strong>, named after the angel of healing.
           I'll be your personal health companion, helping you understand your body,
           track your progress, and make healthier choices every day."
         </p>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowDownUp,
+  ArrowLeftRight,
   Building2,
   Filter,
   Loader2,
@@ -196,7 +196,7 @@ export default function TransactionLedger() {
               }
               className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-300 transition-colors hover:bg-slate-700"
             >
-              <ArrowDownUp className="h-4 w-4" />
+              <ArrowLeftRight className="h-4 w-4" />
               {sortMode === 'date_desc'
                 ? 'Newest'
                 : sortMode === 'date_asc'

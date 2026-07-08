@@ -88,7 +88,7 @@ const MOCK_HEALTH_SUMMARY = {
       id: 'ins-003',
       severity: 'info',
       title: 'Step Goal Progress Strong',
-      description: "You're at 84% of your daily step goal by 3 PM — on pace to exceed target.",
+      description: "You're at 84% of your daily step goal by 3 PM, on pace to exceed target.",
       saint: 'raphael',
       created_at: new Date().toISOString(),
     },
@@ -202,7 +202,7 @@ const MOCK_CAI_AUDIT = {
 
 // ── St. Michael monitoring/audit shapes (consumed by src/lib/michael/security.ts) ──
 // These match the FLAT MonitoringStatusResponse / Vulnerability / SecurityScanResult /
-// ledger / compliance interfaces the dashboard reads — NOT a nested { saints } object,
+// ledger / compliance interfaces the dashboard reads: NOT a nested { saints } object,
 // which is why demo St. Michael used to render empty.
 const MICHAEL_FINDINGS = [
   { id: 'mf-1', type: 'adversarial_probe', severity: 'high', message: 'Adversarial pattern on Saint Bridge', details: 'Automated probe signature matched on the event bus; integrity filters strengthened.', source: 'Saint Bridge', timestamp: new Date(Date.now() - 1800000).toISOString(), resolved: false },
@@ -211,7 +211,7 @@ const MICHAEL_FINDINGS = [
 ];
 
 const MOCK_MONITORING_STATUS = {
-  michael: { status: 'active', role: 'Security Guardian', integrity: '94%', message: 'Autonomous guardian online — 3 findings under management.', metrics: { findings: 3, scans_24h: 12 }, recent_findings: MICHAEL_FINDINGS },
+  michael: { status: 'active', role: 'Security Guardian', integrity: '94%', message: 'Autonomous guardian online, 3 findings under management.', metrics: { findings: 3, scans_24h: 12 }, recent_findings: MICHAEL_FINDINGS },
   raphael: { status: 'active', role: 'Health Steward', integrity: '97%', recent_findings: [] },
   gabriel: { status: 'active', role: 'Finance Steward', integrity: '98%', recent_findings: [] },
   anthony: { status: 'active', role: 'Integrity Auditor', integrity: '100%', recent_findings: [] },
@@ -251,7 +251,7 @@ const MOCK_COMPLIANCE_READINESS = {
   success: true,
   readiness_score: 92,
   controls: [
-    { id: 'c1', controlId: 'HIPAA 164.312(a)(1)', description: 'Access Control — Unique User Identification', isPassing: true, lastCheckedAt: new Date().toISOString() },
+    { id: 'c1', controlId: 'HIPAA 164.312(a)(1)', description: 'Access Control, Unique User Identification', isPassing: true, lastCheckedAt: new Date().toISOString() },
     { id: 'c2', controlId: 'HIPAA 164.312(a)(2)(iv)', description: 'Encryption and Decryption', isPassing: true, lastCheckedAt: new Date().toISOString() },
     { id: 'c3', controlId: 'HIPAA 164.312(b)', description: 'Audit Controls', isPassing: true, lastCheckedAt: new Date().toISOString() },
     { id: 'c4', controlId: 'PCI-DSS 6.5', description: 'Secure Coding Guidelines', isPassing: false, lastCheckedAt: new Date().toISOString() },
@@ -343,7 +343,7 @@ const MOCK_TRINITY_DATA = {
       id: 'nudge-2',
       type: 'health_optimization',
       title: 'Seasonal allergy preparation',
-      description: 'Spring pollen counts rising — Raphael recommends starting antihistamines this week.',
+      description: 'Spring pollen counts rising, Raphael recommends starting antihistamines this week.',
       frequency: 'SEASONAL',
       status: 'active',
       saints_involved: ['raphael'],
@@ -375,26 +375,26 @@ const MOCK_TRINITY_DATA = {
 const SAINT_CHAT_RESPONSES: Record<string, string[]> = {
   raphael: [
     'Based on your recent vitals, your cardiovascular health looks strong. Heart rate variability is trending upward, which indicates good recovery and stress management.',
-    'I notice your sleep duration has been below target this week. I recommend setting a consistent bedtime alarm — even a 30-minute improvement can significantly impact your recovery metrics.',
+    'I notice your sleep duration has been below target this week. I recommend setting a consistent bedtime alarm, even a 30-minute improvement can significantly impact your recovery metrics.',
     "Your glucose levels are stable and within optimal range. Keep maintaining your current dietary patterns. I'll flag any changes in your metabolic trajectory.",
   ],
   michael: [
-    "Security scan complete. I've detected 2 anomalous patterns on the Saint Bridge — both appear to be automated probes. I've strengthened the integrity filters and notified Anthony for audit review.",
+    "Security scan complete. I've detected 2 anomalous patterns on the Saint Bridge, both appear to be automated probes. I've strengthened the integrity filters and notified Anthony for audit review.",
     'Your data isolation protocols are functioning correctly. Health records remain encrypted at rest and in transit. No unauthorized access attempts in the past 12 hours.',
     'I recommend enabling two-factor authentication on all connected health provider accounts. This will strengthen the overall integrity score from 72% to an estimated 89%.',
   ],
   gabriel: [
-    "Your savings rate of 27% is excellent — well above the recommended 20%. At this pace, your emergency fund will reach 6 months of coverage by September.",
+    "Your savings rate of 27% is excellent, well above the recommended 20%. At this pace, your emergency fund will reach 6 months of coverage by September.",
     "I noticed a $120 electricity bill that's 15% higher than your 3-month average. This could be seasonal, but I'll track it and alert you if the trend continues.",
     "Looking at your family's financial readiness score of 90/100, the main area for improvement is diversifying your investment portfolio. Would you like me to model some scenarios?",
   ],
   anthony: [
-    "Audit log reviewed. Michael's scan findings have been verified — 2 findings confirmed, 1 false positive identified. Integrity ledger updated with entry ID #1Q4S7S.",
-    "I've completed the compliance check across all saint data stores. HIPAA alignment is at 94% — the remaining 6% relates to audit trail retention policies that need configuration.",
+    "Audit log reviewed. Michael's scan findings have been verified, 2 findings confirmed, 1 false positive identified. Integrity ledger updated with entry ID #1Q4S7S.",
+    "I've completed the compliance check across all saint data stores. HIPAA alignment is at 94%, the remaining 6% relates to audit trail retention policies that need configuration.",
   ],
   trinity: [
     "Cross-saint analysis complete. Your family's overall vitality score is 70, driven by strong financial readiness (90) but moderate recovery resilience (41). I recommend focusing on the health baseline goal.",
-    'Emergency alert chain is configured. If Raphael detects a critical health event, Michael verifies data integrity, Gabriel checks insurance coverage, and Joseph notifies designated family contacts — all within 60 seconds.',
+    'Emergency alert chain is configured. If Raphael detects a critical health event, Michael verifies data integrity, Gabriel checks insurance coverage, and Joseph notifies designated family contacts, all within 60 seconds.',
   ],
 };
 
@@ -414,7 +414,7 @@ function mockResponse(data: any, status = 200): Response {
 }
 
 // ============================================================
-// DEMO SEED DATA — keeps every screen full & alive on stage (no zeros)
+// DEMO SEED DATA: keeps every screen full & alive on stage (no zeros)
 // ============================================================
 const DEMO_NOW = Date.now();
 const isoDaysAgo = (d: number) => new Date(DEMO_NOW - d * 86400000).toISOString();
@@ -624,7 +624,7 @@ const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
   vault_items: DEMO_VAULT_ITEMS,
 };
 
-// Populated engram list for the Engram Training Center (bare array — callers .map/.filter).
+// Populated engram list for the Engram Training Center (bare array: callers .map/.filter).
 const DEMO_ENGRAMS_LIST = [
   { id: 'eng-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', engram_type: 'family', archetype: 'The Matriarch', description: "Keeper of the family's stories, recipes, and quiet wisdom.", avatar_url: null, personality_summary: { ocean: { O: 74, C: 88, E: 62, A: 90, N: 28 } }, total_questions_answered: 48, ai_readiness_score: 92, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(120), updated_at: isoDaysAgo(1) },
   { id: 'eng-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', engram_type: 'family', archetype: 'The Builder', description: 'Steady, practical, and endlessly devoted to the family.', avatar_url: null, personality_summary: { ocean: { O: 58, C: 86, E: 54, A: 80, N: 30 } }, total_questions_answered: 36, ai_readiness_score: 78, is_ai_active: true, training_status: 'active', voice_enabled: false, voice_status: 'pending', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(2) },
@@ -635,7 +635,7 @@ const DEMO_ENGRAMS_LIST = [
 export function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
   const path = new URL(url, window.location.origin).pathname;
 
-  // Personality quiz — MUST come before the generic `/personality` matcher
+  // Personality quiz: MUST come before the generic `/personality` matcher
   // below, which would otherwise swallow these and return a stub with no
   // questions/scores (that's why demo quizzes loaded nothing and produced an
   // "analysis" disconnected from the answers). Here the profile is computed
@@ -701,7 +701,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     return mockResponse({ subject_name: 'a loved one', status: 'pending', questions: DEMO_QUIZ_QUESTIONS, total: DEMO_QUIZ_QUESTIONS.length });
   }
 
-  // System Monitor — full SystemMetrics shape with breathing history charts.
+  // System Monitor: full SystemMetrics shape with breathing history charts.
   if (path.includes('/monitoring/metrics')) {
     const now = Date.now();
     const points = (base: number, swing: number) =>
@@ -717,7 +717,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     });
   }
 
-  // Time capsules — GET lists sample capsules; POST echoes a created one.
+  // Time capsules: GET lists sample capsules; POST echoes a created one.
   if (/\/api\/v1\/time-capsules\/?($|\?)/.test(path)) {
     const now = Date.now();
     if (method === 'POST') {
@@ -746,7 +746,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
         is_unlocked: true,
         unlock_date: new Date(now - 5 * 86_400_000).toISOString(),
         created_at: new Date(now - 200 * 86_400_000).toISOString(),
-        content: 'Bread rising by the window, cardamom in the air — remember it exactly like this.',
+        content: 'Bread rising by the window, cardamom in the air, remember it exactly like this.',
       },
       {
         id: 'demo-capsule-3',
@@ -760,7 +760,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     ]);
   }
 
-  // Runtime readiness — this is the KEY endpoint that unlocks everything
+  // Runtime readiness: this is the KEY endpoint that unlocks everything
   if (path.includes('/runtime/readiness')) {
     return mockResponse(MOCK_READINESS);
   }
@@ -778,7 +778,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     return mockResponse(MOCK_FAMILY_RISK);
   }
 
-  // St. Michael Security endpoints (axios-based — reached now that the demo
+  // St. Michael Security endpoints (axios-based: reached now that the demo
   // interceptor also routes axios through fetch).
   if (path.includes('/security/integrity') || path.includes('/security/scan')) {
     return mockResponse(MOCK_SECURITY_INTEGRITY);
@@ -794,6 +794,8 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   if (path.includes('/audit/ledger')) return mockResponse(MOCK_AUDIT_LEDGER);
   // No pending guardian intercessions in the demo (keeps the family dashboard console clean).
   if (path.includes('/saints/intercessions/pending')) return mockResponse([]);
+  // No standing saint missions in the demo; the timeline renders without them.
+  if (path.includes('/saints/missions/active')) return mockResponse([]);
 
   // Society feed endpoints: the feed simulates locally, so return empty
   // collections here to keep the demo console clean.
@@ -830,7 +832,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     const response = responses[Math.floor(Math.random() * responses.length)];
     const ts = new Date().toISOString();
     // Include every shape the various chat consumers read: top-level `message`,
-    // `content` (saint chat), and `data.message` (EngramChat) — otherwise some
+    // `content` (saint chat), and `data.message` (EngramChat): otherwise some
     // fall back to the canned "I apologize…" error string.
     return mockResponse({
       message: response,
@@ -842,7 +844,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     });
   }
 
-  // Elohim sealed-status — in the demo, every requested artifact reads as
+  // Elohim sealed-status: in the demo, every requested artifact reads as
   // sealed so the St Joseph permanence badge is visible.
   if (path.includes('/api/v1/elohim/anchors')) {
     const rawIds = (path.split('ref_ids=')[1] || '').split('&')[0];
@@ -858,7 +860,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     return mockResponse({ anchors });
   }
 
-  // Engrams list — the real endpoint returns a bare array (List[EngramResponse]).
+  // Engrams list: the real endpoint returns a bare array (List[EngramResponse]).
   // Returning an object here crashes every caller that does data.filter(...)
   // (e.g. CustomEngramsDashboard's "c.filter is not a function").
   if (/\/api\/v1\/engrams\/?($|\?)/.test(path)) {
@@ -886,7 +888,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     return mockResponse({ complete: true, progress: 100, current_step: null, skipped: false });
   }
 
-  // Catch-all for any unmocked /api/v1/ endpoint — fail like a real 404.
+  // Catch-all for any unmocked /api/v1/ endpoint: fail like a real 404.
   // A 200 with a generic object here poisons callers that expect endpoint
   // shapes (arrays, metrics, controls): they crash on success but handle
   // failure gracefully (fallback data / empty states). Let them fail.
@@ -894,7 +896,7 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
     return mockResponse({ detail: 'Demo: endpoint not mocked' }, 404);
   }
 
-  return null; // Not an API call — pass through
+  return null; // Not an API call, pass through
 }
 
 /**
@@ -908,18 +910,18 @@ export function initDemoInterceptor(): void {
   interceptorActive = true;
 
   // Several saints (notably St. Michael's security layer) call the API through
-  // axios, which uses XHR by default and would BYPASS this fetch interceptor —
+  // axios, which uses XHR by default and would BYPASS this fetch interceptor, 
   // hitting the real, cold backend and making the dashboard feel broken/slow in
   // demo. Route axios through its fetch adapter so the mocks below apply.
   try {
     prevAxiosAdapter = (axios.defaults as { adapter?: unknown }).adapter;
     (axios.defaults as { adapter?: unknown }).adapter = 'fetch';
-  } catch { /* adapter override unavailable — fetch-based callers still mock */ }
+  } catch { /* adapter override unavailable, fetch-based callers still mock */ }
 
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
-    // Never fake auth — supabase-js manages demo-less sessions locally.
+    // Never fake auth: supabase-js manages demo-less sessions locally.
     if (url.includes('.supabase.co/auth/v1/')) {
       return originalFetch.call(window, input, init);
     }
@@ -987,7 +989,7 @@ export function initDemoInterceptor(): void {
     return originalFetch.call(window, input, init);
   };
 
-  if (import.meta.env.DEV) console.log('[EverAfter Demo] Data interceptor active — all saints running on mock data');
+  if (import.meta.env.DEV) console.log('[EverAfter Demo] Data interceptor active, all saints running on mock data');
 }
 
 /**

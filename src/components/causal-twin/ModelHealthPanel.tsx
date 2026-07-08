@@ -91,7 +91,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
                                         'bg-red-500/40'
                                     } ${isRecent ? 'opacity-100' : 'opacity-60'}`}
                                 style={{ height: `${Math.max(height, 4)}%` }}
-                                title={`${(point.accuracy * 100).toFixed(1)}% — ${new Date(point.timestamp).toLocaleDateString()}`}
+                                title={`${(point.accuracy * 100).toFixed(1)}%, ${new Date(point.timestamp).toLocaleDateString()}`}
                             />
                         );
                     })}

@@ -110,7 +110,7 @@ export default function JosephVoiceAnswerPanel({
     const text = transcript.trim();
     const suggestion = deriveLikert(text);
     setSelectedAnswer(suggestion.value);
-    setRationale(text ? suggestion.rationale : 'Type what you said above, then a suggested score will appear. You can adjust it before approving.');
+    setRationale(text ? suggestion.rationale : 'Type what you said, then a suggested score will appear. You can adjust it before approving.');
     if (text) setConfidence((c) => Math.max(c, suggestion.confidence));
     setPhase('review');
   };

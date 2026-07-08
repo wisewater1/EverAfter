@@ -1,5 +1,5 @@
 /**
- * EmergencyAlertChain — Option 4
+ * EmergencyAlertChain: Option 4
  * Raphael triggers -> Gabriel checks funds -> Joseph finds next-of-kin.
  */
 import { useEffect, useState } from 'react';
@@ -347,7 +347,7 @@ export default function EmergencyAlertChain() {
 
         if (chainData?.cascade?.raphael) {
           const raphaelRisk = chainData.cascade.raphael.risk_level || chainData.alert_level || 'elevated';
-          chainData.cascade.raphael.message = `${METRIC_LABELS[normalized.criticalMetric] || normalized.criticalMetric} at ${normalized.detail} — risk level: ${raphaelRisk}`;
+          chainData.cascade.raphael.message = `${METRIC_LABELS[normalized.criticalMetric] || normalized.criticalMetric} at ${normalized.detail}, risk level: ${raphaelRisk}`;
         }
 
         if (mounted) {
@@ -405,9 +405,9 @@ export default function EmergencyAlertChain() {
 
   const cascade = data.cascade || {};
   const steps = [
-    { key: 'raphael', icon: Heart, color: '#14b8a6', label: 'St. Raphael — Health Signal', data: cascade.raphael },
-    { key: 'gabriel', icon: Wallet, color: '#10b981', label: 'St. Gabriel — Emergency Fund', data: cascade.gabriel },
-    { key: 'joseph', icon: GitBranch, color: '#f59e0b', label: 'St. Joseph — Next-of-Kin', data: cascade.joseph },
+    { key: 'raphael', icon: Heart, color: '#14b8a6', label: 'St. Raphael, Health Signal', data: cascade.raphael },
+    { key: 'gabriel', icon: Wallet, color: '#10b981', label: 'St. Gabriel, Emergency Fund', data: cascade.gabriel },
+    { key: 'joseph', icon: GitBranch, color: '#f59e0b', label: 'St. Joseph, Next-of-Kin', data: cascade.joseph },
   ];
 
   return (

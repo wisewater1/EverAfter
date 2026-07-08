@@ -2,7 +2,7 @@
  * Nutrition Lookup Service
  * 
  * Uses two free APIs:
- * 1. Open Food Facts (free, no key) — world.openfoodfacts.org
+ * 1. Open Food Facts (free, no key): world.openfoodfacts.org
  * 2. Nutritionix Track API (free tier available)
  * 
  * Provides food search, barcode lookup, and full nutrition breakdown.
@@ -119,7 +119,7 @@ export async function logFoodIntake(
         metric_type: 'calories_consumed',
         value: Math.round(n.calories * servings),
         unit: 'kcal',
-        raw_text: `Food: ${food.name} (${servings} serving${servings > 1 ? 's' : ''}) — ${Math.round(n.calories * servings)} kcal`,
+        raw_text: `Food: ${food.name} (${servings} serving${servings > 1 ? 's' : ''}), ${Math.round(n.calories * servings)} kcal`,
     });
 
     if (n.protein > 0) {

@@ -373,7 +373,7 @@ export default function SharedPredictionPanel({
                     >
                         <Beaker className={`w-4 h-4 text-${accent}-400`} />
                         <span className="text-sm font-semibold text-white">What-If Scenario</span>
-                        <ChevronRight className={`w-3.5 h-3.5 text-slate-500 ml-auto transition-transform ${showSim ? 'rotate-90' : ''}`} />
+                        <ChevronRight className={`w-3.5 h-3.5 text-slate-500 ml-auto transition-transform ${showSim ? 'rotate-180' : ''}`} />
                     </button>
 
                     {showSim && (

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DHTScorePanel from '../dht/DHTScorePanel';
-import { ChevronDown, ChevronUp, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar, Activity } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar, Activity } from 'lucide-react';
 import StarfieldBackground from '../StarfieldBackground';
 import SaintChat from '../SaintChat';
 import MemberCalendarPanel from './MemberCalendarPanel';
@@ -75,12 +75,12 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                 className="relative ml-[var(--joseph-indent)]"
                 style={{ ['--joseph-indent' as string]: `${depth * 12}px` }}
             >
-                {/* Person card row — wraps so the spouse drops below on
+                {/* Person card row: wraps so the spouse drops below on
                     narrow viewports instead of running off-screen. */}
                 <div className="flex flex-wrap items-center gap-2 mb-2 group">
                     {hasChildren && (
                         <button onClick={() => toggle(member.id)} className="p-1 text-slate-600 hover:text-amber-400 transition-colors shrink-0">
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
                     )}
                     {!hasChildren && <div className="w-6 shrink-0" />}
@@ -157,7 +157,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                         </div>
                     </button>
 
-                    {/* Spouse connector — wraps under the person on narrow screens */}
+                    {/* Spouse connector: wraps under the person on narrow screens */}
                     {spouse && (
                         <>
                             <div className="flex items-center gap-1 text-rose-500/40 basis-full sm:basis-auto sm:flex-initial pl-8 sm:pl-0">
@@ -267,7 +267,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                 </div>
             </div>
 
-            {/* Tree — cinematic, explorable stage over the living starfield */}
+            {/* Tree: cinematic, explorable stage over the living starfield */}
             <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-[#0a0f15] via-[#0b0e14] to-[#0d0d12]">
                 <StarfieldBackground density={0.6} contained />
                 <div className="pointer-events-none absolute left-4 top-4 z-20 hidden items-center gap-1.5 rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-slate-400 backdrop-blur sm:flex">
@@ -328,7 +328,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                     </div>
 
                     <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 pb-8">
-                        {/* Quick actions — converse with them, manage their calendar */}
+                        {/* Quick actions: converse with them, manage their calendar */}
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setChatMember(selectedMember)}
@@ -338,7 +338,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                             </button>
                             <button
                                 onClick={() => setCalMember(selectedMember)}
-                                title="Calendar — birthday & their events"
+                                title="Calendar, birthday & their events"
                                 className="flex items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2.5 text-amber-200 transition-colors hover:bg-amber-500/20"
                             >
                                 <Calendar className="w-4 h-4" />
@@ -507,7 +507,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 saintIcon={User}
                                 systemPrompt={persona.systemPrompt}
                                 demoReply={(input) => personaDemoReply(persona, input)}
-                                initialMessage={`Hello, I'm ${chatMember.firstName}. It's good to talk with you — what's on your mind?`}
+                                initialMessage={`Hello, I'm ${chatMember.firstName}. It's good to talk with you, what's on your mind?`}
                                 onClose={() => setChatMember(null)}
                             />
                         </div>
@@ -515,7 +515,7 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                 );
             })()}
 
-            {/* Their calendar — birthday + add-to-any-calendar + connect their feed */}
+            {/* Their calendar: birthday + add-to-any-calendar + connect their feed */}
             {calMember && (
                 <MemberCalendarPanel member={calMember} onClose={() => setCalMember(null)} onSaved={refreshTree} />
             )}

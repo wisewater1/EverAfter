@@ -16,7 +16,6 @@ import {
   StarOff,
   RefreshCw,
   Sparkles,
-  ChevronDown,
   Play,
   Pause,
   SkipForward,

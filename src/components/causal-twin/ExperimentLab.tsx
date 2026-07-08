@@ -1,20 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  AlertTriangle,
-  Beaker,
-  CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  FileWarning,
-  Pause,
-  Pill,
-  Play,
-  Plus,
-  Search,
-  ShieldAlert,
-  XCircle,
-} from 'lucide-react';
+import { AlertTriangle, Beaker, CheckCircle, ChevronRight, ChevronLeft, Clock, FileWarning, Pause, Pill, Play, Plus, Search, ShieldAlert, XCircle } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';
 import { buildApiUrl } from '../../lib/env';
@@ -904,9 +889,9 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
                       />
                     </div>
                     {isExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-slate-500" />
+                      <ChevronLeft className="h-4 w-4 text-slate-500" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-slate-500" />
+                      <ChevronRight className="h-4 w-4 text-slate-500" />
                     )}
                   </div>
                 </button>

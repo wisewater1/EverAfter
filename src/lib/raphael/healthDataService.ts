@@ -1,5 +1,5 @@
 /**
- * Health Data Service — Central data layer for Delphi Health Trajectory
+ * Health Data Service: Central data layer for Delphi Health Trajectory
  * 
  * Reads/writes health_metrics from Supabase, generates trajectory predictions
  * from stored data, saves trajectory snapshots for long-term history, and
@@ -275,7 +275,7 @@ export async function saveTrajectorySnapshot(
     });
 
     if (error) {
-        // Table may not exist yet — fail silently
+        // Table may not exist yet: fail silently
         console.warn('Could not save trajectory snapshot:', error.message);
     }
 }
@@ -329,7 +329,7 @@ function generatePredictionFromMetrics(metrics: HealthDataPoint[]): DelphiPredic
         const delta = arr.length > 1 ? arr[arr.length - 1].value - arr[0].value : 0;
         const dir = Math.abs(delta) < 1e-6 ? 'stable' : delta > 0 ? 'trending up' : 'trending down';
         const quality = sub > 0.8 ? 'optimal range' : sub > 0.55 ? 'acceptable' : 'warrants monitoring';
-        factors.push(`${label} avg ${fmt(avg)}${unit ? ' ' + unit : ''} — ${quality} (${dir})`);
+        factors.push(`${label} avg ${fmt(avg)}${unit ? ' ' + unit : ''}, ${quality} (${dir})`);
     };
     describe('heart_rate', 'Heart rate', 'bpm', (n) => `${Math.round(n)}`);
     describe('blood_pressure_systolic', 'Systolic BP', 'mmHg', (n) => `${Math.round(n)}`);
@@ -367,7 +367,7 @@ function generatePredictionFromMetrics(metrics: HealthDataPoint[]): DelphiPredic
     const band = Math.round(((trajectory[trajectory.length - 1].upper ?? projected) - projected) * 100);
 
     if (factors.length === 0) {
-        factors.push('Limited data — continue logging for more accurate predictions');
+        factors.push('Limited data, continue logging for more accurate predictions');
     }
     // Lead with the directional forecast so "Primary Insight" is genuinely predictive.
     const dirWord = Math.round(level * 100) === Math.round(projected * 100) ? 'holding steady' : projected > level ? 'improving' : 'easing lower';
@@ -462,7 +462,7 @@ function leastSquaresSlope(pts: Array<{ x: number; y: number }>): { slope: numbe
 }
 
 function clamp(v: number, lo: number, hi: number): number {
-    if (!Number.isFinite(v)) return lo; // NaN/Infinity backstop — never poison the trajectory
+    if (!Number.isFinite(v)) return lo; // NaN/Infinity backstop, never poison the trajectory
     return Math.max(lo, Math.min(hi, v));
 }
 
@@ -513,7 +513,7 @@ export function generateSimulatedPrediction(): DelphiPrediction {
         horizon: '24h',
         risk_level: 'low',
         contributing_factors: [
-            'No health data recorded yet — start logging vitals for personalized predictions',
+            'No health data recorded yet, start logging vitals for personalized predictions',
             'Baseline trajectory from population health averages (no live signal)',
             'Talk to St. Raphael or log vitals to improve accuracy',
         ],

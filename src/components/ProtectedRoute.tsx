@@ -164,17 +164,11 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     return <Navigate to="/login" replace />;
   }
 
-  if (routeGateLoading) {
-    return (
-      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Checking runtime dependencies...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // While the route gate resolves, keep children mounted. Returning a spinner
+  // here unmounted the page after its first render and remounted it a moment
+  // later, which reset page state (losing ?tab= deep links), re-ran every
+  // page's data loading twice, and flashed. A hard blocker, once actually
+  // found, still replaces the page below.
   if (routeHasHardBlocker) {
     return (
       <FeatureBlockedState

@@ -141,7 +141,20 @@ export default function StJosephFamilyDashboard() {
     const [loading, setLoading] = useState(true);
     const [degradedMode, setDegradedMode] = useState(false);
     const [loadWarning, setLoadWarning] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<TabKey>('tree');
+    // The URL is the source of truth for the active tab. This keeps deep
+    // links like /family-dashboard?tab=delphi working across remounts and
+    // refreshes, and makes every tab shareable.
+    const requestedTabParam = searchParams.get('tab');
+    const activeTab: TabKey = requestedTabParam && TABS.some((tab) => tab.key === requestedTabParam)
+        ? (requestedTabParam as TabKey)
+        : 'tree';
+    const setActiveTab = (key: TabKey) => {
+        setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.set('tab', key);
+            return next;
+        }, { replace: true });
+    };
     const [delphiMode, setDelphiMode] = useState<'single' | 'compare'>('single');
     const [trainingTargetId, setTrainingTargetId] = useState<string | null>(null);
     const [quizTargetMemberId, setQuizTargetMemberId] = useState<string | null>(null);
@@ -277,24 +290,20 @@ export default function StJosephFamilyDashboard() {
     }, [events, shopping, tasks]);
 
     useEffect(() => {
-        const requestedTab = searchParams.get('tab');
+        // memberId is a one-shot instruction: aim the personality quiz at that
+        // member, then consume it. The tab itself stays in the URL.
         const requestedMemberId = searchParams.get('memberId');
-        if (!requestedTab && !requestedMemberId) return;
+        if (!requestedMemberId) return;
 
-        if (requestedTab && TABS.some(tab => tab.key === requestedTab)) {
-            setActiveTab(requestedTab as TabKey);
-        } else if (requestedMemberId) {
-            setActiveTab('quiz');
-        }
-
-        if (requestedMemberId) {
-            setQuizTargetMemberId(requestedMemberId);
-            setActiveQuizMemberId(requestedMemberId);
-        }
+        setQuizTargetMemberId(requestedMemberId);
+        setActiveQuizMemberId(requestedMemberId);
 
         const nextSearchParams = new URLSearchParams(searchParams);
-        nextSearchParams.delete('tab');
         nextSearchParams.delete('memberId');
+        const requestedTab = nextSearchParams.get('tab');
+        if (!requestedTab || !TABS.some(tab => tab.key === requestedTab)) {
+            nextSearchParams.set('tab', 'quiz');
+        }
         setSearchParams(nextSearchParams, { replace: true });
     }, [searchParams, setSearchParams]);
 
@@ -640,7 +649,7 @@ export default function StJosephFamilyDashboard() {
                                         {bulletin.map((msg, i) => (
                                             <div key={msg.id} className={`p-4 ${i === 0 ? 'bg-amber-500/5 border border-amber-500/10' : 'bg-white/5 border border-white/5'} rounded-2xl`}>
                                                 <p className="text-sm text-slate-300 leading-relaxed">"{msg.text}"</p>
-                                                <div className="mt-2 text-[10px] text-slate-500 uppercase font-bold text-right">— {msg.author}</div>
+                                                <div className="mt-2 text-[10px] text-slate-500 uppercase font-bold text-right">, {msg.author}</div>
                                             </div>
                                         ))}
                                         {bulletin.length === 0 && (

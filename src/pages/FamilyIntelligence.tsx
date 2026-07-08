@@ -70,7 +70,7 @@ export default function FamilyIntelligence() {
                         <h1 className="flex items-center gap-2 text-xl font-light tracking-tight text-white sm:text-2xl">
                             <Sparkles className="h-5 w-5 text-amber-300" /> Family Intelligence
                         </h1>
-                        <p className="text-xs text-slate-500 sm:text-sm">Trinity interlacing St. Joseph, St. Raphael &amp; St. Gabriel — the whole family, analyzed.</p>
+                        <p className="text-xs text-slate-500 sm:text-sm">Trinity interlacing St. Joseph, St. Raphael &amp; St. Gabriel, the whole family, analyzed.</p>
                     </div>
                 </div>
 
@@ -116,7 +116,7 @@ export default function FamilyIntelligence() {
                 </div>
 
                 {/* Per-member vitality grid */}
-                <div className="mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-cyan-300" /><h2 className="text-sm font-semibold text-white">Each member — tap to analyze</h2></div>
+                <div className="mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-cyan-300" /><h2 className="text-sm font-semibold text-white">Each member, tap to analyze</h2></div>
                 <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {analysis.members.map((m) => {
                         const rc = RISK[m.riskLevel];
@@ -139,7 +139,7 @@ export default function FamilyIntelligence() {
                 {selected && !selected.deceased && (
                     <div className="mb-6 rounded-3xl border border-cyan-400/20 bg-cyan-500/[0.04] p-5 sm:p-6">
                         <div className="mb-4 flex items-center justify-between gap-3">
-                            <h3 className="flex items-center gap-2 text-base font-semibold text-white"><Activity className="h-4 w-4 text-cyan-300" />{selected.name} — full readout</h3>
+                            <h3 className="flex items-center gap-2 text-base font-semibold text-white"><Activity className="h-4 w-4 text-cyan-300" />{selected.name}, full readout</h3>
                             <button onClick={() => setSelectedId(null)} className="text-xs text-slate-500 hover:text-slate-300">Close</button>
                         </div>
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -160,7 +160,7 @@ export default function FamilyIntelligence() {
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {selected.conditions.length > 0 ? selected.conditions.map((c) => (
                                     <span key={c} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200">{c}</span>
-                                )) : <span className="text-xs text-slate-500">No flagged conditions — preventive cadence.</span>}
+                                )) : <span className="text-xs text-slate-500">No flagged conditions, preventive cadence.</span>}
                             </div>
                         </div>
                         {memberSignals.length > 0 && (
@@ -168,7 +168,7 @@ export default function FamilyIntelligence() {
                                 <p className="text-[10px] uppercase tracking-widest text-slate-500">Hereditary patterns they share (St. Joseph)</p>
                                 <ul className="mt-2 space-y-1.5">
                                     {memberSignals.map((s: any) => (
-                                        <li key={s.condition} className="flex items-start gap-2 text-xs text-slate-300"><Dna className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-purple-300" />{s.condition} — {s.pattern} ({s.confidence_label} confidence)</li>
+                                        <li key={s.condition} className="flex items-start gap-2 text-xs text-slate-300"><Dna className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-purple-300" />{s.condition}, {s.pattern} ({s.confidence_label} confidence)</li>
                                     ))}
                                 </ul>
                             </div>
@@ -222,7 +222,7 @@ export default function FamilyIntelligence() {
                     </div>
                 )}
 
-                <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-[10px] text-slate-600"><AlertTriangle className="h-3 w-3" />Family-pattern inferences from your genealogy + health model — not medical or genetic diagnosis.</p>
+                <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-[10px] text-slate-600"><AlertTriangle className="h-3 w-3" />Family-pattern inferences from your genealogy + health model, not medical or genetic diagnosis.</p>
             </div>
         </div>
     );

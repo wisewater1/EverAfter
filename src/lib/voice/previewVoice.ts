@@ -1,7 +1,7 @@
 /**
  * Keyless voice preview via the browser's Web Speech API (speechSynthesis).
  *
- * This is NOT voice cloning — it speaks with a generic system voice so a family
+ * This is NOT voice cloning: it speaks with a generic system voice so a family
  * member's words are audible everywhere (demo + real, no backend, no API key),
  * as a stand-in until a real voice model is trained on the backend. Callers must
  * label it honestly as a "preview voice".
