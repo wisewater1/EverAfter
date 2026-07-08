@@ -747,23 +747,18 @@ class APIClient {
   }
 
   async registerDynamicAgent(agentData: { name: string, description: string, system_prompt: string, traits: any }): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
+      return await this.requestBackendJson(`/api/v1/saints/register_dynamic`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify(agentData),
-        signal: AbortSignal.timeout(15000) // 15s timeout
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        signal: AbortSignal.timeout(15000), // Building a personality server-side takes longer than a plain data call.
+      }, 'Unable to register dynamic agent');
     } catch (error) {
       console.error("Register Dynamic Agent Error:", error);
       throw error;
@@ -863,18 +858,11 @@ class APIClient {
   }
 
   async getSocietyFeed(): Promise<any[]> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/social/feed`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+      const data = await this.requestBackendJson(`/api/v1/social/feed`, { headers }, 'Unable to load society feed');
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Get Society Feed Error:", error);
       return [];
@@ -882,19 +870,13 @@ class APIClient {
   }
 
   async triggerSocietyEvent(): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/social/interact/random`, {
+      return await this.requestBackendJson(`/api/v1/social/interact/random`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+      }, 'Unable to trigger society event');
     } catch (error) {
       console.error("Trigger Society Event Error:", error);
       throw error;
@@ -902,19 +884,11 @@ class APIClient {
   }
 
   async getSocialClusters(): Promise<Record<string, string[]>> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/social/clusters`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      const data = await response.json();
-      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+      const data = await this.requestBackendJson(`/api/v1/social/clusters`, { headers }, 'Unable to load social clusters');
+      return data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, string[]> : {};
     } catch (error) {
       console.error("Get Social Clusters Error:", error);
       return {};
@@ -922,19 +896,13 @@ class APIClient {
   }
 
   async triggerLegacyPropagation(engramId: string, vignette: string): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/social/propagate/${engramId}?vignette=${encodeURIComponent(vignette)}`, {
+      return await this.requestBackendJson(`/api/v1/social/propagate/${engramId}?vignette=${encodeURIComponent(vignette)}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+      }, 'Unable to trigger legacy propagation');
     } catch (error) {
       console.error("Trigger Legacy Propagation Error:", error);
       throw error;
@@ -960,19 +928,13 @@ class APIClient {
   }
 
   async boostSociety(count: number = 5): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/social/boost?count=${count}`, {
+      return await this.requestBackendJson(`/api/v1/social/boost?count=${count}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+      }, 'Unable to boost society');
     } catch (error) {
       console.error("Boost Society Error:", error);
       throw error;
@@ -980,19 +942,13 @@ class APIClient {
   }
 
   async analyzePersonality(engramId: string): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/analyze`, {
+      return await this.requestBackendJson(`/api/v1/engrams/${engramId}/analyze`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+      }, 'Unable to analyze personality');
     } catch (error) {
       console.error("Analyze Personality Error:", error);
       throw error;
@@ -1000,19 +956,13 @@ class APIClient {
   }
 
   async startMentorship(engramId: string, mentorId: string): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders();
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/mentorship/start?mentor_id=${mentorId}`, {
+      return await this.requestBackendJson(`/api/v1/engrams/${engramId}/mentorship/start?mentor_id=${mentorId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+      }, 'Unable to start mentorship');
     } catch (error) {
       console.error("Start Mentorship Error:", error);
       throw error;
@@ -1020,22 +970,17 @@ class APIClient {
   }
 
   async ingestVignette(engramId: string, content: string): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/vignette`, {
+      return await this.requestBackendJson(`/api/v1/engrams/${engramId}/vignette`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true'
-        },
-        body: JSON.stringify({ content })
-      });
-
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+        body: JSON.stringify({ content }),
+      }, 'Unable to ingest vignette');
     } catch (error) {
       console.error("Ingest Vignette Error:", error);
       throw error;
@@ -1318,27 +1263,20 @@ class APIClient {
 
   /** Create a new custom engram. */
   async createEngram(payload: EngramCreatePayload): Promise<EngramResponse> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/create`, {
+      return await this.requestBackendJson(`/api/v1/engrams/create`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true'
-        },
+        headers,
         body: JSON.stringify({
           ...payload,
           relationship: payload.relationship || 'custom',
           engram_type: payload.engram_type || 'custom',
         }),
-      });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || `Backend error: ${response.status}`);
-      }
-      return await response.json();
+      }, 'Unable to create engram');
     } catch (error) {
       console.error("Create Engram Error:", error);
       throw error;
@@ -1362,22 +1300,19 @@ class APIClient {
     day_number: number;
     mood?: string;
   }): Promise<void> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
     try {
-      const response = await fetch(`${API_BASE}/api/v1/engrams/${engramId}/responses`, {
+      await this.requestBackendJson(`/api/v1/engrams/${engramId}/responses`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true'
-        },
+        headers,
         body: JSON.stringify({
           engram_id: engramId,
           ...payload
-        })
-      });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+        }),
+      }, 'Unable to submit engram response');
     } catch (error) {
       console.error("Submit Engram Response Error:", error);
       throw error;
@@ -1390,20 +1325,17 @@ class APIClient {
     system_prompt: string;
     traits: Record<string, any>;
   }): Promise<any> {
-    const token = await this.getAuthToken();
-    const API_BASE = `${API_BASE_URL}`;
+    const headers = await this.buildAuthHeaders({
+      'Content-Type': 'application/json',
+      'Bypass-Tunnel-Reminder': 'true',
+    });
     try {
-      const response = await fetch(`${API_BASE}/api/v1/saints/register_dynamic`, {
+      return await this.requestBackendJson(`/api/v1/saints/register_dynamic`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true'
-        },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      return await response.json();
+        headers,
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000), // Same endpoint as registerDynamicAgent; building a personality server-side takes longer than a plain data call.
+      }, 'Unable to register dynamic saint');
     } catch (error) {
       console.error("Register Dynamic Saint Error:", error);
       throw error;
