@@ -86,7 +86,7 @@ export default function CustomDashboardBuilder() {
           const nextDashboard = dashboards.find(d => d.id === nextDashboardId);
           if (nextDashboard) {
             setSelectedDashboard(nextDashboard);
-            updateDashboardView(nextDashboard.id);
+            updateDashboardView(nextDashboard);
           }
           return nextIndex;
         });
@@ -297,24 +297,24 @@ export default function CustomDashboardBuilder() {
     }
   }
 
-  async function updateDashboardView(dashboardId: string) {
+  async function updateDashboardView(dashboard: Dashboard) {
     try {
       await supabase
         .from('custom_health_dashboards')
         .update({
           last_viewed_at: new Date().toISOString(),
-          view_count: supabase.sql`view_count + 1`,
+          view_count: (dashboard.view_count || 0) + 1,
         })
-        .eq('id', dashboardId);
+        .eq('id', dashboard.id);
     } catch (err: any) {
-      console.error('Error updating view count:', err);
+      console.warn('Error updating view count:', err);
     }
   }
 
   function handleViewDashboard(dashboard: Dashboard) {
     setSelectedDashboard(dashboard);
     setViewMode('view');
-    updateDashboardView(dashboard.id);
+    updateDashboardView(dashboard);
     if (isRotating && rotationConfig?.pause_on_interaction) {
       setIsRotating(false);
     }
@@ -364,7 +364,7 @@ export default function CustomDashboardBuilder() {
     const nextDashboard = dashboards.find(d => d.id === nextDashboardId);
     if (nextDashboard) {
       setSelectedDashboard(nextDashboard);
-      updateDashboardView(nextDashboard.id);
+      updateDashboardView(nextDashboard);
     }
   }
 
