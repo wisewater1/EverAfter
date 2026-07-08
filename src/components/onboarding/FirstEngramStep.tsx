@@ -167,10 +167,14 @@ function deriveDefaultSelfName(userName: string, userEmail: string) {
 
 function splitName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return { firstName: 'Primary', lastName: 'User' };
+  if (parts.length === 0) return { firstName: 'Primary', lastName: '' };
   return {
+    // A one-word name (very common when someone only gives a first name) has
+    // no last name, full stop - it must not be padded with the literal word
+    // "User", which renders as if it were a real surname everywhere the
+    // family tree displays this person (e.g. "Joshua User").
     firstName: parts[0],
-    lastName: parts.slice(1).join(' ') || 'User',
+    lastName: parts.slice(1).join(' '),
   };
 }
 

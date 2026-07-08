@@ -16,6 +16,7 @@ import { speakPreview, stopPreview, voicePreviewSupported } from '../../lib/voic
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../../lib/runtime-readiness';
+import { BackendCircuitOpenError, isUnreachableError } from '../../lib/backend-health';
 
 interface JosephVoiceProfileCardProps {
   familyMemberId: string;
@@ -37,6 +38,13 @@ function normalizeVoiceProfileError(error: unknown): string | null {
 
   if (isAuthFailureMessage(compact)) {
     return null;
+  }
+
+  // The shared backend circuit breaker's own error text ("Skipping
+  // /api/v1/runtime/readiness: the backend was unreachable moments ago.") is
+  // meant for developer logs, not this card - it was leaking through verbatim.
+  if (error instanceof BackendCircuitOpenError || isUnreachableError(error)) {
+    return 'Voice profile storage is temporarily unavailable. Try again after the backend reconnects.';
   }
 
   if (!compact || compact === 'Internal Server Error') {

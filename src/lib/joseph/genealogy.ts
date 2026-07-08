@@ -152,6 +152,32 @@ const STORAGE_KEYS = {
     sources: 'everafter_family_sources',
 };
 
+// The keys above are namespaced by demo-vs-live (see storageKey()) but NOT
+// by which real account is signed in. On a shared or reused browser, signing
+// into a second real account left the first account's cached tree in place -
+// it would render (and could even get pushed to Supabase under the new
+// account's id) until something happened to overwrite it. This marker records
+// which user_id the live cache currently belongs to, so a mismatch can be
+// detected and the stale cache discarded before it leaks or gets backfilled
+// into the wrong account.
+const OWNER_STORAGE_KEY = 'everafter_family_cache_owner';
+
+function getCachedOwnerUserId(): string | null {
+    try {
+        return localStorage.getItem(OWNER_STORAGE_KEY);
+    } catch {
+        return null;
+    }
+}
+
+function setCachedOwnerUserId(userId: string): void {
+    try {
+        localStorage.setItem(OWNER_STORAGE_KEY, userId);
+    } catch {
+        // Ignore storage failures.
+    }
+}
+
 // ── Default Mock Data ──────────────────────────────────────
 
 const DEFAULT_MEMBERS: FamilyMember[] = [
@@ -569,9 +595,9 @@ function scheduleRealtimeRefresh(userId: string): void {
 async function loadGenealogyFromBackend() {
     _hydratedForMode = isDemoAuthEnabled() ? 'demo' : 'live';
     const mergedLocal = buildLocalGenealogy();
-    const baseMembers = mergedLocal.members;
-    const baseRelationships = mergedLocal.relationships;
-    const baseEvents = mergedLocal.events;
+    let baseMembers = mergedLocal.members;
+    let baseRelationships = mergedLocal.relationships;
+    let baseEvents = mergedLocal.events;
     const baseSources = loadStoredOrDevDefaults<SourceCitation>(STORAGE_KEYS.sources, []);
 
     if (isDemoAuthEnabled()) {
@@ -584,6 +610,23 @@ async function loadGenealogyFromBackend() {
 
     const userId = await getGenealogyUserId();
     if (userId) {
+        const cachedOwner = getCachedOwnerUserId();
+        if (cachedOwner && cachedOwner !== userId) {
+            // The cached tree on this browser belongs to a different real
+            // account (e.g. someone signed out and a different person signed
+            // in on the same device). Discard it outright rather than merge
+            // it in as "local extras" - otherwise it renders immediately and
+            // could get backfilled into the wrong account before the
+            // canonical Supabase fetch below has a chance to correct it.
+            console.warn('Genealogy cache belonged to a different account; discarding it.');
+            baseMembers = [];
+            baseRelationships = [];
+            baseEvents = [];
+            saveToStorage(STORAGE_KEYS.members, baseMembers);
+            saveToStorage(STORAGE_KEYS.relationships, baseRelationships);
+            saveToStorage(STORAGE_KEYS.events, baseEvents);
+        }
+        setCachedOwnerUserId(userId);
         subscribeToGenealogyRealtime(userId, () => scheduleRealtimeRefresh(userId));
         try {
             const canonical = await fetchGenealogyFromSupabase(userId);
