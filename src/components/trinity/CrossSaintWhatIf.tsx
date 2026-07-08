@@ -30,16 +30,21 @@ export default function CrossSaintWhatIf() {
     async function simulate() {
         if (!scenario.trim()) return;
         setLoading(true);
-        const d = await trinitySynapse('cross_saint_whatif', {
-            scenario,
-            scenario_type: scenarioType,
-            duration_months: months,
-        });
-        if (d) {
-            setResult(d);
-            setHistory(getStoredTrinityWhatIfHistory());
+        try {
+            const d = await trinitySynapse('cross_saint_whatif', {
+                scenario,
+                scenario_type: scenarioType,
+                duration_months: months,
+            });
+            if (d) {
+                setResult(d);
+                setHistory(getStoredTrinityWhatIfHistory());
+            }
+        } catch (err) {
+            console.warn('CrossSaintWhatIf: failed to simulate scenario', err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }
 
     function applyScenario(type: string) {

@@ -44,7 +44,20 @@ export default function FamilyChronicle() {
     const [filter, setFilter] = useState<string>('all');
     const [ceremonies, setCeremonies] = useState<Ceremony[]>([]);
 
-    useEffect(() => { (async () => { setData(await trinitySynapse('family_chronicle', {})); setLoading(false); })(); }, []);
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const result = await trinitySynapse('family_chronicle', {});
+                if (mounted) setData(result);
+            } catch (err) {
+                console.warn('FamilyChronicle: failed to load trinity synapse data', err);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+        return () => { mounted = false; };
+    }, []);
 
     useEffect(() => {
         let mounted = true;

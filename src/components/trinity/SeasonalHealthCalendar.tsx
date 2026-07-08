@@ -70,10 +70,15 @@ export default function SeasonalHealthCalendar() {
         let mounted = true;
 
         (async () => {
-            const result = await trinitySynapse('seasonal_calendar', {});
-            if (!mounted) return;
-            setData(result);
-            setLoading(false);
+            try {
+                const result = await trinitySynapse('seasonal_calendar', {});
+                if (!mounted) return;
+                setData(result);
+            } catch (err) {
+                if (mounted) console.warn('SeasonalHealthCalendar: failed to load trinity synapse data', err);
+            } finally {
+                if (mounted) setLoading(false);
+            }
         })();
 
         return () => {
