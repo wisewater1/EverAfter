@@ -22,6 +22,7 @@ function hasHardRouteBlocker(routeGate: RuntimeRouteGate | null | undefined): bo
 
 export default function ProtectedRoute({ children, skipOnboardingCheck = false }: ProtectedRouteProps) {
   const ONBOARDING_CHECK_TIMEOUT_MS = 2500;
+  const ROUTE_GATE_TIMEOUT_MS = 3000;
   const { user, loading: authLoading, isDemoMode } = useAuth();
   const location = useLocation();
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
@@ -64,12 +65,20 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
 
       setRouteGateLoading(true);
       try {
-        const readiness = await getRuntimeReadiness();
+        // Readiness is an enhancement layer (it can block a specific route
+        // when a dependency is genuinely down), not an auth gate. A cold or
+        // unreachable backend must never be allowed to hold up navigation,
+        // so this races against a short timeout and fails open.
+        const readiness = await withTimeout(
+          getRuntimeReadiness(),
+          ROUTE_GATE_TIMEOUT_MS,
+          'Timed out while loading runtime readiness',
+        );
         if (!cancelled) {
           setRouteGate(getRouteGate(readiness, location.pathname));
         }
       } catch (error) {
-        console.warn('ProtectedRoute: failed to load route readiness', error);
+        console.warn('ProtectedRoute: failed to load route readiness, assuming open', error);
         if (!cancelled) {
           setRouteGate(null);
         }
@@ -164,17 +173,13 @@ export default function ProtectedRoute({ children, skipOnboardingCheck = false }
     return <Navigate to="/login" replace />;
   }
 
-  if (routeGateLoading) {
-    return (
-      <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Checking runtime dependencies...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // While the route gate resolves, keep the page mounted and rendering
+  // instead of unmounting it behind a spinner. That previous behavior reset
+  // every page's local state on each visit, doubled data loading, caused a
+  // visible flash, and silently destroyed query-param deep links (a page
+  // would consume and clear a param like ?tab= before the remount, so the
+  // remounted copy never saw it). A confirmed hard blocker still replaces
+  // the page below, once the (now time-boxed) readiness check resolves.
   if (routeHasHardBlocker) {
     return (
       <FeatureBlockedState
