@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { resolveApiKey } from '../_shared/user-api-keys.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,12 +51,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const { apiKey: openaiApiKey } = await resolveApiKey(supabase, user.id, 'openai', 'OPENAI_API_KEY');
     if (!openaiApiKey) {
-      console.warn('OpenAI API key not configured, using fallback response');
+      console.warn('No OpenAI API key (user-saved or shared) configured, using fallback response');
       return new Response(
         JSON.stringify({
-          response: "I'm currently in basic mode. To enable full AI capabilities, please configure OpenAI API key.",
+          response: "I'm currently in basic mode. Add your own OpenAI API key in Settings, or ask the administrator to configure one, to enable full AI capabilities.",
           fallback: true,
         }),
         {

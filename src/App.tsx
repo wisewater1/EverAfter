@@ -30,6 +30,7 @@ const CreatorDashboard = lazyWithRetry(() => import('./pages/CreatorDashboard'),
 const MyAIs = lazyWithRetry(() => import('./pages/MyAIs'), 'pages/MyAIs');
 const UserPortal = lazyWithRetry(() => import('./pages/UserPortal'), 'pages/UserPortal');
 const UserProfileSetup = lazyWithRetry(() => import('./pages/UserProfileSetup'), 'pages/UserProfileSetup');
+const Settings = lazyWithRetry(() => import('./pages/Settings'), 'pages/Settings');
 const AdminPortal = lazyWithRetry(() => import('./pages/AdminPortal'), 'pages/AdminPortal');
 const DigitalLegacy = lazyWithRetry(() => import('./pages/DigitalLegacy'), 'pages/DigitalLegacy');
 const LegacyVault = lazyWithRetry(() => import('./pages/LegacyVault'), 'pages/LegacyVault');
@@ -186,6 +187,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <UserProfileSetup />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Settings />
                       </ProtectedRoute>
                     }
                   />

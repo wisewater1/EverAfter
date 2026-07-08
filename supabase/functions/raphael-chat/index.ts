@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,7 +89,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 6. Get OpenAI API key
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    const { apiKey: openaiKey } = await resolveApiKey(supabase, user.id, "openai", "OPENAI_API_KEY");
     if (!openaiKey) {
       return errorResponse("CONFIG_MISSING", "OPENAI_API_KEY not configured in Supabase Functions secrets", 500);
     }

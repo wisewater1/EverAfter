@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -228,8 +229,8 @@ Deno.serve(async (req: Request) => {
 
     // 7. Optional: Generate narrative from OpenAI
     let narrative: string | undefined;
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    
+    const { apiKey: openaiKey } = await resolveApiKey(supabase, user.id, "openai", "OPENAI_API_KEY");
+
     if (openaiKey && Object.keys(kpis).length > 0) {
       try {
         const prompt = `Write a short, compassionate weekly health insight for the user based on these metrics.

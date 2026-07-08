@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -165,7 +166,7 @@ async function queryByText(
   userId: string
 ): Promise<any[]> {
   // Generate embedding for the query text
-  const queryEmbedding = await generateEmbedding(text);
+  const queryEmbedding = await generateEmbedding(text, supabase, userId);
 
   if (!queryEmbedding) {
     // Fallback to full-text search
@@ -456,9 +457,9 @@ async function enhanceWithContext(
   });
 }
 
-async function generateEmbedding(text: string): Promise<number[] | null> {
+async function generateEmbedding(text: string, supabase: any, userId: string): Promise<number[] | null> {
   try {
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    const { apiKey: openaiKey } = await resolveApiKey(supabase, userId, "openai", "OPENAI_API_KEY");
     if (!openaiKey) {
       return null;
     }

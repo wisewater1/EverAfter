@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { X, Heart, LogOut, Brain, ChevronRight, Sparkles } from 'lucide-react';
+import { X, Heart, LogOut, Brain, ChevronRight, Sparkles, Settings } from 'lucide-react';
 
 interface MobileMenuProps {
     isOpen: boolean;
     onClose: () => void;
     onNavigateToLegacy: () => void;
     onNavigateToTrinity: () => void;
+    onNavigateToSettings: () => void;
     onSignOut: () => void;
 }
 
@@ -14,6 +15,7 @@ export default function MobileMenu({
     onClose,
     onNavigateToLegacy,
     onNavigateToTrinity,
+    onNavigateToSettings,
     onSignOut,
 }: MobileMenuProps) {
     // Lock background scroll while the drawer is open (mirrors ModalManager's
@@ -74,6 +76,13 @@ export default function MobileMenu({
                         onClick={() => { onNavigateToTrinity(); onClose(); }}
                         color="text-amber-300"
                         bgColor="bg-amber-500/10"
+                    />
+                    <MenuItem
+                        icon={Settings}
+                        label="Settings"
+                        onClick={() => { onNavigateToSettings(); onClose(); }}
+                        color="text-slate-300"
+                        bgColor="bg-slate-500/10"
                     />
                 </div>
 
