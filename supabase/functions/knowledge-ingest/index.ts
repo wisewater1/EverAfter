@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveApiKey } from "../_shared/user-api-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,7 +146,7 @@ Deno.serve(async (req: Request) => {
 
     if (body.processing_options?.generate_embeddings !== false) {
       processingTasks.push(
-        generateAndStoreEmbedding(supabase, knowledgeItem.id, contentText)
+        generateAndStoreEmbedding(supabase, knowledgeItem.id, contentText, user.id)
       );
     }
 
@@ -285,11 +286,12 @@ async function generateHash(text: string): Promise<string> {
 async function generateAndStoreEmbedding(
   supabase: any,
   knowledgeItemId: string,
-  text: string
+  text: string,
+  userId: string
 ): Promise<void> {
   try {
     // Call OpenAI to generate embedding
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    const { apiKey: openaiKey } = await resolveApiKey(supabase, userId, "openai", "OPENAI_API_KEY");
     if (!openaiKey) {
       console.warn("OpenAI API key not found, skipping embedding generation");
       return;
