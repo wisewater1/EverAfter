@@ -13,6 +13,7 @@ import {
     pushEvent,
     pushMember,
     pushRelationship,
+    subscribeToGenealogyRealtime,
 } from './genealogySync';
 export type Gender = 'male' | 'female' | 'other';
 export type RelationType = 'parent' | 'child' | 'spouse' | 'sibling';
@@ -513,6 +514,51 @@ function mergeCanonicalGenealogy(
     };
 }
 
+// Debounced so a burst of writes (e.g. backfillGenealogy pushing several
+// rows in a row) collapses into one re-fetch instead of one per row.
+let _realtimeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function refreshFromRealtimeChange(userId: string): Promise<void> {
+    try {
+        const canonical = await fetchGenealogyFromSupabase(userId);
+        if (!canonical) return;
+
+        // The just-arrived canonical rows are the authoritative update (they
+        // may reflect another tab, another device, or this tab's own write
+        // echoing back); current in-memory state is the base they overlay
+        // onto, so anything genuinely local-only and not yet synced survives.
+        const merged = mergeStoredGenealogy(
+            canonical.members,
+            canonical.relationships,
+            canonical.events,
+            _members,
+            _relationships,
+            _events,
+        );
+        _members = merged.members;
+        _relationships = merged.relationships;
+        _events = merged.events;
+        _dbIds = canonical.dbIds;
+        saveToStorage(STORAGE_KEYS.members, _members);
+        saveToStorage(STORAGE_KEYS.relationships, _relationships);
+        saveToStorage(STORAGE_KEYS.events, _events);
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('everafter:genealogy-hydrated'));
+        }
+    } catch (error) {
+        console.warn('Genealogy realtime refresh failed', error);
+    }
+}
+
+function scheduleRealtimeRefresh(userId: string): void {
+    if (_realtimeRefreshTimer) clearTimeout(_realtimeRefreshTimer);
+    _realtimeRefreshTimer = setTimeout(() => {
+        _realtimeRefreshTimer = null;
+        void refreshFromRealtimeChange(userId);
+    }, 800);
+}
+
 // Hydrate the in-memory graph. Order of truth for real accounts:
 // 1) canonical Supabase store (family_members + links + events),
 // 2) the optional Python backend graph,
@@ -538,6 +584,7 @@ async function loadGenealogyFromBackend() {
 
     const userId = await getGenealogyUserId();
     if (userId) {
+        subscribeToGenealogyRealtime(userId, () => scheduleRealtimeRefresh(userId));
         try {
             const canonical = await fetchGenealogyFromSupabase(userId);
             if (canonical) {
@@ -816,16 +863,28 @@ export function getParents(memberId: string): FamilyMember[] {
 
 export function buildFamilyTree(): FamilyTreeNode[] {
     ensureLoaded();
-    let roots = _members!.filter(m => {
+    const rootCandidates = _members!.filter(m => {
         const hasParents = _relationships!.some(r => r.type === 'parent' && r.toId === m.id);
-        return !hasParents && m.gender === 'male';
+        return !hasParents;
     });
+    const rootIds = new Set(rootCandidates.map(m => m.id));
 
-    if (roots.length === 0) {
-        roots = _members!.filter(m => {
-            const hasParents = _relationships!.some(r => r.type === 'parent' && r.toId === m.id);
-            return !hasParents;
-        });
+    // A married couple who both qualify as roots (neither has recorded
+    // parents) must only appear as ONE top-level entry, since buildNode
+    // already nests a member's spouse under `.spouse`. This used to be
+    // done by only ever rooting the male half of the couple, which silently
+    // dropped same-sex couples and any unmarried woman with no recorded
+    // parents whenever another man elsewhere in the tree had none either.
+    // Root order (not gender) now decides who anchors the pair.
+    const claimedAsSpouse = new Set<string>();
+    const roots: FamilyMember[] = [];
+    for (const m of rootCandidates) {
+        if (claimedAsSpouse.has(m.id)) continue;
+        roots.push(m);
+        const spouse = getSpouse(m.id);
+        if (spouse && rootIds.has(spouse.id)) {
+            claimedAsSpouse.add(spouse.id);
+        }
     }
 
     function buildNode(member: FamilyMember): FamilyTreeNode {

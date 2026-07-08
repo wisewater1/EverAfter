@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DHTScorePanel from '../dht/DHTScorePanel';
 import { ChevronRight, ChevronLeft, X, Heart, User, Sparkles, Plus, Brain, Zap, ZoomIn, ZoomOut, Maximize2, Calendar, Activity } from 'lucide-react';
@@ -47,6 +47,16 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
     }, [tree]);
 
     const refreshTree = useCallback(() => setTree(buildFamilyTree()), []);
+
+    // The tree above was built from whatever was in memory at mount, which
+    // for a real (non-demo) session is often a pre-hydration snapshot (empty
+    // on a first visit from a new device, or a stale local cache otherwise) -
+    // genealogy.ts hydrates from Supabase asynchronously and again whenever a
+    // realtime change arrives, both signalled by this event.
+    useEffect(() => {
+        window.addEventListener('everafter:genealogy-hydrated', refreshTree);
+        return () => window.removeEventListener('everafter:genealogy-hydrated', refreshTree);
+    }, [refreshTree]);
 
     const toggle = (id: string) => {
         setExpandedIds(prev => {

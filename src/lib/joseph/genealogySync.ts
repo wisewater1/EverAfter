@@ -252,6 +252,50 @@ export async function pushEvent(
     if (error) console.warn('pushEvent failed:', error.message);
 }
 
+let realtimeChannel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
+let realtimeUserId: string | null = null;
+
+/**
+ * Live-sync the family tree: subscribe to changes on the three canonical
+ * tables for this user so edits made on another device/tab (or a slower
+ * background backfill from this one) reach every open tab without a manual
+ * refresh. Fires `onChange` on any insert/update/delete; the caller decides
+ * how to re-merge (see genealogy.ts's hydration-triggered refresh).
+ *
+ * Idempotent per userId: calling again for the same user is a no-op so
+ * components can each call this on mount without stacking duplicate
+ * channels. Returns an unsubscribe function.
+ */
+export function subscribeToGenealogyRealtime(userId: string, onChange: () => void): () => void {
+    if (!supabase || isDemoAuthEnabled()) return () => {};
+
+    if (realtimeChannel && realtimeUserId === userId) {
+        return () => {};
+    }
+
+    if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+    }
+
+    realtimeUserId = userId;
+    const channel = supabase
+        .channel(`genealogy:${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'family_members', filter: `user_id=eq.${userId}` }, onChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'family_member_links', filter: `user_id=eq.${userId}` }, onChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'family_tree_events', filter: `user_id=eq.${userId}` }, onChange)
+        .subscribe();
+
+    realtimeChannel = channel;
+    return () => {
+        supabase?.removeChannel(channel);
+        if (realtimeChannel === channel) {
+            realtimeChannel = null;
+            realtimeUserId = null;
+        }
+    };
+}
+
 /**
  * Push everything local that the canonical store does not have yet. Runs
  * after hydration for real users so a tree built offline (or during
