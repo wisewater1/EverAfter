@@ -597,6 +597,23 @@ function scheduleRealtimeRefresh(userId: string): void {
     }, 800);
 }
 
+// buildLocalGenealogy() below runs synchronously, before this function's
+// first `await` - which means it captures local state at the exact instant
+// hydration STARTS, not the instant it finishes. Any addFamilyMember/
+// addRelationship call made by the same caller that triggered this hydration
+// (ensureLoaded() fires it without awaiting) lands in the live _members/
+// _relationships/_events arrays a tick later, after this snapshot was
+// already taken - e.g. onboarding's "add your family" step, whose first
+// addFamilyMember() call is what starts the very hydration racing it.
+// Reconciling the snapshot against live state right before each merge point
+// folds those in-flight additions back in instead of letting them get wiped
+// by the eventual `_members = merged.members` overwrite below.
+function reconcileWithLiveAdditions<T extends { id: string }>(snapshot: T[], live: T[]): T[] {
+    const known = new Set(snapshot.map((item) => item.id));
+    const additions = live.filter((item) => !known.has(item.id));
+    return additions.length > 0 ? [...snapshot, ...additions] : snapshot;
+}
+
 // Hydrate the in-memory graph. Order of truth for real accounts:
 // 1) canonical Supabase store (family_members + links + events),
 // 2) the optional Python backend graph,
@@ -637,12 +654,28 @@ async function loadGenealogyFromBackend() {
             saveToStorage(STORAGE_KEYS.members, baseMembers);
             saveToStorage(STORAGE_KEYS.relationships, baseRelationships);
             saveToStorage(STORAGE_KEYS.events, baseEvents);
+            // Also clear live state, not just the local snapshot above - the
+            // reconciliation below folds live state back in as "in-flight
+            // additions", so if it still held the wrong account's tree it
+            // would otherwise leak straight back through that merge.
+            _members = [];
+            _relationships = [];
+            _events = [];
         }
         setCachedOwnerUserId(userId);
         subscribeToGenealogyRealtime(userId, () => scheduleRealtimeRefresh(userId));
         try {
             const canonical = await fetchGenealogyFromSupabase(userId);
             if (canonical) {
+                // Fold in anything added to live state since this function's
+                // own baseMembers snapshot was taken (see
+                // reconcileWithLiveAdditions) before using it as the base -
+                // otherwise this assignment below would wipe out an
+                // in-flight addFamilyMember() call racing this hydration.
+                baseMembers = reconcileWithLiveAdditions(baseMembers, _members);
+                baseRelationships = reconcileWithLiveAdditions(baseRelationships, _relationships);
+                baseEvents = reconcileWithLiveAdditions(baseEvents, _events);
+
                 // Canonical rows are the base; local-only extras overlay and
                 // then get pushed back so both sides converge.
                 const merged = mergeStoredGenealogy(
@@ -657,7 +690,11 @@ async function loadGenealogyFromBackend() {
                 _relationships = merged.relationships;
                 _events = merged.events;
                 _sources = baseSources;
-                _dbIds = canonical.dbIds;
+                // Merge rather than overwrite: a concurrent addFamilyMember's
+                // own persistRemote()/pushMember() may have already resolved
+                // and recorded a dbId that canonical's snapshot (read before
+                // that write landed) wouldn't know about yet.
+                _dbIds = new Map([..._dbIds, ...canonical.dbIds]);
                 saveToStorage(STORAGE_KEYS.members, _members);
                 saveToStorage(STORAGE_KEYS.relationships, _relationships);
                 saveToStorage(STORAGE_KEYS.events, _events);
@@ -683,6 +720,9 @@ async function loadGenealogyFromBackend() {
         );
 
         if (data.nodes && data.nodes.length > 0) {
+            baseMembers = reconcileWithLiveAdditions(baseMembers, _members);
+            baseRelationships = reconcileWithLiveAdditions(baseRelationships, _relationships);
+            baseEvents = reconcileWithLiveAdditions(baseEvents, _events);
             const merged = mergeCanonicalGenealogy(
                 data.nodes,
                 Array.isArray(data.relationships) ? data.relationships : [],
@@ -700,9 +740,12 @@ async function loadGenealogyFromBackend() {
         console.warn('Failed to load genealogy from backend', error);
     }
 
-    _members = baseMembers;
-    _relationships = baseRelationships;
-    _events = baseEvents;
+    // Nothing else overwrote _members in this pass, but it may still hold
+    // in-flight additions from a caller racing this same hydration - fold
+    // them into the local base rather than reverting to the earlier snapshot.
+    _members = reconcileWithLiveAdditions(baseMembers, _members);
+    _relationships = reconcileWithLiveAdditions(baseRelationships, _relationships);
+    _events = reconcileWithLiveAdditions(baseEvents, _events);
     _sources = baseSources;
 
     // New account (or canonical store empty): push whatever the user already
