@@ -416,7 +416,7 @@ export default function StJosephFamilyDashboard() {
                     </div>
                 </div>
 
-                <div className="mt-4 hidden w-full max-w-[calc(100vw-2rem)] items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/5 bg-slate-900/50 p-1.5 hide-scrollbar md:max-w-none sm:flex">
+                <div className="mt-4 hidden w-full max-w-[calc(100vw-2rem)] items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/5 bg-slate-900/50 p-1.5 scrollbar-hide md:max-w-none sm:flex">
                     {TABS.map(({ key, label, mobileLabel, icon: TabIcon }) => (
                         <button
                             key={key}
