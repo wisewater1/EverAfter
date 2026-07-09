@@ -76,4 +76,49 @@ describe('buildDemoProfile', () => {
     expect(Array.isArray(p.traits)).toBe(true);
     expect(p.archetype.name.length).toBeGreaterThan(0);
   });
+
+  // The reported bug: "I can press any random buttons and it always defaults
+  // to the Balanced Soul result." The old resolver fell straight to a single
+  // "Balanced" label whenever no decisive rule fired (most moderate answer
+  // sets), so ~53% of varied inputs converged on it. This guards that the
+  // resolver now matches to the NEAREST archetype instead of defaulting -
+  // varied answers must produce a spread of archetypes, not one dominant one.
+  it('does not converge to one archetype across many distinct answer sets', () => {
+    const seen = new Map<string, number>();
+    // deterministic pseudo-random answer sets (no Math.random, so it's stable)
+    let seed = 1234567;
+    const next = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return 1 + (seed % 5);
+    };
+    for (let i = 0; i < 300; i++) {
+      const answers: Record<string, number> = {};
+      for (const q of DEMO_QUIZ_QUESTIONS) answers[q.id] = next();
+      const name = buildDemoProfile(answers, 'm', 'X').archetype.name;
+      seen.set(name, (seen.get(name) || 0) + 1);
+    }
+    // Many distinct archetypes appear, and none dominates the way the old
+    // Balanced-default did (previously a single label took >50%).
+    expect(seen.size).toBeGreaterThanOrEqual(8);
+    const mostCommon = Math.max(...seen.values());
+    expect(mostCommon).toBeLessThan(300 * 0.45);
+  });
+
+  // Answer-driven, and consistent with the backend's named archetypes.
+  it('maps clearly-extreme profiles to the matching archetype', () => {
+    const drive = (highs: string[], lows: string[]): Record<string, number> => {
+      const a: Record<string, number> = {};
+      for (const q of DEMO_QUIZ_QUESTIONS) {
+        let want = 3;
+        if (highs.includes(q.trait)) want = 5;
+        else if (lows.includes(q.trait)) want = 1;
+        a[q.id] = q.reverse ? 6 - want : want;
+      }
+      return a;
+    };
+    // openness + extraversion maxed -> The Explorer (first decisive rule)
+    expect(buildDemoProfile(drive(['openness', 'extraversion'], []), 'm', 'X').archetype.name).toBe('The Explorer');
+    // conscientiousness maxed, neuroticism floored -> The Architect
+    expect(buildDemoProfile(drive(['conscientiousness'], ['neuroticism']), 'm', 'X').archetype.name).toBe('The Architect');
+  });
 });
