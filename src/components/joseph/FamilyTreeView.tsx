@@ -281,14 +281,21 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
             <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-[#0a0f15] via-[#0b0e14] to-[#0d0d12]">
                 <StarfieldBackground density={0.6} contained />
                 <div className="pointer-events-none absolute left-4 top-4 z-20 hidden items-center gap-1.5 rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-slate-400 backdrop-blur sm:flex">
-                    <Sparkles className="h-3 w-3 text-amber-400" /> Family Tree · scroll to roam, zoom to explore
+                    <Sparkles className="h-3 w-3 text-amber-400" /> Family Tree · zoom to explore
                 </div>
                 <div className="absolute right-4 top-4 z-20 flex flex-col gap-1.5">
                     <button onClick={() => setZoom(z => Math.min(1.6, +(z + 0.15).toFixed(2)))} title="Zoom in" className="rounded-lg border border-white/10 bg-slate-900/80 p-2 text-slate-300 backdrop-blur transition-colors hover:bg-slate-800 hover:text-white"><ZoomIn className="h-4 w-4" /></button>
                     <button onClick={() => setZoom(z => Math.max(0.5, +(z - 0.15).toFixed(2)))} title="Zoom out" className="rounded-lg border border-white/10 bg-slate-900/80 p-2 text-slate-300 backdrop-blur transition-colors hover:bg-slate-800 hover:text-white"><ZoomOut className="h-4 w-4" /></button>
                     <button onClick={() => setZoom(1)} title="Reset zoom" className="rounded-lg border border-white/10 bg-slate-900/80 p-2 text-slate-300 backdrop-blur transition-colors hover:bg-slate-800 hover:text-white"><Maximize2 className="h-4 w-4" /></button>
                 </div>
-                <div className="relative z-10 max-h-[64vh] min-h-[420px] overflow-auto p-6 md:p-8">
+                {/* No inner overflow-auto/max-h here: a nested scrollable region this
+                    large (the tree card fills most of the viewport on this tab) would
+                    "trap" the mouse wheel and touch-drag scrolling its own content
+                    instead of the page - from the user's seat, scrolling would appear
+                    to do nothing everywhere except the thin strip of chrome outside this
+                    card. Letting the tree render at its natural height and scroll with
+                    the rest of the page avoids that entirely. */}
+                <div className="relative z-10 min-h-[420px] p-6 md:p-8">
                     {tree.length > 0 ? (
                         <div className="space-y-2 origin-top-left transition-[zoom] duration-200" style={{ zoom }}>
                             {tree.map(root => renderNode(root))}

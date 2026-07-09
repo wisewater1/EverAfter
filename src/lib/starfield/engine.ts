@@ -155,6 +155,9 @@ const PULSE_LIFE = 1.5;
 const PULSE_MAX_R = 460;
 const PULSE_BAND = 78;
 const MAX_PULSES = 4;
+const SHOOT_INTERVAL_MIN = 5;
+const SHOOT_INTERVAL_SPAN = 8;
+const MAX_CONCURRENT_SHOOTING = 2;
 
 export class StarfieldSim {
   W = 0;
@@ -362,22 +365,24 @@ export class StarfieldSim {
       m.x += m.vx * dt;
       m.y += m.vy * dt;
     }
-    if (this.time >= this.nextShootAt && this.shooting.length === 0) {
-      // Rare, slow ambient streak crossing part of the sky.
+    if (this.time >= this.nextShootAt && this.shooting.length < MAX_CONCURRENT_SHOOTING) {
+      // Ambient streak crossing part of the sky - varies in size/speed/reach
+      // so they don't all look identical.
       const fromLeft = Math.random() > 0.5;
-      const speed = 380 + Math.random() * 240;
-      const ang = (18 + Math.random() * 18) * (Math.PI / 180);
+      const scale = 0.75 + Math.random() * 0.6; // small-quick to big-sweeping
+      const speed = (380 + Math.random() * 240) * scale;
+      const ang = (14 + Math.random() * 26) * (Math.PI / 180);
       const vx = Math.cos(ang) * speed * (fromLeft ? 1 : -1);
       const vy = Math.sin(ang) * speed;
       this.shooting.push({
-        x: fromLeft ? -40 + Math.random() * this.W * 0.3 : this.W * 0.7 + Math.random() * (this.W * 0.3 + 40),
-        y: Math.random() * this.H * 0.45,
+        x: fromLeft ? -40 + Math.random() * this.W * 0.35 : this.W * 0.65 + Math.random() * (this.W * 0.35 + 40),
+        y: Math.random() * this.H * 0.55,
         vx,
         vy,
         age: 0,
-        life: 1.4 + Math.random() * 0.7,
+        life: (1.2 + Math.random() * 0.9) * scale,
       });
-      this.nextShootAt = this.time + 14 + Math.random() * 18;
+      this.nextShootAt = this.time + SHOOT_INTERVAL_MIN + Math.random() * SHOOT_INTERVAL_SPAN;
     }
   }
 
