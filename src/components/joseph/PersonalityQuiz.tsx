@@ -142,7 +142,17 @@ export default function PersonalityQuiz({
     onActiveMemberChange,
 }: PersonalityQuizProps = {}) {
     const { user, isDemoMode } = useAuth();
-    const members = getFamilyMembers();
+    // getFamilyMembers() was read once here, synchronously, at mount - real
+    // (non-demo) accounts hydrate their roster from Supabase asynchronously,
+    // so a component that renders before that finishes saw an empty list
+    // forever afterward, with no family member left to select for a quiz.
+    const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
+
+    useEffect(() => {
+        const refresh = () => setMembers(getFamilyMembers());
+        window.addEventListener('everafter:genealogy-hydrated', refresh);
+        return () => window.removeEventListener('everafter:genealogy-hydrated', refresh);
+    }, []);
 
     const [phase, setPhase] = useState<'select' | 'quiz' | 'results'>('select');
     const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);

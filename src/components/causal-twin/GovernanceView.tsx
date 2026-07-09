@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { AlertTriangle, Beaker, Brain, ChevronRight, ChevronLeft, Eye, Gavel, Lock, Scale, Shield, XCircle, Zap } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Beaker, Brain, ChevronRight, ChevronLeft, Eye, Gavel, Loader2, Lock, RefreshCw, Scale, Shield, XCircle, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiClient } from '../../lib/api-client';
 import { requestBackendJson } from '../../lib/backend-request';
@@ -43,14 +43,50 @@ export default function GovernanceView({
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [governanceCapability, setGovernanceCapability] = useState<RuntimeCapability | null>(null);
+    const [retrying, setRetrying] = useState(false);
+
+    // Same free-tier-cold-start issue as St. Raphael Hub: this used to check
+    // once on mount and, on a single transient miss, sit on "unavailable"
+    // for the rest of the session with no way back short of a full reload.
+    const RETRY_DELAYS_MS = [8000, 20000];
+    const mountedRef = useRef(true);
+    const retryAttemptRef = useRef(0);
+    const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        mountedRef.current = true;
         void fetchProposals();
+        return () => {
+            mountedRef.current = false;
+            if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+        };
     }, [biometricsReady]);
 
-    async function fetchProposals(options?: { preserveNotice?: boolean }) {
+    function scheduleAutoRetry() {
+        if (retryTimeoutRef.current || retryAttemptRef.current >= RETRY_DELAYS_MS.length) return;
+        const delay = RETRY_DELAYS_MS[retryAttemptRef.current];
+        retryAttemptRef.current += 1;
+        retryTimeoutRef.current = setTimeout(() => {
+            retryTimeoutRef.current = null;
+            if (mountedRef.current) void fetchProposals({ isRetry: true });
+        }, delay);
+    }
+
+    function handleManualRetry() {
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+        }
+        retryAttemptRef.current = 0;
+        setRetrying(true);
+        void fetchProposals({ isRetry: true }).finally(() => {
+            if (mountedRef.current) setRetrying(false);
+        });
+    }
+
+    async function fetchProposals(options?: { preserveNotice?: boolean; isRetry?: boolean }) {
         try {
-            setLoading(true);
+            if (!options?.isRetry) setLoading(true);
             if (!options?.preserveNotice) {
                 setNotice(null);
             }
@@ -61,6 +97,7 @@ export default function GovernanceView({
             if (capability?.blocking) {
                 setProposals([]);
                 setError(capability.reason || 'Raphael governance is temporarily unavailable until runtime dependencies recover.');
+                scheduleAutoRetry();
                 return;
             }
 
@@ -80,12 +117,14 @@ export default function GovernanceView({
             );
             setProposals(data.proposals || []);
             setError(null);
+            retryAttemptRef.current = 0;
         } catch (nextError) {
             console.error('Failed to fetch proposals:', nextError);
             setProposals([]);
             setError('Failed to load governance proposals.');
+            scheduleAutoRetry();
         } finally {
-            setLoading(false);
+            if (!options?.isRetry) setLoading(false);
             setRefreshing(false);
         }
     }
@@ -197,6 +236,7 @@ export default function GovernanceView({
                         <p className="font-medium text-rose-200">Governance blocked</p>
                         <p className="mt-1 text-sm text-slate-400">{governanceCapability.reason || 'Raphael governance is temporarily unavailable.'}</p>
                     </div>
+                    <RetryButton onClick={handleManualRetry} retrying={retrying} />
                 </div>
             ) : !biometricsReady ? (
                 <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-cyan-500/20 bg-white/[0.02] p-12">
@@ -217,6 +257,7 @@ export default function GovernanceView({
                         <p className="font-medium text-rose-200">Governance data is unavailable</p>
                         <p className="mt-1 text-sm text-slate-400">{error}</p>
                     </div>
+                    <RetryButton onClick={handleManualRetry} retrying={retrying} />
                 </div>
             ) : proposals.length === 0 ? (
                 <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-12">
@@ -242,6 +283,19 @@ export default function GovernanceView({
                 </div>
             )}
         </div>
+    );
+}
+
+function RetryButton({ onClick, retrying }: { onClick: () => void; retrying: boolean }) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={retrying}
+            className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+            {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {retrying ? 'Checking again...' : 'Try again'}
+        </button>
     );
 }
 
