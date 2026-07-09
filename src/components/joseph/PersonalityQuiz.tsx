@@ -17,6 +17,7 @@ import JosephVoiceAnswerPanel from './JosephVoiceAnswerPanel';
 import { apiClient } from '../../lib/api-client';
 import { requestBackendJson } from '../../lib/backend-request';
 import { storePersonalityProfile, toOceanScores } from '../../lib/joseph/personalityProfiles';
+import { PERSONALITY_QUESTIONS, computePersonalityProfile, type ScorableQuestion } from '../../lib/joseph/personalityScoring';
 import {
     buildQuizProgressSnapshot,
     buildQuizShareMessage,
@@ -205,19 +206,30 @@ export default function PersonalityQuiz({
             return questionBank;
         }
 
-        const data = await requestBackendJson<QuizQuestionsResponse>(
-            '/api/v1/personality-quiz/questions',
-            { method: 'GET' },
-            'Failed to load personality questions.',
-        );
+        try {
+            const data = await requestBackendJson<QuizQuestionsResponse>(
+                '/api/v1/personality-quiz/questions',
+                { method: 'GET' },
+                'Failed to load personality questions.',
+            );
 
-        const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
-        if (nextQuestions.length === 0) {
-            throw new Error('Personality question bank is empty.');
+            const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
+            if (nextQuestions.length === 0) {
+                throw new Error('Personality question bank is empty.');
+            }
+
+            setQuestionBank(nextQuestions);
+            return nextQuestions;
+        } catch (error) {
+            // Local-first: the backend (free-tier, often asleep) being
+            // unreachable must not stop someone from taking the quiz. Fall
+            // back to the built-in question bank, which the same client-side
+            // scorer knows how to score offline.
+            console.warn('Question bank backend unavailable; using built-in offline bank.', error);
+            const offlineQuestions = PERSONALITY_QUESTIONS as unknown as QuizQuestion[];
+            setQuestionBank(offlineQuestions);
+            return offlineQuestions;
         }
-
-        setQuestionBank(nextQuestions);
-        return nextQuestions;
     }, [questionBank]);
 
     /* ── Start quiz ──────────────────────────────────────── */
@@ -403,30 +415,54 @@ export default function PersonalityQuiz({
     /* ── Submit ───────────────────────────────────────────── */
 
     const submitQuiz = useCallback(async () => {
+        if (!selectedMember) return;
+        const memberFullName = `${selectedMember.firstName} ${selectedMember.lastName}`.trim();
         setLoading(true);
         try {
-            const data = await requestBackendJson<PersonalityProfile>(
-                '/api/v1/personality-quiz/submit',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        member_id: selectedMember?.id,
-                        member_name: selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : '',
-                        answers,
-                    }),
-                },
-                'Failed to submit personality quiz.',
-            );
+            let data: PersonalityProfile;
+            let computedLocally = false;
+            try {
+                data = await requestBackendJson<PersonalityProfile>(
+                    '/api/v1/personality-quiz/submit',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            member_id: selectedMember.id,
+                            member_name: memberFullName,
+                            answers,
+                        }),
+                    },
+                    'Failed to submit personality quiz.',
+                );
 
-                if ((data as any)?.error) {
-                    throw new Error((data as any).error);
+                if ((data as unknown as { error?: string })?.error) {
+                    throw new Error((data as unknown as { error?: string }).error);
                 }
+            } catch (backendError) {
+                // Local-first: the scoring backend (free-tier Render, often
+                // asleep) being unreachable must not block a real result.
+                // Compute the SAME genuine OCEAN analysis on-device from the
+                // exact questions that were answered - identical formula and
+                // archetype logic to the backend (see personalityScoring.ts),
+                // so this is the real analysis, not a placeholder.
+                console.warn('Quiz submit backend unavailable; scoring on-device.', backendError);
+                data = computePersonalityProfile(
+                    (questions as unknown as ScorableQuestion[]),
+                    answers,
+                    selectedMember.id,
+                    memberFullName,
+                ) as unknown as PersonalityProfile;
+                computedLocally = true;
+            }
 
                 setProfile(data);
                 setPhase('results');
-                setPersistStatus('saving');
+                setPersistStatus(computedLocally ? 'local-only' : 'saving');
+                if (computedLocally) {
+                    setStatusMessage('Scored on this device while the live service was unreachable — your analysis is real and will sync automatically when the connection returns.');
+                }
 
                 // Wipe local storage file since we submitted
                 if (selectedMember) {
@@ -491,7 +527,7 @@ export default function PersonalityQuiz({
                     }
                 }
                 else {
-                    setPersistStatus('saved');
+                    setPersistStatus(computedLocally ? 'local-only' : 'saved');
                 }
         } catch (err) {
             console.error('Submit failed:', err);
@@ -499,7 +535,7 @@ export default function PersonalityQuiz({
             setStatusMessage('Failed to save personality profile.');
         }
         setLoading(false);
-    }, [sessionId, answers, selectedMember, onProfileComplete]);
+    }, [sessionId, answers, questions, selectedMember, isDemoMode, user?.id, onProfileComplete]);
 
     const restart = () => {
         setPhase('select');
