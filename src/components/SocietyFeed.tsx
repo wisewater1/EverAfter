@@ -528,7 +528,17 @@ const SocietyFeed: React.FC = () => {
     );
 
     return (
-        <div className="w-full h-[calc(100vh-12rem)] flex flex-col space-y-4 relative">
+        // No viewport-relative height cap here: this component is embedded
+        // directly in normal page flow (St. Joseph's Society tab, the family
+        // members grid, the main dashboard) alongside other content above
+        // and below it, not in its own dedicated full-screen view. Capping
+        // it to the viewport made it "trap" wheel/touch scroll for its own
+        // internal content instead of the containing page whenever the
+        // cursor was anywhere over it - the same bug class fixed in
+        // FamilyTreeView.tsx. The two narrow sidebar mini-cards below keep
+        // their own independent, modestly-sized internal scroll (a
+        // self-contained "chat log" style panel is fine at that scale).
+        <div className="w-full min-h-[28rem] flex flex-col space-y-4 relative">
             {/* Error Notification */}
             {errorMsg && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-rose-500/90 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 backdrop-blur border border-rose-400/50 flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
@@ -796,13 +806,15 @@ const SocietyFeed: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Activity Feed Mini Card */}
-                    <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-4 flex-1 flex flex-col min-h-0">
-                        <div className="flex items-center gap-2 mb-3 text-cyan-400">
+                    {/* Activity Feed Mini Card - self-contained scroll like
+                        the council panel above it, no longer sized off the
+                        removed page-level height cap. */}
+                    <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-4 flex flex-col max-h-[50vh]">
+                        <div className="flex items-center gap-2 mb-3 text-cyan-400 shrink-0">
                             <TrendingUp className="w-4 h-4" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Neural Trends</span>
                         </div>
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                        <div className="overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                             {events.length > 0 ? (
                                 events.map((event) => (
                                     <div key={event.id} className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-all group">
