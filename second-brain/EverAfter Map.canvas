@@ -1,0 +1,27 @@
+{
+	"nodes": [
+		{ "id": "home", "type": "file", "file": "Home.md", "x": -220, "y": -940, "width": 480, "height": 400 },
+		{ "id": "arch", "type": "file", "file": "01 Maps/Architecture MOC.md", "x": -220, "y": -480, "width": 480, "height": 400 },
+		{ "id": "frontend", "type": "file", "file": "01 Maps/Frontend MOC.md", "x": -840, "y": 0, "width": 480, "height": 400 },
+		{ "id": "backend", "type": "file", "file": "01 Maps/Backend MOC.md", "x": -220, "y": 0, "width": 480, "height": 400 },
+		{ "id": "database", "type": "file", "file": "01 Maps/Database MOC.md", "x": 400, "y": 0, "width": 480, "height": 400 },
+		{ "id": "ai", "type": "file", "file": "01 Maps/AI Systems MOC.md", "x": -840, "y": 480, "width": 480, "height": 400 },
+		{ "id": "health", "type": "file", "file": "01 Maps/Health Integrations MOC.md", "x": -220, "y": 480, "width": 480, "height": 400 },
+		{ "id": "security", "type": "file", "file": "01 Maps/Security MOC.md", "x": 400, "y": 480, "width": 480, "height": 400 },
+		{ "id": "legacy", "type": "file", "file": "01 Maps/Legacy and Family MOC.md", "x": -840, "y": 960, "width": 480, "height": 400 },
+		{ "id": "products", "type": "file", "file": "01 Maps/Products MOC.md", "x": -220, "y": 960, "width": 480, "height": 400 },
+		{ "id": "operations", "type": "file", "file": "01 Maps/Operations MOC.md", "x": 400, "y": 960, "width": 480, "height": 400 }
+	],
+	"edges": [
+		{ "id": "e-home-arch", "fromNode": "home", "fromSide": "bottom", "toNode": "arch", "toSide": "top" },
+		{ "id": "e-arch-frontend", "fromNode": "arch", "fromSide": "bottom", "toNode": "frontend", "toSide": "top" },
+		{ "id": "e-arch-backend", "fromNode": "arch", "fromSide": "bottom", "toNode": "backend", "toSide": "top" },
+		{ "id": "e-arch-database", "fromNode": "arch", "fromSide": "bottom", "toNode": "database", "toSide": "top" },
+		{ "id": "e-backend-ai", "fromNode": "backend", "fromSide": "bottom", "toNode": "ai", "toSide": "top" },
+		{ "id": "e-backend-health", "fromNode": "backend", "fromSide": "bottom", "toNode": "health", "toSide": "top" },
+		{ "id": "e-database-security", "fromNode": "database", "fromSide": "bottom", "toNode": "security", "toSide": "top" },
+		{ "id": "e-ai-legacy", "fromNode": "ai", "fromSide": "bottom", "toNode": "legacy", "toSide": "top" },
+		{ "id": "e-health-products", "fromNode": "health", "fromSide": "bottom", "toNode": "products", "toSide": "top" },
+		{ "id": "e-security-operations", "fromNode": "security", "fromSide": "bottom", "toNode": "operations", "toSide": "top" }
+	]
+}
