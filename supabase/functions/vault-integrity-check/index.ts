@@ -1,34 +1,30 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  jsonResponse,
+  errorResponse,
+  corsPreflight,
+  serviceClient,
+  requireUser,
+  AuthError,
+} from '../_shared/http.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return corsPreflight(req);
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Authenticate and derive user_id from the JWT — never from the body.
+    const user = await requireUser(req);
+    const userId = user.id;
 
-    const { user_id } = await req.json();
-
-    if (!user_id) {
-      return new Response(
-        JSON.stringify({ error: 'user_id required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Service-role client is safe here only because the query is scoped to
+    // the authenticated userId.
+    const supabase = serviceClient();
 
     const { data: items, error: itemsError } = await supabase
       .from('vault_items')
       .select('id, payload, updated_at')
-      .eq('user_id', user_id);
+      .eq('user_id', userId);
 
     if (itemsError) throw itemsError;
 
@@ -42,7 +38,7 @@ Deno.serve(async (req: Request) => {
       const data = encoder.encode(contentString);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const currentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const currentHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
       const { data: lastAudit } = await supabase
         .from('vault_audit_logs')
@@ -69,7 +65,7 @@ Deno.serve(async (req: Request) => {
       }
 
       await supabase.from('vault_audit_logs').insert({
-        user_id: user_id,
+        user_id: userId,
         vault_item_id: item.id,
         action: 'INTEGRITY_CHECK',
         details: { status, current_hash: currentHash },
@@ -85,20 +81,12 @@ Deno.serve(async (req: Request) => {
       checked_at: new Date().toISOString(),
     };
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        summary,
-        results,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResponse(req, { success: true, summary, results });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return errorResponse(req, error.message, error.status);
+    }
     console.error('Integrity check error:', error);
-
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return errorResponse(req, (error as Error).message ?? 'Internal error', 500);
   }
 });
