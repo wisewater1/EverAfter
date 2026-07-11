@@ -522,11 +522,11 @@ const MOCK_HEALTH_METRICS = buildDemoHealthMetrics();
 
 // Supabase-table seeds (FamilyEngrams reads these directly via supabase-js).
 const DEMO_FAMILY_MEMBERS = [
-  { id: 'dm-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', avatar_url: null, created_at: isoDaysAgo(120) },
-  { id: 'dm-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', avatar_url: null, created_at: isoDaysAgo(96) },
-  { id: 'dm-susan', user_id: 'demo-user', name: 'Susan Anderson', relationship: 'Mother', avatar_url: null, created_at: isoDaysAgo(96) },
-  { id: 'dm-alice', user_id: 'demo-user', name: 'Alice Anderson', relationship: 'Sister', avatar_url: null, created_at: isoDaysAgo(58) },
-  { id: 'dm-lily', user_id: 'demo-user', name: 'Lily Chen', relationship: 'Niece', avatar_url: null, created_at: isoDaysAgo(24) },
+  { id: 'dm-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', relationship: 'Grandmother', avatar_url: null, created_at: isoDaysAgo(120) },
+  { id: 'dm-james', user_id: '00000000-0000-4000-8000-000000000001', name: 'James Anderson', relationship: 'Father', avatar_url: null, created_at: isoDaysAgo(96) },
+  { id: 'dm-susan', user_id: '00000000-0000-4000-8000-000000000001', name: 'Susan Anderson', relationship: 'Mother', avatar_url: null, created_at: isoDaysAgo(96) },
+  { id: 'dm-alice', user_id: '00000000-0000-4000-8000-000000000001', name: 'Alice Anderson', relationship: 'Sister', avatar_url: null, created_at: isoDaysAgo(58) },
+  { id: 'dm-lily', user_id: '00000000-0000-4000-8000-000000000001', name: 'Lily Chen', relationship: 'Niece', avatar_url: null, created_at: isoDaysAgo(24) },
 ];
 const DEMO_ENGRAM_ROWS = [
   { family_member_id: 'dm-margaret', personality_traits: ['Warm', 'Wise', 'Nurturing', 'Patient'], user_interactions: [{ created_at: isoDaysAgo(1) }, { created_at: isoDaysAgo(3) }, { created_at: isoDaysAgo(6) }, { created_at: isoDaysAgo(10) }] },
@@ -554,7 +554,7 @@ const DEMO_CEREMONY_COMPLETED_ID = 'dm-ceremony-gratitude';
 const DEMO_CEREMONIES = [
   {
     id: DEMO_CEREMONY_SCHEDULED_ID,
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     title: 'Remembering Margaret',
     description: 'A quiet gathering to hold Margaret in memory and share the stories that keep her close.',
     ceremony_type: 'remembrance',
@@ -578,7 +578,7 @@ const DEMO_CEREMONIES = [
   },
   {
     id: DEMO_CEREMONY_COMPLETED_ID,
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     title: 'A Season of Gratitude',
     description: 'An evening set aside to name what the family is grateful for this year.',
     ceremony_type: 'gratitude',
@@ -604,7 +604,7 @@ const DEMO_CEREMONIES = [
 const DEMO_FAMILY_TREE_EVENTS = [
   {
     id: 'dm-event-ceremony-gratitude',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     member_id: null,
     legacy_event_id: `ceremony_${DEMO_CEREMONY_COMPLETED_ID}`,
     event_type: 'ceremony',
@@ -622,7 +622,7 @@ const DEMO_FAMILY_TREE_EVENTS = [
 const DEMO_VAULT_ITEMS = [
   {
     id: 'dv-message-alice',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     type: 'MESSAGE',
     title: 'A note for Alice on her wedding day',
     slug: 'note-for-alice',
@@ -643,7 +643,7 @@ const DEMO_VAULT_ITEMS = [
   },
   {
     id: 'dv-will-family',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     type: 'WILL',
     title: 'Family letter of wishes',
     slug: 'letter-of-wishes',
@@ -664,7 +664,7 @@ const DEMO_VAULT_ITEMS = [
   },
   {
     id: 'dv-capsule-grandkids',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     type: 'CAPSULE',
     title: 'Time capsule for the grandchildren',
     slug: 'grandchildren-capsule',
@@ -774,10 +774,10 @@ const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
 
 // Populated engram list for the Engram Training Center (bare array: callers .map/.filter).
 const DEMO_ENGRAMS_LIST = [
-  { id: 'eng-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', engram_type: 'family', archetype: 'The Matriarch', description: "Keeper of the family's stories, recipes, and quiet wisdom.", avatar_url: null, personality_summary: { ocean: { O: 74, C: 88, E: 62, A: 90, N: 28 } }, total_questions_answered: 48, ai_readiness_score: 92, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(120), updated_at: isoDaysAgo(1) },
-  { id: 'eng-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', engram_type: 'family', archetype: 'The Builder', description: 'Steady, practical, and endlessly devoted to the family.', avatar_url: null, personality_summary: { ocean: { O: 58, C: 86, E: 54, A: 80, N: 30 } }, total_questions_answered: 36, ai_readiness_score: 78, is_ai_active: true, training_status: 'active', voice_enabled: false, voice_status: 'pending', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(2) },
-  { id: 'eng-susan', user_id: 'demo-user', name: 'Susan Anderson', relationship: 'Mother', engram_type: 'family', archetype: 'The Caregiver', description: 'Warm, organized, and the heart of every gathering.', avatar_url: null, personality_summary: { ocean: { O: 70, C: 82, E: 72, A: 88, N: 32 } }, total_questions_answered: 41, ai_readiness_score: 85, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(1) },
-  { id: 'eng-alice', user_id: 'demo-user', name: 'Alice Anderson', relationship: 'Sister', engram_type: 'family', archetype: 'The Explorer', description: 'Curious, creative, and always chasing the next horizon.', avatar_url: null, personality_summary: { ocean: { O: 90, C: 64, E: 80, A: 72, N: 40 } }, total_questions_answered: 15, ai_readiness_score: 34, is_ai_active: false, training_status: 'training', voice_enabled: false, voice_status: 'none', created_at: isoDaysAgo(58), updated_at: isoDaysAgo(5) },
+  { id: 'eng-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', relationship: 'Grandmother', engram_type: 'family', archetype: 'The Matriarch', description: "Keeper of the family's stories, recipes, and quiet wisdom.", avatar_url: null, personality_summary: { ocean: { O: 74, C: 88, E: 62, A: 90, N: 28 } }, total_questions_answered: 48, ai_readiness_score: 92, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(120), updated_at: isoDaysAgo(1) },
+  { id: 'eng-james', user_id: '00000000-0000-4000-8000-000000000001', name: 'James Anderson', relationship: 'Father', engram_type: 'family', archetype: 'The Builder', description: 'Steady, practical, and endlessly devoted to the family.', avatar_url: null, personality_summary: { ocean: { O: 58, C: 86, E: 54, A: 80, N: 30 } }, total_questions_answered: 36, ai_readiness_score: 78, is_ai_active: true, training_status: 'active', voice_enabled: false, voice_status: 'pending', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(2) },
+  { id: 'eng-susan', user_id: '00000000-0000-4000-8000-000000000001', name: 'Susan Anderson', relationship: 'Mother', engram_type: 'family', archetype: 'The Caregiver', description: 'Warm, organized, and the heart of every gathering.', avatar_url: null, personality_summary: { ocean: { O: 70, C: 82, E: 72, A: 88, N: 32 } }, total_questions_answered: 41, ai_readiness_score: 85, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(1) },
+  { id: 'eng-alice', user_id: '00000000-0000-4000-8000-000000000001', name: 'Alice Anderson', relationship: 'Sister', engram_type: 'family', archetype: 'The Explorer', description: 'Curious, creative, and always chasing the next horizon.', avatar_url: null, personality_summary: { ocean: { O: 90, C: 64, E: 80, A: 72, N: 40 } }, total_questions_answered: 15, ai_readiness_score: 34, is_ai_active: false, training_status: 'training', voice_enabled: false, voice_status: 'none', created_at: isoDaysAgo(58), updated_at: isoDaysAgo(5) },
 ];
 
 export function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
@@ -1379,11 +1379,32 @@ export function initDemoInterceptor(): void {
     // backend mocks (objects) crashed them ("data.map is not a function").
     if (url.includes('.supabase.co/rest/v1/')) {
       await new Promise(r => setTimeout(r, 80));
+      // supabase-js sometimes issues fetch(Request) with no init: headers and
+      // method must fall back to the Request object or .maybeSingle() reads
+      // lose their Accept header, fall into the list branch, and surface
+      // client-side PGRST116 ("results contain N rows") console errors.
+      const requestInput = input instanceof Request ? input : null;
       let accept = '';
       try {
-        accept = new Headers((init?.headers ?? {}) as HeadersInit).get('accept') || '';
+        accept = new Headers((init?.headers ?? requestInput?.headers ?? {}) as HeadersInit).get('accept') || '';
       } catch { /* keep '' */ }
-      const restMethod = (init?.method || 'GET').toUpperCase();
+      const restMethod = (init?.method || requestInput?.method || 'GET').toUpperCase();
+      // Honor simple PostgREST eq-filters (?col=eq.value) on seeded tables so
+      // reads like .eq('id', x).maybeSingle() and .eq('is_active', true)
+      // return the matching seed rather than an arbitrary first row.
+      const restTableOf = (u: string) => (u.split('/rest/v1/')[1] || '').split('?')[0].split('/')[0];
+      const seedRowsFor = (u: string) => {
+        const all = DEMO_SUPABASE_TABLES[restTableOf(u)] || [];
+        let params: URLSearchParams;
+        try { params = new URL(u, window.location.origin).searchParams; } catch { return all; }
+        let rows = all;
+        params.forEach((value, key) => {
+          if (!value.startsWith('eq.') || key === 'select') return;
+          const wanted = decodeURIComponent(value.slice(3));
+          rows = rows.filter((r) => String((r as Record<string, unknown>)[key]) === wanted);
+        });
+        return rows;
+      };
       if (accept.includes('vnd.pgrst.object')) {
         // An insert or update that asks for the row back (.insert().select()
         // .single() / .update()...single()). Echo the submitted row with an id
@@ -1407,10 +1428,9 @@ export function initDemoInterceptor(): void {
           });
         }
         // A single-row read (.single()/.maybeSingle()): serve the first
-        // seeded row when the table is seeded (career profile, daily
-        // question, question category…), else PostgREST's PGRST116.
-        const singleTable = (url.split('/rest/v1/')[1] || '').split('?')[0].split('/')[0];
-        const singleSeed = (DEMO_SUPABASE_TABLES[singleTable] || [])[0];
+        // eq-filter-matching seeded row when the table is seeded (career
+        // profile, daily question, question category…), else PGRST116.
+        const singleSeed = seedRowsFor(url)[0];
         if (singleSeed) {
           return new Response(JSON.stringify(singleSeed), {
             status: 200,
@@ -1424,8 +1444,7 @@ export function initDemoInterceptor(): void {
       }
       // Seed the few tables our flagship demo screens read directly; every
       // other table still returns [] (unchanged), so this can't break callers.
-      const restTable = (url.split('/rest/v1/')[1] || '').split('?')[0].split('/')[0];
-      const seededRows = DEMO_SUPABASE_TABLES[restTable] || [];
+      const seededRows = seedRowsFor(url);
       return new Response(JSON.stringify(seededRows), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Content-Range': seededRows.length ? `0-${seededRows.length - 1}/${seededRows.length}` : '*/0' },
