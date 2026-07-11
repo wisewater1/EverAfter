@@ -5,6 +5,7 @@ import {
   TrendingUp, Zap, Plus
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isDemoAuthEnabled } from '../lib/demo-auth';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HealthProvider {
@@ -95,6 +96,10 @@ export default function ExpandedHealthConnections() {
   };
 
   const handleConnect = async (providerKey: string) => {
+    if (isDemoAuthEnabled()) {
+      alert('Connecting real devices is disabled in the demo. Create a free account to link your providers.');
+      return;
+    }
     setConnecting(providerKey);
 
     try {

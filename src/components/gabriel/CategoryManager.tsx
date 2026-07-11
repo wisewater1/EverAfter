@@ -11,7 +11,7 @@ interface CategoryManagerProps {
 }
 
 export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryManagerProps) {
-    const { loading: authLoading, session, isDemoMode } = useAuth();
+    const { loading: authLoading, session } = useAuth();
     const [categories, setCategories] = useState<{ id: string, name: string, group: string }[]>([]); // Simplified type
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -23,12 +23,13 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
-        if (isOpen && !authLoading && !isDemoMode && session?.access_token) {
+        // Demo mode loads too: the interceptor serves category mocks.
+        if (isOpen && !authLoading && session?.access_token) {
             loadCategories();
         } else if (!authLoading && !session?.access_token) {
             setLoading(false);
         }
-    }, [isOpen, authLoading, isDemoMode, session?.access_token]);
+    }, [isOpen, authLoading, session?.access_token]);
 
     async function loadCategories() {
         try {

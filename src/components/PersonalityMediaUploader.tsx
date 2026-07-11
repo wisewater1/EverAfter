@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Image, Video, Mic, File, X, Play, Pause, Trash2, Tag, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isDemoAuthEnabled } from '../lib/demo-auth';
 
 interface MediaFile {
   id: string;
@@ -73,6 +74,12 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    if (isDemoAuthEnabled()) {
+      alert('Uploads are disabled in the demo. Create a free account to store real files.');
+      event.target.value = '';
+      return;
+    }
+
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
@@ -144,6 +151,10 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
   };
 
   const startRecording = async () => {
+    if (isDemoAuthEnabled()) {
+      alert('Voice recording uploads are disabled in the demo. Create a free account to record real memories.');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;

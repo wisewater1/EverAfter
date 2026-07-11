@@ -4,6 +4,7 @@ import { NotificationProvider, useNotification } from './contexts/NotificationCo
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import DemoBanner from './components/DemoBanner';
 import ErrorBoundary from './components/ErrorBoundary';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import { attachEdgeReactive } from './lib/edge-reactive';
@@ -427,6 +428,7 @@ function App() {
                 </RouteErrorBoundary>
                 <ConnectionsPanel />
                 <SacredOverlay />
+                <DemoBanner />
               </Suspense>
             </Router>
             <Suspense fallback={null}>
