@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Brain, Sparkles, Loader, Target, AlertCircle, CheckCircle2, X, Crown, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isDemoAuthEnabled } from '../lib/demo-auth';
 import { apiClient } from '../lib/api-client';
 import type { EngramResponse } from '../types/database.types';
 import EngramTrainingWizard from './personality/EngramTrainingWizard';
@@ -845,6 +846,10 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
               </button>
               <button
                 onClick={async () => {
+                  if (isDemoAuthEnabled()) {
+                    alert('Purchases are disabled in the demo. Create a free account to upgrade.');
+                    return;
+                  }
                   setPurchasingFastTrack(true);
                   try {
                     const { data, error } = await supabase.functions.invoke('stripe-checkout', {

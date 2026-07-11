@@ -20,6 +20,11 @@ import { isDemoAuthEnabled } from '../demo-auth';
 import { DEMO_QUIZ_QUESTIONS, buildDemoProfile } from './demoPersonalityQuiz';
 import axios from 'axios';
 
+// Shared time helpers for every seed below (declared first: several seed
+// blocks throughout this module reference them at module-init time).
+const DEMO_NOW = Date.now();
+const isoDaysAgo = (d: number) => new Date(DEMO_NOW - d * 86400000).toISOString();
+
 // ============================================================
 // MOCK DATA: Runtime Readiness (unlocks ALL saints)
 // ============================================================
@@ -313,6 +318,73 @@ const MOCK_FINANCE_DATA = {
   emergency_fund: { months: 43, target_months: 6, amount: 38700 },
 };
 
+// Live finance shapes (src/lib/gabriel/finance.ts): getBudget expects a BARE
+// BudgetEnvelope[] and getTransactions a BARE Transaction[]. The legacy
+// object shapes above are kept for older consumers; these are the ones the
+// Gabriel dashboard actually renders.
+const DEMO_BUDGET_ENVELOPES = [
+  { id: 'be-1', category_id: 'cat-housing', category_name: 'Housing', group: 'Essentials', month: new Date().toISOString().slice(0, 7), assigned: 2200, activity: -2200, available: 0 },
+  { id: 'be-2', category_id: 'cat-groceries', category_name: 'Groceries', group: 'Essentials', month: new Date().toISOString().slice(0, 7), assigned: 800, activity: -620, available: 180 },
+  { id: 'be-3', category_id: 'cat-transport', category_name: 'Transportation', group: 'Essentials', month: new Date().toISOString().slice(0, 7), assigned: 400, activity: -380, available: 20 },
+  { id: 'be-4', category_id: 'cat-health', category_name: 'Healthcare', group: 'Wellbeing', month: new Date().toISOString().slice(0, 7), assigned: 300, activity: -150, available: 150 },
+  { id: 'be-5', category_id: 'cat-family', category_name: 'Family & Education', group: 'Family', month: new Date().toISOString().slice(0, 7), assigned: 600, activity: -450, available: 150 },
+  { id: 'be-6', category_id: 'cat-savings', category_name: 'Savings & Investing', group: 'Future', month: new Date().toISOString().slice(0, 7), assigned: 2000, activity: -2000, available: 0 },
+  { id: 'be-7', category_id: 'cat-fun', category_name: 'Entertainment', group: 'Lifestyle', month: new Date().toISOString().slice(0, 7), assigned: 200, activity: -180, available: 20 },
+];
+const DEMO_TRANSACTION_ROWS = [
+  { id: 'tx-1', date: isoDaysAgo(0).slice(0, 10), payee: 'Rowan Street Market', amount: -85.42, category_id: 'cat-groceries', description: 'Weekly groceries', is_cleared: true, category: { name: 'Groceries', group: 'Essentials' }, source: 'bank', account_name: 'Everyday Checking', account_mask: '4821', institution_name: 'First Meridian Bank', pending: false },
+  { id: 'tx-2', date: isoDaysAgo(1).slice(0, 10), payee: 'City Gas & Power', amount: -120.0, category_id: 'cat-housing', description: 'Utilities', is_cleared: true, category: { name: 'Housing', group: 'Essentials' }, source: 'bank', account_name: 'Everyday Checking', account_mask: '4821', institution_name: 'First Meridian Bank', pending: false },
+  { id: 'tx-3', date: isoDaysAgo(2).slice(0, 10), payee: 'Corner Pharmacy', amount: -15.0, category_id: 'cat-health', description: 'Prescription refill', is_cleared: true, category: { name: 'Healthcare', group: 'Wellbeing' }, source: 'bank', account_name: 'Everyday Checking', account_mask: '4821', institution_name: 'First Meridian Bank', pending: false },
+  { id: 'tx-4', date: isoDaysAgo(3).slice(0, 10), payee: 'Payroll — Meridian Health', amount: 4250.0, category_id: null, description: 'Semi-monthly salary', is_cleared: true, category: null, source: 'bank', account_name: 'Everyday Checking', account_mask: '4821', institution_name: 'First Meridian Bank', pending: false },
+  { id: 'tx-5', date: isoDaysAgo(4).slice(0, 10), payee: 'Little Sprouts Daycare', amount: -250.0, category_id: 'cat-family', description: 'Weekly daycare', is_cleared: true, category: { name: 'Family & Education', group: 'Family' }, source: 'manual', account_name: null, account_mask: null, institution_name: null, pending: false },
+  { id: 'tx-6', date: isoDaysAgo(5).slice(0, 10), payee: 'Trailhead Fuel', amount: -45.0, category_id: 'cat-transport', description: 'Gas', is_cleared: false, category: { name: 'Transportation', group: 'Essentials' }, source: 'manual', account_name: null, account_mask: null, institution_name: null, pending: true },
+];
+const DEMO_BANK_STATUS = {
+  provider: 'plaid',
+  configured: true,
+  connected: true,
+  sync_recommended: false,
+  connections: [
+    {
+      id: 'bank-demo-1',
+      provider: 'plaid',
+      institution_name: 'First Meridian Bank',
+      institution_id: 'ins_demo',
+      last_synced_at: new Date(DEMO_NOW - 40 * 60000).toISOString(),
+      imported_transactions: 4,
+      accounts: [
+        { id: 'acct-demo-1', name: 'Everyday Checking', official_name: 'First Meridian Everyday Checking', mask: '4821', type: 'depository', subtype: 'checking', current_balance: 8340.22, available_balance: 8102.09, iso_currency_code: 'USD' },
+        { id: 'acct-demo-2', name: 'Family Savings', official_name: 'First Meridian Family Savings', mask: '7710', type: 'depository', subtype: 'savings', current_balance: 38700.0, available_balance: 38700.0, iso_currency_code: 'USD' },
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// MOCK DATA: St. Joseph family-home board (tasks / shopping / calendar /
+// bulletin). Shapes mirror src/types/database.types.ts exactly — the
+// api-client unwraps {tasks}/{task}/{items}/{item}/{events}/{messages}.
+// ============================================================
+const DEMO_FAMILY_TASKS = [
+  { id: 'ft-1', action: 'Schedule Grandma Margaret’s remembrance gathering', description: 'Confirm the back porch for Sunday and invite Alice + Lily.', title: 'Remembrance gathering', type: 'standard', status: 'in_progress', category: 'family', assignedTo: 'Susan', assignee: 'Susan', dueDate: new Date(DEMO_NOW + 5 * 86400000).toISOString(), createdAt: isoDaysAgo(3) },
+  { id: 'ft-2', action: 'Digitize the 1968 wedding album', description: 'Scan the last 12 pages and tag people in each photo.', title: 'Wedding album scans', type: 'standard', status: 'pending', category: 'legacy', assignedTo: 'Alice', assignee: 'Alice', dueDate: new Date(DEMO_NOW + 12 * 86400000).toISOString(), createdAt: isoDaysAgo(6) },
+  { id: 'ft-3', action: 'Book James’s annual physical', description: 'Dr. Okafor’s office opens booking on Monday.', title: 'Annual physical', type: 'standard', status: 'completed', category: 'health', assignedTo: 'James', assignee: 'James', dueDate: null, createdAt: isoDaysAgo(14) },
+];
+const DEMO_SHOPPING_ITEMS = [
+  { id: 'si-1', name: 'Archival photo sleeves (100ct)', quantity: '2 packs', addedBy: 'Alice', status: 'needed', type: 'standard', priceEst: 24, createdAt: isoDaysAgo(2) },
+  { id: 'si-2', name: 'Blood-pressure cuff batteries', quantity: 'AA ×4', addedBy: 'Raphael', status: 'needed', type: 'iot_trigger', triggerSource: 'Raphael', priceEst: 8, createdAt: isoDaysAgo(1) },
+  { id: 'si-3', name: 'Sunday dinner groceries', quantity: '1 list', addedBy: 'Susan', status: 'bought', type: 'standard', priceEst: 85, createdAt: isoDaysAgo(4) },
+];
+const DEMO_FAMILY_CALENDAR = [
+  { id: 'ce-1', title: 'Remembrance gathering for Margaret', startTime: new Date(DEMO_NOW + 12 * 86400000).toISOString(), endTime: new Date(DEMO_NOW + 12 * 86400000 + 45 * 60000).toISOString(), location: 'The back porch', attendees: ['James', 'Susan', 'Alice'], allDay: false, source: 'family', memberName: 'Susan', type: 'ceremony' },
+  { id: 'ce-2', title: 'James — annual physical', startTime: new Date(DEMO_NOW + 3 * 86400000 + 15 * 3600000).toISOString(), endTime: new Date(DEMO_NOW + 3 * 86400000 + 16 * 3600000).toISOString(), location: 'Meridian Clinic', attendees: ['James'], allDay: false, source: 'health', memberName: 'James', type: 'appointment' },
+  { id: 'ce-3', title: 'Lily’s recital', startTime: new Date(DEMO_NOW + 8 * 86400000 + 18 * 3600000).toISOString(), endTime: new Date(DEMO_NOW + 8 * 86400000 + 19 * 3600000).toISOString(), location: 'Jefferson School hall', attendees: ['Susan', 'Alice', 'Lily'], allDay: false, source: 'family', memberName: 'Lily', type: 'event' },
+];
+const DEMO_BULLETIN_MESSAGES = [
+  { id: 'bm-1', text: 'Found Grandma’s cardamom bread recipe card — scanning it tonight!', author: 'Alice', createdAt: isoDaysAgo(1) },
+  { id: 'bm-2', text: 'Porch is booked for Sunday. Bring the photo albums.', author: 'Susan', createdAt: isoDaysAgo(2) },
+];
+
 // ============================================================
 // MOCK DATA: Trinity Cross-Saint
 // ============================================================
@@ -416,8 +488,6 @@ function mockResponse(data: any, status = 200): Response {
 // ============================================================
 // DEMO SEED DATA: keeps every screen full & alive on stage (no zeros)
 // ============================================================
-const DEMO_NOW = Date.now();
-const isoDaysAgo = (d: number) => new Date(DEMO_NOW - d * 86400000).toISOString();
 
 // ~30 days of realistic, smoothly-trending biometrics so the Delphi trajectory
 // renders "live" (TrajectoryDashboard) and the coverage tiles fill in.
@@ -452,11 +522,11 @@ const MOCK_HEALTH_METRICS = buildDemoHealthMetrics();
 
 // Supabase-table seeds (FamilyEngrams reads these directly via supabase-js).
 const DEMO_FAMILY_MEMBERS = [
-  { id: 'dm-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', avatar_url: null, created_at: isoDaysAgo(120) },
-  { id: 'dm-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', avatar_url: null, created_at: isoDaysAgo(96) },
-  { id: 'dm-susan', user_id: 'demo-user', name: 'Susan Anderson', relationship: 'Mother', avatar_url: null, created_at: isoDaysAgo(96) },
-  { id: 'dm-alice', user_id: 'demo-user', name: 'Alice Anderson', relationship: 'Sister', avatar_url: null, created_at: isoDaysAgo(58) },
-  { id: 'dm-lily', user_id: 'demo-user', name: 'Lily Chen', relationship: 'Niece', avatar_url: null, created_at: isoDaysAgo(24) },
+  { id: 'dm-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', relationship: 'Grandmother', avatar_url: null, created_at: isoDaysAgo(120) },
+  { id: 'dm-james', user_id: '00000000-0000-4000-8000-000000000001', name: 'James Anderson', relationship: 'Father', avatar_url: null, created_at: isoDaysAgo(96) },
+  { id: 'dm-susan', user_id: '00000000-0000-4000-8000-000000000001', name: 'Susan Anderson', relationship: 'Mother', avatar_url: null, created_at: isoDaysAgo(96) },
+  { id: 'dm-alice', user_id: '00000000-0000-4000-8000-000000000001', name: 'Alice Anderson', relationship: 'Sister', avatar_url: null, created_at: isoDaysAgo(58) },
+  { id: 'dm-lily', user_id: '00000000-0000-4000-8000-000000000001', name: 'Lily Chen', relationship: 'Niece', avatar_url: null, created_at: isoDaysAgo(24) },
 ];
 const DEMO_ENGRAM_ROWS = [
   { family_member_id: 'dm-margaret', personality_traits: ['Warm', 'Wise', 'Nurturing', 'Patient'], user_interactions: [{ created_at: isoDaysAgo(1) }, { created_at: isoDaysAgo(3) }, { created_at: isoDaysAgo(6) }, { created_at: isoDaysAgo(10) }] },
@@ -484,7 +554,7 @@ const DEMO_CEREMONY_COMPLETED_ID = 'dm-ceremony-gratitude';
 const DEMO_CEREMONIES = [
   {
     id: DEMO_CEREMONY_SCHEDULED_ID,
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     title: 'Remembering Margaret',
     description: 'A quiet gathering to hold Margaret in memory and share the stories that keep her close.',
     ceremony_type: 'remembrance',
@@ -508,7 +578,7 @@ const DEMO_CEREMONIES = [
   },
   {
     id: DEMO_CEREMONY_COMPLETED_ID,
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     title: 'A Season of Gratitude',
     description: 'An evening set aside to name what the family is grateful for this year.',
     ceremony_type: 'gratitude',
@@ -534,7 +604,7 @@ const DEMO_CEREMONIES = [
 const DEMO_FAMILY_TREE_EVENTS = [
   {
     id: 'dm-event-ceremony-gratitude',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     member_id: null,
     legacy_event_id: `ceremony_${DEMO_CEREMONY_COMPLETED_ID}`,
     event_type: 'ceremony',
@@ -552,7 +622,7 @@ const DEMO_FAMILY_TREE_EVENTS = [
 const DEMO_VAULT_ITEMS = [
   {
     id: 'dv-message-alice',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     type: 'MESSAGE',
     title: 'A note for Alice on her wedding day',
     slug: 'note-for-alice',
@@ -573,7 +643,7 @@ const DEMO_VAULT_ITEMS = [
   },
   {
     id: 'dv-will-family',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     type: 'WILL',
     title: 'Family letter of wishes',
     slug: 'letter-of-wishes',
@@ -594,7 +664,7 @@ const DEMO_VAULT_ITEMS = [
   },
   {
     id: 'dv-capsule-grandkids',
-    user_id: 'demo-user',
+    user_id: '00000000-0000-4000-8000-000000000001',
     type: 'CAPSULE',
     title: 'Time capsule for the grandchildren',
     slug: 'grandchildren-capsule',
@@ -615,6 +685,72 @@ const DEMO_VAULT_ITEMS = [
   },
 ];
 
+// Devices page seeds (DevicesDashboard reads these four tables directly).
+const DEMO_DEVICE_CONNECTIONS = [
+  { id: 'dc-fitbit', provider: 'fitbit', device_model: 'Charge 6', status: 'connected', battery_pct: 82, signal_strength: 4, last_sync_at: new Date(DEMO_NOW - 20 * 60000).toISOString(), last_webhook_at: new Date(DEMO_NOW - 8 * 60000).toISOString(), firmware: '1.188.24', created_at: isoDaysAgo(64) },
+  { id: 'dc-dexcom', provider: 'dexcom_cgm', device_model: 'G7', status: 'connected', battery_pct: 61, signal_strength: 5, last_sync_at: new Date(DEMO_NOW - 5 * 60000).toISOString(), last_webhook_at: new Date(DEMO_NOW - 5 * 60000).toISOString(), firmware: '2.4.1', created_at: isoDaysAgo(31) },
+  { id: 'dc-oura', provider: 'oura', device_model: 'Ring Gen3', status: 'degraded', battery_pct: 24, signal_strength: 2, last_sync_at: new Date(DEMO_NOW - 26 * 3600000).toISOString(), last_webhook_at: new Date(DEMO_NOW - 26 * 3600000).toISOString(), firmware: '3.2.0', created_at: isoDaysAgo(120) },
+];
+const DEMO_DEVICE_HEALTH = [
+  { provider: 'fitbit', uptime_ratio_7d: 0.995, avg_latency_ms_24h: 420, data_freshness_s: 480, completeness_pct_24h: 98, gaps: [], last_eval_at: new Date(DEMO_NOW - 15 * 60000).toISOString() },
+  { provider: 'dexcom_cgm', uptime_ratio_7d: 0.999, avg_latency_ms_24h: 210, data_freshness_s: 300, completeness_pct_24h: 99, gaps: [], last_eval_at: new Date(DEMO_NOW - 10 * 60000).toISOString() },
+  { provider: 'oura', uptime_ratio_7d: 0.87, avg_latency_ms_24h: 1900, data_freshness_s: 93600, completeness_pct_24h: 71, gaps: [{ from: isoDaysAgo(2), to: isoDaysAgo(1) }], last_eval_at: new Date(DEMO_NOW - 60 * 60000).toISOString() },
+];
+const DEMO_DEVICE_ALERTS = [
+  { id: 'da-1', provider: 'oura', severity: 'warn', code: 'SYNC_STALE', message: 'Oura Ring has not synced in over 24 hours. Open the Oura app to force a sync.', created_at: new Date(DEMO_NOW - 2 * 3600000).toISOString(), resolved_at: null },
+  { id: 'da-2', provider: 'fitbit', severity: 'info', code: 'FIRMWARE_UPDATE', message: 'A Charge 6 firmware update is available (1.188.30).', created_at: isoDaysAgo(1), resolved_at: null },
+];
+const DEMO_WEBHOOK_LOGS = [
+  { id: 'wl-1', provider: 'dexcom_cgm', received_at: new Date(DEMO_NOW - 5 * 60000).toISOString(), event_type: 'egv.created', http_status: 200, parse_ms: 12 },
+  { id: 'wl-2', provider: 'fitbit', received_at: new Date(DEMO_NOW - 8 * 60000).toISOString(), event_type: 'activities', http_status: 200, parse_ms: 18 },
+  { id: 'wl-3', provider: 'dexcom_cgm', received_at: new Date(DEMO_NOW - 35 * 60000).toISOString(), event_type: 'egv.created', http_status: 200, parse_ms: 11 },
+  { id: 'wl-4', provider: 'fitbit', received_at: new Date(DEMO_NOW - 65 * 60000).toISOString(), event_type: 'sleep', http_status: 200, parse_ms: 22 },
+  { id: 'wl-5', provider: 'oura', received_at: new Date(DEMO_NOW - 26 * 3600000).toISOString(), event_type: 'daily_readiness', http_status: 200, parse_ms: 16 },
+];
+
+// Daily-question training card seeds (archetypal_ais + the question pool).
+const DEMO_ARCHETYPAL_AIS = [
+  { id: 'ai-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', description: 'Grandmother — keeper of the family stories.', total_memories: 48, training_status: 'active', avatar_url: null, created_at: isoDaysAgo(120) },
+  { id: 'ai-james', user_id: '00000000-0000-4000-8000-000000000001', name: 'James Anderson', description: 'Father — steady, practical, devoted.', total_memories: 36, training_status: 'active', avatar_url: null, created_at: isoDaysAgo(96) },
+];
+const DEMO_QUESTION_POOL = [
+  { id: 'q-demo-1', question_text: 'What family tradition do you most hope the grandchildren keep alive?', category_id: 'qc-values', is_active: true, created_at: isoDaysAgo(200) },
+];
+const DEMO_QUESTION_CATEGORIES = [
+  { id: 'qc-values', category_name: 'Values & Traditions', created_at: isoDaysAgo(200) },
+];
+
+// Community portal directory seeds.
+const DEMO_USER_PROFILES = [
+  { id: 'up-1', user_id: 'demo-neighbor-1', full_name: 'Ruth Delgado', display_name: 'Ruth D.', bio: 'Retired teacher archiving three generations of letters.', location: 'Santa Fe, NM', interests: ['Genealogy', 'Letter writing'], skills: ['Oral history'], profile_visibility: 'public', allow_messages: true, allow_connection_requests: true, created_at: isoDaysAgo(40) },
+  { id: 'up-2', user_id: 'demo-neighbor-2', full_name: 'Samuel Okafor', display_name: 'Sam O.', bio: 'Recording my father’s proverbs before they fade.', location: 'Houston, TX', interests: ['Voice memoirs'], skills: ['Audio editing'], profile_visibility: 'public', allow_messages: true, allow_connection_requests: true, created_at: isoDaysAgo(33) },
+  { id: 'up-3', user_id: 'demo-neighbor-3', full_name: 'Elena Petrov', display_name: 'Elena P.', bio: 'Building a memory vault for my daughters.', location: 'Portland, OR', interests: ['Photo restoration', 'Family recipes'], skills: ['Scrapbooking'], profile_visibility: 'public', allow_messages: false, allow_connection_requests: true, created_at: isoDaysAgo(21) },
+  { id: 'up-4', user_id: 'demo-neighbor-4', full_name: 'Marcus Hale', display_name: 'Marcus H.', bio: 'First-generation historian of the Hale family line.', location: 'Chicago, IL', interests: ['Military records'], skills: ['Archival research'], profile_visibility: 'public', allow_messages: true, allow_connection_requests: true, created_at: isoDaysAgo(12) },
+];
+
+// Career agent seeds: a filled profile + goals so the dashboard tells a story.
+const DEMO_CAREER_PROFILES = [
+  { id: 'cp-demo', user_id: '00000000-0000-4000-8000-000000000001', current_role: 'Product Design Lead', industry: 'Healthcare technology', years_experience: 12, skills: ['Design systems', 'Research ops', 'Team mentoring'], career_interests: ['VP of Design track', 'Advisory roles'], linkedin_summary: 'Design leader focused on humane health products.', public_chat_enabled: false, public_chat_token: null, public_chat_greeting: null, created_at: isoDaysAgo(90), updated_at: isoDaysAgo(9) },
+];
+const DEMO_CAREER_GOALS = [
+  { id: 'cg-1', goal_title: 'Reach VP of Design', goal_description: 'Own the design org roadmap and hiring plan.', goal_category: 'promotion', status: 'active', priority: 'high', target_date: new Date(DEMO_NOW + 300 * 86400000).toISOString().slice(0, 10), progress_percentage: 45, created_at: isoDaysAgo(80) },
+  { id: 'cg-2', goal_title: 'Publish a design-leadership talk', goal_description: 'Submit to two conferences this year.', goal_category: 'visibility', status: 'active', priority: 'medium', target_date: new Date(DEMO_NOW + 120 * 86400000).toISOString().slice(0, 10), progress_percentage: 20, created_at: isoDaysAgo(60) },
+  { id: 'cg-3', goal_title: 'Mentor two rising designers', goal_description: 'Quarterly growth plans with each mentee.', goal_category: 'mentorship', status: 'completed', priority: 'medium', target_date: null, progress_percentage: 100, created_at: isoDaysAgo(200) },
+];
+
+// Marketplace catalog seeds (browse-only in demo; purchases stay disabled).
+const DEMO_MARKETPLACE_TEMPLATES = [
+  { id: 'mt-1', name: 'grief-companion', title: 'Grief Companion', description: 'A gentle listener trained on bereavement-support practices for the first year of loss.', category: 'Wellbeing', creator_name: 'EverAfter Studio', creator_badge: 'verified', price_usd: 12, personality_traits: { expertise: ['Active listening', 'Memorial planning'], style: 'gentle', tone: 'warm' }, sample_conversations: [{ question: 'I keep forgetting she’s gone.', response: 'That forgetting is love’s reflex — tell me about the moment it caught you today.' }], avatar_url: null, rating: 4.8, total_purchases: 1240, is_featured: true, is_active: true, created_at: isoDaysAgo(160) },
+  { id: 'mt-2', name: 'story-archivist', title: 'Story Archivist', description: 'Interviews elders with era-aware prompts and turns answers into keepsake chapters.', category: 'Legacy', creator_name: 'Halcyon Labs', creator_badge: 'pro', price_usd: 18, personality_traits: { expertise: ['Oral history', 'Era research'], style: 'curious', tone: 'encouraging' }, sample_conversations: [{ question: 'Where do we start?', response: 'Let’s start with the kitchen of your childhood — what did Sunday morning smell like?' }], avatar_url: null, rating: 4.6, total_purchases: 890, is_featured: true, is_active: true, created_at: isoDaysAgo(120) },
+  { id: 'mt-3', name: 'recipe-keeper', title: 'Recipe Keeper', description: 'Captures family recipes with the stories behind them, measured in “grandma units.”', category: 'Family', creator_name: 'Table & Thyme', creator_badge: 'community', price_usd: 6, personality_traits: { expertise: ['Recipe transcription'], style: 'playful', tone: 'cozy' }, sample_conversations: [{ question: 'She never wrote amounts down.', response: 'Perfect — we’ll record it exactly as she said it: “flour until it feels right.”' }], avatar_url: null, rating: 4.9, total_purchases: 2150, is_featured: false, is_active: true, created_at: isoDaysAgo(90) },
+  { id: 'mt-4', name: 'eulogy-writer', title: 'Eulogy Writing Guide', description: 'Walks a family from memories to a finished eulogy draft with dignity and care.', category: 'Memorial', creator_name: 'EverAfter Studio', creator_badge: 'verified', price_usd: 10, personality_traits: { expertise: ['Speech structure', 'Tone coaching'], style: 'steady', tone: 'dignified' }, sample_conversations: [{ question: 'I don’t know what to say about Dad.', response: 'Then let’s not start with words — what did his hands spend their life doing?' }], avatar_url: null, rating: 4.7, total_purchases: 640, is_featured: false, is_active: true, created_at: isoDaysAgo(60) },
+];
+
+// One finished sample report so the Raphael insights panel opens with content.
+const DEMO_INSIGHT_REPORTS = [
+  { id: 'ir-1', engram_id: 'eng-margaret', start_at: isoDaysAgo(7), end_at: isoDaysAgo(0), period: 'weekly', kpis: { resting_hr: 66, sleep_hours: 7.4, steps_avg: 8800 }, findings: [{ type: 'win', text: 'Resting heart rate improved 3 bpm week-over-week.' }, { type: 'watch', text: 'Sleep drifted 40 minutes later on weekend nights.' }], narrative: 'A steady week: recovery metrics improved while sleep timing drifted slightly on weekends.', created_at: isoDaysAgo(0) },
+];
+
 const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
   family_members: DEMO_FAMILY_MEMBERS,
   engrams: DEMO_ENGRAM_ROWS,
@@ -622,18 +758,101 @@ const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
   ceremonies: DEMO_CEREMONIES,
   family_tree_events: DEMO_FAMILY_TREE_EVENTS,
   vault_items: DEMO_VAULT_ITEMS,
+  connections: DEMO_DEVICE_CONNECTIONS,
+  device_health: DEMO_DEVICE_HEALTH,
+  alerts: DEMO_DEVICE_ALERTS,
+  webhook_logs: DEMO_WEBHOOK_LOGS,
+  archetypal_ais: DEMO_ARCHETYPAL_AIS,
+  daily_question_pool: DEMO_QUESTION_POOL,
+  question_categories: DEMO_QUESTION_CATEGORIES,
+  user_profiles: DEMO_USER_PROFILES,
+  career_profiles: DEMO_CAREER_PROFILES,
+  career_goals: DEMO_CAREER_GOALS,
+  marketplace_templates: DEMO_MARKETPLACE_TEMPLATES,
+  insight_reports: DEMO_INSIGHT_REPORTS,
 };
 
 // Populated engram list for the Engram Training Center (bare array: callers .map/.filter).
 const DEMO_ENGRAMS_LIST = [
-  { id: 'eng-margaret', user_id: 'demo-user', name: 'Margaret Anderson', relationship: 'Grandmother', engram_type: 'family', archetype: 'The Matriarch', description: "Keeper of the family's stories, recipes, and quiet wisdom.", avatar_url: null, personality_summary: { ocean: { O: 74, C: 88, E: 62, A: 90, N: 28 } }, total_questions_answered: 48, ai_readiness_score: 92, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(120), updated_at: isoDaysAgo(1) },
-  { id: 'eng-james', user_id: 'demo-user', name: 'James Anderson', relationship: 'Father', engram_type: 'family', archetype: 'The Builder', description: 'Steady, practical, and endlessly devoted to the family.', avatar_url: null, personality_summary: { ocean: { O: 58, C: 86, E: 54, A: 80, N: 30 } }, total_questions_answered: 36, ai_readiness_score: 78, is_ai_active: true, training_status: 'active', voice_enabled: false, voice_status: 'pending', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(2) },
-  { id: 'eng-susan', user_id: 'demo-user', name: 'Susan Anderson', relationship: 'Mother', engram_type: 'family', archetype: 'The Caregiver', description: 'Warm, organized, and the heart of every gathering.', avatar_url: null, personality_summary: { ocean: { O: 70, C: 82, E: 72, A: 88, N: 32 } }, total_questions_answered: 41, ai_readiness_score: 85, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(1) },
-  { id: 'eng-alice', user_id: 'demo-user', name: 'Alice Anderson', relationship: 'Sister', engram_type: 'family', archetype: 'The Explorer', description: 'Curious, creative, and always chasing the next horizon.', avatar_url: null, personality_summary: { ocean: { O: 90, C: 64, E: 80, A: 72, N: 40 } }, total_questions_answered: 15, ai_readiness_score: 34, is_ai_active: false, training_status: 'training', voice_enabled: false, voice_status: 'none', created_at: isoDaysAgo(58), updated_at: isoDaysAgo(5) },
+  { id: 'eng-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', relationship: 'Grandmother', engram_type: 'family', archetype: 'The Matriarch', description: "Keeper of the family's stories, recipes, and quiet wisdom.", avatar_url: null, personality_summary: { ocean: { O: 74, C: 88, E: 62, A: 90, N: 28 } }, total_questions_answered: 48, ai_readiness_score: 92, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(120), updated_at: isoDaysAgo(1) },
+  { id: 'eng-james', user_id: '00000000-0000-4000-8000-000000000001', name: 'James Anderson', relationship: 'Father', engram_type: 'family', archetype: 'The Builder', description: 'Steady, practical, and endlessly devoted to the family.', avatar_url: null, personality_summary: { ocean: { O: 58, C: 86, E: 54, A: 80, N: 30 } }, total_questions_answered: 36, ai_readiness_score: 78, is_ai_active: true, training_status: 'active', voice_enabled: false, voice_status: 'pending', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(2) },
+  { id: 'eng-susan', user_id: '00000000-0000-4000-8000-000000000001', name: 'Susan Anderson', relationship: 'Mother', engram_type: 'family', archetype: 'The Caregiver', description: 'Warm, organized, and the heart of every gathering.', avatar_url: null, personality_summary: { ocean: { O: 70, C: 82, E: 72, A: 88, N: 32 } }, total_questions_answered: 41, ai_readiness_score: 85, is_ai_active: true, training_status: 'active', voice_enabled: true, voice_status: 'ready', created_at: isoDaysAgo(96), updated_at: isoDaysAgo(1) },
+  { id: 'eng-alice', user_id: '00000000-0000-4000-8000-000000000001', name: 'Alice Anderson', relationship: 'Sister', engram_type: 'family', archetype: 'The Explorer', description: 'Curious, creative, and always chasing the next horizon.', avatar_url: null, personality_summary: { ocean: { O: 90, C: 64, E: 80, A: 72, N: 40 } }, total_questions_answered: 15, ai_readiness_score: 34, is_ai_active: false, training_status: 'training', voice_enabled: false, voice_status: 'none', created_at: isoDaysAgo(58), updated_at: isoDaysAgo(5) },
 ];
 
 export function matchEndpoint(url: string, method: string = 'GET', body?: BodyInit | null): Response | null {
   const path = new URL(url, window.location.origin).pathname;
+
+  // ── Supabase Edge Functions (/functions/v1/*) ─────────────────────────
+  // supabase-js functions.invoke and the app's direct edge-function fetches
+  // all use window.fetch, so they land here in demo. Anything not mocked
+  // gets a fast 404 (never the real project), so callers show their own
+  // error/empty states instead of hanging on live-network auth failures.
+  if (path.includes('/functions/v1/')) {
+    const fn = path.split('/functions/v1/')[1]?.split('/')[0] || '';
+    if (fn === 'career-chat') {
+      let input = '';
+      try { input = String((typeof body === 'string' ? JSON.parse(body) : {}).input || ''); } catch { /* ignore */ }
+      const reply = input.toLowerCase().includes('goal')
+        ? 'Looking at your demo profile, your VP-of-Design goal is 45% along. The highest-leverage next step is making your team’s wins legible upward — shall we draft that update?'
+        : 'This is the demo career coach speaking from sample data. Ask about your goals, your promotion track, or how to tell your work’s story — in a real account I read your live career profile.';
+      return mockResponse({ reply, tools_used: [], tool_execution_log: [], visitor_token: 'demo-visitor' });
+    }
+    if (fn === 'insights-report') {
+      const now = new Date();
+      return mockResponse({
+        report: {
+          id: `ir-demo-${now.getTime()}`,
+          start_at: new Date(now.getTime() - 7 * 86400000).toISOString(),
+          end_at: now.toISOString(),
+          period: 'weekly',
+          kpis: { resting_hr: 66, hrv_ms: 45, sleep_hours: 7.4, steps_avg: 8800 },
+          findings: [
+            { type: 'win', text: 'HRV rose 6% across the sample week — recovery is trending up.' },
+            { type: 'watch', text: 'Bedtime drifted ~40 minutes later on weekend nights.' },
+            { type: 'suggestion', text: 'A fixed wind-down alarm would likely reclaim the drifted sleep.' },
+          ],
+          narrative: 'Sample-week summary: cardiovascular recovery improved while sleep timing loosened slightly on weekends. One nudge — a consistent wind-down — addresses the only softening metric.',
+          created_at: now.toISOString(),
+        },
+      });
+    }
+    if (fn === 'manage-agent-tasks') {
+      return mockResponse({ success: true, data: { status: 'completed', note: 'Demo: task run simulated on sample data.' } });
+    }
+    if (fn === 'get-daily-question') {
+      return mockResponse({
+        question_text: DEMO_QUESTION_POOL[0].question_text,
+        question_category: 'Values & Traditions',
+        day_number: 12,
+        already_answered_today: false,
+      });
+    }
+    if (fn === 'submit-daily-response') {
+      return mockResponse({ success: true });
+    }
+    if (fn === 'vault-integrity-check') {
+      return mockResponse({ message: `All ${DEMO_VAULT_ITEMS.length} demo vault items verified (sample data — checksums simulated).` });
+    }
+    if (fn === 'vault-export') {
+      let downloadUrl: string | undefined;
+      try {
+        const blob = new Blob(
+          [JSON.stringify({ exported_at: new Date().toISOString(), demo: true, items: DEMO_VAULT_ITEMS }, null, 2)],
+          { type: 'application/json' },
+        );
+        downloadUrl = URL.createObjectURL(blob);
+      } catch { /* downloadUrl stays undefined; caller shows its fallback */ }
+      return mockResponse({ downloadUrl, message: 'Demo vault export generated locally from sample data.' });
+    }
+    if (fn === 'stripe-checkout' || fn === 'health-oauth-initiate') {
+      return mockResponse(
+        { code: 'DEMO_MODE', message: 'Not available in the demo. Create a free account to use this.', error: { code: 'DEMO_MODE', message: 'Not available in the demo. Create a free account to use this.' } },
+        400,
+      );
+    }
+    return mockResponse({ code: 'DEMO_NOT_MOCKED', message: 'Demo: this function is not part of the demo.', error: { code: 'DEMO_NOT_MOCKED', message: 'Demo: this function is not part of the demo.' } }, 404);
+  }
 
   // Personality quiz: MUST come before the generic `/personality` matcher
   // below, which would otherwise swallow these and return a stub with no
@@ -777,6 +996,41 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   if (path.includes('/predict-family') || path.includes('/family-map') || path.includes('/ancestry')) {
     return mockResponse(MOCK_FAMILY_RISK);
   }
+  // Predictive analytics (PredictiveHealthInsights → AnalyticsData shape).
+  if (path.includes('/health/predictions')) {
+    return mockResponse({
+      analysis: { period_analyzed: 'Last 30 days', total_data_points: MOCK_HEALTH_METRICS.length, metrics_analyzed: 8 },
+      patterns: [
+        { metric: 'resting_heart_rate', trend: 'improving', confidence: 0.86, prediction_next_7_days: { expected_range: [63, 68], risk_level: 'low' } },
+        { metric: 'sleep_duration', trend: 'stable', confidence: 0.78, prediction_next_7_days: { expected_range: [6.9, 7.8], risk_level: 'low' } },
+        { metric: 'glucose', trend: 'stable', confidence: 0.81, prediction_next_7_days: { expected_range: [88, 101], risk_level: 'low' } },
+        { metric: 'steps', trend: 'declining', confidence: 0.64, prediction_next_7_days: { expected_range: [6800, 9200], risk_level: 'medium' } },
+      ],
+      correlations: [
+        { metric_1: 'sleep_duration', metric_2: 'resting_heart_rate', correlation: -0.62, strength: 'strong' },
+        { metric_1: 'steps', metric_2: 'sleep_duration', correlation: 0.41, strength: 'moderate' },
+      ],
+      insights: [
+        'Nights with 7+ hours of sleep are followed by a measurably lower resting heart rate.',
+        'Step counts dip on the two days after short-sleep nights — recovery drives activity.',
+      ],
+      recommendations: [
+        'Protect a consistent wind-down time; it is the single strongest lever in this sample.',
+        'Schedule walks for mid-morning on post-short-sleep days to break the dip pattern.',
+      ],
+      generated_at: new Date().toISOString(),
+    });
+  }
+  // Saints roster status (SaintStatusSummary[] — bare array).
+  if (path.includes('/saints/status')) {
+    return mockResponse([
+      { saint_id: 'raphael', name: 'St. Raphael', title: 'Health & Healing', domain: 'health', engram_id: 'eng-margaret', is_active: true, knowledge_count: 128, built_in_available: true, availability_mode: 'full', persistence_available: true, history_available: true, knowledge_available: true },
+      { saint_id: 'michael', name: 'St. Michael', title: 'Protection & Security', domain: 'security', engram_id: null, is_active: true, knowledge_count: 64, built_in_available: true, availability_mode: 'full', persistence_available: true, history_available: true, knowledge_available: true },
+      { saint_id: 'joseph', name: 'St. Joseph', title: 'Family Coordination', domain: 'family', engram_id: null, is_active: true, knowledge_count: 87, built_in_available: true, availability_mode: 'full', persistence_available: true, history_available: true, knowledge_available: true },
+      { saint_id: 'gabriel', name: 'St. Gabriel', title: 'Finance & Trusteeship', domain: 'finance', engram_id: null, is_active: true, knowledge_count: 52, built_in_available: true, availability_mode: 'full', persistence_available: true, history_available: true, knowledge_available: true },
+      { saint_id: 'anthony', name: 'St. Anthony', title: 'Guidance & Audit', domain: 'audit', engram_id: null, is_active: true, knowledge_count: 41, built_in_available: true, availability_mode: 'full', persistence_available: true, history_available: true, knowledge_available: true },
+    ]);
+  }
 
   // St. Michael Security endpoints (axios-based: reached now that the demo
   // interceptor also routes axios through fetch).
@@ -798,19 +1052,137 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
   if (path.includes('/saints/missions/active')) return mockResponse([]);
 
   // Society feed endpoints: the feed simulates locally, so return empty
-  // collections here to keep the demo console clean.
+  // collections here to keep the demo console clean. Action endpoints
+  // (boost/propagate/interact/random) must match BEFORE the plain
+  // '/social/interact' read below or they'd be swallowed by it.
+  if (path.includes('/social/boost')) return mockResponse({ ok: true, boosted: 5, note: 'Demo: society simulated locally.' });
+  if (path.includes('/social/propagate/')) return mockResponse({ ok: true, note: 'Demo: legacy propagation simulated locally.' });
+  if (path.includes('/social/interact/random')) return mockResponse({ ok: true, note: 'Demo: society event simulated locally.' });
   if (path.includes('/social/feed')) return mockResponse([]);
   if (path.includes('/social/clusters')) return mockResponse({});
   if (path.includes('/social/interact')) return mockResponse([]);
 
-  // St. Gabriel Finance endpoints
+  // ── St. Joseph family-home board ──────────────────────────────────────
+  // Must match BEFORE the generic '/family' matcher below, which used to
+  // swallow these and hand the tasks/shopping/calendar/bulletin callers a
+  // {members} object (empty boards, undefined writes).
+  if (path.includes('/family-home/tasks')) {
+    if (method === 'POST' || method === 'PUT') {
+      let row: Record<string, unknown> = {};
+      try { row = typeof body === 'string' ? JSON.parse(body) : {}; } catch { /* ignore */ }
+      const isDispatch = path.endsWith('/dispatch');
+      const idFromPath = path.split('/family-home/tasks/')[1]?.split('/')[0];
+      const task = {
+        id: idFromPath || `ft-demo-${Math.random().toString(36).slice(2, 8)}`,
+        action: (row.action as string) || (row.title as string) || 'New family task',
+        description: (row.description as string) || '',
+        title: (row.title as string) || undefined,
+        type: (row.type as string) || 'standard',
+        status: isDispatch ? 'in_progress' : ((row.status as string) || 'pending'),
+        category: (row.category as string) || 'family',
+        assignedTo: (row.assignedTo as string) || (row.assignee as string) || undefined,
+        assignee: (row.assignee as string) || undefined,
+        dueDate: (row.dueDate as string) || null,
+        createdAt: new Date().toISOString(),
+      };
+      // Stateful within the session: new tasks show up on the next list read.
+      if (method === 'POST' && !idFromPath) DEMO_FAMILY_TASKS.unshift(task as (typeof DEMO_FAMILY_TASKS)[number]);
+      return mockResponse({ task });
+    }
+    return mockResponse({ tasks: DEMO_FAMILY_TASKS });
+  }
+  if (path.includes('/family-home/shopping')) {
+    if (method === 'POST' || method === 'PUT') {
+      let row: Record<string, unknown> = {};
+      try { row = typeof body === 'string' ? JSON.parse(body) : {}; } catch { /* ignore */ }
+      const idFromPath = path.split('/family-home/shopping/')[1]?.split('/')[0];
+      const bought = path.endsWith('/bought') || path.endsWith('/acquire');
+      const item = {
+        id: idFromPath || `si-demo-${Math.random().toString(36).slice(2, 8)}`,
+        name: (row.name as string) || 'New item',
+        quantity: (row.quantity as string) || '1',
+        addedBy: (row.addedBy as string) || 'You',
+        status: bought ? 'bought' : ((row.status as string) || 'needed'),
+        type: (row.type as string) || 'standard',
+        priceEst: (row.priceEst as number) ?? null,
+        createdAt: new Date().toISOString(),
+      };
+      if (method === 'POST' && !idFromPath) DEMO_SHOPPING_ITEMS.unshift(item as (typeof DEMO_SHOPPING_ITEMS)[number]);
+      return mockResponse({ item });
+    }
+    return mockResponse({ items: DEMO_SHOPPING_ITEMS });
+  }
+  if (path.includes('/family-home/calendar')) {
+    return mockResponse({ events: DEMO_FAMILY_CALENDAR });
+  }
+  if (path.includes('/family-home/bulletin')) {
+    if (method === 'POST') {
+      let row: Record<string, unknown> = {};
+      try { row = typeof body === 'string' ? JSON.parse(body) : {}; } catch { /* ignore */ }
+      const message = { id: `bm-demo-${Math.random().toString(36).slice(2, 8)}`, text: (row.text as string) || '', author: (row.author as string) || 'You', createdAt: new Date().toISOString() };
+      DEMO_BULLETIN_MESSAGES.unshift(message);
+      return mockResponse({ message });
+    }
+    return mockResponse({ messages: DEMO_BULLETIN_MESSAGES });
+  }
+
+  // ── St. Gabriel Finance endpoints ─────────────────────────────────────
+  // Order matters: wisegold/bank/categories are subpaths of '/finance' and
+  // must match first. Shapes mirror src/lib/gabriel/finance.ts exactly.
+  // WiseGold stays honestly unavailable in the demo (no fabricated crypto).
+  if (path.includes('/finance/wisegold/')) {
+    return mockResponse({ detail: 'Demo: WiseGold is not part of the demo.' }, 404);
+  }
+  if (path.includes('/finance/bank/status')) {
+    return mockResponse(DEMO_BANK_STATUS);
+  }
+  if (path.includes('/finance/bank/')) {
+    return mockResponse({ detail: 'Demo: bank linking is not part of the demo.' }, 404);
+  }
+  if (path.includes('/finance/budget/categories')) {
+    if (method === 'POST' || method === 'PATCH') {
+      let row: Record<string, unknown> = {};
+      try { row = typeof body === 'string' ? JSON.parse(body) : {}; } catch { /* ignore */ }
+      const idFromPath = path.split('/finance/budget/categories/')[1]?.split('/')[0];
+      return mockResponse({ id: idFromPath || `cat-demo-${Math.random().toString(36).slice(2, 8)}`, name: (row.name as string) || 'New category', group: (row.group as string) || 'Lifestyle', is_hidden: Boolean(row.is_hidden) });
+    }
+    return mockResponse(DEMO_BUDGET_ENVELOPES.map((e) => ({ id: e.category_id, name: e.category_name, group: e.group })));
+  }
   if (path.includes('/finance/budget') || path.includes('/budget/envelopes')) {
-    return mockResponse(MOCK_FINANCE_DATA.budget);
+    // Live getBudget expects a BARE BudgetEnvelope[] (the old object shape
+    // rendered the demo envelopes screen empty).
+    return mockResponse(DEMO_BUDGET_ENVELOPES);
   }
   if (path.includes('/finance/net-worth') || path.includes('/net-worth')) {
     return mockResponse(MOCK_FINANCE_DATA.net_worth);
   }
-  if (path.includes('/finance/transactions') || path.includes('/transactions')) {
+  if (path.includes('/finance/transactions')) {
+    if (method === 'POST') {
+      let row: Record<string, unknown> = {};
+      try { row = typeof body === 'string' ? JSON.parse(body) : {}; } catch { /* ignore */ }
+      const cat = DEMO_BUDGET_ENVELOPES.find((e) => e.category_id === row.category_id);
+      const createdTx = {
+        id: `tx-demo-${Math.random().toString(36).slice(2, 8)}`,
+        date: (row.date as string) || new Date().toISOString().slice(0, 10),
+        payee: (row.payee as string) || 'Manual entry',
+        amount: Number(row.amount) || 0,
+        category_id: (row.category_id as string) || null,
+        description: (row.description as string) || '',
+        is_cleared: Boolean(row.is_cleared),
+        category: cat ? { name: cat.category_name, group: cat.group } : null,
+        source: 'manual' as const,
+        account_name: null,
+        account_mask: null,
+        institution_name: null,
+        pending: false,
+      };
+      DEMO_TRANSACTION_ROWS.unshift(createdTx as (typeof DEMO_TRANSACTION_ROWS)[number]);
+      return mockResponse(createdTx);
+    }
+    // Live getTransactions expects a BARE Transaction[].
+    return mockResponse(DEMO_TRANSACTION_ROWS);
+  }
+  if (path.includes('/transactions')) {
     return mockResponse({ transactions: MOCK_FINANCE_DATA.transactions });
   }
   if (path.includes('/finance') || path.includes('/gabriel')) {
@@ -858,6 +1230,71 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
       };
     });
     return mockResponse({ anchors });
+  }
+
+  // ── Engram actions ────────────────────────────────────────────────────
+  // Must match BEFORE the generic '/engram' matcher, which used to swallow
+  // create/analyze/mentorship/vignette/batch-sync and return a wrong-shape
+  // {profile, engrams} stub (malformed creations, dead training actions).
+  if (path.includes('/engrams/create')) {
+    let row: Record<string, unknown> = {};
+    try { row = typeof body === 'string' ? JSON.parse(body) : {}; } catch { /* ignore */ }
+    const name = (row.name as string) || 'New Engram';
+    const created = {
+      id: `eng-demo-${name.replace(/[^a-z0-9]/gi, '').slice(0, 10).toLowerCase() || 'x'}-${Math.random().toString(36).slice(2, 6)}`,
+      user_id: '00000000-0000-4000-8000-000000000001',
+      name,
+      relationship: (row.relationship as string) || 'custom',
+      engram_type: (row.engram_type as string) || 'custom',
+      archetype: (row.archetype as string) || 'The Companion',
+      description: (row.description as string) || '',
+      avatar_url: null,
+      personality_summary: { ocean: { O: 60, C: 60, E: 60, A: 60, N: 40 } },
+      total_questions_answered: 0,
+      ai_readiness_score: 0,
+      is_ai_active: false,
+      training_status: 'training',
+      voice_enabled: false,
+      voice_status: 'none',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    // Stateful within the session: the new engram appears in the next list read.
+    DEMO_ENGRAMS_LIST.unshift(created as (typeof DEMO_ENGRAMS_LIST)[number]);
+    return mockResponse(created);
+  }
+  if (path.includes('/engrams/batch-sync')) {
+    let members: Array<{ id?: string }> = [];
+    try { members = typeof body === 'string' ? JSON.parse(body) : []; } catch { /* ignore */ }
+    const mapping: Record<string, string> = {};
+    (Array.isArray(members) ? members : []).forEach((m, i) => {
+      if (m?.id) mapping[m.id] = `eng-demo-${m.id}`;
+      else mapping[`member-${i}`] = `eng-demo-${i}`;
+    });
+    return mockResponse(mapping);
+  }
+  if (/\/engrams\/[^/]+\/analyze/.test(path)) {
+    // PersonalityTrainingCenter reads {traits:[{name, value(0-1)}]}. Values
+    // come from the demo engram roster so the radar reflects the selection.
+    const engramId = path.split('/engrams/')[1]?.split('/')[0] || '';
+    const known = DEMO_ENGRAMS_LIST.find((e) => e.id === engramId);
+    const ocean = known?.personality_summary?.ocean || { O: 62, C: 71, E: 58, A: 76, N: 38 };
+    return mockResponse({
+      traits: [
+        { name: 'Openness', value: ocean.O / 100 },
+        { name: 'Conscientiousness', value: ocean.C / 100 },
+        { name: 'Extraversion', value: ocean.E / 100 },
+        { name: 'Agreeableness', value: ocean.A / 100 },
+        { name: 'Neuroticism', value: ocean.N / 100 },
+      ],
+      source: 'demo-sample',
+    });
+  }
+  if (/\/engrams\/[^/]+\/mentorship\/start/.test(path)) {
+    return mockResponse({ status: 'started', note: 'Demo: mentorship simulated on sample data.' });
+  }
+  if (/\/engrams\/[^/]+\/vignette/.test(path)) {
+    return mockResponse({ status: 'ingested', note: 'Demo: vignette recorded locally.' });
   }
 
   // Engrams list: the real endpoint returns a bare array (List[EngramResponse]).
@@ -926,17 +1363,48 @@ export function initDemoInterceptor(): void {
       return originalFetch.call(window, input, init);
     }
 
+    // Supabase Storage: fail fast and honestly in demo. Letting these reach
+    // the real project meant uploads/downloads hung on live-network auth
+    // failures; a clean 400 routes callers into their own error handling.
+    if (url.includes('/storage/v1/')) {
+      return new Response(
+        JSON.stringify({ statusCode: '400', error: 'DemoMode', message: 'File storage is disabled in the demo. Create a free account to upload files.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Supabase PostgREST speaks its own shapes: list selects return a BARE
     // ARRAY of rows, .single()/.maybeSingle() (Accept: vnd.pgrst.object) a
     // lone object or a PGRST116 error. Feeding these callers the generic
     // backend mocks (objects) crashed them ("data.map is not a function").
     if (url.includes('.supabase.co/rest/v1/')) {
       await new Promise(r => setTimeout(r, 80));
+      // supabase-js sometimes issues fetch(Request) with no init: headers and
+      // method must fall back to the Request object or .maybeSingle() reads
+      // lose their Accept header, fall into the list branch, and surface
+      // client-side PGRST116 ("results contain N rows") console errors.
+      const requestInput = input instanceof Request ? input : null;
       let accept = '';
       try {
-        accept = new Headers((init?.headers ?? {}) as HeadersInit).get('accept') || '';
+        accept = new Headers((init?.headers ?? requestInput?.headers ?? {}) as HeadersInit).get('accept') || '';
       } catch { /* keep '' */ }
-      const restMethod = (init?.method || 'GET').toUpperCase();
+      const restMethod = (init?.method || requestInput?.method || 'GET').toUpperCase();
+      // Honor simple PostgREST eq-filters (?col=eq.value) on seeded tables so
+      // reads like .eq('id', x).maybeSingle() and .eq('is_active', true)
+      // return the matching seed rather than an arbitrary first row.
+      const restTableOf = (u: string) => (u.split('/rest/v1/')[1] || '').split('?')[0].split('/')[0];
+      const seedRowsFor = (u: string) => {
+        const all = DEMO_SUPABASE_TABLES[restTableOf(u)] || [];
+        let params: URLSearchParams;
+        try { params = new URL(u, window.location.origin).searchParams; } catch { return all; }
+        let rows = all;
+        params.forEach((value, key) => {
+          if (!value.startsWith('eq.') || key === 'select') return;
+          const wanted = decodeURIComponent(value.slice(3));
+          rows = rows.filter((r) => String((r as Record<string, unknown>)[key]) === wanted);
+        });
+        return rows;
+      };
       if (accept.includes('vnd.pgrst.object')) {
         // An insert or update that asks for the row back (.insert().select()
         // .single() / .update()...single()). Echo the submitted row with an id
@@ -959,7 +1427,16 @@ export function initDemoInterceptor(): void {
             headers: { 'Content-Type': 'application/json' },
           });
         }
-        // A single-row read with no seeded match: PostgREST returns PGRST116.
+        // A single-row read (.single()/.maybeSingle()): serve the first
+        // eq-filter-matching seeded row when the table is seeded (career
+        // profile, daily question, question category…), else PGRST116.
+        const singleSeed = seedRowsFor(url)[0];
+        if (singleSeed) {
+          return new Response(JSON.stringify(singleSeed), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
         return new Response(
           JSON.stringify({ message: 'JSON object requested, multiple (or no) rows returned', code: 'PGRST116', details: 'Results contain 0 rows', hint: null }),
           { status: 406, headers: { 'Content-Type': 'application/json' } },
@@ -967,8 +1444,7 @@ export function initDemoInterceptor(): void {
       }
       // Seed the few tables our flagship demo screens read directly; every
       // other table still returns [] (unchanged), so this can't break callers.
-      const restTable = (url.split('/rest/v1/')[1] || '').split('?')[0].split('/')[0];
-      const seededRows = DEMO_SUPABASE_TABLES[restTable] || [];
+      const seededRows = seedRowsFor(url);
       return new Response(JSON.stringify(seededRows), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Content-Range': seededRows.length ? `0-${seededRows.length - 1}/${seededRows.length}` : '*/0' },
@@ -1008,7 +1484,10 @@ export function removeDemoInterceptor(): void {
  */
 export function getDemoChatResponse(saint: string, userMessage?: string): string {
   const responses = SAINT_CHAT_RESPONSES[saint] || SAINT_CHAT_RESPONSES.trinity;
-  return responses[Math.floor(Math.random() * responses.length)];
+  // Deterministic pick keyed on the message, so asking the same question
+  // twice in the demo gives the same answer (reads as intent, not dice).
+  const seed = (userMessage || '').length;
+  return responses[seed % responses.length];
 }
 
 /**

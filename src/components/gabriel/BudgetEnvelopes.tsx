@@ -7,7 +7,7 @@ import CategoryManager from './CategoryManager';
 import { BudgetEnvelope, financeApi } from '../../lib/gabriel/finance';
 
 export default function BudgetEnvelopes() {
-    const { loading: authLoading, session, isDemoMode } = useAuth();
+    const { loading: authLoading, session } = useAuth();
     const [envelopes, setEnvelopes] = useState<BudgetEnvelope[]>(() => financeApi.getCachedBudget());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -15,12 +15,13 @@ export default function BudgetEnvelopes() {
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
 
     useEffect(() => {
-        if (authLoading || isDemoMode || !session?.access_token) {
+        // Demo mode loads too: the interceptor serves BudgetEnvelope[] mocks.
+        if (authLoading || !session?.access_token) {
             setLoading(false);
             return;
         }
         void loadBudget();
-    }, [authLoading, isDemoMode, session?.access_token]);
+    }, [authLoading, session?.access_token]);
 
     async function loadBudget() {
         setLoading(true);

@@ -61,12 +61,8 @@ export default function Marketplace() {
   }, [user, isDemoMode]);
 
   const loadTemplates = async () => {
-    if (isDemoMode) {
-      setTemplates([]);
-      setLoading(false);
-      return;
-    }
-
+    // Demo mode loads too: the interceptor serves a sample catalog, so the
+    // marketplace is browsable (purchases stay disabled below).
     try {
       const { data, error } = await supabase
         .from('marketplace_templates')
@@ -114,6 +110,11 @@ export default function Marketplace() {
           data: { template },
         },
       });
+      return;
+    }
+
+    if (isDemoMode) {
+      alert('Purchases are disabled in the demo. Create a free account to buy templates.');
       return;
     }
 

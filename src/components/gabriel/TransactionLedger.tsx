@@ -19,7 +19,7 @@ type FilterMode = 'all' | 'bank' | 'manual';
 type SortMode = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc';
 
 export default function TransactionLedger() {
-  const { loading: authLoading, session, isDemoMode } = useAuth();
+  const { loading: authLoading, session } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>(() => financeApi.getCachedTransactions(100));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,12 +32,13 @@ export default function TransactionLedger() {
   const [sortMode, setSortMode] = useState<SortMode>('date_desc');
 
   useEffect(() => {
-    if (authLoading || isDemoMode || !session?.access_token) {
+    // Demo mode loads too: the interceptor serves Transaction[] mocks.
+    if (authLoading || !session?.access_token) {
       setLoading(false);
       return;
     }
     void bootstrap();
-  }, [authLoading, isDemoMode, session?.access_token]);
+  }, [authLoading, session?.access_token]);
 
   async function bootstrap() {
     let lastKnownStatus: BankStatusResponse | null = null;

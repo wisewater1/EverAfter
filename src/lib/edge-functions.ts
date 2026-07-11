@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isDemoAuthEnabled } from './demo-auth';
 
 export interface EdgeFunctionError {
   code: string;
@@ -41,10 +42,14 @@ export async function callEdgeFunction<T = any>(
   body: Record<string, any>
 ): Promise<T> {
   try {
-    // Get current session and JWT
+    // Get current session and JWT. In demo mode there is no Supabase session:
+    // proceed with the demo token so the request still fires and the demo
+    // fetch interceptor can answer it (unmocked functions 404 fast there,
+    // never reaching the real project).
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (sessionError || !session) {
+    const demoMode = isDemoAuthEnabled();
+    if ((sessionError || !session) && !demoMode) {
       throw new EdgeFunctionException({
         code: 'NO_SESSION',
         message: 'You must be logged in to perform this action',
@@ -56,7 +61,7 @@ export async function callEdgeFunction<T = any>(
     const { data, error } = await supabase.functions.invoke(functionName, {
       body,
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token || 'demo-show-token'}`,
       },
     });
 

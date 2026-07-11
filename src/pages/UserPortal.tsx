@@ -77,14 +77,8 @@ export default function UserPortal() {
       return;
     }
 
-    if (isDemoMode) {
-      setProfiles([]);
-      setConnections([]);
-      setConnectionStatuses({});
-      setLoading(false);
-      return;
-    }
-
+    // Demo mode loads too: the interceptor seeds a sample member directory
+    // (connections stay empty until the viewer sends one in-session).
     setLoading(true);
     try {
       if (activeTab === 'directory') {

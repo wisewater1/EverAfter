@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp, Crown, Sparkles, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isDemoAuthEnabled } from '../lib/demo-auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RaphaelChat from './RaphaelChat';
@@ -333,6 +334,10 @@ export default function RaphaelHealthInterface() {
               </button>
               <button
                 onClick={async () => {
+                  if (isDemoAuthEnabled()) {
+                    alert('Purchases are disabled in the demo. Create a free account to upgrade.');
+                    return;
+                  }
                   try {
                     const { data, error } = await supabase.functions.invoke('stripe-checkout', {
                       body: {

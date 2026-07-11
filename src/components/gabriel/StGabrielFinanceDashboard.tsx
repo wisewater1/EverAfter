@@ -81,7 +81,10 @@ export default function StGabrielFinanceDashboard() {
             setFinanceCardLoading(true);
             setFinanceCardError(null);
 
-            if (authLoading || isDemoMode) {
+            // Demo mode intentionally continues: the demo interceptor serves
+            // correctly-shaped budget/transaction/bank mocks, so the demo
+            // finance dashboard renders a full sample story instead of zeros.
+            if (authLoading) {
                 setWgoldBalance(0);
                 setWgoldPriceUsd(0);
                 setBankStatus(cachedBankStatus);
@@ -225,7 +228,7 @@ export default function StGabrielFinanceDashboard() {
     const activeViewConfig = GABRIEL_VIEWS.find((view) => view.key === activeView) ?? GABRIEL_VIEWS[0];
 
     async function refreshFinanceCardState() {
-        if (authLoading || isDemoMode || !session?.access_token) {
+        if (authLoading || !session?.access_token) {
             setBankStatus(cachedBankStatus);
             setMonthCashFlow(cachedMonthCashFlow);
             setFinanceCardError(null);

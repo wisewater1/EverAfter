@@ -10,7 +10,7 @@ interface AddTransactionModalProps {
 }
 
 export default function AddTransactionModal({ isOpen, onClose, onTransactionAdded }: AddTransactionModalProps) {
-    const { loading: authLoading, session, isDemoMode } = useAuth();
+    const { loading: authLoading, session } = useAuth();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
 
@@ -22,12 +22,14 @@ export default function AddTransactionModal({ isOpen, onClose, onTransactionAdde
     const [description, setDescription] = useState('');
 
     useEffect(() => {
-        if (isOpen && !authLoading && !isDemoMode && session?.access_token) {
+        // Demo mode loads too: the interceptor serves category mocks and
+        // echoes created transactions into the demo ledger.
+        if (isOpen && !authLoading && session?.access_token) {
             loadCategories();
         } else if (!authLoading && !session?.access_token) {
             setCategories([]);
         }
-    }, [isOpen, authLoading, isDemoMode, session?.access_token]);
+    }, [isOpen, authLoading, session?.access_token]);
 
     async function loadCategories() {
         try {
@@ -43,7 +45,7 @@ export default function AddTransactionModal({ isOpen, onClose, onTransactionAdde
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (isDemoMode || !session?.access_token) {
+        if (!session?.access_token) {
             alert('Sign in with a live account to add transactions.');
             return;
         }

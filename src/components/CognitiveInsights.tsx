@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, TrendingUp, Heart, Cloud, Sparkles, Lock, Crown, Users, Calendar, BarChart3, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isDemoAuthEnabled } from '../lib/demo-auth';
 import ResearchParticipation from './ResearchParticipation';
 
 interface InsightData {
@@ -99,6 +100,10 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
   };
 
   const handleUpgrade = async () => {
+    if (isDemoAuthEnabled()) {
+      alert('Purchases are disabled in the demo. Create a free account to upgrade.');
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('stripe-checkout', {
         body: {
