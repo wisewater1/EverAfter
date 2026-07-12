@@ -82,6 +82,14 @@ export default function AdminUserCreation() {
           <p className="text-gray-400 text-sm">Create users manually (signup disabled)</p>
         </div>
 
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+          <p className="text-amber-300 text-xs leading-relaxed">
+            The underlying function is service-role-only: submitting from the browser is
+            rejected by design. To provision an account, use Supabase Dashboard →
+            Authentication → Add user, or the standard signup flow.
+          </p>
+        </div>
+
         <form onSubmit={handleCreateUser} className="space-y-4">
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">

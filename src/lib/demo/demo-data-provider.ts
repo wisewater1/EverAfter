@@ -841,7 +841,12 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
       });
     }
     if (fn === 'submit-daily-response') {
-      return mockResponse({ success: true });
+      return mockResponse({ success: true, embedding_indexed: true, embedding_error: null });
+    }
+    if (fn === 'generate-embeddings') {
+      // Demo: pretend-index into the sample memory store so the training
+      // flow completes without a warning banner (sample data only).
+      return mockResponse({ success: true, id: 'demo-embedding' });
     }
     if (fn === 'vault-integrity-check') {
       return mockResponse({ message: `All ${DEMO_VAULT_ITEMS.length} demo vault items verified (sample data — checksums simulated).` });

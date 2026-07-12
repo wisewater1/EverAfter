@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, Send, SkipForward, Calendar, Sparkles, Upload, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
+import { indexEngramMemory } from '../lib/edge-functions';
 
 interface ArchetypalAI {
   id: string;
@@ -42,6 +43,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
   const [showSuccess, setShowSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [indexingNotice, setIndexingNotice] = useState<string | null>(null);
   const [noQuestionReason, setNoQuestionReason] = useState<'answered' | 'empty-pool' | null>(null);
 
   const loadQuestion = useCallback(async () => {
@@ -196,7 +198,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         }
       }
 
-      const { error } = await supabase
+      const { data: savedResponse, error } = await supabase
         .from('daily_question_responses')
         .insert([{
           user_id: userId,
@@ -206,7 +208,9 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           day_number: question.day_number,
           question_category: question.question_category,
           attachment_file_ids: uploadedFileIds.length > 0 ? uploadedFileIds : null,
-        }]);
+        }])
+        .select('id')
+        .single();
 
       if (error) {
         console.error('Database insert error:', error);
@@ -227,6 +231,35 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         throw new Error(userMessage);
       }
 
+      // Index the answer into engram_memory_embeddings — the store the
+      // engram's chat retrieval actually searches. Without this the AI can
+      // never recall trained answers. Failure is non-fatal (the response is
+      // saved) but reported honestly instead of silently skipped.
+      setIndexingNotice(null);
+      try {
+        await indexEngramMemory({
+          text: `Question: ${question.question_text}\nAnswer: ${response}`,
+          engramId: selectedAI.id,
+          type: 'engram_memory',
+          metadata: {
+            day_number: question.day_number,
+            question_category: question.question_category,
+            response_id: savedResponse?.id ?? null,
+          },
+        });
+        if (savedResponse?.id) {
+          await supabase
+            .from('daily_question_responses')
+            .update({ embedding_generated: true })
+            .eq('id', savedResponse.id);
+        }
+      } catch (indexError) {
+        console.error('Memory indexing failed:', indexError);
+        setIndexingNotice(
+          'Your answer was saved, but memory indexing is unavailable right now — ' +
+          `${selectedAI.name} won't be able to recall this answer in chat until indexing catches up.`
+        );
+      }
 
       setUploadProgress(100);
       setShowSuccess(true);
@@ -293,6 +326,11 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         <p className="text-slate-300 text-lg">
           Your response has been added to <span className="text-emerald-400 font-medium">{selectedAI?.name}</span>'s personality
         </p>
+        {indexingNotice && (
+          <p className="mx-auto mt-4 max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            {indexingNotice}
+          </p>
+        )}
       </div>
     );
   }

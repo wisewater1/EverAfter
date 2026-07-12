@@ -9,8 +9,12 @@ const corsHeaders = {
 
 interface DailyResponseRequest {
   questionId?: string;
-  questionText: string;
-  responseText: string;
+  questionText?: string;
+  responseText?: string;
+  /** Legacy alias for responseText (api-client callers). */
+  response?: string;
+  /** Archetypal AI this answer trains; enables retrievable memory indexing. */
+  engramId?: string;
   mood?: string;
 }
 
@@ -40,11 +44,25 @@ Deno.serve(async (req: Request) => {
       throw new Error('Unauthorized');
     }
 
-    const { questionId, questionText, responseText, mood }: DailyResponseRequest = await req.json();
+    const body: DailyResponseRequest = await req.json();
+    const { questionId, engramId, mood } = body;
+    const responseText = body.responseText || body.response;
+    let questionText = body.questionText;
+
+    // Resolve the question text from the pool when only an id was sent
+    // (api-client callers) so those requests no longer 400 unconditionally.
+    if (!questionText && questionId) {
+      const { data: poolQuestion } = await supabase
+        .from('daily_question_pool')
+        .select('question_text')
+        .eq('id', questionId)
+        .maybeSingle();
+      questionText = poolQuestion?.question_text;
+    }
 
     if (!questionText || !responseText) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: questionText, responseText' }),
+        JSON.stringify({ error: 'Missing required fields: questionText (or a resolvable questionId) and responseText' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -87,6 +105,7 @@ Deno.serve(async (req: Request) => {
       .from('daily_question_responses')
       .insert({
         user_id: user.id,
+        ai_id: engramId || null,
         question_id: questionId || null,
         question_text: questionText,
         response_text: responseText,
@@ -127,11 +146,20 @@ Deno.serve(async (req: Request) => {
       console.error('Error creating memory:', memoryError);
     }
 
+    // Embed the Q&A. The row that matters for the product is
+    // engram_memory_embeddings (requires engramId): it is the table
+    // engram-chat's match_engram_memories retrieval searches. The
+    // daily_question_embeddings row is kept as a per-user record.
+    let embeddingIndexed = false;
+    let embeddingError: string | null = null;
+
     const { apiKey: openaiApiKey } = await resolveApiKey(supabase, user.id, 'openai', 'OPENAI_API_KEY');
-    if (openaiApiKey) {
+    if (!openaiApiKey) {
+      embeddingError = 'Embedding service is not configured; this answer is stored but not yet searchable by the AI.';
+    } else {
       try {
         const embeddingText = `Question: ${questionText}\nAnswer: ${responseText}`;
-        
+
         const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
           method: 'POST',
           headers: {
@@ -145,9 +173,32 @@ Deno.serve(async (req: Request) => {
           }),
         });
 
-        if (embeddingResponse.ok) {
+        if (!embeddingResponse.ok) {
+          embeddingError = `Embedding request failed (${embeddingResponse.status}); the answer is stored but not yet searchable.`;
+        } else {
           const embeddingData = await embeddingResponse.json();
           const embedding = embeddingData.data[0].embedding;
+
+          if (engramId) {
+            const { error: memoryInsertError } = await supabase
+              .from('engram_memory_embeddings')
+              .insert({
+                engram_id: engramId,
+                content: embeddingText,
+                embedding,
+                metadata: {
+                  day_number: currentDay,
+                  mood: mood || null,
+                  category: 'daily',
+                  response_id: responseData.id,
+                },
+              });
+            if (memoryInsertError) {
+              embeddingError = `Memory indexing failed: ${memoryInsertError.message}`;
+            } else {
+              embeddingIndexed = true;
+            }
+          }
 
           await supabase
             .from('daily_question_embeddings')
@@ -163,13 +214,16 @@ Deno.serve(async (req: Request) => {
               },
             });
 
-          await supabase
-            .from('daily_question_responses')
-            .update({ embedding_generated: true })
-            .eq('id', responseData.id);
+          if (embeddingIndexed || !engramId) {
+            await supabase
+              .from('daily_question_responses')
+              .update({ embedding_generated: true })
+              .eq('id', responseData.id);
+          }
         }
       } catch (error) {
         console.error('Error generating embedding:', error);
+        embeddingError = 'Embedding generation failed; the answer is stored but not yet searchable.';
       }
     }
 
@@ -178,6 +232,10 @@ Deno.serve(async (req: Request) => {
         success: true,
         response: responseData,
         dayNumber: currentDay,
+        // Truthful indexing report: callers must not present "saved" as
+        // "the AI can now recall this" unless embedding_indexed is true.
+        embedding_indexed: embeddingIndexed,
+        embedding_error: embeddingError,
         message: 'Daily response submitted successfully',
       }),
       {
