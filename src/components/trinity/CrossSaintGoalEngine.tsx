@@ -3,7 +3,7 @@
  * Rich cross-Saint goal creation, review, recalculation, and archive flow.
  */
 import { useMemo, useState } from 'react';
-import { Archive, CalendarDays, CheckCircle2, ChevronRight, ChevronLeft, GitBranch, Heart, Loader2, Plus, RefreshCw, Target, Users, Wallet } from 'lucide-react';
+import { Archive, CalendarDays, CheckCircle2, ChevronRight, ChevronLeft, GitBranch, Heart, Loader2, Plus, RefreshCw, Target, Users, Wallet, X } from 'lucide-react';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import {
     buildTrinityCommonContext,
@@ -57,6 +57,7 @@ export default function CrossSaintGoalEngine() {
     const [trackedMembers, setTrackedMembers] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [busyGoalId, setBusyGoalId] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     const stats = useMemo(() => ({
         total: goals.length,
@@ -95,6 +96,7 @@ export default function CrossSaintGoalEngine() {
     async function createGoal() {
         if (!goalName.trim()) return;
 
+        setActionError(null);
         setLoading(true);
         try {
             const result = await trinitySynapse<TrinityGoal>('cross_saint_goal', {
@@ -110,18 +112,21 @@ export default function CrossSaintGoalEngine() {
                 const nextGoals = persistTrinityGoal(result);
                 setGoals(nextGoals);
                 setExpandedGoalId(nextGoals[0]?.id || null);
+                resetCreateForm();
+                setShowCreate(false);
+            } else {
+                setActionError('Couldn\'t create the goal right now. Your details are kept — try again in a moment.');
             }
-
-            resetCreateForm();
-            setShowCreate(false);
         } catch (err) {
             console.warn('CrossSaintGoalEngine: failed to create goal', err);
+            setActionError('Couldn\'t create the goal right now. Your details are kept — try again in a moment.');
         } finally {
             setLoading(false);
         }
     }
 
     async function recalculateGoal(goal: TrinityGoal) {
+        setActionError(null);
         setBusyGoalId(goal.id || goal.goal_name);
         try {
             const result = await trinitySynapse<TrinityGoal>('cross_saint_goal', {
@@ -136,9 +141,12 @@ export default function CrossSaintGoalEngine() {
             if (result) {
                 const nextGoals = persistTrinityGoal({ ...goal, ...result, id: goal.id });
                 setGoals(nextGoals);
+            } else {
+                setActionError(`Couldn't recalculate "${goal.goal_name}" right now — try again in a moment.`);
             }
         } catch (err) {
             console.warn('CrossSaintGoalEngine: failed to recalculate goal', err);
+            setActionError(`Couldn't recalculate "${goal.goal_name}" right now — try again in a moment.`);
         } finally {
             setBusyGoalId(null);
         }
@@ -177,6 +185,20 @@ export default function CrossSaintGoalEngine() {
                     <Plus className="w-3.5 h-3.5" />
                 </button>
             </div>
+
+            {actionError && (
+                <div className="mb-4 px-3 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start justify-between gap-3">
+                    <p className="text-xs text-rose-300">{actionError}</p>
+                    <button
+                        onClick={() => setActionError(null)}
+                        aria-label="Dismiss error"
+                        title="Dismiss"
+                        className="shrink-0 text-rose-300/70 hover:text-rose-200"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-3 gap-2 mb-4">
                 <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
