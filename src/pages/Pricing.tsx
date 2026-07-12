@@ -363,13 +363,11 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Trust Badges */}
+        {/* Factual security notes only — no unverified certification claims */}
         <div className="mt-16 text-center">
-          <p className="text-gray-500 text-sm mb-4">Trusted by thousands of users worldwide</p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:gap-8 text-gray-600">
-            <span>🔒 256-bit SSL</span>
-            <span>✓ PCI Compliant</span>
-            <span>🛡️ SOC 2 Certified</span>
+            <span>🔒 Encrypted in transit (TLS)</span>
+            <span>💳 Payments processed by Stripe</span>
           </div>
         </div>
       </div>

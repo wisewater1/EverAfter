@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2, Settings as SettingsIcon } from 'lucide-react';
+import { Menu, Bot, Brain, Heart, LogOut, Sparkles, ArrowRight, CheckCircle2, Settings as SettingsIcon, Activity, MessagesSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MobileMenu from '../components/MobileMenu';
 import SaintsNavigation from '../components/SaintsNavigation';
@@ -203,8 +203,13 @@ export default function Dashboard() {
     return null;
   }
 
+  // All three in-page views are reachable ('activities' and 'chat' were
+  // fully built but had no nav entry, making them dead code); 'trinity'
+  // navigates to its own route.
   const navItems = [
     { id: 'engrams', label: 'Engrams', icon: Bot },
+    { id: 'activities', label: 'Activities', icon: Activity },
+    { id: 'chat', label: 'Chat', icon: MessagesSquare },
     { id: 'trinity', label: 'Trinity', icon: Sparkles },
   ];
 

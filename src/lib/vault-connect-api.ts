@@ -664,18 +664,63 @@ export class VaultConnectAPI {
   }
 
   /**
-   * Encrypt data using the connection's encryption key
+   * Derive the connection's AES-256-GCM payload key via HKDF from the
+   * connection's key material. Key-derivation model: inputs are the owning
+   * user id plus the per-connection key hash; the derived key never leaves
+   * this client, and the partner-side hand-off receives it through the
+   * connection-approval flow, not alongside the payload.
+   *
+   * @private
+   */
+  private async deriveConnectionKey(keyHash: string): Promise<CryptoKey> {
+    const encoder = new TextEncoder();
+    const material = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(`${this.userId}:${keyHash}`),
+      'HKDF',
+      false,
+      ['deriveKey'],
+    );
+    return crypto.subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: encoder.encode('everafter-vault-connect-v1'),
+        info: encoder.encode('payload-encryption'),
+      },
+      material,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt'],
+    );
+  }
+
+  /**
+   * Encrypt a data package with AES-256-GCM. Output is a versioned envelope
+   * (base64 of {v, alg, iv, data}) whose payload is genuine ciphertext —
+   * never plain/encoded JSON.
    *
    * @private
    */
   private async encryptData(data: Record<string, unknown>, keyHash: string): Promise<string> {
-    // In production, use proper encryption (AES-256-GCM)
-    // For now, return base64 encoded JSON
-    const jsonString = JSON.stringify(data);
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(jsonString);
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(dataBuffer)));
-    return base64;
+    const key = await this.deriveConnectionKey(keyHash);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const plaintext = new TextEncoder().encode(JSON.stringify(data));
+    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+
+    const toBase64 = (buffer: ArrayBuffer | Uint8Array) => {
+      const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+      let binary = '';
+      bytes.forEach((b) => { binary += String.fromCharCode(b); });
+      return btoa(binary);
+    };
+
+    return btoa(JSON.stringify({
+      v: 1,
+      alg: 'AES-256-GCM',
+      iv: toBase64(iv),
+      data: toBase64(ciphertext),
+    }));
   }
 
   /**

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Download, Upload, FileText, Database, Package, Calendar, User, Activity, Brain, Heart, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { requestBackendJson } from '../lib/backend-request';
+import { apiClient } from '../lib/api-client';
+import { useNotification } from '../contexts/NotificationContext';
+import ConfirmDialog from './shared/ConfirmDialog';
 import PersonalityProfileViewer from './PersonalityProfileViewer';
 import DailyQuestionCard from './DailyQuestionCard';
 import StRaphaelHealthHub from './StRaphaelHealthHub';
@@ -52,6 +55,13 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   const [questionResponses, setQuestionResponses] = useState<QuestionResponse[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [quizInviteLink, setQuizInviteLink] = useState<string | null>(null);
+  const [quizInviteError, setQuizInviteError] = useState<string | null>(null);
+  const [quizInviteLoading, setQuizInviteLoading] = useState(false);
+  const [memberPendingDelete, setMemberPendingDelete] = useState<string | null>(null);
+  const [deletingMember, setDeletingMember] = useState(false);
+  const [showVaultConfirm, setShowVaultConfirm] = useState(false);
+  const { showNotification } = useNotification();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [inviteForm, setInviteForm] = useState({
@@ -62,7 +72,6 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [generatedInviteLink, setGeneratedInviteLink] = useState('');
-  const [questionText, setQuestionText] = useState('');
   const [loading, setLoading] = useState(false);
   const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'pdf'>('json');
   const [selectedExportData, setSelectedExportData] = useState({
@@ -344,46 +353,67 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  const handleSendQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMember || !questionText.trim()) return;
-
-    setLoading(true);
+  // Creates a REAL personality-quiz invite for the member (the 65-question
+  // OCEAN quiz at /quiz/<token>) — this used to only bump a counter while
+  // storing and delivering nothing.
+  const generateQuizInvite = async (memberName: string, memberId: string) => {
+    setQuizInviteLoading(true);
+    setQuizInviteError(null);
+    setQuizInviteLink(null);
     try {
+      const invite = await apiClient.createQuizInvite(memberName, memberId);
+      if (!invite) {
+        setQuizInviteError('The invite service is unreachable right now. Try again in a moment.');
+        return;
+      }
+      const url = `${window.location.origin}${invite.share_path}`;
+      setQuizInviteLink(url);
+      // Track how many quiz invites have gone out for this member — now a
+      // real count of real invitations.
       await supabase
         .from('family_members')
-        .update({
-          personality_questions_sent: selectedMember.personality_questions_sent + 1
-        })
-        .eq('id', selectedMember.id);
-
-      setShowQuestionModal(false);
-      setQuestionText('');
-      setSelectedMember(null);
+        .update({ personality_questions_sent: (selectedMember?.personality_questions_sent || 0) + 1 })
+        .eq('id', memberId);
       loadFamilyMembers().catch((error) => {
-        console.warn('Unhandled error reloading family members after sending a question:', error);
+        console.warn('Unhandled error reloading family members after creating an invite:', error);
       });
     } catch (error) {
-      console.error('Error sending question:', error);
+      console.error('Error creating quiz invite:', error);
+      setQuizInviteError('Could not create the quiz invite. Try again in a moment.');
     } finally {
-      setLoading(false);
+      setQuizInviteLoading(false);
     }
   };
 
-  const handleDeleteMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this family member?')) return;
-
+  const copyInviteLink = async () => {
+    if (!quizInviteLink) return;
     try {
-      await supabase
+      await navigator.clipboard.writeText(quizInviteLink);
+      showNotification('Quiz link copied — share it with your family member.', 'success');
+    } catch {
+      showNotification('Could not copy automatically — select and copy the link text.', 'error');
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!memberPendingDelete) return;
+    setDeletingMember(true);
+    try {
+      const { error } = await supabase
         .from('family_members')
         .delete()
-        .eq('id', memberId);
-
-      loadFamilyMembers().catch((error) => {
-        console.warn('Unhandled error reloading family members after deleting a member:', error);
+        .eq('id', memberPendingDelete);
+      if (error) throw error;
+      showNotification('Family member removed.', 'success');
+      loadFamilyMembers().catch((err) => {
+        console.warn('Unhandled error reloading family members after deleting a member:', err);
       });
     } catch (error) {
       console.error('Error deleting member:', error);
+      showNotification('Could not remove this family member. Try again.', 'error');
+    } finally {
+      setDeletingMember(false);
+      setMemberPendingDelete(null);
     }
   };
 
@@ -436,8 +466,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
   };
 
   const handleSendToLegacyVault = async () => {
-    if (!confirm('Send selected family data to Legacy Vault? This will preserve it for future generations.')) return;
-
+    setShowVaultConfirm(false);
     setLoading(true);
     try {
       const legacyData = {
@@ -465,11 +494,11 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
 
       if (error) throw error;
 
-      alert('Family data successfully sent to Legacy Vault!');
+      showNotification('Family data sent to the Legacy Vault.', 'success');
       onNavigateToLegacy();
     } catch (error) {
       console.error('Error sending to Legacy Vault:', error);
-      alert('Failed to send data to Legacy Vault. Please try again.');
+      showNotification('Failed to send data to the Legacy Vault. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -667,7 +696,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                   Profile
                 </button>
                 <button
-                  onClick={() => handleDeleteMember(member.id)}
+                  onClick={() => setMemberPendingDelete(member.id)}
                   className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-all text-xs"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -836,14 +865,6 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
                 <FileText className="w-6 h-6 mx-auto mb-2" />
                 <p className="text-xs font-medium">CSV</p>
               </button>
-              <button
-                onClick={() => setExportFormat('pdf')}
-                disabled
-                className="p-4 rounded-lg border-2 bg-slate-800/20 border-slate-700/30 text-slate-600 cursor-not-allowed"
-              >
-                <FileText className="w-6 h-6 mx-auto mb-2" />
-                <p className="text-xs font-medium">PDF (Soon)</p>
-              </button>
             </div>
           </div>
 
@@ -859,7 +880,7 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
               <p className="text-xs text-blue-100">Export to your device</p>
             </button>
             <button
-              onClick={handleSendToLegacyVault}
+              onClick={() => setShowVaultConfirm(true)}
               disabled={loading}
               className="p-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -988,42 +1009,82 @@ export default function UnifiedFamilyInterface({ userId, onNavigateToLegacy, pre
       {showQuestionModal && selectedMember && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Send OCEAN Question to {selectedMember.name}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">OCEAN quiz for {selectedMember.name}</h3>
               <button
                 onClick={() => {
                   setShowQuestionModal(false);
                   setSelectedMember(null);
-                  setQuestionText('');
+                  setQuizInviteLink(null);
+                  setQuizInviteError(null);
                 }}
                 className="text-slate-400 hover:text-white transition-colors"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSendQuestion} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">OCEAN Question</label>
-                <textarea
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="Ask an OCEAN-style personality question for this family member"
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 h-32 resize-none"
-                  required
-                />
+            <p className="mb-5 text-sm leading-relaxed text-slate-400">
+              Generate a private quiz link for {selectedMember.name}. Their answers to the
+              personality questions build their OCEAN profile — no account needed on their side.
+            </p>
+            {quizInviteError && (
+              <p className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{quizInviteError}</p>
+            )}
+            {quizInviteLink ? (
+              <div className="space-y-3">
+                <div className="break-all rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-mono text-xs text-teal-300">{quizInviteLink}</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={copyInviteLink}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-3 font-medium text-white transition-all hover:from-blue-700 hover:to-cyan-700"
+                  >
+                    Copy Link
+                  </button>
+                  {typeof navigator.share === 'function' && (
+                    <button
+                      onClick={() => navigator.share({ title: `Personality quiz for ${selectedMember.name}`, url: quizInviteLink }).catch(() => { /* user dismissed */ })}
+                      className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-medium text-slate-200 transition-all hover:bg-slate-700"
+                    >
+                      Share…
+                    </button>
+                  )}
+                </div>
               </div>
+            ) : (
               <button
-                type="submit"
-                disabled={loading}
+                onClick={() => generateQuizInvite(selectedMember.name, selectedMember.id)}
+                disabled={quizInviteLoading}
                 className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Send className="w-4 h-4" />
-                {loading ? 'Sending...' : 'Send OCEAN Question'}
+                {quizInviteLoading ? 'Creating link…' : 'Generate Quiz Link'}
               </button>
-            </form>
+            )}
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(memberPendingDelete)}
+        title="Remove family member?"
+        message="This removes the member and their profile links from your family hub. Their submitted quiz answers are not deleted."
+        confirmLabel="Remove"
+        destructive
+        loading={deletingMember}
+        onConfirm={handleDeleteMember}
+        onCancel={() => setMemberPendingDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={showVaultConfirm}
+        title="Send to Legacy Vault?"
+        message="The selected family data will be preserved in your Legacy Vault for future generations."
+        confirmLabel="Send"
+        loading={loading}
+        onConfirm={handleSendToLegacyVault}
+        onCancel={() => setShowVaultConfirm(false)}
+      />
 
       {/* Profile Modal */}
       {showProfileModal && selectedMember && (

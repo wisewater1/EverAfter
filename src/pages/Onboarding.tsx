@@ -497,7 +497,12 @@ export default function Onboarding() {
           )}
 
           {currentStep === 'complete' && (
-            <OnboardingComplete onFinish={handleComplete} saving={saving} />
+            <OnboardingComplete
+              onFinish={handleComplete}
+              saving={saving}
+              profileSaved={completedSteps.includes('health_profile')}
+              engramStarted={Boolean(onboardingData.firstEngram) || completedSteps.includes('first_engram')}
+            />
           )}
           </div>
         </div>
