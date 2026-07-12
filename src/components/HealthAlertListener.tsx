@@ -56,9 +56,10 @@ export default function HealthAlertListener() {
             if (data && data.length > 0) {
                 const unread = data as AgentNotification[];
                 unread.forEach(n => {
-                    // Map priority to existing notification types
+                    // Map priority to existing notification types. The table's
+                    // CHECK constraint uses 'urgent' as the top priority.
                     let type: NotificationType = 'info';
-                    if (n.priority === 'critical') type = 'error';
+                    if (n.priority === 'urgent' || n.priority === 'critical') type = 'error';
                     if (n.priority === 'high') type = 'warning';
 
                     showNotification(n.message, type, 8000); // Show for longer
@@ -86,11 +87,12 @@ export default function HealthAlertListener() {
                     const newNotification = payload.new;
 
                     let type: NotificationType = 'info';
-                    if (newNotification.priority === 'critical') type = 'error';
+                    if (newNotification.priority === 'urgent' || newNotification.priority === 'critical') type = 'error';
                     if (newNotification.priority === 'high') type = 'warning';
                     if (newNotification.notification_type === 'success') type = 'success';
 
-                    showNotification(newNotification.message, type, newNotification.priority === 'critical' ? 10000 : 5000);
+                    const isUrgent = newNotification.priority === 'urgent' || newNotification.priority === 'critical';
+                    showNotification(newNotification.message, type, isUrgent ? 10000 : 5000);
 
                     // Mark the shown notification as read on the server.
                     markNotificationsRead([newNotification.id]);

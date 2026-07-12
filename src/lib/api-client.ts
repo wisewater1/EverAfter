@@ -29,6 +29,8 @@ export interface SaintBootstrapResult {
 }
 
 export interface SaintChatResult extends ChatResponse {
+  id?: string;
+  metrics?: Record<string, unknown>;
   saint_id: string;
   saint_name: string;
   role: string;
@@ -616,12 +618,14 @@ class APIClient {
   }
 
   /**
-   * List tasks for engram
+   * List tasks for engram. `engram_ai_tasks` is the single user-facing task
+   * table; `agent_task_queue` is St. Raphael's internal execution queue and
+   * is not read here.
    */
   async listTasks(engramId: string) {
     try {
       const { data, error } = await supabase
-        .from('agent_task_queue')
+        .from('engram_ai_tasks')
         .select('*')
         .eq('engram_id', engramId)
         .order('created_at', { ascending: false });
@@ -635,19 +639,48 @@ class APIClient {
   }
 
   /**
-   * Create new task
+   * Create a task in engram_ai_tasks. engram_ai_tasks.engram_id references
+   * the `engrams` table; when the id comes from another source
+   * (archetypal_ais), pass `engram_name` in taskData and a same-id mirror
+   * row is created once so the reference resolves — the same pattern the
+   * `agent` edge function uses for its St. Raphael engram.
    */
   async createTask(engramId: string, taskData: Record<string, unknown>) {
     try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth?.user?.id;
+      if (!userId) throw new Error('Not authenticated');
+
+      const engramName = (taskData.engram_name as string) || undefined;
+      if (engramName) {
+        const { error: mirrorError } = await supabase
+          .from('engrams')
+          .upsert(
+            { id: engramId, user_id: userId, name: engramName, engram_type: 'archetypal' },
+            { onConflict: 'id', ignoreDuplicates: true },
+          );
+        if (mirrorError) throw mirrorError;
+      }
+
+      const title =
+        (taskData.task_name as string) ||
+        (taskData.title as string) ||
+        String(taskData.task_description || 'Untitled task').slice(0, 120);
+
       const { data, error } = await supabase
-        .from('agent_task_queue')
+        .from('engram_ai_tasks')
         .insert({
+          user_id: userId,
           engram_id: engramId,
-          task_type: (taskData.task_type as string) || 'general',
-          task_description: (taskData.task_description as string) || '',
-          priority: (taskData.priority as string) || 'medium',
+          title,
+          task_description: (taskData.task_description as string) || null,
           status: 'pending',
-          scheduled_for: (taskData.scheduled_for as string) || new Date().toISOString(),
+          details: {
+            task_type: (taskData.task_type as string) || 'general',
+            frequency: (taskData.frequency as string) || 'on_demand',
+            priority: (taskData.priority as string) || 'medium',
+            ...(taskData.scheduled_for ? { scheduled_for: taskData.scheduled_for } : {}),
+          },
         })
         .select()
         .single();
@@ -662,7 +695,10 @@ class APIClient {
   }
 
   /**
-   * Execute task
+   * Execute a task now via manage-agent-tasks. Reminder/notification tasks
+   * are genuinely delivered (agent_notifications insert, surfaced live by
+   * HealthAlertListener); types with no real integration come back
+   * executed:false with an honest explanation.
    */
   async executeTask(taskId: string) {
     return this.callEdgeFunction('manage-agent-tasks', {
@@ -676,7 +712,7 @@ class APIClient {
    */
   async deleteTask(taskId: string) {
     try {
-      const { error } = await supabase.from('agent_task_queue').delete().eq('id', taskId);
+      const { error } = await supabase.from('engram_ai_tasks').delete().eq('id', taskId);
 
       if (error) throw error;
       logger.info('Task deleted successfully', { taskId });
@@ -1087,7 +1123,7 @@ class APIClient {
 
   async getPersonalityQuizProfile(memberId: string): Promise<any | null> {
     try {
-      const data = await this.requestBackendJson(`/api/v1/personality-quiz/profile/${memberId}`, {
+      const data = await this.requestBackendJson<{ error?: unknown } | null>(`/api/v1/personality-quiz/profile/${memberId}`, {
         method: 'GET',
       }, 'Get Personality Quiz Profile Error');
       return data?.error ? null : data;
