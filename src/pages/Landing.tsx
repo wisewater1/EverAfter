@@ -252,7 +252,11 @@ export default function Landing() {
               </div>
               <span className="text-gray-400 text-sm">EverAfter AI</span>
             </div>
-            <p className="text-gray-500 text-sm">Building digital legacies that last</p>
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <button onClick={() => navigate('/privacy')} className={`hover:text-gray-300 transition-colors ${focusRing}`}>Privacy</button>
+              <button onClick={() => navigate('/terms')} className={`hover:text-gray-300 transition-colors ${focusRing}`}>Terms</button>
+              <p>Building digital legacies that last</p>
+            </div>
           </div>
         </div>
       </footer>

@@ -2090,11 +2090,11 @@ function ItemDetailModal({
                 {renderPayload()}
               </div>
 
-              {item.payload.attachments?.length > 0 && (
+              {(item.payload?.attachments?.length ?? 0) > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wider">Attachments</h3>
                 <div className="space-y-2">
-                    {(payload.attachments || []).map((file: string, i: number) => (
+                    {(item.payload?.attachments || []).map((file: string, i: number) => (
                       <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <File className="w-4 h-4 shrink-0 text-slate-400" />

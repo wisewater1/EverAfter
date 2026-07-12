@@ -3,7 +3,7 @@
  * Simulate the impact of a life decision across all 3 Saints.
  */
 import { useMemo, useState } from 'react';
-import { Beaker, Heart, Wallet, GitBranch, Loader2, Play, Shield, Sparkles, Clock3, Users } from 'lucide-react';
+import { AlertTriangle, Beaker, Heart, Wallet, GitBranch, Loader2, Play, Shield, Sparkles, Clock3, Users, X } from 'lucide-react';
 import { getStoredTrinityWhatIfHistory, getTrinitySummarySnapshot, buildTrinityCommonContext, trinitySynapse } from './trinityApi';
 import { getCachedTrinitySignals } from '../../lib/trinity/liveSignals';
 
@@ -21,6 +21,7 @@ export default function CrossSaintWhatIf() {
     const [result, setResult] = useState<any>(() => getStoredTrinityWhatIfHistory()[0]?.result || null);
     const [history, setHistory] = useState(() => getStoredTrinityWhatIfHistory());
     const [loading, setLoading] = useState(false);
+    const [simError, setSimError] = useState<string | null>(null);
 
     const snapshot = useMemo(() => getTrinitySummarySnapshot(), []);
     const activeScenario = useMemo(
@@ -31,6 +32,7 @@ export default function CrossSaintWhatIf() {
     async function simulate() {
         if (!scenario.trim()) return;
         setLoading(true);
+        setSimError(null);
         try {
             const signals = getCachedTrinitySignals();
             const d = await trinitySynapse('cross_saint_whatif', {
@@ -47,9 +49,12 @@ export default function CrossSaintWhatIf() {
             if (d) {
                 setResult(d);
                 setHistory(getStoredTrinityWhatIfHistory());
+            } else {
+                setSimError('The simulation didn\'t return a result — try again in a moment.');
             }
         } catch (err) {
             console.warn('CrossSaintWhatIf: failed to simulate scenario', err);
+            setSimError('The simulation engine is unreachable right now — try again in a moment.');
         } finally {
             setLoading(false);
         }
@@ -164,6 +169,7 @@ export default function CrossSaintWhatIf() {
                             <button
                                 key={`${entry.scenario}-${entry.generated_at}-${index}`}
                                 onClick={() => {
+                                    setSimError(null);
                                     setResult(entry.result);
                                     setScenario(entry.scenario);
                                     setScenarioType(entry.scenario_type);
@@ -182,6 +188,23 @@ export default function CrossSaintWhatIf() {
                     </div>
                 </div>
             </div>
+
+            {simError && (
+                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0" />
+                        <p className="text-sm text-rose-300">{simError}</p>
+                    </div>
+                    <button
+                        onClick={() => setSimError(null)}
+                        aria-label="Dismiss error"
+                        title="Dismiss"
+                        className="shrink-0 text-rose-300/70 hover:text-rose-200"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {result && (
                 <div className="space-y-3">

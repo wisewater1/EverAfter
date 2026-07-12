@@ -116,14 +116,9 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-900 border-gray-700 rounded text-blue-600 focus:ring-blue-500/50"
-                />
-                <span className="ml-2 text-xs sm:text-sm text-gray-400">Remember me</span>
-              </label>
+            {/* Sessions persist by default (Supabase auth); a non-functional
+                "Remember me" checkbox promised control it didn't have. */}
+            <div className="flex justify-end">
               <Link
                 to="/forgot-password"
                 className="text-xs sm:text-sm text-blue-400 hover:text-blue-300 transition-colors"
@@ -160,7 +155,12 @@ export default function Login() {
 
         {/* Footer */}
         <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-gray-500 px-2">
-          <p>By signing in, you agree to our Terms of Service and Privacy Policy</p>
+          <p>
+            By signing in, you agree to our{' '}
+            <Link to="/terms" target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link to="/privacy" target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</Link>
+          </p>
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Shield, RefreshCw } from 'lucide-react';
 import {
     ComplianceCheck,
-    getComplianceChecks,
     getComplianceReadiness,
     getHipaaReport,
 } from '../../lib/michael/security';
@@ -68,25 +67,29 @@ export default function CompliancePanel() {
     const [readinessScore, setReadinessScore] = useState<number | null>(null);
     const [hipaaScore, setHipaaScore] = useState<number | null>(null);
     const [liveSnapshot, setLiveSnapshot] = useState<{ readiness: any; hipaa: any } | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const loadChecks = async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             const [readiness, hipaa] = await Promise.all([
                 getComplianceReadiness(),
                 getHipaaReport(),
             ]);
-            const liveChecks = buildLiveChecks(readiness, hipaa);
-            setChecks(liveChecks.length > 0 ? liveChecks : getComplianceChecks());
+            // An empty live result is an honest "no assessed controls" state;
+            // never substitute fabricated pass/fail rows.
+            setChecks(buildLiveChecks(readiness, hipaa));
             setReadinessScore(readiness.readiness_score);
             setHipaaScore(hipaa.compliance_score);
             setLiveSnapshot({ readiness, hipaa });
         } catch (error) {
             console.error('Failed to load live compliance data', error);
-            setChecks(getComplianceChecks());
+            setChecks([]);
             setReadinessScore(null);
             setHipaaScore(null);
             setLiveSnapshot(null);
+            setLoadError('Live compliance data is unavailable. Compliance posture cannot be verified until the monitoring service recovers.');
         } finally {
             setLoading(false);
         }
@@ -129,7 +132,9 @@ export default function CompliancePanel() {
             passCount: pass,
             warnCount: warn,
             failCount: fail,
-            complianceRate: checks.length > 0 ? Math.round((pass / checks.length) * 100) : 100,
+            // null = "no assessed controls" — the ring shows an em-dash
+            // rather than asserting a perfect score with no evidence.
+            complianceRate: checks.length > 0 ? Math.round((pass / checks.length) * 100) : null,
         };
     }, [checks]);
 
@@ -160,6 +165,13 @@ export default function CompliancePanel() {
                 </div>
             </div>
 
+            {loadError && (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                    <p className="text-sm text-amber-200">{loadError}</p>
+                </div>
+            )}
+
             <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-widest">
                 {readinessScore !== null && (
                     <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 font-bold text-sky-300">
@@ -182,15 +194,15 @@ export default function CompliancePanel() {
                             cy="18"
                             r="15.9155"
                             fill="none"
-                            stroke={complianceRate >= 90 ? '#10b981' : complianceRate >= 70 ? '#f59e0b' : '#ef4444'}
+                            stroke={complianceRate == null ? 'rgb(71,85,105)' : complianceRate >= 90 ? '#10b981' : complianceRate >= 70 ? '#f59e0b' : '#ef4444'}
                             strokeWidth="2"
-                            strokeDasharray={`${complianceRate} ${100 - complianceRate}`}
+                            strokeDasharray={`${complianceRate ?? 0} ${100 - (complianceRate ?? 0)}`}
                             strokeLinecap="round"
                             className="transition-all duration-1000"
                         />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-2xl font-light text-white">{complianceRate}%</span>
+                        <span className="text-2xl font-light text-white">{complianceRate == null ? '—' : `${complianceRate}%`}</span>
                     </div>
                 </div>
                 <div className="flex-1">

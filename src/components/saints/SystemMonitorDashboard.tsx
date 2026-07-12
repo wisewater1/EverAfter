@@ -4,7 +4,6 @@ import {
     Server,
     Database,
     Clock,
-    Shield,
     AlertTriangle,
     CheckCircle2,
     Cpu,
@@ -12,10 +11,11 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { requestBackendJson } from '../../lib/backend-request';
 import { buildAccessTokenHeaders } from '../../lib/auth-session';
+import { getEventLog, subscribeToSaintEvents, SaintEventEnvelope } from '../../lib/saintBridge';
 
 interface MetricPoint {
     time: string;
@@ -42,13 +42,14 @@ interface SystemMetrics {
 
 export default function SystemMonitorDashboard() {
     const navigate = useNavigate();
-    const { loading: authLoading, session, isDemoMode } = useAuth();
+    const { loading: authLoading, session } = useAuth();
     const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
     const fetchMetrics = async () => {
-        if (authLoading || isDemoMode || !session?.access_token) {
+        // Demo mode fetches too: the demo interceptor serves full metrics.
+        if (authLoading || !session?.access_token) {
             setLoading(false);
             return;
         }
@@ -90,17 +91,36 @@ export default function SystemMonitorDashboard() {
     useEffect(() => {
         // Always run once so `loading` resolves (and any last-known metrics
         // stay visible) even when gated below; fetchMetrics no-ops internally
-        // for demo/logged-out/still-loading-auth states instead of firing a
+        // for logged-out/still-loading-auth states instead of firing a
         // request that would only 401.
         fetchMetrics();
 
-        if (authLoading || isDemoMode || !session?.access_token) {
+        if (authLoading || !session?.access_token) {
             return;
         }
 
         const interval = setInterval(fetchMetrics, 5000); // Poll every 5s
         return () => clearInterval(interval);
-    }, [authLoading, isDemoMode, session?.access_token]);
+    }, [authLoading, session?.access_token]);
+
+    // Recent system events come from the real in-app saint event bus (the
+    // same log St. Anthony's event stream audits) — not hardcoded rows.
+    const [events, setEvents] = useState<SaintEventEnvelope[]>(() => getEventLog().slice(-8).reverse());
+    useEffect(() => {
+        const unsubscribe = subscribeToSaintEvents((event) => {
+            setEvents((prev) => [event, ...prev].slice(0, 8));
+        });
+        return unsubscribe;
+    }, []);
+
+    // The health pill is derived from the live error rate, never asserted.
+    const systemHealth = !metrics
+        ? { label: 'Telemetry unavailable', dot: 'bg-slate-500', text: 'text-slate-400' }
+        : metrics.throughput.error_rate > 5
+            ? { label: 'System Degraded', dot: 'bg-rose-500', text: 'text-rose-400' }
+            : metrics.throughput.error_rate > 1
+                ? { label: 'Elevated Errors', dot: 'bg-amber-500', text: 'text-amber-400' }
+                : { label: 'System Nominal', dot: 'bg-emerald-500', text: 'text-emerald-400' };
 
     const formatUptime = (seconds: number) => {
         const h = Math.floor(seconds / 3600);
@@ -145,9 +165,12 @@ export default function SystemMonitorDashboard() {
                             <Clock className="w-4 h-4 text-slate-500" />
                             <span className="text-slate-300">Uptime: {metrics ? formatUptime(metrics.uptime_seconds) : '--'}</span>
                         </div>
+                        {metrics && (
+                            <span className="text-xs text-slate-500">Updated {lastUpdated.toLocaleTimeString()}</span>
+                        )}
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
-                            <span className="text-emerald-400">System Nominal</span>
+                            <div className={`w-2 h-2 rounded-full ${systemHealth.dot} motion-safe:animate-pulse`} />
+                            <span className={systemHealth.text}>{systemHealth.label}</span>
                         </div>
                     </div>
                 </div>
@@ -258,23 +281,31 @@ export default function SystemMonitorDashboard() {
                     </div>
                 </div>
 
-                {/* Logs / Events placeholder */}
+                {/* Recent events from the real in-app saint event bus */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                     <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
                         <Database className="w-4 h-4 text-slate-400" />
                         Recent System Events
                     </h3>
                     <div className="space-y-2">
-                        <div className="flex items-center gap-3 text-sm p-2 bg-slate-900/50 rounded border border-slate-800/50">
-                            <span className="text-xs font-mono text-slate-500">{new Date().toLocaleTimeString()}</span>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            <span className="text-slate-300">System Monitor Initialized</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm p-2 bg-slate-900/50 rounded border border-slate-800/50">
-                            <span className="text-xs font-mono text-slate-500">{new Date(Date.now() - 5000).toLocaleTimeString()}</span>
-                            <Zap className="w-4 h-4 text-blue-500" />
-                            <span className="text-slate-300">Metrics Collection Started</span>
-                        </div>
+                        {events.length === 0 && (
+                            <p className="rounded border border-dashed border-slate-800/60 bg-slate-900/50 p-4 text-center text-xs text-slate-500">
+                                No saint-bridge events recorded this session yet.
+                            </p>
+                        )}
+                        {events.map((event) => (
+                            <div key={event.id || `${event.source}-${event.timestamp}-${event.topic}`} className="flex items-center gap-3 text-sm p-2 bg-slate-900/50 rounded border border-slate-800/50">
+                                <span className="text-xs font-mono text-slate-500">{new Date(event.timestamp).toLocaleTimeString()}</span>
+                                {event.topic.includes('alert') || event.topic.includes('flag') ? (
+                                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                                ) : (
+                                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                                )}
+                                <span className="truncate text-slate-300">
+                                    <span className="uppercase text-slate-500">{event.source}</span> · {event.topic}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </main>

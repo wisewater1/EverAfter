@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -8,17 +8,12 @@ import {
   Mail,
   Plus,
   Edit3,
-  Trash2,
   Check,
   X,
-  ExternalLink,
-  Copy,
   Share2,
   MessageSquare,
-  TrendingUp,
   AlertCircle,
-  ChevronRight,
-  Settings
+  ChevronRight
 } from 'lucide-react';
 
 interface CareerProfile {
@@ -73,6 +68,7 @@ export default function CareerDashboard() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [copied, setCopied] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   // Profile form state
   const [formData, setFormData] = useState({
@@ -182,6 +178,7 @@ export default function CareerDashboard() {
 
   const saveProfile = async () => {
     setProfileError(null);
+    setSavingProfile(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const session = await supabase.auth.getSession();
@@ -211,10 +208,25 @@ export default function CareerDashboard() {
         const data = await response.json();
         setProfile(data.profile);
         setEditingProfile(false);
+      } else {
+        // Surface the edge function's error body instead of silently ignoring it.
+        let message = 'Failed to save profile. Please try again.';
+        try {
+          const errorBody = await response.json();
+          const detail = [errorBody?.message || errorBody?.error, errorBody?.hint]
+            .filter((part): part is string => typeof part === 'string' && part.length > 0)
+            .join(' ');
+          if (detail) message = detail;
+        } catch {
+          // Error body was not JSON; keep the generic message.
+        }
+        setProfileError(message);
       }
     } catch (error) {
       console.error('Error saving profile:', error);
       setProfileError('Failed to save profile. Please try again.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -434,9 +446,10 @@ export default function CareerDashboard() {
               </button>
               <button
                 onClick={saveProfile}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
+                disabled={savingProfile}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save Profile
+                {savingProfile ? 'Saving...' : 'Save Profile'}
               </button>
             </div>
           </div>

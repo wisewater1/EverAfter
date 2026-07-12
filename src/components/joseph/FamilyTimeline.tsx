@@ -78,7 +78,9 @@ function detectMissingHistory(members: FamilyMember[], events: FamilyEventType[]
                     memberName: fullName,
                     gapStartYear: decade,
                     gapEndYear: decade + 9,
-                    suggestedPrompt: prompts[Math.floor(Math.random() * prompts.length)],
+                    // Deterministic per member+decade so the same gap always
+                    // shows the same prompt instead of reshuffling each render.
+                    suggestedPrompt: prompts[(member.id.length + decade) % prompts.length],
                 });
                 break; // Only show one probe per member
             }
@@ -433,9 +435,10 @@ export default function FamilyTimeline() {
                 const futureEvents: FamilyEventType[] = [];
                 const currentYear = new Date().getFullYear();
 
-                // 1. Fetch WiseGold Wallet
+                // 1. Fetch WiseGold Wallet — projections only render from a
+                // real, positive balance. No placeholder base: a zero or
+                // failed wallet read means no wealth projection is shown.
                 try {
-                    let balance = 1450.50; // Mock base
                     const data = await requestBackendJson<any>(
                         '/api/v1/finance/wisegold/wallet',
                         {
@@ -443,7 +446,7 @@ export default function FamilyTimeline() {
                         },
                         'Failed to load projected WiseGold wallet.',
                     );
-                    balance = data.wallet?.balance || balance;
+                    const balance = Number(data.wallet?.balance) || 0;
 
                     if (balance > 0) {
                         futureEvents.push({
@@ -568,21 +571,45 @@ export default function FamilyTimeline() {
     }, [showHeatmap, decades]);
 
     // ── Causal Thread Chain Calculation ──
+    // A thread is a real, explainable link: the selected event plus every
+    // LATER event involving the same family member — that person's actual
+    // downstream story, derived from the data rather than invented.
     const causalChain = useMemo(() => {
-        // Mocking a chain generation based on random downstream events for visual effect
         if (!activeThreadEventId || !showThreads) return new Set<string>();
         const chain = new Set<string>();
-        chain.add(activeThreadEventId);
-        let found = false;
-        allEvents.forEach((e, i) => {
-            if (e.id === activeThreadEventId) found = true;
-            else if (found && (i % 3 === 0)) {
-                // Mock link: Every 3rd event forward in time is vaguely connected to the initial node.
+        const origin = allEvents.find((e) => e.id === activeThreadEventId);
+        if (!origin) return chain;
+        chain.add(origin.id);
+        const originTime = new Date(origin.date).getTime();
+        allEvents.forEach((e) => {
+            if (e.id === origin.id) return;
+            if (e.memberId === origin.memberId && new Date(e.date).getTime() >= originTime) {
                 chain.add(e.id);
             }
         });
         return chain;
     }, [activeThreadEventId, showThreads, allEvents]);
+
+    // ── Echo Detection ──
+    // An event "echoes" when an EARLIER event of the same type exists for a
+    // different family member — a real recurring pattern across the family
+    // (a birth echoing an earlier birth, a marriage echoing a marriage),
+    // not a randomly badged card.
+    const echoSources = useMemo(() => {
+        const map = new Map<string, EnrichedEvent>();
+        if (!showEchoes) return map;
+        const sorted = [...allEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        sorted.forEach((event, idx) => {
+            for (let i = idx - 1; i >= 0; i--) {
+                const earlier = sorted[i];
+                if (earlier.type === event.type && earlier.memberId !== event.memberId) {
+                    map.set(event.id, earlier);
+                    break;
+                }
+            }
+        });
+        return map;
+    }, [showEchoes, allEvents]);
 
     const eventTypes: EventType[] = ['birth', 'marriage', 'death', 'milestone'];
 
@@ -811,7 +838,8 @@ export default function FamilyTimeline() {
                                     const crossSaintColor = crossSaintBadge?.color?.replace('text-', '') || 'white';
                                     const isThreadNode = showThreads && activeThreadEventId && causalChain.has(event.id);
                                     const isThreadOrigin = showThreads && activeThreadEventId === event.id;
-                                    const isEchoNode = showEchoes && ((index % 5 === 0) || (index % 7 === 0)); // Mock randomly selected echo pairs
+                                    const echoSource = showEchoes ? echoSources.get(event.id) : undefined;
+                                    const isEchoNode = Boolean(echoSource);
 
                                     return (
                                         <div key={event.id} className={`shrink-0 w-80 snap-center flex flex-col items-center relative group ${isProjection ? 'opacity-90' : ''} ${isTop ? 'justify-end pb-[260px]' : 'justify-start pt-[260px]'}`}>
@@ -834,11 +862,14 @@ export default function FamilyTimeline() {
                                             {/* Event Card (Glassmorphism) */}
                                             <div className={`w-full absolute ${isTop ? 'bottom-[55%]' : 'top-[55%]'} bg-slate-900/80 backdrop-blur-md border ${isThreadNode ? 'border-indigo-400/50 shadow-[0_0_30px_rgba(99,102,241,0.25)]' : isEchoNode ? 'border-fuchsia-400/50 shadow-[0_0_20px_rgba(217,70,239,0.2)]' : isProjection ? 'border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.15)]' : isCrossSaint ? `border-${crossSaintColor}/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]` : 'border-white/10 shadow-xl'} rounded-2xl p-5 hover:bg-slate-800/90 transition-all duration-300 hover:scale-[1.02] group-hover:border-white/20 z-30`}>
                                                 
-                                                {/* Echo Line/Badge (Simulation) */}
-                                                {isEchoNode && (
+                                                {/* Echo badge: names the real earlier event it recurs from */}
+                                                {isEchoNode && echoSource && (
                                                     <div className="absolute -top-3 -right-3">
-                                                        <div className="flex items-center gap-1 bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(217,70,239,0.3)]">
-                                                            <Repeat className="w-2.5 h-2.5" /> Echoes Past Event
+                                                        <div
+                                                            title={`Echoes ${echoSource.memberName}'s ${echoSource.type} (${new Date(echoSource.date).getFullYear()})`}
+                                                            className="flex items-center gap-1 bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(217,70,239,0.3)]"
+                                                        >
+                                                            <Repeat className="w-2.5 h-2.5" /> Echoes {echoSource.memberName.split(' ')[0]} · {new Date(echoSource.date).getFullYear()}
                                                         </div>
                                                     </div>
                                                 )}
@@ -854,19 +885,30 @@ export default function FamilyTimeline() {
                                                             <GitBranch className="w-3.5 h-3.5" />
                                                         </button>
                                                         
-                                                        {activeGhostEventId === event.id && (
-                                                            <div className={`absolute ${isTop ? 'top-0 right-[105%]' : 'bottom-0 right-[105%]'} w-64 bg-slate-900/60 backdrop-blur-sm border border-teal-500/30 border-dashed rounded-xl p-4 shadow-[0_0_30px_rgba(20,184,166,0.1)] opacity-70 hover:opacity-100 transition-opacity z-50 pointer-events-auto`}>
-                                                                <div className="flex items-center gap-1.5 mb-2 text-teal-400">
-                                                                    <GitBranch className="w-3 h-3" />
-                                                                    <span className="text-[10px] font-black uppercase tracking-widest">Ghost Branch Activated</span>
+                                                        {activeGhostEventId === event.id && (() => {
+                                                            // Real downstream count: later recorded events in this
+                                                            // member's own line — a reflection aid, not a prediction.
+                                                            const downstream = allEvents.filter(
+                                                                (e) => e.memberId === event.memberId
+                                                                    && e.id !== event.id
+                                                                    && new Date(e.date).getTime() >= new Date(event.date).getTime(),
+                                                            ).length;
+                                                            return (
+                                                                <div className={`absolute ${isTop ? 'top-0 right-[105%]' : 'bottom-0 right-[105%]'} w-64 bg-slate-900/60 backdrop-blur-sm border border-teal-500/30 border-dashed rounded-xl p-4 shadow-[0_0_30px_rgba(20,184,166,0.1)] opacity-70 hover:opacity-100 transition-opacity z-50 pointer-events-auto`}>
+                                                                    <div className="flex items-center gap-1.5 mb-2 text-teal-400">
+                                                                        <GitBranch className="w-3 h-3" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest">What-If Reflection</span>
+                                                                    </div>
+                                                                    <p className="text-xs text-slate-300 font-medium italic mb-2">"What if this event never occurred, or happened differently?"</p>
+                                                                    <div className="text-[10px] text-teal-200/50 leading-relaxed border-t border-teal-500/20 pt-2">
+                                                                        {downstream > 0
+                                                                            ? <>In your family record, <span className="text-teal-400">{downstream} later {downstream === 1 ? 'event' : 'events'}</span> in {event.memberName.split(' ')[0]}'s line follow this moment — each would have unfolded differently.</>
+                                                                            : <>No later events are recorded in {event.memberName.split(' ')[0]}'s line yet — this moment is where their recorded story currently ends.</>}
+                                                                        <span className="mt-1 block text-slate-600">A reflection aid from your recorded history — not a prediction.</span>
+                                                                    </div>
                                                                 </div>
-                                                                <p className="text-xs text-slate-300 font-medium italic mb-2">"What if this event never occurred, or happened differently?"</p>
-                                                                <div className="text-[10px] text-teal-200/50 leading-relaxed border-t border-teal-500/20 pt-2">
-                                                                    <span className="text-teal-400">↳ Causal Twin Engine Probing...</span><br/>
-                                                                    Probabilistic divergence calculated. Downstream events shifted by 18%. WiseGold Vault projection reduced by 12%. New descendant nodes rendering.
-                                                                </div>
-                                                            </div>
-                                                        )}
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
 

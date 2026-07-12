@@ -31,6 +31,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
     const [vignette, setVignette] = useState('');
     const [isTraining, setIsTraining] = useState(false);
     const [traits, setTraits] = useState<Trait[]>([]);
+    const [analyzeNotice, setAnalyzeNotice] = useState<string | null>(null);
     const [mentor, setMentor] = useState('raphael');
 
     useEffect(() => {
@@ -44,12 +45,10 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
     }, [targetEngramId, engrams]);
 
     const fetchEngrams = async () => {
-        console.log("TrainingCenter: fetchEngrams starting...");
         setLoading(true);
         try {
             // 1. Get local family members immediately
             const localFamily = getFamilyMembers();
-            console.log("TrainingCenter: localFamily found:", localFamily.length);
             const localDefaults: EngramListing[] = localFamily.map(member => {
                 const fullName = `${member.firstName} ${member.lastName}`;
                 return {
@@ -103,7 +102,6 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                 // 3. Auto-sync if needed
                 const unsynced = localFamily.filter(m => !engramMap.has(`${m.firstName} ${m.lastName}`));
                 if (unsynced.length > 0) {
-                    console.log("TrainingCenter: Auto-syncing family members...");
                     const idMapping = await apiClient.batchSyncEngrams(localFamily);
 
                     setEngrams((prev: EngramListing[]) => prev.map((p: EngramListing) => {
@@ -112,7 +110,6 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                         const backendId = localId ? idMapping[localId] : null;
 
                         if (backendId) {
-                            console.log(`TrainingCenter: Mapped ${p.name} to ${backendId}`);
                             return { ...p, id: backendId };
                         }
                         return p;
@@ -156,18 +153,30 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
     const handleAnalyze = async () => {
         if (!selectedId) return;
         setIsTraining(true);
+        setAnalyzeNotice(null);
         try {
             const backendId = await ensureBackendId(selectedId);
             if (!backendId) {
-                // Simulate with local personality data
-                const simTraits = [
-                    { subject: 'Openness', A: 65, fullMark: 100 },
-                    { subject: 'Conscientiousness', A: 70, fullMark: 100 },
-                    { subject: 'Extraversion', A: 55, fullMark: 100 },
-                    { subject: 'Agreeableness', A: 75, fullMark: 100 },
-                    { subject: 'Neuroticism', A: 40, fullMark: 100 },
-                ];
-                setTraits(simTraits);
+                // No backend twin yet: use the engram's REAL stored OCEAN
+                // profile if one exists (from quiz/training data); never
+                // render invented numbers as an analysis.
+                const listing = engrams.find((e) => e.id === selectedId);
+                const ocean = listing?.engram?.personality_summary?.ocean
+                    || listing?.engram?.aiPersonality?.ocean
+                    || null;
+                if (ocean && ['O', 'C', 'E', 'A', 'N'].every((k) => Number.isFinite(Number(ocean[k])))) {
+                    setTraits([
+                        { subject: 'Openness', A: Number(ocean.O), fullMark: 100 },
+                        { subject: 'Conscientiousness', A: Number(ocean.C), fullMark: 100 },
+                        { subject: 'Extraversion', A: Number(ocean.E), fullMark: 100 },
+                        { subject: 'Agreeableness', A: Number(ocean.A), fullMark: 100 },
+                        { subject: 'Neuroticism', A: Number(ocean.N), fullMark: 100 },
+                    ]);
+                    setAnalyzeNotice('Showing this engram’s stored personality profile. Sync to the backend for a fresh analysis.');
+                } else {
+                    setTraits([]);
+                    setAnalyzeNotice('No personality data exists for this engram yet — answer training questions or run a quiz first, then analyze again.');
+                }
                 return;
             }
             const data = await apiClient.analyzePersonality(backendId);
@@ -179,6 +188,7 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
             if (chartData.length > 0) setTraits(chartData);
         } catch (err) {
             console.error(err);
+            setAnalyzeNotice('Analysis is unavailable right now — the training service could not be reached.');
         } finally {
             setIsTraining(false);
         }
@@ -350,6 +360,9 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                                 <div className="text-center text-slate-400 italic text-sm">Run analysis to see radar</div>
                                             )}
                                         </div>
+                                        {analyzeNotice && (
+                                            <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">{analyzeNotice}</p>
+                                        )}
                                         <button
                                             onClick={handleAnalyze}
                                             disabled={isTraining}

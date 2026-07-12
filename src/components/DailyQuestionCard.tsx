@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Send, SkipForward, Calendar, Sparkles, User, Upload, X, Clock } from 'lucide-react';
+import { MessageCircle, Send, SkipForward, Calendar, Sparkles, Upload, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
 
@@ -42,6 +42,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
   const [showSuccess, setShowSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [noQuestionReason, setNoQuestionReason] = useState<'answered' | 'empty-pool' | null>(null);
 
   const loadQuestion = useCallback(async () => {
     if (!selectedAI) return;
@@ -76,19 +77,36 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           .eq('id', questionData.category_id)
           .maybeSingle();
 
-        setQuestion({
-          question_text: questionData.question_text,
-          question_category: categoryData?.category_name || 'general',
-          day_number: progressData?.current_day || 1,
-          already_answered_today: false
-        });
+        // Real answered-today check (this used to be hardcoded false, which
+        // made the "All Caught Up" state unreachable).
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const { data: todayResponse } = await supabase
+          .from('daily_question_responses')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('ai_id', selectedAI.id)
+          .gte('created_at', startOfToday.toISOString())
+          .limit(1)
+          .maybeSingle();
+
+        if (todayResponse) {
+          setQuestion(null);
+          setNoQuestionReason('answered');
+        } else {
+          setNoQuestionReason(null);
+          setQuestion({
+            question_text: questionData.question_text,
+            question_category: categoryData?.category_name || 'general',
+            day_number: progressData?.current_day || 1,
+            already_answered_today: false
+          });
+        }
       } else {
-        setQuestion({
-          question_text: "What's the first thing that brings you joy when you wake up?",
-          question_category: 'values',
-          day_number: progressData?.current_day || 1,
-          already_answered_today: false
-        });
+        // No active question in the pool: say so honestly instead of
+        // presenting a hardcoded stand-in question as today's question.
+        setQuestion(null);
+        setNoQuestionReason('empty-pool');
       }
     } catch (error) {
       console.error('Error loading question:', error);
@@ -110,7 +128,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
 
       if (data && data.length > 0) {
         if (preselectedAIId) {
-          const selectedFromProps = data.find(ai => ai.id === preselectedAIId);
+          const selectedFromProps = data.find((ai: ArchetypalAI) => ai.id === preselectedAIId);
           if (selectedFromProps) {
             setSelectedAI(selectedFromProps);
           } else {
@@ -134,14 +152,6 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
       loadQuestion();
     }
   }, [selectedAI, loadQuestion]);
-
-  const handleAISelect = (ai: ArchetypalAI) => {
-    setSelectedAI(ai);
-    setResponse('');
-    setAttachedFiles([]);
-    setQuestion(null);
-    setShowSuccess(false);
-  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -186,15 +196,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         }
       }
 
-      console.log('Submitting response with data:', {
-        user_id: userId,
-        ai_id: selectedAI.id,
-        day_number: question.day_number,
-        response_length: response.length,
-        file_count: uploadedFileIds.length
-      });
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('daily_question_responses')
         .insert([{
           user_id: userId,
@@ -204,8 +206,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           day_number: question.day_number,
           question_category: question.question_category,
           attachment_file_ids: uploadedFileIds.length > 0 ? uploadedFileIds : null,
-        }])
-        .select();
+        }]);
 
       if (error) {
         console.error('Database insert error:', error);
@@ -226,7 +227,6 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         throw new Error(userMessage);
       }
 
-      console.log('Response saved successfully:', data);
 
       setUploadProgress(100);
       setShowSuccess(true);
@@ -277,6 +277,7 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
         <h3 className="text-2xl font-medium text-white mb-3">No AI Created Yet</h3>
         <p className="text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
           Create your first archetypal AI to start answering daily questions and building a digital personality.
+          Use the &ldquo;Create Engram&rdquo; button in the Engrams section below to get started.
         </p>
       </div>
     );
@@ -525,9 +526,13 @@ export default function DailyQuestionCard({ userId, preselectedAIId }: DailyQues
           <div className="w-20 h-20 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Calendar className="w-10 h-10 text-slate-600" />
           </div>
-          <h3 className="text-2xl font-medium text-white mb-3">All Caught Up!</h3>
+          <h3 className="text-2xl font-medium text-white mb-3">
+            {noQuestionReason === 'empty-pool' ? 'No Question Available' : 'All Caught Up!'}
+          </h3>
           <p className="text-slate-400 leading-relaxed">
-            You've answered today's question. Come back tomorrow for more!
+            {noQuestionReason === 'empty-pool'
+              ? 'There is no active question in the pool right now. Check back soon — new questions are added regularly.'
+              : "You've answered today's question. Come back tomorrow for more!"}
           </p>
         </div>
       )}

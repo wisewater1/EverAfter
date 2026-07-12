@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Shield, Heart, Users, Search, Wallet, User, Activity, XCircle } from 'lucide-react';
+import { emitSaintEvent } from '../../lib/saintBridge';
 
 interface Node {
     id: string;
@@ -38,32 +39,36 @@ interface GraphProps {
     data?: SystemStatus | null;
 }
 
-export default function SystemRelationshipsGraph({ data }: GraphProps) {
-    // console.log("Graph received data:", data); // DEBUG
+type IsolatableSaint = 'michael' | 'gabriel' | 'anthony' | 'raphael' | 'joseph';
 
-    // Fallback for debugging/demo if API fails
-    const displayData = data || {
-        michael: { status: 'active', role: 'Guardian', message: 'System nominal.', metrics: { cpu: '12%', memory: '45%' } },
-        gabriel: { status: 'active', role: 'Steward', message: 'Financial streams active.', metrics: { pending_tx: 3 } },
-        anthony: { status: 'active', role: 'Seeker', message: 'No lost items.', metrics: { errors: 0 } },
-        raphael: { status: 'active', role: 'Healer', message: 'Health checks passed.', metrics: { heart_rate: '72bpm' } },
-        joseph: { status: 'active', role: 'Worker', message: 'Family tasks on track.', metrics: { tasks: 5 } }
-    };
+export default function SystemRelationshipsGraph({ data }: GraphProps) {
+    // No fabricated fallback: when live status hasn't arrived, nodes render
+    // in a neutral "unknown" state and the header says so — an all-green
+    // graph with invented metrics must never stand in for missing data.
+    const displayData = data ?? null;
+    const hasLiveData = Boolean(displayData);
 
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
-    const [isolatingId, setIsolatingId] = useState<string | null>(null);
+    // Nodes whose isolation has been requested this session. The request is
+    // a real action: it emits a saint-bridge security event that shows up in
+    // the System Monitor event feed and St. Anthony's audit stream.
+    const [isolationRequested, setIsolationRequested] = useState<Set<string>>(new Set());
 
-    const handleIsolate = async (id: string) => {
-        setIsolatingId(id);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setIsolatingId(null);
-        // Deselect or show 'isolated' state if we had a more complex state model
+    const handleIsolate = (id: string) => {
+        emitSaintEvent(
+            'michael',
+            'broadcast',
+            'security/isolation_requested',
+            { node: id, requested_from: 'system_relationships_graph' },
+            { urgency: 'high' },
+        );
+        setIsolationRequested(prev => new Set(prev).add(id));
     };
 
     const getStatusColor = (id: string, defaultColor: string) => {
-        if (isolatingId === id) return '#f43f5e'; // Pulse red during isolation
-        if (!displayData) return defaultColor;
+        if (isolationRequested.has(id)) return '#f43f5e'; // Isolation requested
+        if (!displayData) return '#64748b'; // Unknown until telemetry arrives
         const saint = (displayData as any)[id];
         if (!saint) return defaultColor;
 
@@ -110,7 +115,11 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                     <Activity className="w-4 h-4 text-sky-500" />
                     System Architecture Visualization
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">Real-time saint interactions and data flow. Click nodes for details.</p>
+                <p className="text-xs text-slate-500 mt-1">
+                    {hasLiveData
+                        ? 'Real-time saint interactions and data flow. Click nodes for details.'
+                        : 'Live telemetry unavailable — showing system topology only.'}
+                </p>
             </div>
 
             <svg className="w-full h-full" viewBox="0 0 800 600">
@@ -135,12 +144,12 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                                 y1={source.y}
                                 x2={target.x}
                                 y2={target.y}
-                                stroke={isolatingId === link.source ? '#450a0a' : '#1e293b'}
+                                stroke={isolationRequested.has(link.source) ? '#450a0a' : '#1e293b'}
                                 strokeWidth="2"
                                 markerEnd="url(#arrowhead)"
                                 className="transition-all duration-1000"
                             />
-                            {link.active && isolatingId !== link.source && (
+                            {link.active && !isolationRequested.has(link.source) && (
                                 <circle r="3" fill={link.color || source.color}>
                                     <animateMotion
                                         dur="2s"
@@ -156,7 +165,7 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                 {/* Nodes */}
                 {nodes.map(node => {
                     const isSelected = selectedNode === node.id;
-                    const isIsolating = isolatingId === node.id;
+                    const isIsolating = isolationRequested.has(node.id);
 
                     return (
                         <g
@@ -226,29 +235,43 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
             </div>
 
             {/* Detail Panel */}
-            {activeDetailId && activeStatusData && activeDisplayNode && (
+            {activeDetailId && activeDisplayNode && (
                 <div className="absolute top-6 right-6 z-20 w-72 bg-slate-900/95 sm:backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-300">
                     <div className="flex items-center justify-between mb-3">
                         <div>
                             <h4 className="text-sm font-bold text-white capitalize">{activeDisplayNode.label}</h4>
                             <span className="text-[10px] text-slate-500 uppercase tracking-tight">{activeDisplayNode.role}</span>
                         </div>
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${activeStatusData.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
-                            activeStatusData.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
-                                'bg-rose-500/20 text-rose-400'
-                            }`}>
-                            {activeStatusData.status}
-                        </span>
+                        {activeStatusData ? (
+                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${activeStatusData.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
+                                activeStatusData.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                                    'bg-rose-500/20 text-rose-400'
+                                }`}>
+                                {activeStatusData.status}
+                            </span>
+                        ) : (
+                            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-700/40 text-slate-400">
+                                unknown
+                            </span>
+                        )}
                     </div>
 
-                    <div className="bg-white/5 rounded-xl p-3 mb-4">
-                        <p className="text-[11px] text-slate-300 leading-relaxed italic">
-                            "{activeStatusData.message}"
-                        </p>
-                    </div>
+                    {activeStatusData?.message ? (
+                        <div className="bg-white/5 rounded-xl p-3 mb-4">
+                            <p className="text-[11px] text-slate-300 leading-relaxed italic">
+                                "{activeStatusData.message}"
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="bg-white/5 rounded-xl p-3 mb-4">
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                                No live status for this saint yet — telemetry has not arrived.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="space-y-2 mb-6">
-                        {activeStatusData.metrics && Object.entries(activeStatusData.metrics as Record<string, any>).map(([key, value]) => (
+                        {activeStatusData?.metrics && Object.entries(activeStatusData.metrics as Record<string, any>).map(([key, value]) => (
                             <div key={key} className="flex justify-between items-center text-xs border-b border-white/5 pb-1 last:border-0 hover:bg-white/[0.02] px-1 rounded transition-colors">
                                 <span className="text-slate-500 capitalize">{key.replace(/_/g, ' ')}</span>
                                 <span className="text-sky-400 font-mono font-bold">{String(value)}</span>
@@ -261,15 +284,16 @@ export default function SystemRelationshipsGraph({ data }: GraphProps) {
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleIsolate(activeDetailId);
+                                    handleIsolate(activeDetailId as IsolatableSaint);
                                 }}
-                                disabled={!!isolatingId && isolatingId !== activeDetailId}
-                                className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isolatingId === activeDetailId
-                                    ? 'bg-rose-500 text-white motion-safe:animate-pulse'
+                                disabled={isolationRequested.has(activeDetailId)}
+                                title="Emits a security event on the saint bridge (visible in the System Monitor feed and St. Anthony's audit stream). It does not stop the service."
+                                className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isolationRequested.has(activeDetailId)
+                                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 cursor-default'
                                     : 'bg-slate-800 hover:bg-rose-900/40 text-rose-400 border border-rose-500/20'
                                     }`}
                             >
-                                {isolatingId === activeDetailId ? 'Containment Active' : 'Isolate Node'}
+                                {isolationRequested.has(activeDetailId) ? 'Isolation Requested · Logged' : 'Request Isolation'}
                             </button>
                             {selectedNode && (
                                 <button

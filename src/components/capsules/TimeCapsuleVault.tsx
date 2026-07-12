@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Lock, Unlock, Mail, Plus, Clock,
     Sparkles, X, Loader
@@ -150,6 +150,7 @@ export default function TimeCapsuleVault() {
             setNewContent(data.content || '');
         } catch (error) {
             console.error("Generation failed", error);
+            setNotice('The AI letter generator is unavailable right now. Please try again in a moment, or write the message yourself.');
         } finally {
             setIsGenerating(false);
         }
@@ -242,6 +243,23 @@ export default function TimeCapsuleVault() {
                     <div className="flex justify-center py-20">
                         <Loader className="w-10 h-10 text-indigo-500 animate-spin" />
                     </div>
+                ) : capsules.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 p-10 md:p-14 text-center">
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                            <Mail className="w-7 h-7 text-indigo-400" />
+                        </div>
+                        <h3 className="font-serif font-medium text-xl text-slate-200 mb-2">No time capsules yet</h3>
+                        <p className="text-slate-400 max-w-md mx-auto mb-6">
+                            Seal your first message to the future — a letter, a memory, or a piece of advice waiting for the right moment to be opened.
+                        </p>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="inline-flex items-center gap-2 min-h-11 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Create Your First Capsule
+                        </button>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {capsules.map(capsule => (
@@ -324,6 +342,15 @@ export default function TimeCapsuleVault() {
                                 <Sparkles className="w-6 h-6 text-indigo-400" />
                                 Create Time Capsule
                             </h2>
+
+                            {notice && (
+                                <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 flex items-start justify-between gap-3">
+                                    <span>{notice}</span>
+                                    <button onClick={() => setNotice(null)} aria-label="Dismiss" className="text-amber-300/70 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 rounded">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
 
                             <div className="space-y-4">
                                 <div>

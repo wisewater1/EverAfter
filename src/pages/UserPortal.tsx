@@ -343,7 +343,7 @@ export default function UserPortal() {
         )}
 
         {activeTab === 'connections' && (
-          <ConnectionsTab connections={connections} userId={user?.id || ''} onRefresh={loadData} />
+          <ConnectionsTab connections={connections} connectionNames={connectionNames} userId={user?.id || ''} onRefresh={loadData} />
         )}
 
         {activeTab === 'messages' && (
@@ -466,11 +466,12 @@ function UserCard({ profile, connectionStatus, onConnect, onViewProfile }: UserC
 
 interface ConnectionsTabProps {
   connections: Connection[];
+  connectionNames: Record<string, string>;
   userId: string;
   onRefresh: () => void;
 }
 
-function ConnectionsTab({ connections, userId, onRefresh }: ConnectionsTabProps) {
+function ConnectionsTab({ connections, connectionNames, userId, onRefresh }: ConnectionsTabProps) {
   const pending = connections.filter(c => c.status === 'pending' && c.addressee_id === userId);
   const accepted = connections.filter(c => c.status === 'accepted');
 
@@ -547,7 +548,7 @@ function ConnectionsTab({ connections, userId, onRefresh }: ConnectionsTabProps)
             {accepted.map((connection) => (
               <div key={connection.id} className="p-4 bg-slate-800/40 rounded-xl">
                 <p className="text-white font-medium">
-                  {connectionNames[connection.requester_id === user?.id ? connection.addressee_id : connection.requester_id] || 'A member'}
+                  {connectionNames[connection.requester_id === userId ? connection.addressee_id : connection.requester_id] || 'A member'}
                 </p>
                 <p className="text-slate-400 text-sm">Connected on {new Date(connection.updated_at).toLocaleDateString()}</p>
               </div>

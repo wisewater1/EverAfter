@@ -219,13 +219,13 @@ export default function Signup() {
               />
               <label className="ml-2 text-sm text-gray-400">
                 I agree to the{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">
+                <Link to="/terms" target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 underline">
                   Terms of Service
-                </a>{' '}
+                </Link>{' '}
                 and{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">
+                <Link to="/privacy" target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 underline">
                   Privacy Policy
-                </a>
+                </Link>
               </label>
             </div>
 

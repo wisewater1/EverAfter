@@ -34,9 +34,10 @@ export interface VaultItem {
     slug?: string;
     status: VaultItemStatus;
     // payload is unmodelled jsonb: kept as Record so consumers can read
-    // common fields like recipients without losing the rest.
+    // common fields like recipients/attachments without losing the rest.
     payload: Record<string, unknown> & {
         recipients?: unknown[];
+        attachments?: string[];
     };
     is_encrypted: boolean;
     encryption_key_id?: string;

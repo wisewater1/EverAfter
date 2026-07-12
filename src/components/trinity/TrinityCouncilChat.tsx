@@ -15,7 +15,7 @@ interface CouncilResponse {
 
 interface Message {
     id: string;
-    role: 'user' | 'council';
+    role: 'user' | 'council' | 'error';
     text?: string;
     responses?: CouncilResponse[];
     timestamp: Date;
@@ -32,6 +32,16 @@ export default function TrinityCouncilChat() {
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+    function appendCouncilError() {
+        const errorMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'error',
+            text: 'The council is unreachable right now — try again in a moment.',
+            timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMsg]);
+    }
+
     async function sendMessage() {
         if (!input.trim() || loading) return;
         const userMsg: Message = { id: Date.now().toString(), role: 'user', text: input, timestamp: new Date() };
@@ -44,15 +54,21 @@ export default function TrinityCouncilChat() {
                 user_message: input,
                 ...buildTrinityCommonContext(),
             });
-            const councilMsg: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'council',
-                responses: data?.responses || [],
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, councilMsg]);
+            const responses = data?.responses || [];
+            if (responses.length > 0) {
+                const councilMsg: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'council',
+                    responses,
+                    timestamp: new Date(),
+                };
+                setMessages(prev => [...prev, councilMsg]);
+            } else {
+                appendCouncilError();
+            }
         } catch (err) {
             console.warn('TrinityCouncilChat: failed to load council response', err);
+            appendCouncilError();
         } finally {
             setLoading(false);
         }
@@ -81,6 +97,13 @@ export default function TrinityCouncilChat() {
                         {msg.role === 'user' && (
                             <div className="flex justify-end">
                                 <div className="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-teal-500/20 text-white text-sm border border-teal-500/20">
+                                    {msg.text}
+                                </div>
+                            </div>
+                        )}
+                        {msg.role === 'error' && (
+                            <div className="flex justify-start">
+                                <div className="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-bl-sm bg-rose-500/10 text-rose-200 text-sm border border-rose-500/20">
                                     {msg.text}
                                 </div>
                             </div>
