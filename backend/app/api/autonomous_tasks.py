@@ -244,35 +244,22 @@ async def save_credentials(
     session: AsyncSession = Depends(get_async_session),
     current_user: dict = Depends(get_current_user)
 ):
-    """Save encrypted credentials for AI agent"""
-    # Encrypt with a STABLE, configured key so the credential can actually be
-    # decrypted later. The previous code generated a throwaway key per request
-    # and discarded it, making every stored credential permanently unrecoverable.
-    from app.core.crypto import stable_fernet
+    """Refuse to collect third-party portal credentials.
 
-    cipher = stable_fernet("agent-credentials")
-    encrypted_password = cipher.encrypt(cred_data.password.encode()).decode()
-
-    credential = AgentCredential(
-        user_id=str(current_user.get("sub")),
-        engram_id=cred_data.engram_id,
-        credential_type=cred_data.credential_type,
-        service_name=cred_data.service_name,
-        username=cred_data.username,
-        encrypted_password=encrypted_password,
-        additional_data=cred_data.additional_data,
-        is_verified=False
+    The autonomous execution engine has no real portal integrations yet
+    (see task_executor.UNSUPPORTED_REAL_WORLD_TASKS), so accepting real
+    healthcare/pharmacy passwords would collect sensitive secrets for a
+    feature that cannot use them. This endpoint stays disabled until real
+    portal automation ships.
+    """
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail=(
+            "Storing portal credentials is disabled: autonomous portal "
+            "automation isn't live yet, and EverAfter won't collect real "
+            "passwords for a feature that can't use them."
+        ),
     )
-
-    session.add(credential)
-    await session.commit()
-    await session.refresh(credential)
-
-    return {
-        "id": str(credential.id),
-        "service_name": credential.service_name,
-        "credential_type": credential.credential_type
-    }
 
 
 @router.get("/credentials")

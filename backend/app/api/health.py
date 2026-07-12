@@ -248,28 +248,39 @@ async def import_fhir_bulk(
         raise HTTPException(status_code=400, detail="Expected a FHIR Bundle resource")
 
     entries = fhir_bundle.get("entry", [])
-    logger.info(f"Processing FHIR bundle for user {user_id} with {len(entries)} entries")
-    
-    # Stub: Processing pipeline placeholder for the ML ingestion flow
-    processed_counts = {
+    logger.info(f"Received FHIR bundle for user {user_id} with {len(entries)} entries")
+
+    counted = {
         "Observation": 0,
         "Condition": 0,
         "MedicationRequest": 0,
         "FamilyMemberHistory": 0
     }
-    
+
     for entry in entries:
         resource = entry.get("resource", {})
         rtype = resource.get("resourceType")
-        if rtype in processed_counts:
-            processed_counts[rtype] += 1
-            
-    return {
-        "status": "success",
-        "processed_entries": len(entries),
-        "resource_counts": processed_counts,
-        "message": "FHIR bundle successfully queued for normalization and Family Graph mapping"
-    }
+        if rtype in counted:
+            counted[rtype] += 1
+
+    # HONEST STATUS: the persistence/normalization pipeline for these
+    # resource types is not built yet, and nothing in this bundle is stored.
+    # Returning "success" here made callers believe their clinical data was
+    # imported while it was silently discarded — a data-loss lie. 501 tells
+    # the truth until real ingestion ships.
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "status": "not_implemented",
+            "recognized_resource_counts": counted,
+            "persisted_entries": 0,
+            "message": (
+                "FHIR clinical import isn't available yet: the bundle was parsed but "
+                "NOT stored. Nothing from this import was saved. Re-import once "
+                "clinical ingestion ships."
+            ),
+        },
+    )
 
 @router.get("/predictions", response_model=Dict[str, Any])
 async def get_health_predictions(

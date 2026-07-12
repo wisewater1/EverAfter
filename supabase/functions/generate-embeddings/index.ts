@@ -53,44 +53,41 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { apiKey: openaiApiKey } = await resolveApiKey(supabase, user.id, 'openai', 'OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      console.warn('OpenAI API key not configured, using mock embeddings');
-      const mockEmbedding = Array(1536).fill(0).map(() => Math.random() * 0.1);
-      
-      let insertResult;
-      if (type === 'engram_memory' && engramId) {
-        insertResult = await supabase
-          .from('engram_memory_embeddings')
-          .insert({
-            engram_id: engramId,
-            content: text,
-            embedding: mockEmbedding,
-            metadata,
-          })
-          .select()
-          .single();
-      } else if (type === 'family_member' && familyMemberId) {
-        insertResult = await supabase
-          .from('family_member_embeddings')
-          .insert({
-            family_member_id: familyMemberId,
-            content: text,
-            embedding: mockEmbedding,
-            metadata,
-          })
-          .select()
-          .single();
-      }
-
+    // Refuse requests we cannot persist instead of returning a fake success.
+    // ('conversation' has no storage table; the other types need a target id.)
+    const persistable =
+      (type === 'engram_memory' && engramId) ||
+      (type === 'family_member' && familyMemberId);
+    if (!persistable) {
       return new Response(
         JSON.stringify({
-          success: true,
-          embedding: mockEmbedding,
-          id: insertResult?.data?.id,
-          mock: true,
+          code: 'INVALID_TARGET',
+          message:
+            type === 'conversation'
+              ? 'Conversation embeddings are not supported: there is no storage table for them, so nothing would be saved.'
+              : `Missing ${type === 'engram_memory' ? 'engramId' : 'familyMemberId'} — the embedding would have nowhere to be stored.`,
+          hint: 'Send type "engram_memory" with engramId, or "family_member" with familyMemberId.',
         }),
         {
+          status: type === 'conversation' ? 501 : 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const { apiKey: openaiApiKey } = await resolveApiKey(supabase, user.id, 'openai', 'OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      // Fail loudly: random vectors are not embeddings. Persisting them would
+      // silently poison similarity search for this engram/family member.
+      console.error('generate-embeddings: OPENAI_API_KEY not configured — refusing to store fabricated vectors');
+      return new Response(
+        JSON.stringify({
+          code: 'CONFIG_MISSING',
+          message: 'Embedding service is not configured, so this memory was not indexed.',
+          hint: 'Set OPENAI_API_KEY in Supabase Edge Function secrets (or add a user OpenAI key), then retry.',
+        }),
+        {
+          status: 503,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
