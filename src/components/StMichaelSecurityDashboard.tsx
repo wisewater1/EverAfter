@@ -26,7 +26,9 @@ type ScanBannerStatus = 'active' | 'warning' | 'critical' | 'failed';
 interface ScanBannerState {
     status: ScanBannerStatus;
     findingsCount: number;
-    vulnerabilitiesCount: number;
+    // null = the dependency CVE scan didn't run for that scan ("unknown"),
+    // as opposed to 0 ("checked, none found").
+    vulnerabilitiesCount: number | null;
     systemIntegrity: number;
     ledgerEntryId?: string;
 }
@@ -34,14 +36,14 @@ interface ScanBannerState {
 function normalizeBannerStatus(
     status: SecurityScanResult['status'] | ScanBannerStatus,
     findingsCount: number,
-    vulnerabilitiesCount: number,
+    vulnerabilitiesCount: number | null,
     systemIntegrity: number,
 ): ScanBannerStatus {
     if (status === 'critical') return 'critical';
     if (status === 'warning') return 'warning';
     if (status === 'failed') return 'failed';
 
-    if (findingsCount > 0 || vulnerabilitiesCount > 0 || systemIntegrity < 90) {
+    if (findingsCount > 0 || (vulnerabilitiesCount ?? 0) > 0 || systemIntegrity < 90) {
         return 'warning';
     }
 
@@ -51,7 +53,7 @@ function normalizeBannerStatus(
 function buildBannerState(input: {
     status: SecurityScanResult['status'] | ScanBannerStatus;
     findingsCount: number;
-    vulnerabilitiesCount: number;
+    vulnerabilitiesCount: number | null;
     systemIntegrity: number;
     ledgerEntryId?: string;
 }): ScanBannerState {
@@ -195,16 +197,20 @@ export default function StMichaelSecurityDashboard() {
                 const findingsCount = Number.isFinite(Number(metadata.findings_count))
                     ? Number(metadata.findings_count)
                     : fallbackFindingsCount;
-                const vulnerabilitiesCount = Number.isFinite(Number(metadata.vulnerabilities_count))
-                    ? Number(metadata.vulnerabilities_count)
-                    : 0;
+                // null in the ledger means the CVE scan didn't run for that
+                // entry — keep it unknown instead of coercing to 0.
+                const vulnerabilitiesCount = metadata.vulnerabilities_count === null
+                    ? null
+                    : Number.isFinite(Number(metadata.vulnerabilities_count))
+                        ? Number(metadata.vulnerabilities_count)
+                        : 0;
                 const systemIntegrity = Number.isFinite(Number(metadata.system_integrity))
                     ? Number(metadata.system_integrity)
                     : integrityData.overallScore;
                 const status = typeof metadata.status === 'string' &&
                     (metadata.status === 'active' || metadata.status === 'warning' || metadata.status === 'critical')
                     ? metadata.status
-                    : findingsCount > 0 || vulnerabilitiesCount > 0 || systemIntegrity < 90
+                    : findingsCount > 0 || (vulnerabilitiesCount ?? 0) > 0 || systemIntegrity < 90
                         ? 'warning'
                         : 'active';
 
@@ -240,7 +246,7 @@ export default function StMichaelSecurityDashboard() {
             setLastScanHandoff(buildBannerState({
                 status: scanResult.status,
                 findingsCount: scanResult.findings_count,
-                vulnerabilitiesCount: vulnerabilities.length,
+                vulnerabilitiesCount: scanResult.cve_scan_available === false ? null : vulnerabilities.length,
                 systemIntegrity: scanResult.system_integrity,
                 ledgerEntryId: scanResult.audit_handoff?.ledger_entry_id,
             }));
@@ -276,7 +282,7 @@ export default function StMichaelSecurityDashboard() {
                 setLastScanHandoff(buildBannerState({
                     status: 'failed',
                     findingsCount: fallbackFindings,
-                    vulnerabilitiesCount: lastScanHandoff?.vulnerabilitiesCount || 0,
+                    vulnerabilitiesCount: lastScanHandoff?.vulnerabilitiesCount ?? null,
                     systemIntegrity: fallbackIntegrity,
                 }));
             } catch (statusError) {
@@ -284,7 +290,7 @@ export default function StMichaelSecurityDashboard() {
                 setLastScanHandoff(buildBannerState({
                     status: 'failed',
                     findingsCount: lastScanHandoff?.findingsCount ?? alerts.filter((alert) => alert.type !== 'system').length,
-                    vulnerabilitiesCount: lastScanHandoff?.vulnerabilitiesCount || 0,
+                    vulnerabilitiesCount: lastScanHandoff?.vulnerabilitiesCount ?? null,
                     systemIntegrity: lastScanHandoff?.systemIntegrity ?? report?.overallScore ?? 0,
                 }));
             }
@@ -342,6 +348,13 @@ export default function StMichaelSecurityDashboard() {
                     </button>
                 </div>
 
+                {loading && !report && (
+                    <div className="mb-6 flex items-center gap-2 rounded-2xl border border-white/5 bg-slate-900/50 px-4 py-3 text-xs text-slate-400">
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        Loading live security data…
+                    </div>
+                )}
+
                 {lastScanHandoff && (
                     <div className={`mb-6 rounded-2xl px-4 py-4 sm:px-5 ${scanBannerClasses(lastScanHandoff.status)}`}>
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -351,7 +364,7 @@ export default function StMichaelSecurityDashboard() {
                                     <span className="hidden sm:inline">St. Michael full-app gauntlet {scanBannerTitle(lastScanHandoff.status)}</span>
                                 </p>
                                 <p className="mt-1 text-xs text-slate-300">
-                                    Integrity {lastScanHandoff.systemIntegrity}% • Findings {lastScanHandoff.findingsCount} • Vulnerabilities {lastScanHandoff.vulnerabilitiesCount}
+                                    Integrity {lastScanHandoff.systemIntegrity}% • Findings {lastScanHandoff.findingsCount} • Vulnerabilities {lastScanHandoff.vulnerabilitiesCount ?? 'unknown (scan unavailable)'}
                                     {lastScanHandoff.status !== 'failed' && ' • Delivered to St. Anthony for auditing'}
                                 </p>
                             </div>

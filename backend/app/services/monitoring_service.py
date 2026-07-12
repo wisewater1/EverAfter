@@ -34,30 +34,35 @@ class SaintsMonitoringService:
         """
         St. Michael (The Guardian): Security & System Integrity
         - Monitors Server Resources (CPU/RAM)
-        - Checks for recent high-volume traffic (DDoS simulation)
-        - Verifies generic security headers (mock)
+        - Runs the dependency CVE scan (OSV.dev) + Akashic PII audit
         """
         from app.services.metrics_collector import metrics_collector
         metrics = metrics_collector.get_metrics()
-        
+
         # 1. System Resources
         cpu_usage = metrics["resources"]["cpu_current"]
         memory_usage = metrics["resources"]["memory_current"]
-        
+
         # 2. Run Vulnerability & Akashic Scan (Lightweight version for status)
         # In a real app, user_id would be passed from the request context
         # We'll use a placeholder or skip the DB scan if user_id is missing
         scan_results = await vulnerability_service.perform_full_security_scan(user_id=None)
-        
+
         status = scan_results["status"]
         integrity = scan_results["system_integrity"]
-        message = scan_results["findings"][0]["message"] if scan_results["findings"] else "Perimeter secure. All systems nominal."
+        cve_scan_available = scan_results.get("cve_scan_available", True)
+        if scan_results["findings"]:
+            message = scan_results["findings"][0]["message"]
+        elif not cve_scan_available:
+            message = "Dependency CVE scan unavailable — security posture cannot be fully verified right now."
+        else:
+            message = "Perimeter secure. All systems nominal."
 
         if cpu_usage > 80 or memory_usage > 85:
             status = "warning"
             integrity -= 10
             message = "High system load detected. Vigilance increased."
-        
+
         return {
             "role": "Guardian of the Gate",
             "status": status,
@@ -65,7 +70,8 @@ class SaintsMonitoringService:
             "metrics": {
                 "cpu": f"{cpu_usage}%",
                 "memory": f"{memory_usage}%",
-                "vulnerabilities_tracked": len(scan_results["vulnerabilities"]),
+                # None (not 0) when the scan couldn't run: unknown ≠ none.
+                "vulnerabilities_tracked": len(scan_results["vulnerabilities"]) if cve_scan_available else None,
                 "security_findings": scan_results["findings_count"]
             },
             "recent_findings": scan_results["findings"][:3],

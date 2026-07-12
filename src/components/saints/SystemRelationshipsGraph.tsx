@@ -21,7 +21,7 @@ interface Link {
 }
 
 interface MonitoringStatus {
-    status: 'active' | 'warning' | 'error';
+    status: 'active' | 'warning' | 'error' | 'critical';
     role: string;
     message?: string;
     metrics?: Record<string, any>;

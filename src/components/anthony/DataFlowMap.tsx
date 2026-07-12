@@ -179,8 +179,12 @@ export default function DataFlowMap() {
                             <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3">
                                 <div className="text-[10px] uppercase tracking-widest text-slate-500">Tracked CVEs</div>
                                 <div className="mt-1 text-sm text-slate-200">
-                                    {flow.summary.vulnerabilitiesCount}
-                                    <span className="ml-2 text-rose-400 text-xs">{flow.summary.criticalVulnerabilities} critical</span>
+                                    {flow.summary.vulnerabilitiesCount ?? '—'}
+                                    {flow.summary.vulnerabilitiesCount !== null ? (
+                                        <span className="ml-2 text-rose-400 text-xs">{flow.summary.criticalVulnerabilities} critical</span>
+                                    ) : (
+                                        <span className="ml-2 text-amber-400 text-xs">scan unavailable</span>
+                                    )}
                                 </div>
                             </div>
                             <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3">
