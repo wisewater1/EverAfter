@@ -31,15 +31,22 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
 
     async function load(soft = false) {
         if (soft) setRefreshing(true); else setLoading(true);
-        const [dht, cards] = await Promise.all([
-            getDHT(personId),
-            getRiskCards(personId),
-        ]);
-        setAnomalies(dht?.dht?.anomalies || []);
-        setRiskCards((cards?.risk_cards || []).filter((c: any) => c.current_level === 'high' || c.current_level === 'critical'));
-        setLastScan(new Date());
-        setLoading(false);
-        setRefreshing(false);
+        try {
+            const [dht, cards] = await Promise.all([
+                getDHT(personId),
+                getRiskCards(personId),
+            ]);
+            setAnomalies(dht?.dht?.anomalies || []);
+            setRiskCards((cards?.risk_cards || []).filter((c: any) => c.current_level === 'high' || c.current_level === 'critical'));
+            setLastScan(new Date());
+        } catch {
+            // Transient DHT failure: keep the last-known anomalies/cards
+            // rather than sticking in "Scanning…" forever; the 90s poll
+            // will retry.
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
     }
 
     useEffect(() => { load(); }, [personId]);

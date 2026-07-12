@@ -5,7 +5,7 @@ import {
     Zap, ArrowLeft, Brain, Target, Beaker, FileText,
     ChevronRight, Link2, MessagesSquare
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 
@@ -29,6 +29,8 @@ import PredictiveHealthInsights from '../components/PredictiveHealthInsights';
 // Legacy components to preserve functionality
 import MedicationTracker from '../components/MedicationTracker';
 import HealthGoals from '../components/HealthGoals';
+import EmergencyContacts from '../components/EmergencyContacts';
+import FileManager from '../components/FileManager';
 import PhoneHealthConnect from '../components/PhoneHealthConnect';
 import ComprehensiveHealthConnectors from '../components/ComprehensiveHealthConnectors';
 import SecurityIntegrityBadge from '../components/shared/SecurityIntegrityBadge';
@@ -52,7 +54,14 @@ interface VitalsData {
     glucose?: { avg: number };
 }
 
-type ActiveView = 'overview' | 'simulation' | 'lab' | 'governance' | 'analytics' | 'trajectory' | 'chat';
+type ActiveView = 'overview' | 'simulation' | 'lab' | 'governance' | 'analytics' | 'trajectory' | 'chat' | 'emergency' | 'documents';
+
+// The /emergency, /files, and /my-files routes redirect here with a hash;
+// honoring it is what makes those deep links land on real content.
+const HASH_TO_VIEW: Record<string, ActiveView> = {
+    '#emergency': 'emergency',
+    '#documents': 'documents',
+};
 
 interface FamilyRiskChip {
     member_id: string;
@@ -147,6 +156,8 @@ const RAPHAEL_NAV_ITEMS = [
     { key: 'analytics', label: 'Biometric Analytics', mobileLabel: 'Analytics', icon: Activity },
     { key: 'trajectory', label: 'Neural Trajectory', mobileLabel: 'Trajectory', icon: Brain },
     { key: 'chat', label: 'Raphael AI Oracle', mobileLabel: 'Oracle', icon: MessagesSquare },
+    { key: 'emergency', label: 'Emergency Contacts', mobileLabel: 'Emergency', icon: Heart },
+    { key: 'documents', label: 'Documents & Files', mobileLabel: 'Files', icon: FileText },
 ] as const;
 
 export default function StRaphaelHealthHub() {
@@ -186,6 +197,15 @@ export default function StRaphaelHealthHub() {
             if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
         };
     }, []);
+
+    // Deep links: /emergency and /files redirect to this route with a hash
+    // (#emergency / #documents). Open the matching view whenever the hash is
+    // present, both on first mount and on in-page hash changes.
+    const location = useLocation();
+    useEffect(() => {
+        const view = HASH_TO_VIEW[location.hash];
+        if (view) setActiveView(view);
+    }, [location.hash]);
 
     function scheduleAutoRetry() {
         if (retryTimeoutRef.current || retryAttemptRef.current >= RETRY_DELAYS_MS.length) return;
@@ -414,18 +434,6 @@ export default function StRaphaelHealthHub() {
                                 label={item.label}
                             />
                         ))}
-                        <NavButton
-                            active={activeView === 'lab'}
-                            onClick={() => setActiveView('lab')}
-                            icon={Beaker}
-                            label="Evidence Ledger"
-                        />
-                        <NavButton
-                            active={activeView === 'chat'}
-                            onClick={() => setActiveView('chat')}
-                            icon={MessagesSquare}
-                            label="Raphael AI Oracle"
-                        />
                         <div className="pt-4 mt-4 border-t border-white/5">
                             <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-4 px-4 font-bold">Autonomous Status</h4>
                             <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
@@ -437,7 +445,18 @@ export default function StRaphaelHealthHub() {
 
                     {/* Main Content Area */}
                     <div className="lg:col-span-9">
-                        {hubBlockedReason ? (
+                        {/* Emergency contacts and documents are Supabase-backed and
+                            safety-relevant: they must stay reachable even while the
+                            backend health hub is blocked/recovering. */}
+                        {activeView === 'emergency' ? (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700">
+                                <EmergencyContacts />
+                            </div>
+                        ) : activeView === 'documents' ? (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700">
+                                <FileManager />
+                            </div>
+                        ) : hubBlockedReason ? (
                             <FeatureBlockedState
                                 title="Raphael Is Blocked"
                                 reason={hubBlockedReason}

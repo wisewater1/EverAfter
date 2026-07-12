@@ -336,6 +336,7 @@ export default function Marketplace() {
                   onPurchase={handlePurchase}
                   onAddToEngrams={handleAddToEngrams}
                   onViewDetails={setSelectedTemplate}
+                  onDemo={setDemoTemplate}
                   purchasing={purchasing}
                 />
               ))}
@@ -359,6 +360,7 @@ export default function Marketplace() {
                   onPurchase={handlePurchase}
                   onAddToEngrams={handleAddToEngrams}
                   onViewDetails={setSelectedTemplate}
+                  onDemo={setDemoTemplate}
                   purchasing={purchasing}
                 />
               ))}
@@ -389,6 +391,18 @@ export default function Marketplace() {
         />
       )}
 
+      {/* Demo Preview Modal: real sample conversations shipped with the template */}
+      {demoTemplate && (
+        <DemoPreviewModal
+          template={demoTemplate}
+          onClose={() => setDemoTemplate(null)}
+          onPurchase={(t) => {
+            setDemoTemplate(null);
+            handlePurchase(t);
+          }}
+        />
+      )}
+
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={closeAuthModal}
@@ -415,10 +429,11 @@ interface TemplateCardProps {
   onPurchase: (template: MarketplaceTemplate) => void;
   onAddToEngrams: (template: MarketplaceTemplate) => void;
   onViewDetails: (template: MarketplaceTemplate) => void;
+  onDemo: (template: MarketplaceTemplate) => void;
   purchasing: boolean;
 }
 
-function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onViewDetails, purchasing }: TemplateCardProps) {
+function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onViewDetails, onDemo, purchasing }: TemplateCardProps) {
   return (
     <div className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:border-slate-600/50 p-6 shadow-xl transition-all duration-300">
       {/* Header */}
@@ -482,9 +497,9 @@ function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onVie
           >
             Details
           </button>
-          {!isPurchased && (
+          {!isPurchased && template.sample_conversations?.length > 0 && (
             <button
-              onClick={() => setDemoTemplate(template)}
+              onClick={() => onDemo(template)}
               className="px-3 py-2 bg-sky-600/20 text-sky-400 border border-sky-500/30 rounded-lg hover:bg-sky-600/30 transition-all text-sm font-medium flex items-center gap-1"
             >
               <MessageSquare className="w-4 h-4" />
@@ -661,6 +676,81 @@ function TemplateDetailsModal({ template, isPurchased, onClose, onPurchase, onAd
                 )}
               </button>
             )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface DemoPreviewModalProps {
+  template: MarketplaceTemplate;
+  onClose: () => void;
+  onPurchase: (template: MarketplaceTemplate) => void;
+}
+
+/**
+ * Read-only conversation preview built from the template's own
+ * sample_conversations — a genuine taste of the personality before buying,
+ * clearly labeled as a scripted sample (not a live chat).
+ */
+function DemoPreviewModal({ template, onClose, onPurchase }: DemoPreviewModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Sample conversation with ${template.title}`}
+      >
+        <div className="sticky top-0 flex items-center justify-between border-b border-slate-700/60 bg-slate-900/95 px-5 py-4 backdrop-blur">
+          <div>
+            <h3 className="text-lg font-medium text-white">{template.title}</h3>
+            <p className="text-xs text-sky-400">Scripted sample conversation — not a live chat</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close preview"
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-5">
+          {template.sample_conversations.map((exchange, i) => (
+            <div key={i} className="space-y-2">
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-sky-600/90 px-4 py-2.5 text-sm text-white">
+                  {exchange.question}
+                </div>
+              </div>
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-slate-700/60 bg-slate-800/80 px-4 py-2.5 text-sm text-slate-200">
+                  {exchange.response}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-slate-700/60 px-5 py-4">
+          <span className="text-xl font-light text-white">${template.price_usd.toFixed(2)}</span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-slate-700 hover:text-white"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => onPurchase(template)}
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-amber-500/20 transition-all hover:from-amber-700 hover:to-orange-700"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Purchase
+            </button>
           </div>
         </div>
       </div>
