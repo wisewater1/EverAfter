@@ -164,7 +164,7 @@ supabase functions deploy
 - `device-stream-handler`, `device-webhook-handler` - Device data ingestion
 - `glucose-aggregate-cron` - Daily glucose statistics computation
 - `stripe-checkout`, `stripe-webhook` - Payment processing
-- `safety-monitor` - Monitor St. Raphael safety guardrails
+- `safety-monitor` - Data-loss detector: watches health tables for negative row-count deltas (unauthorized deletes). It does NOT monitor St. Raphael chat guardrails.
 - `knowledge-ingest`, `knowledge-query` - AI knowledge base system
 
 ### Database Schema
