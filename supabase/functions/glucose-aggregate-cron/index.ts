@@ -9,6 +9,17 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  // Scheduler-only endpoint: require the service-role key (Supabase cron
+  // invokes with it) or an explicit CRON_SECRET. Without this, anyone could
+  // trigger recompute storms across every user's glucose data.
+  const bearer = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const authorized = (serviceKey && bearer === serviceKey) || (cronSecret && bearer === cronSecret);
+  if (!authorized) {
+    return errorResponse('Unauthorized: scheduler-only endpoint', 401);
+  }
+
   const startTime = Date.now();
 
   try {
