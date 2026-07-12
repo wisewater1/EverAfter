@@ -710,8 +710,15 @@ const DEMO_WEBHOOK_LOGS = [
 
 // Daily-question training card seeds (archetypal_ais + the question pool).
 const DEMO_ARCHETYPAL_AIS = [
-  { id: 'ai-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', description: 'Grandmother — keeper of the family stories.', total_memories: 48, training_status: 'active', avatar_url: null, created_at: isoDaysAgo(120) },
+  // 'ready' so the demo Tasks tab shows the task manager instead of onboarding.
+  { id: 'ai-margaret', user_id: '00000000-0000-4000-8000-000000000001', name: 'Margaret Anderson', description: 'Grandmother — keeper of the family stories.', total_memories: 48, training_status: 'ready', avatar_url: null, created_at: isoDaysAgo(120) },
   { id: 'ai-james', user_id: '00000000-0000-4000-8000-000000000001', name: 'James Anderson', description: 'Father — steady, practical, devoted.', total_memories: 36, training_status: 'active', avatar_url: null, created_at: isoDaysAgo(96) },
+];
+
+// Sample rows for the AI task manager (engram_ai_tasks schema).
+const DEMO_ENGRAM_TASKS = [
+  { id: 'task-demo-1', user_id: '00000000-0000-4000-8000-000000000001', engram_id: 'ai-margaret', title: 'Sunday-dinner reminder', task_description: 'Remind the family that Sunday dinner is at 5pm — bring the photo albums.', status: 'pending', details: { task_type: 'reminder', frequency: 'weekly', priority: 'medium' }, execution_log: [], created_at: isoDaysAgo(3), updated_at: isoDaysAgo(3), completed_at: null },
+  { id: 'task-demo-2', user_id: '00000000-0000-4000-8000-000000000001', engram_id: 'ai-margaret', title: 'Recipe-of-the-month note', task_description: 'Share the apple-pie recipe story with the grandchildren.', status: 'done', details: { task_type: 'notification', frequency: 'monthly', priority: 'low' }, execution_log: [{ at: isoDaysAgo(1), action: 'execute', result: 'reminder_delivered' }], created_at: isoDaysAgo(12), updated_at: isoDaysAgo(1), completed_at: isoDaysAgo(1) },
 ];
 const DEMO_QUESTION_POOL = [
   { id: 'q-demo-1', question_text: 'What family tradition do you most hope the grandchildren keep alive?', category_id: 'qc-values', is_active: true, created_at: isoDaysAgo(200) },
@@ -770,6 +777,7 @@ const DEMO_SUPABASE_TABLES: Record<string, Array<Record<string, unknown>>> = {
   career_goals: DEMO_CAREER_GOALS,
   marketplace_templates: DEMO_MARKETPLACE_TEMPLATES,
   insight_reports: DEMO_INSIGHT_REPORTS,
+  engram_ai_tasks: DEMO_ENGRAM_TASKS,
 };
 
 // Populated engram list for the Engram Training Center (bare array: callers .map/.filter).
@@ -818,7 +826,11 @@ export function matchEndpoint(url: string, method: string = 'GET', body?: BodyIn
       });
     }
     if (fn === 'manage-agent-tasks') {
-      return mockResponse({ success: true, data: { status: 'completed', note: 'Demo: task run simulated on sample data.' } });
+      return mockResponse({
+        executed: true,
+        result: 'reminder_delivered',
+        message: 'Demo: reminder delivered to the sample notification feed.',
+      });
     }
     if (fn === 'get-daily-question') {
       return mockResponse({
