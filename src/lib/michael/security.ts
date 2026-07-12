@@ -55,6 +55,10 @@ export interface SecurityScanResult {
     vulnerabilities: Vulnerability[];
     system_integrity: number;
     integrity_score: number;
+    // False when the dependency CVE scan couldn't run for this scan; the
+    // vulnerabilities array is empty-but-unknown in that case, not clear.
+    cve_scan_available?: boolean;
+    cve_scan_error?: string | null;
     scan_scope?: string;
     audit_handoff?: {
         recipient: 'st_anthony';
@@ -103,8 +107,11 @@ export interface AnthonyFlowMapResponse {
     summary: {
         latestScanStatus: string;
         findingsCount: number;
-        vulnerabilitiesCount: number;
-        criticalVulnerabilities: number;
+        // null = the CVE scan could not run ("unknown"), which must stay
+        // distinguishable from 0 ("checked, none found").
+        vulnerabilitiesCount: number | null;
+        criticalVulnerabilities: number | null;
+        vulnerabilityScanAvailable: boolean;
         integrity?: number | null;
         anthonyHandoffStatus: string;
     };
@@ -158,6 +165,11 @@ function normalizeAnthonyFlowEvidence(item: any): AnthonyFlowMapEvidence {
     };
 }
 
+function countOrNull(value: unknown): number | null {
+    if (value === null || value === undefined) return null;
+    return Number.isFinite(Number(value)) ? Number(value) : 0;
+}
+
 function normalizeAnthonyFlowMap(response: any): AnthonyFlowMapResponse {
     const summary = response?.summary && typeof response.summary === 'object' ? response.summary : {};
 
@@ -168,14 +180,17 @@ function normalizeAnthonyFlowMap(response: any): AnthonyFlowMapResponse {
         summary: {
             latestScanStatus: String(summary.latestScanStatus || 'unknown'),
             findingsCount: Number.isFinite(Number(summary.findingsCount)) ? Number(summary.findingsCount) : 0,
-            vulnerabilitiesCount: Number.isFinite(Number(summary.vulnerabilitiesCount)) ? Number(summary.vulnerabilitiesCount) : 0,
-            criticalVulnerabilities: Number.isFinite(Number(summary.criticalVulnerabilities)) ? Number(summary.criticalVulnerabilities) : 0,
+            // Preserve null (scan unavailable) — Number(null) is 0, which
+            // would silently turn "unknown" into "none found".
+            vulnerabilitiesCount: countOrNull(summary.vulnerabilitiesCount),
+            criticalVulnerabilities: countOrNull(summary.criticalVulnerabilities),
+            vulnerabilityScanAvailable: summary.vulnerabilityScanAvailable !== false && summary.vulnerabilitiesCount !== null,
             integrity: summary.integrity ?? null,
             anthonyHandoffStatus: String(summary.anthonyHandoffStatus || 'pending'),
         },
-        nodes: Array.isArray(response?.nodes) ? response.nodes.map(normalizeAnthonyFlowNode).filter((node) => node.id) : [],
-        edges: Array.isArray(response?.edges) ? response.edges.map(normalizeAnthonyFlowEdge).filter((edge) => edge.id && edge.from && edge.to) : [],
-        evidence: Array.isArray(response?.evidence) ? response.evidence.map(normalizeAnthonyFlowEvidence).filter((item) => item.id) : [],
+        nodes: Array.isArray(response?.nodes) ? response.nodes.map(normalizeAnthonyFlowNode).filter((node: AnthonyFlowMapNode) => node.id) : [],
+        edges: Array.isArray(response?.edges) ? response.edges.map(normalizeAnthonyFlowEdge).filter((edge: AnthonyFlowMapEdge) => edge.id && edge.from && edge.to) : [],
+        evidence: Array.isArray(response?.evidence) ? response.evidence.map(normalizeAnthonyFlowEvidence).filter((item: AnthonyFlowMapEvidence) => item.id) : [],
     };
 }
 
@@ -216,9 +231,10 @@ async function buildAnthonyFlowFallback(): Promise<AnthonyFlowMapResponse> {
     ]);
 
     const monitoringData = monitoring.status === 'fulfilled' ? monitoring.value : null;
-    const vulnerabilitiesData = vulnerabilities.status === 'fulfilled' ? vulnerabilities.value : [];
+    const vulnerabilityScanAvailable = vulnerabilities.status === 'fulfilled';
+    const vulnerabilitiesData = vulnerabilityScanAvailable ? vulnerabilities.value : [];
     const ledgerData = ledger.status === 'fulfilled' ? ledger.value : [];
-    const michael = monitoringData?.michael || {};
+    const michael: Partial<MonitoringSaintStatus> = monitoringData?.michael || {};
     const recentFindings = Array.isArray(michael.recent_findings) ? michael.recent_findings : [];
     const currentTimestamp = monitoringData?.timestamp || new Date().toISOString();
 
@@ -302,7 +318,9 @@ async function buildAnthonyFlowFallback(): Promise<AnthonyFlowMapResponse> {
         ? Number.parseInt(michael.integrity.replace('%', ''), 10)
         : Number(michael.integrity || 0) || null;
 
-    const findingsCount = Number(michael.findings || recentFindings.length || 0);
+    // The status payload reports the count under metrics.security_findings;
+    // fall back to the visible findings list.
+    const findingsCount = Number(michael.metrics?.security_findings ?? recentFindings.length ?? 0);
     const vulnerabilitiesCount = vulnerabilitiesData.length;
     const criticalVulnerabilities = vulnerabilitiesData.filter((item) => (item.severity || '').toLowerCase() === 'critical').length;
     const latestScanStatus = String(michael.status || (findingsCount > 0 ? 'warning' : 'healthy'));
@@ -349,7 +367,9 @@ async function buildAnthonyFlowFallback(): Promise<AnthonyFlowMapResponse> {
             label: 'St. Michael',
             kind: 'guardian',
             status: fallbackSeverityStatus(Math.max(riskByNode.st_michael, fallbackRank(latestScanStatus))),
-            details: `Live monitoring reports ${findingsCount} findings and ${vulnerabilitiesCount} tracked vulnerabilities.`,
+            details: vulnerabilityScanAvailable
+                ? `Live monitoring reports ${findingsCount} findings and ${vulnerabilitiesCount} tracked vulnerabilities.`
+                : `Live monitoring reports ${findingsCount} findings; the CVE feed is unavailable, so tracked vulnerabilities are unknown.`,
             evidenceCount: evidenceIdsByNode.st_michael.length,
             evidenceIds: evidenceIdsByNode.st_michael,
         },
@@ -380,8 +400,9 @@ async function buildAnthonyFlowFallback(): Promise<AnthonyFlowMapResponse> {
         summary: {
             latestScanStatus,
             findingsCount,
-            vulnerabilitiesCount,
-            criticalVulnerabilities,
+            vulnerabilitiesCount: vulnerabilityScanAvailable ? vulnerabilitiesCount : null,
+            criticalVulnerabilities: vulnerabilityScanAvailable ? criticalVulnerabilities : null,
+            vulnerabilityScanAvailable,
             integrity,
             anthonyHandoffStatus: anthonyLedgerEntry ? 'completed' : 'pending',
         },
@@ -694,7 +715,7 @@ export async function scanForLeaks(userId: string): Promise<SecurityAlert[]> {
     ];
 }
 
-export async function runCAIAudit(userId: string): Promise<{
+export async function runCAIAudit(_userId: string): Promise<{
     integrityScore: number;
     adversarialFlags: number;
     phiLeaksDetected: number;

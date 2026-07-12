@@ -52,6 +52,7 @@ async def trigger_michael_scan(
     scan_results = await vulnerability_service.perform_full_security_scan(user_id)
     await session.rollback()
 
+    cve_scan_available = scan_results.get("cve_scan_available", True)
     ledger = LedgerService(session)
     michael_scan_log = await ledger.log_event(
         action="security/michael_full_scan_completed",
@@ -61,7 +62,10 @@ async def trigger_michael_scan(
             "scan_scope": scan_results.get("scan_scope", "full_application"),
             "status": scan_results.get("status"),
             "findings_count": scan_results.get("findings_count", 0),
-            "vulnerabilities_count": len(scan_results.get("vulnerabilities", [])),
+            # None (not 0) when the CVE scan couldn't run: the audit trail
+            # must distinguish "unchecked" from "checked, none found".
+            "vulnerabilities_count": len(scan_results.get("vulnerabilities", [])) if cve_scan_available else None,
+            "cve_scan_available": cve_scan_available,
             "system_integrity": scan_results.get("system_integrity"),
         },
     )
@@ -95,6 +99,19 @@ async def get_tracked_vulnerabilities(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get the list of live tracked CVEs from St. Michael's exploit tracker.
+    Known advisories (OSV.dev) affecting this backend's installed
+    dependencies. 503 when the scan cannot run — an empty list always
+    means "checked, none found", never "couldn't check".
     """
-    return await vulnerability_service.get_latest_vulnerabilities()
+    from app.services.vulnerability_service import VulnerabilityScanUnavailable
+    try:
+        return await vulnerability_service.get_latest_vulnerabilities()
+    except VulnerabilityScanUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "CVE_SCAN_UNAVAILABLE",
+                "message": "The dependency vulnerability scan could not run, so the current CVE posture is unknown.",
+                "hint": str(exc),
+            },
+        )

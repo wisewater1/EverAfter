@@ -206,8 +206,16 @@ async def get_dynamic_flow_map(
 ):
     user_id = current_user.get("id")
 
+    from app.services.vulnerability_service import VulnerabilityScanUnavailable
+
     vulnerability_service.session = db
-    vulnerabilities = await vulnerability_service.get_latest_vulnerabilities()
+    vulnerability_scan_error: Optional[str] = None
+    try:
+        vulnerabilities = await vulnerability_service.get_latest_vulnerabilities()
+    except VulnerabilityScanUnavailable as exc:
+        # "Couldn't check" must stay distinguishable from "none found".
+        vulnerabilities = []
+        vulnerability_scan_error = str(exc)
 
     michael_stmt = (
         select(AuditLog)
@@ -402,7 +410,11 @@ async def get_dynamic_flow_map(
             "label": "St. Michael",
             "kind": "guardian",
             "status": _status_from_score(max(node_risk["st_michael"], _severity_rank(latest_status))),
-            "details": f"Guardian scan last recorded {latest_findings} findings with {critical_vulnerabilities} critical vulnerabilities tracked.",
+            "details": (
+                f"Guardian scan last recorded {latest_findings} findings; the dependency CVE scan is currently unavailable, so tracked vulnerabilities are unknown."
+                if vulnerability_scan_error
+                else f"Guardian scan last recorded {latest_findings} findings with {critical_vulnerabilities} critical vulnerabilities tracked."
+            ),
             "evidenceCount": len(node_evidence["st_michael"]),
             "evidenceIds": node_evidence["st_michael"],
         },
@@ -472,8 +484,10 @@ async def get_dynamic_flow_map(
         "summary": {
             "latestScanStatus": latest_status,
             "findingsCount": latest_findings,
-            "vulnerabilitiesCount": len(vulnerabilities),
-            "criticalVulnerabilities": critical_vulnerabilities,
+            "vulnerabilitiesCount": len(vulnerabilities) if vulnerability_scan_error is None else None,
+            "criticalVulnerabilities": critical_vulnerabilities if vulnerability_scan_error is None else None,
+            "vulnerabilityScanAvailable": vulnerability_scan_error is None,
+            "vulnerabilityScanError": vulnerability_scan_error,
             "integrity": latest_integrity,
             "anthonyHandoffStatus": anthony_handoff_status,
         },
