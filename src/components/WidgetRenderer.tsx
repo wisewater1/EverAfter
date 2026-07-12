@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -6,11 +6,9 @@ import {
   TrendingDown,
   Minus,
   Droplet,
-  Heart,
   Moon,
   Activity,
   Loader,
-  Settings,
   Trash2,
   RefreshCw,
   AlertCircle,
@@ -43,8 +41,8 @@ export default function WidgetRenderer({
   widget,
   editMode = false,
   onDelete,
-  onPositionChange,
-  onSizeChange,
+  onPositionChange: _onPositionChange,
+  onSizeChange: _onSizeChange,
 }: WidgetRendererProps) {
   const { user, isDemoMode } = useAuth();
   const [data, setData] = useState<any>(null);
@@ -333,7 +331,7 @@ export default function WidgetRenderer({
         };
 
       default:
-        return { message: 'Widget data coming soon' };
+        return { message: 'This widget type is not available yet.' };
     }
   }
 
@@ -391,7 +389,7 @@ export default function WidgetRenderer({
       default:
         return (
           <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-            <p>{data?.message || 'Widget rendering coming soon'}</p>
+            <p>{data?.message || 'This widget type is not available yet.'}</p>
           </div>
         );
     }

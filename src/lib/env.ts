@@ -1,55 +1,44 @@
 ﻿/**
  * Environment Variable Validation
- * Ensures all required environment variables are present and valid
+ * Zod-schema validation of the client environment. Failures are logged
+ * (error in prod, warn in dev) rather than thrown, so a misconfigured
+ * deploy degrades to runtime-gated features instead of a blank screen.
  */
+import { z } from 'zod';
 
-interface Env {
-  VITE_SUPABASE_URL: string;
-  VITE_SUPABASE_ANON_KEY: string;
-}
+const envSchema = z.object({
+  VITE_SUPABASE_URL: z
+    .string()
+    .min(1, 'VITE_SUPABASE_URL is required')
+    .url('VITE_SUPABASE_URL must be a valid URL'),
+  VITE_SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, 'VITE_SUPABASE_ANON_KEY is required')
+    .regex(/^(sb_publishable_|eyJ)/, 'VITE_SUPABASE_ANON_KEY must be a Supabase publishable key or JWT'),
+});
 
-/**
- * Validates URL format
- */
-function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
+type Env = z.infer<typeof envSchema>;
 
-/**
- * Validates and returns typed environment variables
- * In production, we log warnings instead of throwing to prevent blank screens
- */
 function validateEnv(): Env {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const isProd = import.meta.env.PROD;
+  const raw = {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL ?? '',
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+  };
 
-  const missingVars = [];
-  if (!url) missingVars.push('VITE_SUPABASE_URL');
-  if (!anonKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
-
-  if (missingVars.length > 0) {
-    const msg = `Environment validation failed: Missing ${missingVars.join(', ')}. Runtime-gated features will remain unavailable until configuration is complete.`;
-    if (isProd) {
+  const result = envSchema.safeParse(raw);
+  if (!result.success) {
+    const issues = result.error.issues.map((i) => i.message).join('; ');
+    const msg = `Environment validation failed: ${issues}. Runtime-gated features will remain unavailable until configuration is complete.`;
+    if (import.meta.env.PROD) {
       console.error(msg);
     } else {
       console.warn(msg);
     }
+    // Degrade gracefully with the raw (possibly empty) values.
+    return raw;
   }
 
-  if (url && !isValidUrl(url)) {
-    console.error('Invalid VITE_SUPABASE_URL format');
-  }
-
-  return {
-    VITE_SUPABASE_URL: url || '',
-    VITE_SUPABASE_ANON_KEY: anonKey || '',
-  };
+  return result.data;
 }
 
 export const env = validateEnv();
