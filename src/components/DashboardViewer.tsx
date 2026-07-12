@@ -1,3 +1,4 @@
+import { appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader, AlertCircle, RefreshCw, LayoutDashboard } from 'lucide-react';
@@ -80,7 +81,7 @@ export default function DashboardViewer({ dashboardId, editMode = false }: Dashb
   }
 
   async function deleteWidget(widgetId: string) {
-    if (!confirm('Delete this widget?')) return;
+    if (!(await appConfirm({ title: 'Delete this widget?', message: 'The widget will be removed from this dashboard.', confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       const { error: deleteError } = await supabase

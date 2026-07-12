@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { Shield, Check, DollarSign, Info, AlertCircle, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -81,7 +82,7 @@ export default function ResearchParticipation({ userId }: ResearchParticipationP
       }
     } catch (error) {
       console.error('Error updating consent:', error);
-      alert('Failed to update consent status. Please try again.');
+      notify('Failed to update consent status. Please try again.', 'error');
     }
   };
 

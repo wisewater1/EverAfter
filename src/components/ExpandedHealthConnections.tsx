@@ -1,3 +1,4 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import {
   Activity, Heart, Droplet, Scale, Moon, Baby, Link2, Search,
@@ -97,7 +98,7 @@ export default function ExpandedHealthConnections() {
 
   const handleConnect = async (providerKey: string) => {
     if (isDemoAuthEnabled()) {
-      alert('Connecting real devices is disabled in the demo. Create a free account to link your providers.');
+      notify('Connecting real devices is disabled in the demo. Create a free account to link your providers.', 'info');
       return;
     }
     setConnecting(providerKey);
@@ -114,14 +115,14 @@ export default function ExpandedHealthConnections() {
       }
     } catch (error) {
       console.error('Error initiating connection:', error);
-      alert('Failed to initiate connection. Please try again.');
+      notify('Failed to initiate connection. Please try again.', 'error');
     } finally {
       setConnecting(null);
     }
   };
 
   const handleDisconnect = async (connectionId: string) => {
-    if (!confirm('Are you sure you want to disconnect this device?')) {
+    if (!(await appConfirm({ title: 'Disconnect this device?', message: 'Health data will stop syncing from it.', confirmLabel: 'Disconnect', destructive: true }))) {
       return;
     }
 
@@ -136,7 +137,7 @@ export default function ExpandedHealthConnections() {
       await loadData();
     } catch (error) {
       console.error('Error disconnecting:', error);
-      alert('Failed to disconnect. Please try again.');
+      notify('Failed to disconnect. Please try again.', 'error');
     }
   };
 

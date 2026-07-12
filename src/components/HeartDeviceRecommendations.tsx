@@ -10,14 +10,10 @@ import {
   Star,
   TrendingUp,
   Shield,
-  Battery,
-  Smartphone,
   DollarSign,
   AlertCircle,
-  Info,
   ArrowRight,
   X,
-  Filter,
   Search,
 } from 'lucide-react';
 
@@ -79,6 +75,7 @@ export default function HeartDeviceRecommendations() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [comparisonList, setComparisonList] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -156,39 +153,6 @@ export default function HeartDeviceRecommendations() {
     } catch (error) {
       console.error('Error saving profile:', error);
     }
-  }
-
-  function getCategoryIcon(category: string) {
-    switch (category) {
-      case 'medical_ecg':
-        return Heart;
-      case 'hybrid_smartwatch':
-        return Activity;
-      case 'chest_strap_sensor':
-        return Zap;
-      case 'wearable_ring':
-        return Activity;
-      case 'continuous_ecg':
-        return Heart;
-      default:
-        return Activity;
-    }
-  }
-
-  function getCategoryLabel(category: string) {
-    return category.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  }
-
-  function getUseCaseLabel(useCase: string) {
-    return useCase.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  }
-
-  function formatPrice(price: number) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(price);
   }
 
   function toggleComparison(deviceId: string) {
@@ -341,10 +305,7 @@ export default function HeartDeviceRecommendations() {
             </button>
           </div>
           <button
-            onClick={() => {
-              const compareDevices = devices.filter((d) => comparisonList.includes(d.id));
-              console.log('Compare:', compareDevices);
-            }}
+            onClick={() => setCompareOpen(true)}
             className="w-full px-4 py-2 bg-white text-pink-600 rounded-lg font-medium hover:bg-pink-50 transition-colors"
           >
             Compare Devices
@@ -355,6 +316,87 @@ export default function HeartDeviceRecommendations() {
       {selectedDevice && (
         <DeviceDetailsModal device={selectedDevice} onClose={() => setSelectedDevice(null)} />
       )}
+
+      {compareOpen && (
+        <DeviceComparisonModal
+          devices={devices.filter((d) => comparisonList.includes(d.id))}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeviceComparisonModal({ devices, onClose }: { devices: HeartDevice[]; onClose: () => void }) {
+  const rows: Array<{ label: string; value: (d: HeartDevice) => React.ReactNode }> = [
+    { label: 'Manufacturer', value: (d) => d.manufacturer },
+    { label: 'Category', value: (d) => d.device_category.replace(/_/g, ' ') },
+    { label: 'Form factor', value: (d) => d.form_factor.replace(/_/g, ' ') },
+    { label: 'Price', value: (d) => formatPrice(d.price_usd) },
+    {
+      label: 'Subscription',
+      value: (d) =>
+        d.requires_subscription
+          ? `${d.subscription_price_monthly ? formatPrice(d.subscription_price_monthly) : '—'}/mo`
+          : 'None',
+    },
+    { label: 'ECG', value: (d) => (d.has_ecg ? `Yes${d.ecg_lead_count ? ` (${d.ecg_lead_count}-lead)` : ''}` : 'No') },
+    { label: 'Continuous monitoring', value: (d) => (d.has_continuous_monitoring ? 'Yes' : 'No') },
+    { label: 'HRV', value: (d) => (d.has_hrv ? 'Yes' : 'No') },
+    { label: 'FDA cleared', value: (d) => (d.fda_cleared ? 'Yes' : 'No') },
+    { label: 'CE marked', value: (d) => (d.ce_marked ? 'Yes' : 'No') },
+    { label: 'Accuracy rating', value: (d) => `${d.accuracy_rating}/5` },
+    { label: 'Battery life', value: (d) => (d.battery_life_hours ? `${d.battery_life_hours}h` : '—') },
+    { label: 'Connectivity', value: (d) => d.connectivity_types.join(', ') || '—' },
+    { label: 'Platforms', value: (d) => d.compatible_platforms.join(', ') || '—' },
+    { label: 'Insurance eligible', value: (d) => (d.insurance_eligible ? 'Yes' : 'No') },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Device comparison"
+        className="max-h-[85vh] w-full max-w-4xl overflow-auto rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-xl font-medium text-white">Compare Devices</h3>
+          <button onClick={onClose} className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white" aria-label="Close comparison">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {devices.length < 2 ? (
+          <p className="py-8 text-center text-sm text-slate-400">Select at least two devices to compare.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="w-44 pb-3 pr-4 font-medium text-slate-500"></th>
+                  {devices.map((d) => (
+                    <th key={d.id} className="pb-3 pr-4 align-bottom">
+                      <div className="font-semibold text-white">{d.device_name}</div>
+                      <div className="text-xs font-normal text-slate-400">{d.manufacturer}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.label} className="border-t border-slate-800">
+                    <td className="py-2.5 pr-4 text-slate-400">{row.label}</td>
+                    {devices.map((d) => (
+                      <td key={d.id} className="py-2.5 pr-4 text-slate-200">{row.value(d)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

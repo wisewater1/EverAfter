@@ -1,6 +1,9 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useConnections } from '../contexts/ConnectionsContext';
+import { callEdgeFunction } from '../lib/edge-functions';
 import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Radio, Moon, Sparkles, LayoutDashboard } from 'lucide-react';
 import TroubleshootingWizard from './TroubleshootingWizard';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
@@ -126,6 +129,7 @@ const HEALTH_SERVICES = [
 
 export default function HealthConnectionManager() {
   const { user, isDemoMode } = useAuth();
+  const { openConnectionsPanel } = useConnections();
   const [connections, setConnections] = useState<HealthConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -183,27 +187,16 @@ export default function HealthConnectionManager() {
         ]);
 
         setConnections(nextConnections);
-        alert(`${serviceName} connected in demo mode.`);
+        notify(`${serviceName} connected in demo mode.`, 'success');
         return;
       }
 
-      const { error } = await supabase
-        .from('health_connections')
-        .insert([{
-          user_id: user?.id,
-          service_name: serviceName,
-          service_type: serviceType,
-          status: 'pending',
-          sync_frequency: 'daily'
-        }]);
-
-      if (error) throw error;
-
-      alert(`${serviceName} connection initiated! In a production app, this would redirect to OAuth authentication.`);
-      fetchConnections();
+      // Real connections go through the OAuth connections panel — a
+      // pending row with no auth flow behind it connects nothing.
+      openConnectionsPanel('health');
     } catch (error) {
       console.error('Error connecting service:', error);
-      alert('Failed to connect service');
+      notify('Failed to open the connections panel. Please try again.', 'error');
     }
   };
 
@@ -220,63 +213,58 @@ export default function HealthConnectionManager() {
           ),
         );
         setConnections(nextConnections);
-        alert(`Successfully synced data from ${serviceName} in demo mode.`);
+        notify(`Successfully synced data from ${serviceName} in demo mode.`, 'success');
         return;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Real sync via the sync-health-now function, which pulls from the
+      // provider's API using the stored OAuth account. No fabricated
+      // metrics, no unearned last_sync_at stamps.
+      const connection = connections.find((c) => c.id === connectionId);
+      const providerKey = (connection?.service_type || serviceName).toLowerCase().replace('_ring', '');
+      const result = await callEdgeFunction<{ metrics_ingested?: number; message?: string }>(
+        'sync-health-now',
+        { provider: providerKey, days: 7 },
+      );
 
-      const { error } = await supabase
+      await supabase
         .from('health_connections')
         .update({
           status: 'connected',
-          last_sync_at: new Date().toISOString()
+          last_sync_at: new Date().toISOString(),
+          error_message: '',
         })
         .eq('id', connectionId);
 
-      if (error) throw error;
-
-      const demoMetrics = [
-        {
-          user_id: user?.id,
-          metric_type: 'steps',
-          metric_value: Math.floor(Math.random() * 5000) + 5000,
-          metric_unit: 'steps',
-          recorded_at: new Date().toISOString(),
-          source: serviceName
-        },
-        {
-          user_id: user?.id,
-          metric_type: 'heart_rate',
-          metric_value: Math.floor(Math.random() * 20) + 65,
-          metric_unit: 'bpm',
-          recorded_at: new Date().toISOString(),
-          source: serviceName
-        },
-        {
-          user_id: user?.id,
-          metric_type: 'sleep',
-          metric_value: Math.floor(Math.random() * 3) + 6,
-          metric_unit: 'hours',
-          recorded_at: new Date().toISOString(),
-          source: serviceName
-        }
-      ];
-
-      await supabase.from('health_metrics').insert(demoMetrics);
-
       fetchConnections();
-      alert(`Successfully synced data from ${serviceName}!`);
+      const count = result?.metrics_ingested;
+      notify(
+        typeof count === 'number'
+          ? `Synced ${count} metrics from ${serviceName}.`
+          : `Sync completed for ${serviceName}.`,
+        'success',
+      );
     } catch (error) {
       console.warn('Error syncing:', error);
-      alert('Sync failed');
+      const message = error instanceof Error ? error.message : 'Sync failed';
+      // Record the failure on the connection row so the honest state persists.
+      await supabase
+        .from('health_connections')
+        .update({ error_message: message })
+        .eq('id', connectionId)
+        .then(() => fetchConnections());
+      notify(
+        `Sync failed for ${serviceName}: ${message}. If this provider isn't linked via OAuth yet, use Connect first.`,
+        'error',
+        8000,
+      );
     } finally {
       setSyncing(null);
     }
   };
 
   const disconnectService = async (connectionId: string) => {
-    if (!confirm('Are you sure you want to disconnect this service?')) return;
+    if (!(await appConfirm({ title: 'Disconnect this service?', message: 'Health data will stop syncing from it.', confirmLabel: 'Disconnect', destructive: true }))) return;
 
     try {
       if (isDemoMode) {
@@ -299,7 +287,7 @@ export default function HealthConnectionManager() {
       fetchConnections();
     } catch (error) {
       console.warn('Error disconnecting:', error);
-      alert('Failed to disconnect');
+      notify('Failed to disconnect', 'error');
     }
   };
 

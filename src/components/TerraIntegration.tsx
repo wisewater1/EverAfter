@@ -1,3 +1,4 @@
+import { notify, appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { terraClient, TerraConnection, TerraMetric } from '../lib/terra-client';
@@ -76,13 +77,13 @@ export default function TerraIntegration() {
       if ((response as any).mock) {
         console.log('🔧 Dev Mode: Mock connection successful');
         await loadData();
-        alert('✅ Mock Terra connection successful!\n\n🔧 Dev Mode Active\n\nRealistic health data has been loaded for testing.');
+        notify('Mock Terra connection successful — dev-mode sample data loaded for testing.', 'success');
       } else {
         // Real OAuth flow
         const popup = window.open(response.url, '_blank', 'width=500,height=700');
 
         if (!popup) {
-          alert('Please allow popups for Terra OAuth to work.');
+          notify('Please allow popups for Terra OAuth to work.', 'warning');
         } else {
           setTimeout(() => {
             loadData();
@@ -93,17 +94,13 @@ export default function TerraIntegration() {
       console.error('Error connecting Terra:', error);
 
       if (error instanceof Error && error.message.includes('credentialless')) {
-        alert(
-          '⚠️ OAuth Blocked in Sandbox\n\n' +
-          'This environment blocks OAuth flows.\n\n' +
-          'Solutions:\n' +
-          '1. Enable dev-only mock mode: VITE_MOCK_TERRA_DATA=true and VITE_ALLOW_DEV_MOCKS=true\n' +
-          '2. Use ngrok: npx ngrok http 5173\n' +
-          '3. Deploy to public HTTPS URL\n\n' +
-          'See TERRA_OAUTH_SETUP_GUIDE.md for details.'
+        notify(
+          'OAuth is blocked in this sandbox environment — see TERRA_OAUTH_SETUP_GUIDE.md (dev-only mock mode or a public HTTPS URL).',
+          'warning',
+          12000
         );
       } else {
-        alert('Failed to connect Terra. Please check your configuration.');
+        notify('Failed to connect Terra. Please check your configuration.', 'error');
       }
     } finally {
       setConnecting(false);
@@ -115,11 +112,11 @@ export default function TerraIntegration() {
 
     try {
       await terraClient.triggerBackfill(user.id, provider, 7);
-      alert('Backfill started! Data will sync in the background.');
+      notify('Backfill started — data will sync in the background.', 'success');
       loadData();
     } catch (error) {
       console.error('Error triggering backfill:', error);
-      alert('Failed to trigger backfill.');
+      notify('Failed to trigger backfill.', 'error');
     }
   };
 
@@ -139,7 +136,7 @@ export default function TerraIntegration() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Failed to export data.');
+      notify('Failed to export data.', 'error');
     }
   };
 
@@ -150,15 +147,15 @@ export default function TerraIntegration() {
       ? `Delete all data from ${provider}?`
       : 'Delete ALL Terra data? This cannot be undone.';
 
-    if (!confirm(confirmMessage)) return;
+    if (!(await appConfirm({ title: 'Delete Terra data?', message: confirmMessage, confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       await terraClient.deleteUserData(user.id, provider);
-      alert('Data deleted successfully.');
+      notify('Data deleted successfully.', 'success');
       loadData();
     } catch (error) {
       console.error('Error deleting data:', error);
-      alert('Failed to delete data.');
+      notify('Failed to delete data.', 'error');
     }
   };
 

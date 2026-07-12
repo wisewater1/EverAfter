@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { Brain, TrendingUp, Heart, Cloud, Sparkles, Lock, Crown, Users, Calendar, BarChart3, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -101,7 +102,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
 
   const handleUpgrade = async () => {
     if (isDemoAuthEnabled()) {
-      alert('Purchases are disabled in the demo. Create a free account to upgrade.');
+      notify('Purchases are disabled in the demo. Create a free account to upgrade.', 'info');
       return;
     }
     try {
@@ -118,7 +119,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       if (data?.url) window.location.href = data.url;
     } catch (err) {
       console.error('Upgrade error:', err);
-      alert('Failed to start upgrade. Please try again.');
+      notify('Failed to start upgrade. Please try again.', 'error');
     }
   };
 

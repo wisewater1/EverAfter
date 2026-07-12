@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn, MessageSquare, Send, Wand2, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -114,7 +115,7 @@ export default function Marketplace() {
     }
 
     if (isDemoMode) {
-      alert('Purchases are disabled in the demo. Create a free account to buy templates.');
+      notify('Purchases are disabled in the demo. Create a free account to buy templates.', 'info');
       return;
     }
 
@@ -137,7 +138,7 @@ export default function Marketplace() {
       }
     } catch (error) {
       console.error('Error initiating purchase:', error);
-      alert('Failed to start purchase. Please try again.');
+      notify('Failed to start purchase. Please try again.', 'error');
     } finally {
       setPurchasing(false);
     }
@@ -178,11 +179,11 @@ export default function Marketplace() {
         .eq('user_id', user.id)
         .eq('template_id', template.id);
 
-      alert(`${template.title} has been added to your Engrams! Start training by answering questions.`);
+      notify(`${template.title} has been added to your Engrams! Start training by answering questions.`, 'success');
       navigate('/dashboard');
     } catch (error) {
       console.error('Error adding template to engrams:', error);
-      alert('Failed to add to engrams. Please try again.');
+      notify('Failed to add to engrams. Please try again.', 'error');
     }
   };
 

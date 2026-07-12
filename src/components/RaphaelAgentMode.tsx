@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Heart, Calendar, Pill, FileText, Activity, CheckCircle, Clock, AlertCircle, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -72,7 +73,7 @@ export default function RaphaelAgentMode({ userId, engramId, onClose }: RaphaelA
 
   const createTask = async () => {
     if (!newTask.task_title || !newTask.task_description) {
-      alert('Please fill in all fields');
+      notify('Please fill in all fields', 'warning');
       return;
     }
 
@@ -102,7 +103,7 @@ export default function RaphaelAgentMode({ userId, engramId, onClose }: RaphaelA
       loadTasks();
     } catch (error) {
       console.error('Error creating task:', error);
-      alert('Failed to create task');
+      notify('Failed to create task', 'error');
     }
   };
 

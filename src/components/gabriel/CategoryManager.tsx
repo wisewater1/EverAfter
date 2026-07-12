@@ -1,3 +1,4 @@
+import { appConfirm } from '../../lib/dialogs';
 import { useState, useEffect } from 'react';
 import { X, Plus, Eye, EyeOff, Save, FolderPlus, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -78,7 +79,7 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
 
     async function handleHide(id: string) {
         try {
-            if (confirm('Are you sure you want to hide this category? It will be removed from your budget view.')) {
+            if (await appConfirm({ title: 'Hide this category?', message: 'It will be removed from your budget view.', confirmLabel: 'Hide' })) {
                 await financeApi.updateCategory(id, { is_hidden: true });
                 await loadCategories();
                 onUpdate();

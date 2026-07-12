@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -236,7 +237,7 @@ export default function MemorialServices() {
       setActiveTab('planning');
     } catch (error) {
       console.warn('Error creating memorial plan:', error);
-      alert('Unable to create a memorial plan right now.');
+      notify('Unable to create a memorial plan right now.', 'error');
     }
   };
 

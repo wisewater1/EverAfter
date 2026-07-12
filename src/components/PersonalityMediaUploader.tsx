@@ -1,3 +1,4 @@
+import { notify, appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Image, Video, Mic, File, X, Play, Pause, Trash2, Tag, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -75,7 +76,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
     if (!files || files.length === 0) return;
 
     if (isDemoAuthEnabled()) {
-      alert('Uploads are disabled in the demo. Create a free account to store real files.');
+      notify('Uploads are disabled in the demo. Create a free account to store real files.', 'info');
       event.target.value = '';
       return;
     }
@@ -91,7 +92,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
       onMediaAdded?.();
     } catch (error) {
       console.error('Error uploading files:', error);
-      alert('Failed to upload files. Please try again.');
+      notify('Failed to upload files. Please try again.', 'error');
     } finally {
       setUploading(false);
     }
@@ -152,7 +153,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
 
   const startRecording = async () => {
     if (isDemoAuthEnabled()) {
-      alert('Voice recording uploads are disabled in the demo. Create a free account to record real memories.');
+      notify('Voice recording uploads are disabled in the demo. Create a free account to record real memories.', 'info');
       return;
     }
     try {
@@ -177,7 +178,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
           onMediaAdded?.();
         } catch (error) {
           console.error('Error uploading recording:', error);
-          alert('Failed to upload recording. Please try again.');
+          notify('Failed to upload recording. Please try again.', 'error');
         } finally {
           setUploading(false);
         }
@@ -190,7 +191,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
       setRecording(true);
     } catch (error) {
       console.error('Error starting recording:', error);
-      alert('Failed to access microphone. Please check permissions.');
+      notify('Failed to access microphone. Please check permissions.', 'error');
     }
   };
 
@@ -202,7 +203,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
   };
 
   const deleteMedia = async (mediaId: string, filePath: string) => {
-    if (!confirm('Are you sure you want to delete this media?')) return;
+    if (!(await appConfirm({ title: 'Delete this media?', message: 'The file will be permanently removed.', confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       await supabase.storage.from('personality-media').remove([filePath]);
@@ -210,7 +211,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
       await loadMedia();
     } catch (error) {
       console.error('Error deleting media:', error);
-      alert('Failed to delete media. Please try again.');
+      notify('Failed to delete media. Please try again.', 'error');
     }
   };
 

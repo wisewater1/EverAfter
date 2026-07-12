@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Brain, Upload, Sparkles, Activity, Users, RefreshCw } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { apiClient } from '../../lib/api-client';
+import { notify } from '../../lib/dialogs';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import PersonalityQuiz from '../joseph/PersonalityQuiz';
 
@@ -199,13 +200,17 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
         setIsTraining(true);
         try {
             const backendId = await ensureBackendId(selectedId);
-            if (backendId) {
-                await apiClient.startMentorship(backendId, mentor);
+            if (!backendId) {
+                // No backend twin: nothing was registered. Say so instead of
+                // claiming a session started.
+                notify('Mentorship could not start — this engram has no backend profile yet. Sync it to the backend first.', 'warning', 8000);
+                return;
             }
-            alert(`Mentorship session with ${mentor} registered! The saint will shape this personality over time.`);
+            await apiClient.startMentorship(backendId, mentor);
+            notify(`Mentorship session with ${mentor} registered. The saint will shape this personality over time.`, 'success');
         } catch (err) {
             console.error(err);
-            alert("Mentorship initiated in local mode.");
+            notify('Mentorship could not be registered — the training service could not be reached. Nothing was started.', 'error');
         } finally {
             setIsTraining(false);
         }
@@ -307,19 +312,19 @@ export default function PersonalityTrainingCenter({ targetEngramId }: Personalit
                                             setIsTraining(true);
                                             try {
                                                 const backendId = await ensureBackendId(selectedId);
-                                                if (backendId) {
-                                                    await apiClient.ingestVignette(backendId, vignette);
-                                                    setVignette('');
-                                                    alert("Memory ingested! This will shape the agent's responses.");
-                                                } else {
-                                                    // Local mode: just clear and confirm
-                                                    setVignette('');
-                                                    alert("Memory saved locally. Connect the backend to persist it to the Saint Runtime.");
+                                                if (!backendId) {
+                                                    // Nothing is persisted without a backend twin —
+                                                    // keep the text so the memory isn't lost, and
+                                                    // never claim it was saved.
+                                                    notify('This memory was NOT saved — the engram has no backend profile yet. Your text is still here; sync the engram and try again.', 'warning', 10000);
+                                                    return;
                                                 }
+                                                await apiClient.ingestVignette(backendId, vignette);
+                                                setVignette('');
+                                                notify("Memory ingested! This will shape the agent's responses.", 'success');
                                             } catch (error) {
                                                 console.error("Vignette Error:", error);
-                                                setVignette('');
-                                                alert("Memory saved in local mode.");
+                                                notify('This memory was NOT saved — the training service could not be reached. Your text is still here; try again shortly.', 'error', 10000);
                                             } finally {
                                                 setIsTraining(false);
                                             }

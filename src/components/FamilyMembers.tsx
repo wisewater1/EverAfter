@@ -1,3 +1,4 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Sparkles, User, Activity, Brain } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -90,7 +91,7 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
 
   const inviteFamilyMember = async () => {
     if (!inviteForm.name || !inviteForm.email || !inviteForm.relationship) {
-      alert('Please fill in all fields');
+      notify('Please fill in all fields', 'warning');
       return;
     }
 
@@ -112,14 +113,14 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
       setShowInviteModal(false);
       await loadFamilyMembers();
     } else {
-      alert('Error inviting family member: ' + error.message);
+      notify('Error inviting family member: ' + error.message, 'error');
     }
     setLoading(false);
   };
 
   const sendPersonalityQuestion = async () => {
     if (!questionText.trim() || !selectedMember) {
-      alert('Please enter a question');
+      notify('Please enter a question', 'warning');
       return;
     }
 
@@ -136,18 +137,18 @@ export default function FamilyMembers({ userId }: FamilyMembersProps) {
       });
 
     if (!error) {
-      alert(`Question sent to ${selectedMember.name}! They'll receive it via email.`);
+      notify(`Question saved for ${selectedMember.name}. Email delivery isn't set up yet — share it with them directly.`, 'success', 8000);
       setQuestionText('');
       setShowQuestionModal(false);
       setSelectedMember(null);
     } else {
-      alert('Error sending question: ' + error.message);
+      notify('Error saving question: ' + error.message, 'error');
     }
     setLoading(false);
   };
 
   const deleteFamilyMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this family member?')) return;
+    if (!(await appConfirm({ title: 'Remove this family member?', message: 'Their profile will be removed from your family.', confirmLabel: 'Remove', destructive: true }))) return;
 
     const { error } = await supabase
       .from('family_members')

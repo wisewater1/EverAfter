@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DemoBanner from './components/DemoBanner';
+import DialogHost from './components/shared/DialogHost';
 import ErrorBoundary from './components/ErrorBoundary';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import { attachEdgeReactive } from './lib/edge-reactive';
@@ -438,6 +439,7 @@ function App() {
             <Suspense fallback={null}>
               <HealthAlertListener />
               <NotificationToast />
+              <DialogHost />
             </Suspense>
           </ConnectionsProvider>
         </AuthProvider>

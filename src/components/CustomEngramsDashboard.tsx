@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Brain, Sparkles, Loader, Target, AlertCircle, CheckCircle2, X, Crown, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -847,7 +848,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
               <button
                 onClick={async () => {
                   if (isDemoAuthEnabled()) {
-                    alert('Purchases are disabled in the demo. Create a free account to upgrade.');
+                    notify('Purchases are disabled in the demo. Create a free account to upgrade.', 'info');
                     return;
                   }
                   setPurchasingFastTrack(true);
@@ -868,7 +869,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                     }
                   } catch (err) {
                     console.error('Upgrade error:', err);
-                    alert('Failed to start upgrade. Please try again.');
+                    notify('Failed to start upgrade. Please try again.', 'error');
                   } finally {
                     setPurchasingFastTrack(false);
                   }

@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Users, Plus, Heart, Image, Video, MessageSquare, Sparkles, Settings, ChevronRight, Upload, X, Camera, Brain, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -568,7 +569,7 @@ function CreateEngramModal({ onClose, onSuccess }: CreateEngramModalProps) {
       onSuccess();
     } catch (error) {
       console.error('Error creating family engram:', error);
-      alert('Failed to create family engram. Please try again.');
+      notify('Failed to create family engram. Please try again.', 'error');
     } finally {
       setCreating(false);
     }
