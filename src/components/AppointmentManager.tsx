@@ -1,3 +1,4 @@
+import { notify, appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -137,7 +138,7 @@ export default function AppointmentManager() {
     e.preventDefault();
 
     if (!formData.title || !formData.scheduled_at) {
-      alert('Please fill in required fields');
+      notify('Please fill in required fields', 'warning');
       return;
     }
 
@@ -200,7 +201,7 @@ export default function AppointmentManager() {
       fetchAppointments();
     } catch (error) {
       console.error('Error saving appointment:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save appointment');
+      notify(error instanceof Error ? error.message : 'Failed to save appointment', 'error');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -243,7 +244,7 @@ export default function AppointmentManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this appointment?')) return;
+    if (!(await appConfirm({ title: 'Delete this appointment?', message: 'The appointment will be permanently removed.', confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       const { error } = await supabase
@@ -255,7 +256,7 @@ export default function AppointmentManager() {
       fetchAppointments();
     } catch (error) {
       console.error('Error deleting appointment:', error);
-      alert('Failed to delete appointment');
+      notify('Failed to delete appointment', 'error');
     }
   };
 
@@ -274,7 +275,7 @@ export default function AppointmentManager() {
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update status');
+      notify('Failed to update status', 'error');
     }
   };
 

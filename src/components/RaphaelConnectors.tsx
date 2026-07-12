@@ -1,3 +1,4 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -379,7 +380,7 @@ export default function RaphaelConnectors() {
         }
 
         const result = await response.json();
-        alert(`Successfully uploaded ${result.readings_inserted} glucose readings from ${file.name}`);
+        notify(`Successfully uploaded ${result.readings_inserted} glucose readings from ${file.name}`, 'success');
 
         await loadConnections();
       } catch (err: any) {
@@ -393,7 +394,7 @@ export default function RaphaelConnectors() {
   }
 
   async function handleDisconnect(providerId: string) {
-    if (!confirm(`Disconnect ${providerId}? This will stop syncing health data.`)) {
+    if (!(await appConfirm({ title: 'Disconnect provider?', message: `Disconnect ${providerId}? This will stop syncing health data.`, confirmLabel: 'Disconnect', destructive: true }))) {
       return;
     }
 
@@ -448,7 +449,7 @@ export default function RaphaelConnectors() {
       }
 
       const result = await response.json();
-      alert(`Synced ${result.metrics_ingested} metrics from ${providerId}`);
+      notify(`Synced ${result.metrics_ingested} metrics from ${providerId}`, 'success');
 
       await loadConnections();
     } catch (err: any) {

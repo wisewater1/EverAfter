@@ -1,3 +1,4 @@
+import { notify } from '../../lib/dialogs';
 import { useState, useEffect } from 'react';
 import { X, Loader2, Save } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -46,7 +47,7 @@ export default function AddTransactionModal({ isOpen, onClose, onTransactionAdde
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!session?.access_token) {
-            alert('Sign in with a live account to add transactions.');
+            notify('Sign in with a live account to add transactions.', 'info');
             return;
         }
         setLoading(true);
@@ -68,7 +69,7 @@ export default function AddTransactionModal({ isOpen, onClose, onTransactionAdde
             setDescription('');
         } catch (error) {
             console.error('Failed to create transaction', error);
-            alert('Failed to save transaction');
+            notify('Failed to save transaction', 'error');
         } finally {
             setLoading(false);
         }

@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -99,17 +100,17 @@ export default function HealthVitalsLogger({ onClose, onSuccess }: HealthVitalsL
 
     const numValue = parseFloat(value);
     if (isNaN(numValue)) {
-      alert('Please enter a valid number');
+      notify('Please enter a valid number', 'warning');
       return;
     }
 
     if (selectedVital.min !== undefined && numValue < selectedVital.min) {
-      alert(`Value must be at least ${selectedVital.min}`);
+      notify(`Value must be at least ${selectedVital.min}`, 'warning');
       return;
     }
 
     if (selectedVital.max !== undefined && numValue > selectedVital.max) {
-      alert(`Value must not exceed ${selectedVital.max}`);
+      notify(`Value must not exceed ${selectedVital.max}`, 'warning');
       return;
     }
 
@@ -134,7 +135,7 @@ export default function HealthVitalsLogger({ onClose, onSuccess }: HealthVitalsL
       onClose();
     } catch (error) {
       console.error('Error saving vital:', error);
-      alert('Failed to save vital sign. Please try again.');
+      notify('Failed to save vital sign. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

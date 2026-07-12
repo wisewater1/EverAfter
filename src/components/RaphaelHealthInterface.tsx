@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import { useState, useEffect } from 'react';
 import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp, Crown, Sparkles, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -335,7 +336,7 @@ export default function RaphaelHealthInterface() {
               <button
                 onClick={async () => {
                   if (isDemoAuthEnabled()) {
-                    alert('Purchases are disabled in the demo. Create a free account to upgrade.');
+                    notify('Purchases are disabled in the demo. Create a free account to upgrade.', 'info');
                     return;
                   }
                   try {
@@ -354,7 +355,7 @@ export default function RaphaelHealthInterface() {
                     }
                   } catch (err) {
                     console.error('Upgrade error:', err);
-                    alert('Failed to start upgrade. Please try again.');
+                    notify('Failed to start upgrade. Please try again.', 'error');
                   }
                 }}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-rose-500/20 font-medium flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"

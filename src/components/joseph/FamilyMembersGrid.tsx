@@ -1,3 +1,4 @@
+import { notify } from '../../lib/dialogs';
 import { useState, useEffect } from 'react';
 import { Search, User, Heart, X, Brain, Activity, RefreshCw, Dna, ShieldCheck, Send, Calendar, CalendarPlus, Inbox } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
@@ -199,10 +200,10 @@ export default function FamilyMembersGrid({ onTrainMember, onStartPersonalityQui
                 setMembers(prev => prev.map(m => m.id === member.id ? withEngram : m));
             }
 
-            alert(`Activated ${member.firstName} with Saint Runtime Research Layers (Generative Agents, GenAgents, Agentic Collab)!`);
+            notify(`Activated ${member.firstName} — their AI agent is ready to chat.`, 'success');
         } catch (err) {
             console.error(err);
-            alert("Failed to activate agent in Saint Runtime.");
+            notify('Failed to activate agent in Saint Runtime.', 'error');
         }
     };
 

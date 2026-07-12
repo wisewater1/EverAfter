@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -146,12 +147,12 @@ export default function UserPortal() {
   const handleSendConnectionRequest = async (targetUserId: string) => {
     if (!supabase) return;
     if (!user) {
-      alert('You must be logged in to send connection requests');
+      notify('You must be logged in to send connection requests', 'warning');
       return;
     }
 
     if (targetUserId === user.id) {
-      alert('You cannot send a connection request to yourself');
+      notify('You cannot send a connection request to yourself', 'warning');
       return;
     }
 
@@ -166,11 +167,11 @@ export default function UserPortal() {
 
       if (existing) {
         if (existing.status === 'pending') {
-          alert('Connection request already pending');
+          notify('Connection request already pending', 'info');
         } else if (existing.status === 'accepted') {
-          alert('You are already connected with this user');
+          notify('You are already connected with this user', 'info');
         } else {
-          alert('Connection request already sent');
+          notify('Connection request already sent', 'info');
         }
         return;
       }
@@ -198,7 +199,7 @@ export default function UserPortal() {
         description: `Sent connection request to user ${targetUserId}`,
       });
 
-      alert('Connection request sent successfully!');
+      notify('Connection request sent successfully!', 'success');
 
       // Close modal if open
       setSelectedProfile(null);
@@ -216,7 +217,7 @@ export default function UserPortal() {
         errorMessage = 'Connection request already exists';
       }
 
-      alert(errorMessage);
+      notify(errorMessage, 'error');
     }
   };
 

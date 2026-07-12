@@ -1,3 +1,4 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -181,14 +182,14 @@ export default function LegacyVaultEnhanced() {
   };
 
   const handleDeleteItem = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this item? This action cannot be undone.')) return;
+    if (!(await appConfirm({ title: 'Remove this item?', message: 'This action cannot be undone.', confirmLabel: 'Remove', destructive: true }))) return;
     try {
       await deleteVaultItem(id);
       setSelectedItem(null);
       loadVaultItems();
     } catch (err) {
       console.error('Error removing item:', err);
-      alert('Failed to remove item');
+      notify('Failed to remove item', 'error');
     }
   };
 
@@ -196,11 +197,11 @@ export default function LegacyVaultEnhanced() {
     setLoading(true);
     try {
       const data = await runIntegrityCheck();
-      alert('Integrity check completed successfully: ' + (data?.message || 'All items verified'));
+      notify('Integrity check completed successfully: ' + (data?.message || 'All items verified'), 'success');
       loadAssuranceData();
     } catch (err) {
       console.error('Integrity check failed:', err);
-      alert('Failed to run integrity check');
+      notify('Failed to run integrity check', 'error');
     } finally {
       setLoading(false);
     }
@@ -213,11 +214,11 @@ export default function LegacyVaultEnhanced() {
       if (data?.downloadUrl) {
         window.open(data.downloadUrl, '_blank');
       } else {
-        alert('Vault export initiated. You will be notified when the download is ready.');
+        notify('Vault export initiated. You will be notified when the download is ready.', 'success');
       }
     } catch (err) {
       console.error('Export failed:', err);
-      alert('Failed to initiate vault export');
+      notify('Failed to initiate vault export', 'error');
     } finally {
       setLoading(false);
     }

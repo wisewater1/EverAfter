@@ -5,6 +5,7 @@
  * Provides partner discovery, connection management, and data sharing controls.
  */
 
+import { appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import {
   Shield,
@@ -152,7 +153,7 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
   };
 
   const handleRevoke = async (connectionId: string) => {
-    if (!confirm('Are you sure you want to revoke this connection? This action cannot be undone.')) {
+    if (!(await appConfirm({ title: 'Revoke this connection?', message: 'This action cannot be undone.', confirmLabel: 'Revoke', destructive: true }))) {
       return;
     }
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { RotateCw, Activity, TrendingUp, CheckCircle, AlertTriangle, Smartphone, Monitor } from 'lucide-react';
 import ConnectionRotationConfig from './ConnectionRotationConfig';
 import { supabase } from '../lib/supabase';
@@ -50,12 +50,6 @@ export default function ConnectionRotationOverview() {
 
     const handleOrientationChange = () => {
       checkOrientation();
-      console.log('Orientation changed:', {
-        type: window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait',
-        angle: (window.screen as any).orientation?.angle || 0,
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
     };
 
     const landscapeQuery = window.matchMedia('(orientation: landscape)');
@@ -93,7 +87,7 @@ export default function ConnectionRotationOverview() {
 
       if (error) throw error;
 
-      const logs = data || [];
+      const logs: Array<{ status?: string; completed_at?: string; created_at?: string }> = data || [];
       const successful = logs.filter(log => log.status === 'completed').length;
       const failed = logs.filter(log => log.status === 'failed').length;
       const lastRotation = logs[0]?.completed_at || logs[0]?.created_at || null;

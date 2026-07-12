@@ -1,3 +1,4 @@
+import { appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,7 +51,7 @@ export default function OAuthCredentialsAdmin() {
   };
 
   const deleteCredential = async (credentialId: string) => {
-    if (!confirm('Are you sure you want to delete these credentials? This will disconnect the service.')) {
+    if (!(await appConfirm({ title: 'Delete these credentials?', message: 'This will disconnect the service.', confirmLabel: 'Delete', destructive: true }))) {
       return;
     }
 

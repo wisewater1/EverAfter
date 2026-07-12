@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -106,14 +107,15 @@ export default function HealthReportGenerator() {
         }
       }
 
-      alert(
+      notify(
         cloudSaved
           ? 'Report downloaded and saved to cloud!'
-          : 'Report downloaded successfully!'
+          : 'Report downloaded successfully!',
+        'success'
       );
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Failed to generate report. Please try again.');
+      notify('Failed to generate report. Please try again.', 'error');
     } finally {
       setGenerating(false);
     }

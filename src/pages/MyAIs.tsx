@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -127,7 +128,7 @@ export default function MyAIs() {
       await loadPurchases();
     } catch (error) {
       console.error('Error activating template:', error);
-      alert('Failed to activate template. Please try again.');
+      notify('Failed to activate template. Please try again.', 'error');
     }
   };
 
@@ -143,7 +144,7 @@ export default function MyAIs() {
       await loadPurchases();
     } catch (error) {
       console.error('Error toggling instance:', error);
-      alert('Failed to update status. Please try again.');
+      notify('Failed to update status. Please try again.', 'error');
     }
   };
 

@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -108,7 +109,7 @@ export default function MedicationTracker() {
 
   const addMedication = async () => {
     if (!newMedication.medication_name || !newMedication.dosage) {
-      alert('Please fill in medication name and dosage');
+      notify('Please fill in medication name and dosage', 'warning');
       return;
     }
 
@@ -193,7 +194,7 @@ export default function MedicationTracker() {
       fetchMedications();
     } catch (error) {
       console.error('Error adding medication:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add medication');
+      notify(error instanceof Error ? error.message : 'Failed to add medication', 'error');
     } finally {
       setUploading(false);
       setUploadProgress(0);

@@ -1,3 +1,4 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { Calendar, Mail, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock, Users, Image as ImageIcon, Video, Send, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -113,7 +114,7 @@ export default function DigitalLegacy() {
 
   const createLegacyItem = async () => {
     if (!user || !newItem.title || !newItem.message) {
-      alert('Please fill in all required fields');
+      notify('Please fill in all required fields', 'warning');
       return;
     }
 
@@ -183,12 +184,12 @@ export default function DigitalLegacy() {
       loadLegacyItems();
     } catch (error) {
       console.error('Error creating legacy item:', error);
-      alert('Failed to create item. Please try again.');
+      notify('Failed to create item. Please try again.', 'error');
     }
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!(await appConfirm({ title: 'Delete this item?', message: 'The item will be permanently removed.', confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       if (isDemoMode) {
@@ -210,7 +211,7 @@ export default function DigitalLegacy() {
       loadLegacyItems();
     } catch (error) {
       console.error('Error deleting item:', error);
-      alert('Failed to delete item. Please try again.');
+      notify('Failed to delete item. Please try again.', 'error');
     }
   };
 
@@ -578,7 +579,7 @@ export default function DigitalLegacy() {
                     }
 
                     console.error('Upgrade error:', err);
-                    alert('Failed to start upgrade. Please try again.');
+                    notify('Failed to start upgrade. Please try again.', 'error');
                   }
                 }}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl transition-all shadow-lg shadow-purple-500/20 font-medium flex items-center justify-center gap-2"

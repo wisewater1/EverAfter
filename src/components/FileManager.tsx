@@ -1,3 +1,4 @@
+import { appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -117,7 +118,7 @@ export default function FileManager() {
   }
 
   async function handleDelete(file: UserFile) {
-    if (!confirm(`Delete "${file.file_name}"? This action cannot be undone.`)) {
+    if (!(await appConfirm({ title: 'Delete this file?', message: `"${file.file_name}" will be permanently removed.`, confirmLabel: 'Delete', destructive: true }))) {
       return;
     }
 

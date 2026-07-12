@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -435,7 +436,7 @@ export default function ComprehensiveHealthConnectors() {
         const existingConnection = currentConnections.find((connection) => connection.service_type === serviceId && connection.status !== 'disconnected');
 
         if (existingConnection) {
-          alert(`${serviceName} is already connected in demo mode.`);
+          notify(`${serviceName} is already connected in demo mode.`, 'info');
           return;
         }
 
@@ -453,7 +454,7 @@ export default function ComprehensiveHealthConnectors() {
 
         setConnections(nextConnections);
         setConnectedCount(nextConnections.filter((connection) => connection.status === 'connected').length);
-        alert(`${serviceName} connected in demo mode.`);
+        notify(`${serviceName} connected in demo mode.`, 'success');
         return;
       }
 
@@ -510,7 +511,7 @@ export default function ComprehensiveHealthConnectors() {
 
     } catch (error) {
       console.warn('Error connecting service:', error);
-      alert(`Failed to connect service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      notify(`Failed to connect service: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
       fetchConnections(); // refresh to reset pending state if failed
     } finally {
       setConnectingSource(null);

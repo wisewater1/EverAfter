@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -119,7 +120,7 @@ export default function UserProfileSetup() {
           ...profile,
           user_id: user.id,
         });
-        alert('Profile saved locally in demo mode.');
+        notify('Profile saved locally in demo mode.', 'success');
         navigate('/portal');
         return;
       }
@@ -157,11 +158,11 @@ export default function UserProfileSetup() {
         description: 'Updated profile information',
       });
 
-      alert('Profile saved successfully!');
+      notify('Profile saved successfully!', 'success');
       navigate('/portal');
     } catch (error: any) {
       console.error('Error saving profile:', error);
-      alert(error.message || 'Failed to save profile');
+      notify(error.message || 'Failed to save profile', 'error');
     } finally {
       setSaving(false);
     }

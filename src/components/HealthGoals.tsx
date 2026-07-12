@@ -1,3 +1,4 @@
+import { notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -67,7 +68,7 @@ export default function HealthGoals() {
 
   const addGoal = async () => {
     if (!newGoal.goal_title || !newGoal.target_value) {
-      alert('Please fill in goal title and target value');
+      notify('Please fill in goal title and target value', 'warning');
       return;
     }
 
@@ -123,7 +124,7 @@ export default function HealthGoals() {
       fetchGoals();
     } catch (error) {
       console.error('Error adding goal:', error);
-      alert('Failed to add goal');
+      notify('Failed to add goal', 'error');
     }
   };
 

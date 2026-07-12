@@ -1,3 +1,4 @@
+import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,7 +56,7 @@ export default function EmergencyContacts() {
 
   const saveContact = async () => {
     if (!formData.contact_name || !formData.phone_number) {
-      alert('Please fill in name and phone number');
+      notify('Please fill in name and phone number', 'warning');
       return;
     }
 
@@ -79,12 +80,12 @@ export default function EmergencyContacts() {
       fetchContacts();
     } catch (error) {
       console.error('Error saving contact:', error);
-      alert('Failed to save contact');
+      notify('Failed to save contact', 'error');
     }
   };
 
   const deleteContact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    if (!(await appConfirm({ title: 'Delete this contact?', message: 'The emergency contact will be permanently removed.', confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       const { error } = await supabase
@@ -96,7 +97,7 @@ export default function EmergencyContacts() {
       fetchContacts();
     } catch (error) {
       console.error('Error deleting contact:', error);
-      alert('Failed to delete contact');
+      notify('Failed to delete contact', 'error');
     }
   };
 

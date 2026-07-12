@@ -1,3 +1,4 @@
+import { appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -214,7 +215,7 @@ export default function CustomDashboardBuilder() {
   }
 
   async function deleteDashboard(id: string) {
-    if (!confirm('Delete this dashboard? This action cannot be undone.')) return;
+    if (!(await appConfirm({ title: 'Delete this dashboard?', message: 'This action cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
 
     try {
       setError(null);
