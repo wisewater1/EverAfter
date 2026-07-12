@@ -277,9 +277,7 @@ export default function StJosephFamilyDashboard() {
         const members = getFamilyMembers().filter((m) => !isSeedMemberId(m.id));
         if (members.length === 0) return;
         try {
-            console.log('St. Joseph: Synchronizing family engrams...');
             await apiClient.batchSyncEngrams(members);
-            console.log('St. Joseph: Family engrams synchronized.');
         } catch (error) {
             console.error('St. Joseph: Failed to sync engrams:', error);
         }

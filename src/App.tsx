@@ -22,6 +22,8 @@ import Dashboard from './pages/Dashboard';
 const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'), 'pages/Onboarding');
 
 const Landing = lazyWithRetry(() => import('./pages/Landing'), 'pages/Landing');
+const PrivacyPolicy = lazyWithRetry(() => import('./pages/PrivacyPolicy'), 'pages/PrivacyPolicy');
+const TermsOfService = lazyWithRetry(() => import('./pages/TermsOfService'), 'pages/TermsOfService');
 const StRaphaelHealthHub = lazyWithRetry(() => import('./pages/StRaphaelHealthHub'), 'pages/StRaphaelHealthHub');
 const OAuthCallback = lazyWithRetry(() => import('./pages/OAuthCallback'), 'pages/OAuthCallback');
 const Pricing = lazyWithRetry(() => import('./pages/Pricing'), 'pages/Pricing');
@@ -142,6 +144,8 @@ function App() {
                   <Route path="/quiz/:token" element={<PublicPersonalityQuiz />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
                   <Route
                     path="/onboarding"
                     element={
