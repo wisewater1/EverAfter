@@ -601,18 +601,23 @@ class APIClient {
   }
 
   /**
-   * Submit daily question response
+   * Submit daily question response. Field names match what the
+   * submit-daily-response function actually reads (the old payload —
+   * userId/response only — was rejected with a 400 every time). engramId
+   * makes the answer retrievable by that AI's chat via
+   * engram_memory_embeddings.
    */
   async submitDailyResponse(
-    userId: string,
+    _userId: string,
     questionId: string,
     response: string,
     engramId?: string
   ): Promise<EdgeFunctionResponse<void>> {
+    // _userId kept for call-site compatibility; the function derives the
+    // user from the JWT.
     return this.callEdgeFunction<void>('submit-daily-response', {
-      userId,
       questionId,
-      response,
+      responseText: response,
       engramId,
     });
   }

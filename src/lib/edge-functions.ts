@@ -167,6 +167,30 @@ export async function createTask(request: CreateTaskRequest): Promise<CreateTask
 }
 
 /**
+ * Index a trained memory into engram_memory_embeddings — the table
+ * engram-chat's match_engram_memories retrieval actually searches. Throws
+ * EdgeFunctionException (e.g. CONFIG_MISSING 503) when the embedding
+ * service is unavailable; callers surface that honestly instead of
+ * pretending the memory was indexed.
+ */
+export interface IndexEngramMemoryRequest {
+  text: string;
+  engramId: string;
+  type: 'engram_memory';
+  metadata?: Record<string, unknown>;
+}
+
+export interface IndexEngramMemoryResponse {
+  success: boolean;
+  id?: string;
+  embedding?: number[];
+}
+
+export async function indexEngramMemory(request: IndexEngramMemoryRequest): Promise<IndexEngramMemoryResponse> {
+  return callEdgeFunction<IndexEngramMemoryResponse>('generate-embeddings', request);
+}
+
+/**
  * Get or create daily progress record
  */
 export interface DailyProgressResponse {
