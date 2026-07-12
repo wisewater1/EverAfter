@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Bot, Heart, Activity, Clock, Star, Search, Plus, Settings, X, CheckSquare } from 'lucide-react';
+import { MessageCircle, Bot, Heart, Activity, Clock, Star, Search, Plus, X, CheckSquare, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import ArchetypalAIChat from './ArchetypalAIChat';
@@ -39,7 +39,7 @@ export default function UnifiedChatInterface() {
   const [archetypalAIs, setArchetypalAIs] = useState<ArchetypalAI[]>([]);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -68,8 +68,6 @@ export default function UnifiedChatInterface() {
           id: 'raphael',
           type: 'raphael',
           name: 'St. Raphael',
-          lastMessage: 'Your health insights are ready',
-          lastMessageTime: new Date().toISOString(),
           isActive: true,
           archetype: 'Health Guardian',
         },
@@ -83,8 +81,10 @@ export default function UnifiedChatInterface() {
       ];
 
       setChatSessions(sessions);
+      setLoadError(null);
     } catch (error) {
       console.error('Error loading chat sessions:', error);
+      setLoadError('Your conversations could not be loaded. Check your connection and try again.');
     }
   };
 
@@ -221,12 +221,6 @@ export default function UnifiedChatInterface() {
               : 'Manage AI tasks and automation'}
           </p>
         </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-3 hover:bg-slate-800/50 rounded-xl transition-all backdrop-blur-sm border border-slate-700/30 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10"
-        >
-          <Settings className="w-5 h-5 text-slate-400 hover:text-emerald-400 transition-colors" />
-        </button>
       </div>
 
       <div className="flex items-center gap-2 bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl p-2 shadow-2xl">
@@ -368,7 +362,14 @@ export default function UnifiedChatInterface() {
           </div>
         ))}
 
-        {filteredSessions.length === 0 && (
+        {loadError && (
+          <div className="col-span-full flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <p className="text-sm text-amber-200">{loadError}</p>
+          </div>
+        )}
+
+        {!loadError && filteredSessions.length === 0 && (
           <div className="col-span-full text-center py-16 bg-slate-950/40 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl">
             <div className="w-20 h-20 bg-slate-900/60 border border-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-10 h-10 text-slate-600" />
@@ -381,25 +382,6 @@ export default function UnifiedChatInterface() {
         )}
       </div>
 
-          {showSettings && (
-            <div className="p-6 space-y-4 bg-slate-950/60 sm:backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-spring-in">
-              <h3 className="text-white font-semibold text-lg mb-4">Chat Settings</h3>
-              <div className="space-y-4">
-                <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">
-                  <span className="text-slate-300 text-sm font-medium">Show typing indicators</span>
-                  <input type="checkbox" className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-emerald-500/20" defaultChecked />
-                </label>
-                <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">
-                  <span className="text-slate-300 text-sm font-medium">Sound notifications</span>
-                  <input type="checkbox" className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-emerald-500/20" />
-                </label>
-                <label className="flex items-center justify-between p-3 bg-slate-900/40 rounded-xl border border-slate-800/30 hover:border-emerald-500/30 transition-all cursor-pointer">
-                  <span className="text-slate-300 text-sm font-medium">Auto-save conversations</span>
-                  <input type="checkbox" className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-emerald-500/20" defaultChecked />
-                </label>
-              </div>
-            </div>
-          )}
         </>
       )}
 
