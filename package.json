@@ -24,7 +24,7 @@
     "smoke:backends": "node scripts/smoke-backends.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,css,json}\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "audit:rls": "node scripts/audit-rls-gap.mjs"
   },
   "dependencies": {

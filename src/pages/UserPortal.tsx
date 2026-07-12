@@ -7,7 +7,6 @@ import {
   Search,
   MapPin,
   Phone,
-  MessageSquare,
   UserPlus,
   Check,
   X,
@@ -51,7 +50,7 @@ interface Connection {
 export default function UserPortal() {
   const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'directory' | 'connections' | 'messages'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'connections'>('directory');
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -279,16 +278,6 @@ export default function UserPortal() {
             <UserPlus className="w-5 h-5 inline mr-2" />
             My Connections
           </button>
-          <button
-            onClick={() => setActiveTab('messages')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'messages'
-              ? 'bg-sky-600 text-white'
-              : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
-              }`}
-          >
-            <MessageSquare className="w-5 h-5 inline mr-2" />
-            Messages
-          </button>
         </div>
 
         {activeTab === 'directory' && (
@@ -344,14 +333,6 @@ export default function UserPortal() {
 
         {activeTab === 'connections' && (
           <ConnectionsTab connections={connections} connectionNames={connectionNames} userId={user?.id || ''} onRefresh={loadData} />
-        )}
-
-        {activeTab === 'messages' && (
-          <div className="text-center py-16 bg-slate-800/20 rounded-2xl border border-slate-700/50">
-            <MessageSquare className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">Messaging Coming Soon</h3>
-            <p className="text-slate-400">Direct messaging feature will be available shortly</p>
-          </div>
         )}
 
         {selectedProfile && (

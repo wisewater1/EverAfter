@@ -1,6 +1,6 @@
-import React from 'react';
 import {
   CheckCircle,
+  MinusCircle,
   Sparkles,
   Heart,
   Brain,
@@ -13,9 +13,12 @@ import {
 interface OnboardingCompleteProps {
   onFinish: () => void;
   saving: boolean;
+  /** What actually completed, so the summary tiles tell the truth. */
+  profileSaved: boolean;
+  engramStarted: boolean;
 }
 
-export default function OnboardingComplete({ onFinish, saving }: OnboardingCompleteProps) {
+export default function OnboardingComplete({ onFinish, saving, profileSaved, engramStarted }: OnboardingCompleteProps) {
   return (
     <div className="text-center">
       {/* Success Animation */}
@@ -83,15 +86,20 @@ export default function OnboardingComplete({ onFinish, saving }: OnboardingCompl
         </div>
       </div>
 
-      {/* Completion summary: what you just set up */}
+      {/* Completion summary: reflects what actually completed (skipped
+          steps show as skipped, never as a green check) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-indigo-500/20 flex items-center gap-2 justify-center sm:justify-start">
-          <CheckCircle className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-          <p className="text-sm font-medium text-white text-left">Profile saved</p>
+        <div className={`rounded-xl p-4 border flex items-center gap-2 justify-center sm:justify-start ${profileSaved ? 'bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20' : 'bg-slate-800/40 border-slate-700/40'}`}>
+          {profileSaved
+            ? <CheckCircle className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+            : <MinusCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />}
+          <p className={`text-sm font-medium text-left ${profileSaved ? 'text-white' : 'text-slate-400'}`}>{profileSaved ? 'Profile saved' : 'Profile skipped — add it later in Settings'}</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-500/20 flex items-center gap-2 justify-center sm:justify-start">
-          <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-          <p className="text-sm font-medium text-white text-left">First engram started</p>
+        <div className={`rounded-xl p-4 border flex items-center gap-2 justify-center sm:justify-start ${engramStarted ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20' : 'bg-slate-800/40 border-slate-700/40'}`}>
+          {engramStarted
+            ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+            : <MinusCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />}
+          <p className={`text-sm font-medium text-left ${engramStarted ? 'text-white' : 'text-slate-400'}`}>{engramStarted ? 'First engram started' : 'Engram skipped — create one from the dashboard'}</p>
         </div>
         <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-500/20 flex items-center gap-2 justify-center sm:justify-start">
           <CheckCircle className="w-4 h-4 text-pink-400 flex-shrink-0" />
