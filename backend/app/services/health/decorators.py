@@ -23,24 +23,58 @@ class LoggingDecorator(HealthReportDecorator):
 
 class SafetyAlertDecorator(HealthReportDecorator):
     """
-    Decorator (Skin) that checks for critical status and triggers alerts.
-    Does NOT modify the logic, just reacts to it (Skin).
+    Decorator (Skin) that checks for critical status and raises a REAL alert:
+    an `agent_notifications` row, which the app delivers live (the frontend
+    HealthAlertListener subscribes to inserts on that table and surfaces
+    them immediately). The report only claims an alert went out when the
+    notification row was actually written — a failed write is reported as a
+    failed alert, never as success. SMS/email/push channels layer on top of
+    this once those providers are wired.
     """
     async def generate_report(self, data: HealthData) -> HealthReport:
         report = await self.wrapped.generate_report(data)
-        
+
         if report.status == "critical" or report.risk_score > 0.8:
-            self._trigger_alert(report)
-            report.summary = f"[ALERT SENT] {report.summary}"
-            report.metadata["alert_triggered"] = True
-            
+            delivered = await self._trigger_alert(data, report)
+            if delivered:
+                report.summary = f"[ALERT RAISED] {report.summary}"
+                report.metadata["alert_triggered"] = True
+                report.metadata["alert_channel"] = "in_app"
+            else:
+                report.summary = f"[ALERT DELIVERY FAILED] {report.summary}"
+                report.metadata["alert_triggered"] = False
+                report.metadata["alert_error"] = (
+                    "The critical-alert notification could not be recorded. "
+                    "Treat this reading as unalerted and check on the user directly."
+                )
+
         return report
 
-    def _trigger_alert(self, report: HealthReport):
-        # In a real system, this would send an SMS/Email/Push Notification
+    async def _trigger_alert(self, data: HealthData, report: HealthReport) -> bool:
         logger.critical(f"CRITICAL HEALTH ALERT: {report.summary}")
-        # Placeholder for actual alert logic
-        print(f"!!! DISPATCHING EMERGENCY ALERT: {report.summary} !!!")
+        try:
+            from app.db import session as db_session
+            from app.models.agent import AgentNotification
+
+            if db_session.AsyncSessionLocal is None:
+                logger.error("Alert dispatch failed: database session factory not initialized.")
+                return False
+
+            async with db_session.AsyncSessionLocal() as session:
+                notification = AgentNotification(
+                    user_id=data.user_id,
+                    notification_type="critical_health_alert",
+                    title=f"Critical health alert: {data.metric_type}",
+                    message=report.summary,
+                    priority="urgent",
+                    is_actionable=True,
+                )
+                session.add(notification)
+                await session.commit()
+            return True
+        except Exception:
+            logger.exception("Alert dispatch failed while recording the notification row.")
+            return False
 
 
 class PrivacyDecorator(HealthReportDecorator):
@@ -49,12 +83,14 @@ class PrivacyDecorator(HealthReportDecorator):
     """
     async def generate_report(self, data: HealthData) -> HealthReport:
         report = await self.wrapped.generate_report(data)
-        
-        # Example: if exporting, mask user ID or specific details
-        # For this example, we'll just add a privacy flag
-        report.metadata["encryption_applied"] = "AES-256"
-        report.metadata["privacy_compliant"] = True
-        
+
+        # Real, verifiable transformation only: strip direct identifiers from
+        # the export-facing metadata. No unearned "encrypted/compliant"
+        # claims — transport encryption is TLS at the edge, and compliance is
+        # asserted by audit, not by a flag set here.
+        report.metadata.pop("user_id", None)
+        report.metadata["identifiers_redacted"] = True
+
         return report
 
 class ContextualInsightDecorator(HealthReportDecorator):

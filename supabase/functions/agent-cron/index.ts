@@ -48,209 +48,81 @@ async function executeTask(task: any, supabase: any): Promise<{
     // Execute based on task type
     let result: any = {};
     
-    switch (task.task_type) {
-      case 'doctor_appointment': {
-        executionLog.push({
-          task_id: taskId,
-          step: "checking_credentials",
-          status: "started",
-          timestamp: new Date().toISOString()
-        });
+    // Real-world integrations (appointment booking, pharmacy refills,
+    // clinical portals) are NOT built yet. EverAfter never fabricates a
+    // completed real-world action: anything but an in-app reminder is
+    // declined with an honest, user-facing explanation instead of invented
+    // doctors and confirmation numbers.
+    if (task.task_type !== 'health_reminder') {
+      const capability = ({
+        doctor_appointment: 'booking medical appointments with a provider',
+        prescription_refill: 'submitting pharmacy refill requests',
+        lab_results: 'retrieving lab results from a clinical portal',
+      } as Record<string, string>)[task.task_type] || 'autonomously executing this kind of real-world task';
 
-        // Check if credentials are available
-        if (task.requires_credentials && (!task.credential_ids || task.credential_ids.length === 0)) {
-          await supabase
-            .from('agent_task_queue')
-            .update({ status: 'awaiting_credentials' })
-            .eq('id', taskId);
+      const message = `EverAfter can't complete this yet: ${capability} isn't connected to a real integration. Nothing was booked, submitted, or sent. This task type will activate once the real integration ships.`;
 
-          executionLog.push({
-            task_id: taskId,
-            step: "awaiting_credentials",
-            status: "completed",
-            result: { message: "Task requires user credentials to proceed" },
-            timestamp: new Date().toISOString()
-          });
+      const declinedResult = {
+        success: false,
+        status: 'integration_not_available',
+        message,
+      };
 
-          return {
-            success: false,
-            error: "Credentials required",
-            execution_log: executionLog
-          };
-        }
+      await supabase
+        .from('agent_task_queue')
+        .update({
+          status: 'failed',
+          error_message: message,
+          completed_at: new Date().toISOString(),
+          result: declinedResult,
+        })
+        .eq('id', taskId);
 
-        // Simulate appointment booking steps
-        await supabase
-          .from('agent_task_queue')
-          .update({ completion_percentage: 30 })
-          .eq('id', taskId);
+      executionLog.push({
+        task_id: taskId,
+        step: 'integration_not_available',
+        status: 'failed',
+        result: declinedResult,
+        timestamp: new Date().toISOString(),
+      });
 
-        executionLog.push({
-          task_id: taskId,
-          step: "searching_appointments",
-          status: "completed",
-          result: { available_slots: 5 },
-          timestamp: new Date().toISOString()
-        });
-
-        await supabase
-          .from('agent_task_queue')
-          .update({ completion_percentage: 60 })
-          .eq('id', taskId);
-
-        executionLog.push({
-          task_id: taskId,
-          step: "booking_appointment",
-          status: "completed",
-          result: { 
-            appointment_details: {
-              date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              time: "10:00 AM",
-              doctor: "Dr. Smith",
-              location: "Main Health Center"
-            }
-          },
-          timestamp: new Date().toISOString()
-        });
-
-        result = {
-          appointment_details: {
-            date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: "10:00 AM",
-            doctor: "Dr. Smith",
-            location: "Main Health Center",
-            confirmation_number: `APPT-${Date.now()}`
-          }
-        };
-
-        break;
-      }
-
-      case 'prescription_refill': {
-        executionLog.push({
-          task_id: taskId,
-          step: "locating_prescription",
-          status: "started",
-          timestamp: new Date().toISOString()
-        });
-
-        await supabase
-          .from('agent_task_queue')
-          .update({ completion_percentage: 40 })
-          .eq('id', taskId);
-
-        executionLog.push({
-          task_id: taskId,
-          step: "requesting_refill",
-          status: "completed",
-          timestamp: new Date().toISOString()
-        });
-
-        await supabase
-          .from('agent_task_queue')
-          .update({ completion_percentage: 70 })
-          .eq('id', taskId);
-
-        result = {
-          refill_details: {
-            medication: task.task_description.match(/\b[A-Z][a-z]+\b/)?.[0] || "Medication",
-            quantity: "30 day supply",
-            pharmacy: "Local Pharmacy",
-            ready_by: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            confirmation: `RX-${Date.now()}`
-          }
-        };
-
-        executionLog.push({
-          task_id: taskId,
-          step: "refill_confirmed",
-          status: "completed",
-          result,
-          timestamp: new Date().toISOString()
-        });
-
-        break;
-      }
-
-      case 'health_reminder': {
-        executionLog.push({
-          task_id: taskId,
-          step: "creating_reminder",
-          status: "started",
-          timestamp: new Date().toISOString()
-        });
-
-        await supabase
-          .from('agent_task_queue')
-          .update({ completion_percentage: 50 })
-          .eq('id', taskId);
-
-        result = {
-          reminder_created: true,
-          reminder_details: {
-            title: task.task_title,
-            description: task.task_description,
-            scheduled_for: task.scheduled_for || new Date().toISOString(),
-            notification_sent: true
-          }
-        };
-
-        executionLog.push({
-          task_id: taskId,
-          step: "reminder_set",
-          status: "completed",
-          result,
-          timestamp: new Date().toISOString()
-        });
-
-        break;
-      }
-
-      case 'lab_results': {
-        executionLog.push({
-          task_id: taskId,
-          step: "checking_lab_portal",
-          status: "started",
-          timestamp: new Date().toISOString()
-        });
-
-        await supabase
-          .from('agent_task_queue')
-          .update({ completion_percentage: 50 })
-          .eq('id', taskId);
-
-        result = {
-          lab_check_complete: true,
-          new_results_available: false,
-          last_checked: new Date().toISOString()
-        };
-
-        executionLog.push({
-          task_id: taskId,
-          step: "lab_check_complete",
-          status: "completed",
-          result,
-          timestamp: new Date().toISOString()
-        });
-
-        break;
-      }
-
-      default: {
-        executionLog.push({
-          task_id: taskId,
-          step: "processing_custom_task",
-          status: "completed",
-          result: { message: `Task ${task.task_type} processed` },
-          timestamp: new Date().toISOString()
-        });
-
-        result = {
-          task_processed: true,
-          task_type: task.task_type
-        };
-      }
+      return {
+        success: false,
+        error: message,
+        execution_log: executionLog,
+      };
     }
+
+    executionLog.push({
+      task_id: taskId,
+      step: 'creating_reminder',
+      status: 'started',
+      timestamp: new Date().toISOString(),
+    });
+
+    await supabase
+      .from('agent_task_queue')
+      .update({ completion_percentage: 50 })
+      .eq('id', taskId);
+
+    // The reminder itself is the real action: the task row (and any
+    // notification listeners on it) carry the reminder inside the app.
+    result = {
+      reminder_created: true,
+      reminder_details: {
+        title: task.task_title,
+        description: task.task_description,
+        scheduled_for: task.scheduled_for || new Date().toISOString(),
+      },
+    };
+
+    executionLog.push({
+      task_id: taskId,
+      step: 'reminder_set',
+      status: 'completed',
+      result,
+      timestamp: new Date().toISOString(),
+    });
 
     // Update task to completed
     await supabase
