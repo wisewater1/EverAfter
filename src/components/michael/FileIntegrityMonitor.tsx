@@ -20,11 +20,18 @@ export default function FileIntegrityMonitor() {
     const [events, setEvents] = useState<FileIntegrityEvent[]>([]);
     const [filterType, setFilterType] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const loadEvents = async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             setEvents(await getLiveFileIntegrityEvents());
+        } catch {
+            // No fabricated fallback events: "couldn't check" must never
+            // read as "no integrity changes".
+            setEvents([]);
+            setLoadError('Live file-integrity monitoring is unreachable. Integrity events cannot be verified until the monitoring service recovers.');
         } finally {
             setLoading(false);
         }
@@ -77,7 +84,13 @@ export default function FileIntegrityMonitor() {
             </div>
 
             <div className="space-y-3">
-                {!loading && filtered.length === 0 && (
+                {!loading && loadError && (
+                    <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-6 py-5">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                        <p className="text-sm text-amber-200">{loadError}</p>
+                    </div>
+                )}
+                {!loading && !loadError && filtered.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-white/5 bg-slate-900/20 px-6 py-12 text-center text-sm text-slate-500">
                         No integrity telemetry is available from the current Michael scan window.
                     </div>

@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import axios from 'axios';
-import { API_BASE_URL, isDevelopment } from '../env';
+import { API_BASE_URL } from '../env';
 import { buildAccessTokenHeaders } from '../auth-session';
 
 const DEMO_USER_ID = '00000000-0000-4000-8000-000000000001';
@@ -497,8 +497,8 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         try {
             const monitoring = await getMonitoringStatus();
             const michael = monitoring?.michael || {};
-            const findings = (michael.recent_findings || []).map((f: any) => ({
-                id: f.id || Math.random().toString(36).slice(2, 11),
+            const findings = (michael.recent_findings || []).map((f: any, index: number) => ({
+                id: f.id || `finding-${index}`,
                 type: f.type || 'system',
                 severity: f.severity || 'medium',
                 message: f.message || 'Guardian finding detected',
@@ -559,8 +559,8 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
             const michaelFindings = michael.recent_findings || [];
 
             // Map backend findings to frontend alerts
-            const findings = michaelFindings.map((f: any) => ({
-                id: f.id || Math.random().toString(36).substr(2, 9),
+            const findings = michaelFindings.map((f: any, index: number) => ({
+                id: f.id || `finding-${index}`,
                 type: f.type || 'vulnerability',
                 severity: f.severity || 'medium',
                 message: f.message || 'Unknown finding',
@@ -582,16 +582,8 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
             };
         } catch (e) {
             console.warn("Backend status unavailable");
-            if (isDevelopment) {
-                return {
-                    overallScore: Math.round((dataIntegrity + privacyStatus) / 2),
-                    dataIntegrity,
-                    privacyStatus,
-                    lastScan,
-                    alerts
-                };
-            }
-
+            // Dev builds get the same honest degraded state as production —
+            // a fabricated clean score in dev normalizes shipping one.
             return {
                 overallScore: Math.round((dataIntegrity + privacyStatus) / 2),
                 dataIntegrity,
@@ -613,15 +605,6 @@ export async function getSecurityIntegrity(userId: string): Promise<IntegrityRep
         }
     } catch (error) {
         console.error('Error fetching security integrity:', error);
-        if (isDevelopment) {
-            return {
-                overallScore: 100,
-                dataIntegrity: 100,
-                privacyStatus: 100,
-                lastScan,
-                alerts: []
-            };
-        }
         return {
             overallScore: 0,
             dataIntegrity: 0,
@@ -733,16 +716,9 @@ export async function runCAIAudit(userId: string): Promise<{
         console.error('Error running CAI audit:', error);
     }
 
-    if (!userId) {
-        if (!isDevelopment) {
-            return { integrityScore: 0, adversarialFlags: 0, phiLeaksDetected: 0, status: 'warning' };
-        }
-        return { integrityScore: 100, adversarialFlags: 0, phiLeaksDetected: 0, status: 'clean' };
-    }
-    if (!isDevelopment) {
-        return { integrityScore: 0, adversarialFlags: 0, phiLeaksDetected: 0, status: 'warning' };
-    }
-    return { integrityScore: 99, adversarialFlags: 0, phiLeaksDetected: 0, status: 'clean' };
+    // Live audit unavailable (any environment): report an honest warning
+    // with zeroed metrics instead of fabricating a clean 99-100 score.
+    return { integrityScore: 0, adversarialFlags: 0, phiLeaksDetected: 0, status: 'warning' };
 }
 
 // ── Wazuh-Inspired Types ───────────────────────────────────
@@ -863,15 +839,13 @@ export function getThreatEvents(): ThreatEvent[] {
 }
 
 export async function getLiveVulnerabilities(): Promise<Vulnerability[]> {
-    try {
-        return await axiosWithAuthRetry<Vulnerability[]>(
-            'get',
-            '/api/v1/monitoring/michael/vulnerabilities',
-        );
-    } catch (e) {
-        console.error("Failed to fetch live CVEs", e);
-        return getVulnerabilities(); // Fallback
-    }
+    // No fabricated fallback: if the live feed is down the caller must show
+    // an "unavailable" state — a fake CVE list is worse than an honest error
+    // in a security product.
+    return axiosWithAuthRetry<Vulnerability[]>(
+        'get',
+        '/api/v1/monitoring/michael/vulnerabilities',
+    );
 }
 
 export async function getAnthonyLedger(limit: number = 50): Promise<AuditLedgerEntry[]> {
@@ -1023,10 +997,12 @@ export async function getLiveThreatEvents(): Promise<ThreatEvent[]> {
             (event, index, items) => items.findIndex((candidate) => candidate.id === event.id) === index,
         );
 
-        return deduped.length > 0 ? deduped : getThreatEvents();
+        // An empty list is a real, good answer ("no active threats") — never
+        // pad it with samples.
+        return deduped;
     } catch (error) {
         console.error('Failed to fetch live threat events', error);
-        return getThreatEvents();
+        throw error;
     }
 }
 
@@ -1039,13 +1015,12 @@ export async function getLiveFileIntegrityEvents(): Promise<FileIntegrityEvent[]
 
         const findingEvents = (status.michael?.recent_findings || []).map(findingToFileEvent);
         const vulnerabilityEvents = vulnerabilities.map(vulnerabilityToFileEvent);
-        const events = [...findingEvents, ...vulnerabilityEvents]
+        // Empty means "no integrity events" — an honest, meaningful answer.
+        return [...findingEvents, ...vulnerabilityEvents]
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        return events.length > 0 ? events : getFileIntegrityEvents();
     } catch (error) {
         console.error('Failed to fetch live file integrity events', error);
-        return getFileIntegrityEvents();
+        throw error;
     }
 }
 
@@ -1114,38 +1089,9 @@ export async function downloadAnthonyLedgerExport(): Promise<Blob> {
     );
 }
 
-export function getVulnerabilities(): Vulnerability[] {
-    return [
-        { id: 'v1', cveId: 'CVE-2024-31091', title: 'Authentication Bypass in Legacy Module', severity: 'critical', cvssScore: 9.8, affectedComponent: 'Auth Service v2.1', status: 'patched', publishedDate: '2024-03-15', description: 'Allows unauthenticated users to bypass MFA' },
-        { id: 'v2', cveId: 'CVE-2024-28447', title: 'XSS in Dashboard Rendering', severity: 'medium', cvssScore: 6.1, affectedComponent: 'Frontend UI', status: 'mitigated', publishedDate: '2024-02-20', description: 'Reflected XSS via query parameter injection' },
-        { id: 'v3', cveId: 'CVE-2024-22119', title: 'SQL Injection in Legacy Vault', severity: 'high', cvssScore: 8.6, affectedComponent: 'Legacy Vault API', status: 'patched', publishedDate: '2024-01-10', description: 'Parameterized query bypass in search endpoint' },
-        { id: 'v4', cveId: 'CVE-2024-35890', title: 'Insecure Deserialization', severity: 'high', cvssScore: 7.5, affectedComponent: 'Engram Pipeline', status: 'open', publishedDate: '2024-04-01', description: 'Untrusted data deserialization in engram processor' },
-        { id: 'v5', cveId: 'CVE-2024-40012', title: 'Weak Encryption in Transport', severity: 'low', cvssScore: 3.7, affectedComponent: 'Saint Bridge', status: 'accepted', publishedDate: '2024-05-12', description: 'Deprecated TLS cipher suite still supported' },
-    ];
-}
-
-export function getFileIntegrityEvents(): FileIntegrityEvent[] {
-    const now = Date.now();
-    return [
-        { id: 'fi1', filePath: '/etc/auth/config.yaml', changeType: 'modified', previousHash: 'a3f2b8c1', currentHash: 'e7d4f9a2', user: 'system', timestamp: new Date(now - 600000).toISOString(), severity: 'medium' },
-        { id: 'fi2', filePath: '/app/data/engrams.db', changeType: 'modified', previousHash: 'b1c2d3e4', currentHash: 'f5a6b7c8', user: 'engram_service', timestamp: new Date(now - 1200000).toISOString(), severity: 'low' },
-        { id: 'fi3', filePath: '/app/config/saints.json', changeType: 'modified', previousHash: 'c3d4e5f6', currentHash: 'a7b8c9d0', user: 'admin', timestamp: new Date(now - 3600000).toISOString(), severity: 'low' },
-        { id: 'fi4', filePath: '/tmp/.hidden_script.sh', changeType: 'created', user: 'unknown', timestamp: new Date(now - 7200000).toISOString(), severity: 'high' },
-        { id: 'fi5', filePath: '/var/log/audit.log', changeType: 'deleted', previousHash: 'd5e6f7a8', user: 'root', timestamp: new Date(now - 14400000).toISOString(), severity: 'critical' },
-        { id: 'fi6', filePath: '/app/data/health_records.enc', changeType: 'permissions', user: 'raphael_service', timestamp: new Date(now - 28800000).toISOString(), severity: 'medium' },
-    ];
-}
-
-export function getComplianceChecks(): ComplianceCheck[] {
-    const now = new Date().toISOString();
-    return [
-        { id: 'cc1', framework: 'HIPAA', control: '164.312(a)(1)', description: 'Access Control, Unique User Identification', status: 'pass', lastChecked: now, details: 'All user accounts have unique identifiers and MFA enabled' },
-        { id: 'cc2', framework: 'HIPAA', control: '164.312(a)(2)(iv)', description: 'Encryption and Decryption', status: 'pass', lastChecked: now, details: 'AES-256 encryption at rest, TLS 1.3 in transit' },
-        { id: 'cc3', framework: 'HIPAA', control: '164.312(b)', description: 'Audit Controls', status: 'pass', lastChecked: now, details: 'St. Michael audit logging active for all PHI access' },
-        { id: 'cc4', framework: 'PCI-DSS', control: 'Req 6.5', description: 'Secure Coding Guidelines', status: 'warning', lastChecked: now, details: '1 open vulnerability in Legacy Vault API' },
-        { id: 'cc5', framework: 'GDPR', control: 'Art. 25', description: 'Data Protection by Design', status: 'pass', lastChecked: now, details: 'Privacy-by-default configuration verified' },
-        { id: 'cc6', framework: 'NIST', control: 'SI-4', description: 'System Monitoring', status: 'pass', lastChecked: now, details: 'Continuous monitoring via St. Michael agent' },
-        { id: 'cc7', framework: 'HIPAA', control: '164.312(c)(1)', description: 'Integrity Controls', status: 'pass', lastChecked: now, details: 'File integrity monitoring active' },
-        { id: 'cc8', framework: 'PCI-DSS', control: 'Req 10.5', description: 'Secure Audit Trails', status: 'pass', lastChecked: now, details: 'Immutable audit logs with hash verification' },
-    ];
-}
+// The hardcoded threat/CVE/file-integrity/compliance sample generators that
+// used to live here were removed deliberately: they surfaced fabricated
+// security findings (fake CVE ids, fake HIPAA/PCI "pass" rows) whenever the
+// live monitoring feed was down, indistinguishable from real results. The
+// getLive* functions above now return honest empties or throw, and the
+// dashboard components render explicit "live data unavailable" states.

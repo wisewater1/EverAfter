@@ -46,14 +46,21 @@ export default function ThreatDetection() {
     const [filterSeverity, setFilterSeverity] = useState<ThreatSeverity | null>(null);
     const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     const loadThreats = async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             const liveThreats = await getLiveThreatEvents();
             const acknowledged = loadAcknowledgedThreatIds();
             setThreats(liveThreats.map(t => acknowledged.has(t.id) ? { ...t, mitigated: true } : t));
+        } catch {
+            // No fabricated fallback feed: "couldn't check" must never read
+            // as "no threats".
+            setThreats([]);
+            setLoadError('Live threat detection is unreachable. Threat status cannot be verified until the monitoring service recovers.');
         } finally {
             setLoading(false);
         }
@@ -65,22 +72,16 @@ export default function ThreatDetection() {
 
     const filtered = filterSeverity ? threats.filter(t => t.severity === filterSeverity) : threats;
 
-    const handleAcknowledge = async (id: string) => {
+    const handleAcknowledge = (id: string) => {
         setAcknowledgingId(id);
-        try {
-            // Signature Michael acknowledgment animation delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            const acknowledged = loadAcknowledgedThreatIds();
-            acknowledged.add(id);
-            saveAcknowledgedThreatIds(acknowledged);
-            setThreats(prev => prev.map(t => t.id === id ? { ...t, mitigated: true } : t));
-        } finally {
-            setAcknowledgingId(null);
-        }
+        const acknowledged = loadAcknowledgedThreatIds();
+        acknowledged.add(id);
+        saveAcknowledgedThreatIds(acknowledged);
+        setThreats(prev => prev.map(t => t.id === id ? { ...t, mitigated: true } : t));
+        setAcknowledgingId(null);
     };
 
     const handleInvestigate = (ruleId: string) => {
-        // Navigate to Anthony with a filter (mock filter param)
         navigate(`/anthony-dashboard?tab=ledger&filter=${encodeURIComponent(ruleId)}`);
     };
 
@@ -139,7 +140,13 @@ export default function ThreatDetection() {
 
             {/* Threat Feed */}
             <div className="space-y-3">
-                {!loading && filtered.length === 0 && (
+                {!loading && loadError && (
+                    <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-6 py-5">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                        <p className="text-sm text-amber-200">{loadError}</p>
+                    </div>
+                )}
+                {!loading && !loadError && filtered.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-white/5 bg-slate-900/20 px-6 py-12 text-center text-sm text-slate-500">
                         No live threats are currently flagged by St. Michael.
                     </div>
