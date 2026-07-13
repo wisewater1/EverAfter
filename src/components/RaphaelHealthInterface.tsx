@@ -1,3 +1,4 @@
+import { purchasesEnabled } from '../lib/platform';
 import { notify } from '../lib/dialogs';
 import { useState, useEffect } from 'react';
 import { MessageCircle, Activity, BarChart3, Heart, Calendar, Target, Users, Pill, Link2, TrendingUp, Crown, Sparkles, Zap, ExternalLink } from 'lucide-react';
@@ -245,7 +246,7 @@ export default function RaphaelHealthInterface() {
       </div>
 
       {/* Health Premium Modal */}
-      {showPremiumModal && (
+      {purchasesEnabled() && showPremiumModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6">
           <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-rose-500/30 p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
             <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">

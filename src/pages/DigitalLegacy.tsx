@@ -1,6 +1,7 @@
+import { purchasesEnabled } from '../lib/platform';
 import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mail, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock, Users, Image as ImageIcon, Video, Send, ArrowLeft } from 'lucide-react';
+import { Calendar, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock, Users, Send, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -264,7 +265,7 @@ export default function DigitalLegacy() {
           </div>
 
           {/* Premium Banner */}
-          {!hasPremiumLegacy && (
+          {!hasPremiumLegacy && purchasesEnabled() && (
             <div className="relative bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-rose-500/10 border border-purple-500/20 rounded-xl p-6 mb-6 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-rose-500/5 motion-safe:animate-pulse"></div>
               <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -508,7 +509,7 @@ export default function DigitalLegacy() {
       )}
 
       {/* Upgrade Modal */}
-      {showUpgradeModal && (
+      {purchasesEnabled() && showUpgradeModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-8 max-w-2xl w-full">
             <div className="flex items-center gap-4 mb-6">
