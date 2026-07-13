@@ -1,6 +1,6 @@
 import { appConfirm } from '../../lib/dialogs';
 import { useState, useEffect } from 'react';
-import { X, Plus, Eye, EyeOff, Save, FolderPlus, Loader2 } from 'lucide-react';
+import { X, Plus, EyeOff, FolderPlus, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 import { financeApi } from '../../lib/gabriel/finance';
@@ -37,15 +37,11 @@ export default function CategoryManager({ isOpen, onClose, onUpdate }: CategoryM
             setLoading(true);
             setError(null);
             setDegradedMode(false);
-            // We need a way to get *all* categories including hidden ones if we want to unhide them
-            // But for now, let's just use what we have available. 
-            // Ideally backend should provide a comprehensive list endpoint.
-            // Using getCategories (which uses getBudget) only shows active ones.
-            // Let's assume for this version we only add/hide visible ones or assume 
-            // we'll see duplicates if we add same name.
+            // Known constraint: getCategories derives from the budget, so it
+            // only returns ACTIVE categories - hidden ones can't be listed
+            // (and therefore can't be unhidden) until the backend exposes a
+            // complete-list endpoint.
             const cats = await financeApi.getCategories();
-            // Since getCategories returns simple list, we'll use that.
-            // Note: getCategories implementation in finance.ts currently extracts from budget.
             // This means we won't see hidden categories to unhide them.
             // Improvement: Add a proper getAllCategories endpoint later.
             setCategories(cats as any);

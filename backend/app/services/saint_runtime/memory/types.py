@@ -17,7 +17,8 @@ class MemoryObject(BaseModel):
     importance: float = 0.0  # 1-10 normalized
     type: str = "observation"  # observation, reflection, plan
     
-    # Embedding vector for relevance search (placeholder for now)
+    # Embedding vector for relevance search; None until embedding
+    # generation runs for this memory
     embedding: Optional[List[float]] = None
     
     # Metadata for specific Saint context

@@ -13,11 +13,12 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const payload = await req.json();
+    // Not implemented: acknowledge nothing, store nothing, and do NOT log
+    // the payload (potential PHI in logs on an unauthenticated endpoint).
+    // The live Oura flow is handled elsewhere (via the Terra aggregator).
+    await req.text().catch(() => '');
 
-    console.log('Oura webhook received (stub):', payload);
-
-    return jsonResponse({ status: 'stub_acknowledged', message: 'Oura webhook handler not fully implemented' });
+    return jsonResponse({ status: 'not_implemented', message: 'Oura direct webhook is not implemented; no data was stored.' }, 501);
 
   } catch (err: any) {
     console.error('Oura webhook error:', err);

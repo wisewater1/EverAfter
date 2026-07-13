@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { requireUser, AuthError } from '../_shared/http.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,6 @@ const corsHeaders = {
 };
 
 interface WidgetRequest {
-  reference_id: string;
   providers?: string[];
   auth_success_redirect_url?: string;
   auth_failure_redirect_url?: string;
@@ -31,6 +31,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Widget sessions bind the Terra connection to reference_id. Derive it
+    // from the verified JWT — a client-supplied reference_id would let any
+    // caller attach their device data to another user's account.
+    const user = await requireUser(req);
+
     const TERRA_API_KEY = Deno.env.get("TERRA_API_KEY");
     const TERRA_DEV_ID = Deno.env.get("TERRA_DEV_ID");
     const BASE_URL = Deno.env.get("BASE_URL") || Deno.env.get("SUPABASE_URL");
@@ -48,10 +53,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const body: WidgetRequest = await req.json();
+    const body: WidgetRequest = await req.json().catch(() => ({} as WidgetRequest));
 
     const widgetPayload = {
-      reference_id: body.reference_id,
+      reference_id: user.id,
       providers: body.providers || [
         "FITBIT",
         "OURA",
@@ -104,6 +109,12 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized", message: error.message }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     console.error("Error in terra-widget:", error);
 
     return new Response(

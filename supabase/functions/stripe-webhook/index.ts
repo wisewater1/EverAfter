@@ -124,11 +124,24 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
-// Map price IDs to plan names (replace with your actual Stripe price IDs)
-const PRICE_TO_PLAN_MAP: Record<string, string> = {
-  'price_1234567890': 'pro', // Replace with your actual Pro plan price ID
-  'price_0987654321': 'enterprise', // Replace with your actual Enterprise plan price ID
+// Price → plan map, configured via Supabase secrets so production price IDs
+// never live in code. Unmapped prices grant NOTHING (no silent defaults).
+const PRICE_TO_PLAN_MAP: Record<string, string> = {};
+const proPriceId = Deno.env.get('STRIPE_PRICE_ID_PRO');
+const enterprisePriceId = Deno.env.get('STRIPE_PRICE_ID_ENTERPRISE');
+if (proPriceId) PRICE_TO_PLAN_MAP[proPriceId] = 'pro';
+if (enterprisePriceId) PRICE_TO_PLAN_MAP[enterprisePriceId] = 'enterprise';
+
+// Statuses that keep paid entitlements. past_due is a grace period (Stripe
+// is still retrying payment); canceled/unpaid/incomplete revoke access.
+const ENTITLED_STATUSES = new Set(['active', 'trialing', 'past_due']);
+
+// The premium saints managed by billing. Free saints are never touched here.
+const PLAN_SAINTS: Record<string, string[]> = {
+  pro: ['michael'],
+  enterprise: ['michael', 'martin', 'agatha'],
 };
+const ALL_PREMIUM_SAINTS = ['michael', 'martin', 'agatha'];
 
 async function syncCustomerFromStripe(customerId: string) {
   try {
@@ -151,9 +164,12 @@ async function syncCustomerFromStripe(customerId: string) {
       status: 'all',
     });
 
+    // NOTE: Stripe returns canceled subscriptions in status:'all' lists, so
+    // an empty list means the customer never had one (or it was deleted
+    // long ago). Entitlement for canceled-but-listed subs is handled below
+    // via ENTITLED_STATUSES — not by this branch.
     if (subscriptions.data.length === 0) {
-      console.info(`No active subscriptions found for customer: ${customerId}`);
-      // Update to free plan if subscription cancelled
+      console.info(`No subscriptions found for customer: ${customerId}`);
       const { error: updateError } = await supabase
         .from('subscriptions')
         .update({
@@ -166,15 +182,32 @@ async function syncCustomerFromStripe(customerId: string) {
       if (updateError) {
         console.error('Error updating subscription to free:', updateError);
       }
+      await syncPremiumSaints(existingSub.user_id, []);
       return;
     }
 
     // Get the most recent subscription
     const subscription = subscriptions.data[0];
     const priceId = subscription.items.data[0].price.id;
-    const planName = PRICE_TO_PLAN_MAP[priceId] || 'pro'; // Default to pro if price not mapped
+    const mappedPlan = PRICE_TO_PLAN_MAP[priceId];
 
-    // Update subscription in database
+    if (!mappedPlan) {
+      // Unmapped price: record it visibly and grant no premium entitlements.
+      // (Previously this silently defaulted to 'pro' — a paid-tier grant for
+      // any unrecognized price.)
+      console.error(
+        `Unmapped Stripe price ${priceId} for customer ${customerId} — ` +
+        'no premium entitlements granted. Set STRIPE_PRICE_ID_PRO / ' +
+        'STRIPE_PRICE_ID_ENTERPRISE secrets to map real price IDs.'
+      );
+    }
+
+    const entitled = ENTITLED_STATUSES.has(subscription.status);
+    const planName = mappedPlan || 'unmapped_price';
+    const effectivePlan = entitled && mappedPlan ? mappedPlan : 'free';
+
+    // Update subscription in database (record the raw truth: actual plan
+    // name for the price, actual Stripe status).
     const { error: subError } = await supabase
       .from('subscriptions')
       .update({
@@ -194,39 +227,45 @@ async function syncCustomerFromStripe(customerId: string) {
       throw new Error('Failed to sync subscription in database');
     }
 
-    console.info(`Successfully synced subscription for customer: ${customerId}, plan: ${planName}`);
+    console.info(
+      `Synced subscription for customer ${customerId}: plan=${planName}, ` +
+      `status=${subscription.status}, effective=${effectivePlan}`
+    );
 
-    // Activate premium Saints based on plan
-    if (planName === 'pro' || planName === 'enterprise') {
-      // Activate St. Michael for Pro and Enterprise
-      await activateSaint(existingSub.user_id, 'michael');
-    }
-    if (planName === 'enterprise') {
-      // Activate St. Martin and St. Agatha for Enterprise
-      await activateSaint(existingSub.user_id, 'martin');
-      await activateSaint(existingSub.user_id, 'agatha');
-    }
+    // Premium saints follow the EFFECTIVE plan: canceled/unpaid/downgraded
+    // customers lose the saints their previous tier granted.
+    await syncPremiumSaints(existingSub.user_id, PLAN_SAINTS[effectivePlan] ?? []);
   } catch (error) {
     console.error(`Failed to sync subscription for customer ${customerId}:`, error);
     throw error;
   }
 }
 
-async function activateSaint(userId: string, saintId: string) {
-  const { error } = await supabase
-    .from('saints_subscriptions')
-    .upsert({
-      user_id: userId,
-      saint_id: saintId,
-      is_active: true,
-      activated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id,saint_id',
-    });
+/**
+ * Reconcile the user's premium-saint activations with what their current
+ * plan grants: activate what's owed, deactivate what is no longer owed.
+ */
+async function syncPremiumSaints(userId: string, grantedSaints: string[]) {
+  const granted = new Set(grantedSaints);
+  for (const saintId of ALL_PREMIUM_SAINTS) {
+    const shouldBeActive = granted.has(saintId);
+    const { error } = await supabase
+      .from('saints_subscriptions')
+      .upsert({
+        user_id: userId,
+        saint_id: saintId,
+        is_active: shouldBeActive,
+        ...(shouldBeActive
+          ? { activated_at: new Date().toISOString() }
+          : { deactivated_at: new Date().toISOString() }),
+      }, {
+        onConflict: 'user_id,saint_id',
+      });
 
-  if (error) {
-    console.error(`Failed to activate saint ${saintId} for user ${userId}:`, error);
-  } else {
-    console.info(`Activated saint ${saintId} for user ${userId}`);
+    if (error) {
+      console.error(`Failed to sync saint ${saintId} for user ${userId}:`, error);
+    } else {
+      console.info(`Saint ${saintId} for user ${userId}: is_active=${shouldBeActive}`);
+    }
   }
 }

@@ -70,31 +70,43 @@ supabase functions deploy
 
 ## Architecture Overview
 
-### Dual Backend System
+> Ground truth lives in `CURRENT_STATE.md` (dated, verified against deploy
+> configs). Summary below; when they disagree, trust `CURRENT_STATE.md`.
 
-**Primary: Supabase Edge Functions** (Deno/TypeScript)
-- 54 serverless functions in `supabase/functions/`
-- Authentication, AI chat, health data sync, webhooks, payments
-- Deployed to Supabase with automatic scaling
-- Accesses PostgreSQL directly via Supabase client
+### Production Backends (three, all live)
 
-**Secondary: Express/Node Server** (`server/`)
-- `server/index.ts` - Express server entry point
-- `server/api/raphael.ts` - Raphael-specific API routes
-- `server/api/connections/` - Health provider OAuth and webhook handlers
-- `server/lib/terra-client.ts` - Terra API client library
-- `server/workers/scheduler.ts` - BullMQ worker for background jobs
-- Run with `npm run dev:server` and `npm run dev:worker`
+**1. Supabase Edge Functions** (Deno/TypeScript)
+- 55 serverless functions in `supabase/functions/`
+- Authentication, AI chat, health data sync, webhooks (incl. Terra), payments
+- Deployed to Supabase project `sncvecvgxwkkxnxbvglv`
 
-**When to Use Each Backend**:
-- **Frontend + Edge Functions Only**: Sufficient for St. Raphael chat, custom engrams, tasks, payments
-- **Express Server**: Required for Terra integration and health provider webhooks
-- **BullMQ Worker**: Required for background health data sync jobs
+**2. Python FastAPI backend** (`backend/`)
+- Render web service `everafter-api` (`render.yaml`), proxied at
+  `/api/v1/*` and `/governance/*` via `netlify.toml`
+- Saints runtime, monitoring/audit (St. Michael/Anthony), family/genealogy,
+  finance, DHT/causal-twin, personality training APIs
+- Consumed by 20+ `src/` files through `src/lib/backend-request.ts`
+- A companion Render worker `everafter-elohim-anchor` runs from the same tree
+
+**3. Voice AI sidecar** (`voice-ai-service/`)
+- Render web service `everafter-voice-ai` (ElevenLabs)
+- Consumed via `src/lib/joseph/voice.ts` (Joseph voice profiles)
+
+### Legacy, NOT deployed
+
+**Express/Node Server** (`server/` + `agents/`) — no deploy config
+references it, it does not currently type-check standalone, and Terra
+webhooks actually run through the `webhook-terra` Edge Function
+(signature-verified), not this stack. `npm run dev:server` /
+`npm run dev:worker` start it locally only. Do not build new features on
+it; owner decision pending on fix-vs-remove (see `CURRENT_STATE.md`).
+The same applies to `health-api/` (separate Node/Prisma service, broken,
+undeployed).
 
 **Database Layer**:
-- **Supabase PostgreSQL**: Main database (108+ migrations)
-- **Prisma Client**: Optional ORM for Node server (`prisma/schema.prisma`)
-- Health connectors use Prisma models (User, Source, Device, Metric, etc.)
+- **Supabase PostgreSQL**: Main database (128 migrations; RLS on every table)
+- **Prisma schema** (`prisma/schema.prisma`) belongs to the legacy `server/`
+  stack — do not mix Prisma and the Supabase client in the same code
 
 ### Key Architectural Patterns
 
@@ -168,7 +180,7 @@ supabase functions deploy
 - `knowledge-ingest`, `knowledge-query` - AI knowledge base system
 
 ### Database Schema
-- `supabase/migrations/` - 108+ migration files (Supabase uses SQL migrations)
+- `supabase/migrations/` - 128 migration files (Supabase uses SQL migrations)
 - `prisma/schema.prisma` - Prisma schema for Node server (health connectors)
 - Key tables: `profiles`, `archetypal_ais`, `daily_question_pool`, `saints_subscriptions`, `agent_task_queue`, `glucose_readings`, `health_metrics`, `provider_accounts`
 
@@ -190,6 +202,7 @@ supabase functions deploy
 - ESLint + Prettier configured
 
 ### Error Handling Pattern (Edge Functions)
+Use this shape for all NEW or edited functions:
 ```typescript
 return new Response(
   JSON.stringify({
@@ -200,6 +213,10 @@ return new Response(
   { status: 400, headers: { 'Content-Type': 'application/json' } }
 )
 ```
+Reality check: a legacy majority of functions still return `{error: message}`
+(via `_shared/connectors.ts`). Don't assume either shape when consuming a
+function — read it. Migrating legacy functions requires updating their
+callers' error handling in the same change.
 
 ### Component Organization
 - Page-level components in `src/pages/`
@@ -283,10 +300,10 @@ TERRA_API_KEY=your_terra_key
 - Terra-specific: `server/api/connections/terra.ts`
 
 ### Webhook Flow Files
-- Terra: `supabase/functions/webhook-terra/`
-- Dexcom: `supabase/functions/webhook-dexcom/`
-- Fitbit: `supabase/functions/webhook-fitbit/`
-- Generic handler: `server/api/connections/webhooks.ts`
+- Terra: `supabase/functions/webhook-terra/` (signature-verified; the live path)
+- Dexcom: `supabase/functions/cgm-dexcom-webhook/` (signature-verified; `webhook-dexcom` is an honest 501 stub)
+- Fitbit: `supabase/functions/webhook-fitbit/` (signature-verified)
+- `server/api/connections/webhooks.ts` belongs to the undeployed legacy stack
 
 ## Common Gotchas
 
@@ -298,7 +315,7 @@ TERRA_API_KEY=your_terra_key
 
 4. **JWT Forwarding**: When calling Supabase from Edge Functions, forward user JWT: `Authorization: Bearer ${jwt}` for RLS enforcement.
 
-5. **Background Jobs**: BullMQ scheduler (`server/workers/scheduler.ts`) must run separately with `npm run dev:worker`.
+5. **Background Jobs**: the BullMQ scheduler belongs to the undeployed legacy `server/` stack. Live scheduled work runs as Supabase scheduled functions (e.g. `glucose-aggregate-cron`, gated by service-role key / `CRON_SECRET`) and the Render worker `everafter-elohim-anchor`.
 
 6. **Glucose Units**: Always convert to mg/dL before storing. Preserve original unit in metadata.
 
@@ -334,10 +351,15 @@ TERRA_API_KEY=your_terra_key
 - `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET` - Oura Ring
 - `APP_BASE_URL` - Set to https://everafterai.net
 
-### Backend Server (Railway/Render)
-- Requires: PostgreSQL, Redis
-- Start: `npm run dev:server` (production: use PM2 or Docker)
-- Worker: `npm run dev:worker` (separate process)
+### Python Backend + Voice Sidecar (Render) - CURRENT
+- `backend/` → Render web service `everafter-api` + worker `everafter-elohim-anchor` (`render.yaml`)
+- `voice-ai-service/` → Render web service `everafter-voice-ai`
+- Frontend reaches them through the Netlify proxies in `netlify.toml`
+
+### Stripe Secrets (Supabase Functions)
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_ID_PRO`, `STRIPE_PRICE_ID_ENTERPRISE` — REQUIRED for
+  entitlements; unmapped prices grant nothing by design
 
 ### Database Migrations
 - Dev: `npm run migrate` (creates migration + applies)
@@ -345,11 +367,11 @@ TERRA_API_KEY=your_terra_key
 
 ## Additional Documentation
 
-Extensive documentation exists in 150+ markdown files in the root directory. Key references:
-- `README.md` - Full project documentation
-- `ARCHITECTURE.md` - Detailed system architecture
-- `SECURITY.md` - Threat model and mitigations
-- `TESTING_GUIDE.md` - Testing strategies
-- `HEALTH_MONITOR_COMPLETE_GUIDE.md` - Health integration details
-- `ST_RAPHAEL_CONNECTIVITY_ARCHITECTURE.md` - Raphael system design
-- `TERRA_INTEGRATION_COMPLETE.md` - Terra API integration guide
+- `CURRENT_STATE.md` — the single dated ground-truth doc (live vs dead
+  components, gate status, security posture). Trust this over anything else.
+- `docs/audits/` — the 2026-07 engagement audits and closing QA report.
+- `docs/archive/` — 150+ historical snapshot docs moved out of the root.
+  Many self-declare "COMPLETE" with contradictory dates/metrics. Do NOT
+  treat anything in the archive as current.
+- `second-brain/` — curated knowledge base (verify claims against code;
+  some notes predate the 2026-07 truthfulness fixes).

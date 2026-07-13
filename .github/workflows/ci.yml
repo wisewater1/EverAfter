@@ -1,0 +1,75 @@
+name: CI
+
+# First real CI gate for this repo (previously only external deploy
+# previews ran on PRs — no lint/type/test ever gated a merge).
+#
+# Gate policy:
+# - test + build are REQUIRED (they pass at the time this workflow lands;
+#   regressions fail the PR).
+# - type-check + lint run in ADVISORY mode (continue-on-error) because they
+#   carry a large pre-existing backlog (~413 tsc errors / ~1000 lint
+#   problems documented in docs/audits/2026-07-12-step4-final-qa.md).
+#   Flip `continue-on-error` to false the moment the backlog reaches zero —
+#   do NOT weaken rule configs to get there.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit tests (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # validate-build-env.mjs requires these to exist and match expected
+      # formats; CI verifies the build compiles, not deploy secrets. Netlify
+      # injects the real values at deploy time.
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJciPlaceholderAnonKeyForBuildValidationOnly
+
+  type-check:
+    name: Type-check (advisory — pre-existing backlog)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+
+  lint:
+    name: Lint (advisory — pre-existing backlog)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint

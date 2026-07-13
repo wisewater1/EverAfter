@@ -13,11 +13,12 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const payload = await req.json();
+    // Not implemented: acknowledge nothing, store nothing, and do NOT log
+    // the payload (potential PHI in logs on an unauthenticated endpoint).
+    // The live Dexcom flow is handled elsewhere (cgm-dexcom-webhook, signature-verified).
+    await req.text().catch(() => '');
 
-    console.log('Dexcom webhook received (stub):', payload);
-
-    return jsonResponse({ status: 'stub_acknowledged', message: 'Dexcom webhook handler not fully implemented' });
+    return jsonResponse({ status: 'not_implemented', message: 'Dexcom direct webhook is not implemented; no data was stored.' }, 501);
 
   } catch (err: any) {
     console.error('Dexcom webhook error:', err);
