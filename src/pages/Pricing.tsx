@@ -140,12 +140,6 @@ const plans = [
 ];
 
 export default function Pricing() {
-  // Apple Guideline 3.1.1/3.1.3: the native shell sells nothing and
-  // must not steer users to external purchase - the whole sales page
-  // is unreachable there.
-  if (!purchasesEnabled()) {
-    return <Navigate to="/dashboard" replace />;
-  }
   const { user, session } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
@@ -211,6 +205,14 @@ export default function Pricing() {
       clearAuthIntent();
     }
   }, [user, authIntent]);
+
+  // Apple Guideline 3.1.1/3.1.3: the native shell sells nothing and must
+  // not steer users to external purchase - the whole sales page is
+  // unreachable there. Placed after the hooks (rules-of-hooks);
+  // purchasesEnabled() is constant for the life of the session.
+  if (!purchasesEnabled()) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">
