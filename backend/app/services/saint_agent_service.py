@@ -26,6 +26,11 @@ from app.models.saint import SaintKnowledge
 from app.ai.llm_client import get_llm_client
 from app.ai.prompt_builder import get_prompt_builder
 from app.services.native_action_dispatcher import native_action_dispatcher
+from app.services.health.medical_safety import (
+    RAPHAEL_SAFETY_PROMPT,
+    apply_output_safety,
+    detect_emergency,
+)
 from app.services.saint_fallback_store import saint_fallback_store
 
 try:
@@ -133,6 +138,7 @@ SAINT_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "- If you determine an urgent health action is necessary, output exactly this tag in your response:\n"
             "  [MAKE_WEBHOOK: {\"action\": \"<ACTION_NAME>\", \"message\": \"<CONTEXT_DATA>\"}]\n"
             "- The backend will intercept this tag, fire the webhook, and hide it from the user's view.\n"
+            + RAPHAEL_SAFETY_PROMPT
         ),
     },
     "michael": {
@@ -888,6 +894,22 @@ class SaintAgentService:
                         action.get("status") == "auto_approved" for action in executed_actions
                     ) else "Autonomous Actions Drafted"
                     ai_response_text += "\n\n*(" + summary_prefix + ": " + ", ".join([a["tool"] for a in executed_actions]) + ")*"
+
+            # 9.5 Medical-safety backstop for the health domain: block
+            # prescriptive dosing outright, disclaim diagnostic phrasing, and
+            # guarantee emergency-escalation guidance when the user's message
+            # contained crisis language. Applied before persistence so stored
+            # history is also safe.
+            if saint_id == "raphael":
+                ai_response_text, safety_flags = apply_output_safety(ai_response_text)
+                if safety_flags:
+                    logger.warning(
+                        "Raphael medical-safety filter fired (%s) for user %s",
+                        ",".join(safety_flags), user_id,
+                    )
+                emergency_preface = detect_emergency(message)
+                if emergency_preface and not ai_response_text.startswith(emergency_preface):
+                    ai_response_text = emergency_preface + ai_response_text
 
             # 10. Save AI response
             ai_msg = AIMessage(
