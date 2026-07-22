@@ -137,7 +137,10 @@ const createLocalSocietyEvent = (
     },
     interaction_type: interactionType,
     created_at: new Date().toISOString(),
-    rapport: 0.62 + Math.random() * 0.28,
+    // Locally-synthesized events have no measured rapport. Leave it at 0 and
+    // never render a fabricated percentage for them (see the display guard,
+    // which hides the rapport badge for `local-social-` events).
+    rapport: 0,
 });
 
 // ── Cross-Saint Gravitational Anchor Definitions ────────────────────
@@ -827,10 +830,12 @@ const SocietyFeed: React.FC = () => {
                                         <p className="text-xs text-slate-300 leading-relaxed font-medium">{event.summary}</p>
                                         <div className="mt-2 flex items-center justify-between">
                                             <span className="text-[8px] text-slate-500">{new Date(event.created_at).toLocaleTimeString()}</span>
-                                            <div className="flex items-center gap-1">
-                                                <Heart className="w-2.5 h-2.5 text-rose-500" />
-                                                <span className="text-[9px] text-rose-400">{(event.rapport * 100).toFixed(0)}%</span>
-                                            </div>
+                                            {!event.id.startsWith('local-social-') && (
+                                                <div className="flex items-center gap-1">
+                                                    <Heart className="w-2.5 h-2.5 text-rose-500" />
+                                                    <span className="text-[9px] text-rose-400">{(event.rapport * 100).toFixed(0)}%</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))
