@@ -1,195 +1,236 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  AuthError,
+  corsPreflight,
+  errorResponse,
+  jsonResponse,
+  requireUser,
+  serviceClient,
+} from "../_shared/http.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+// Terra API v2 authenticates with two headers: `dev-id` and `x-api-key`.
+const TERRA_API_BASE = "https://api.tryterra.co/v2";
 
-const MOCK_PAYLOADS = {
-  activity: {
-    type: "activity",
-    user: {
-      user_id: "mock_user_123",
-      provider: "FITBIT"
-    },
-    data: [{
-      metadata: {
-        start_time: new Date().toISOString(),
-        end_time: new Date(Date.now() + 3600000).toISOString()
-      },
-      active_durations_data: {
-        activity_seconds: 2400
-      },
-      distance_data: {
-        distance_meters: 5000,
-        steps: 7500
-      }
-    }]
-  },
-  sleep: {
-    type: "sleep",
-    user: {
-      user_id: "mock_user_123",
-      provider: "OURA"
-    },
-    data: [{
-      metadata: {
-        start_time: new Date(Date.now() - 28800000).toISOString(),
-        end_time: new Date().toISOString()
-      },
-      sleep_durations_data: {
-        asleep_duration_seconds: 25200,
-        awake_duration_seconds: 1200,
-        light_sleep_duration_seconds: 14400,
-        deep_sleep_duration_seconds: 7200,
-        rem_sleep_duration_seconds: 3600
-      }
-    }]
-  },
-  heart_rate: {
-    type: "body",
-    user: {
-      user_id: "mock_user_123",
-      provider: "POLAR"
-    },
-    data: [{
-      metadata: {
-        start_time: new Date().toISOString()
-      },
-      heart_rate_data: {
-        avg_hr_bpm: 72,
-        resting_hr_bpm: 58,
-        max_hr_bpm: 165,
-        min_hr_bpm: 52
-      }
-    }]
-  },
-  glucose: {
-    type: "body",
-    user: {
-      user_id: "mock_user_123",
-      provider: "DEXCOM"
-    },
-    data: [{
-      metadata: {
-        start_time: new Date().toISOString()
-      },
-      glucose_data: {
-        samples: Array.from({ length: 12 }, (_, i) => ({
-          timestamp: new Date(Date.now() - i * 300000).toISOString(),
-          glucose_mg_per_dL: 95 + Math.floor(Math.random() * 20),
-          blood_glucose_sample_type: "continuous_monitoring"
-        }))
-      }
-    }]
-  },
-  daily: {
-    type: "daily",
-    user: {
-      user_id: "mock_user_123",
-      provider: "FITBIT"
-    },
-    data: [{
-      metadata: {
-        start_time: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
-        end_time: new Date(new Date().setHours(23, 59, 59, 999)).toISOString()
-      },
-      heart_rate_data: {
-        avg_hr_bpm: 68,
-        resting_hr_bpm: 56
-      },
-      distance_data: {
-        steps: 8432,
-        distance_meters: 6500
-      }
-    }]
-  }
-};
+interface TestRequest {
+  action?: string;
+  api_key?: string;
+  dev_id?: string;
+  webhook_secret?: string;
+}
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
-  }
-
+/**
+ * Probe our own terra-webhook with an UNSIGNED body to confirm it is deployed
+ * and fail-closed. terra-webhook rejects any request without a Terra-Signature
+ * header with 401 ("Missing signature") BEFORE it writes or normalizes any
+ * data, and returns 503 when the signing secret is unset. Nothing is ever
+ * injected — the probe is rejected by design, which is precisely the property
+ * we are verifying. (The previous version of this file used the service-role
+ * key to POST fabricated health payloads into a caller-supplied user_id with no
+ * authentication; that injection vector has been removed entirely.)
+ */
+async function probeWebhook(): Promise<{ ok: boolean; detail: string }> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const supabaseClient = createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    const { type, user_id } = await req.json();
-
-    if (!type || !MOCK_PAYLOADS[type as keyof typeof MOCK_PAYLOADS]) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid type",
-          available: Object.keys(MOCK_PAYLOADS)
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const mockPayload = MOCK_PAYLOADS[type as keyof typeof MOCK_PAYLOADS];
-
-    if (user_id) {
-      const { data: terraUser } = await supabaseClient
-        .from("terra_users")
-        .select("terra_user_id")
-        .eq("user_id", user_id)
-        .maybeSingle();
-
-      if (terraUser) {
-        mockPayload.user.user_id = terraUser.terra_user_id;
-      }
-    }
-
-    const webhookId = `test_${type}_${Date.now()}`;
-
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/terra-webhook`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/terra-webhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        // Only present to pass the API gateway; terra-webhook ignores it and
+        // trusts solely the (deliberately absent) Terra-Signature header.
+        apikey: ANON,
+        Authorization: `Bearer ${ANON}`,
       },
-      body: JSON.stringify(mockPayload),
+      body: JSON.stringify({
+        type: "connectivity_probe",
+        user: { user_id: "connectivity-probe", provider: "TEST" },
+      }),
     });
 
-    const result = await response.json();
+    if (res.status === 401) {
+      return {
+        ok: true,
+        detail:
+          "Webhook is deployed and enforcing signatures — the unsigned probe was correctly rejected.",
+      };
+    }
+    if (res.status === 503) {
+      return {
+        ok: false,
+        detail:
+          "Webhook is deployed but TERRA_WEBHOOK_SECRET is not configured on the server.",
+      };
+    }
+    if (res.status === 200) {
+      return {
+        ok: false,
+        detail:
+          "Webhook accepted an unsigned request — signature verification is NOT being enforced.",
+      };
+    }
+    return {
+      ok: false,
+      detail: `Webhook responded with an unexpected status (${res.status}).`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      detail: `Webhook is unreachable: ${
+        err instanceof Error ? err.message : "network error"
+      }.`,
+    };
+  }
+}
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        test_type: type,
-        mock_payload: mockPayload,
-        webhook_response: result,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+/**
+ * Validate the caller-supplied Terra dev-id + api-key against the live Terra
+ * API. These are the user's OWN credentials, entered in the setup wizard, so
+ * this is a genuine credential check — not a mock. Credentials are never logged.
+ */
+async function validateTerraCredentials(
+  devId: string,
+  apiKey: string,
+): Promise<{ valid: boolean; detail: string }> {
+  try {
+    const res = await fetch(`${TERRA_API_BASE}/subscriptions`, {
+      method: "GET",
+      headers: { "dev-id": devId, "x-api-key": apiKey },
+    });
+    if (res.status === 200) {
+      return { valid: true, detail: "Terra accepted the credentials." };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return {
+        valid: false,
+        detail: "Terra rejected the developer ID / API key.",
+      };
+    }
+    return { valid: false, detail: `Terra returned status ${res.status}.` };
+  } catch (err) {
+    return {
+      valid: false,
+      detail: `Could not reach Terra: ${
+        err instanceof Error ? err.message : "network error"
+      }.`,
+    };
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return corsPreflight(req);
+  if (req.method !== "POST") return errorResponse(req, "Method not allowed", 405);
+
+  try {
+    // AUTH: a real signed-in user is required. The public anon key (which alone
+    // satisfies the API gateway) resolves to no user here and is rejected —
+    // closing the prior unauthenticated service-role injection hole.
+    const user = await requireUser(req);
+
+    const body = (await req.json().catch(() => ({}))) as TestRequest;
+    const action = body.action;
+
+    if (action === "validate_credentials") {
+      const devId = (body.dev_id ?? "").trim();
+      const apiKey = (body.api_key ?? "").trim();
+      if (!devId || !apiKey) {
+        return jsonResponse(req, {
+          valid: false,
+          error: "Developer ID and API key are required.",
+          details: "Fill in every field before validating.",
+        });
       }
-    );
+      const { valid, detail } = await validateTerraCredentials(devId, apiKey);
+      return jsonResponse(req, {
+        valid,
+        error: valid ? undefined : "Invalid Terra credentials",
+        details: detail,
+      });
+    }
+
+    if (action === "test_webhook") {
+      const { ok, detail } = await probeWebhook();
+      return jsonResponse(req, {
+        success: ok,
+        error: ok ? undefined : "Webhook test failed",
+        details: detail,
+      });
+    }
+
+    if (action === "full_integration_test") {
+      const checks: { name: string; ok: boolean; detail: string }[] = [];
+
+      // 1. Authentication — we already resolved a real user.
+      checks.push({
+        name: "Authentication",
+        ok: true,
+        detail: `Signed in as ${user.email ?? user.id}.`,
+      });
+
+      // 2. Database connectivity + Terra linkage for THIS user only.
+      try {
+        const svc = serviceClient();
+        const { error, data } = await svc
+          .from("terra_users")
+          .select("terra_user_id, provider")
+          .eq("user_id", user.id)
+          .limit(5);
+        if (error) {
+          checks.push({
+            name: "Database connectivity",
+            ok: false,
+            detail: error.message,
+          });
+        } else {
+          checks.push({
+            name: "Database connectivity",
+            ok: true,
+            detail:
+              `Reachable — ${data?.length ?? 0} Terra link(s) on file for your account.`,
+          });
+        }
+      } catch (err) {
+        checks.push({
+          name: "Database connectivity",
+          ok: false,
+          detail: err instanceof Error ? err.message : "Query failed.",
+        });
+      }
+
+      // 3. Webhook deployed + fail-closed.
+      const webhook = await probeWebhook();
+      checks.push({
+        name: "Webhook signature enforcement",
+        ok: webhook.ok,
+        detail: webhook.detail,
+      });
+
+      const success = checks.every((c) => c.ok);
+      return jsonResponse(req, {
+        success,
+        error: success ? undefined : "One or more integration checks failed",
+        details: checks
+          .map((c) => `${c.ok ? "✓" : "✗"} ${c.name}: ${c.detail}`)
+          .join("  "),
+        checks,
+      });
+    }
+
+    return errorResponse(req, `Unknown action: ${action ?? "(none)"}`, 400);
   } catch (error) {
-    console.error("Error in terra-test:", error);
-
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error",
-      }),
+    if (error instanceof AuthError) {
+      return errorResponse(req, error.message, error.status);
+    }
+    console.error(
+      "Error in terra-test:",
+      error instanceof Error ? error.message : "unknown",
+    );
+    return jsonResponse(
+      req,
       {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
     );
   }
 });

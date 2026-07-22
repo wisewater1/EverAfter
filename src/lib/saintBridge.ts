@@ -134,7 +134,6 @@ export function startSaintHeartbeat(intervalMs: number = 30000) {
     _heartbeatInterval = setInterval(() => {
         emitSaintEvent('michael', 'broadcast', 'system/heartbeat', {
             timestamp: new Date().toISOString(),
-            load: Math.random() // Simulating load
         });
     }, intervalMs);
 }
