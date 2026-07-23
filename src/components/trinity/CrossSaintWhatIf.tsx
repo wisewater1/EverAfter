@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, Beaker, Heart, Wallet, GitBranch, Loader2, Play, Shield, Sparkles, Clock3, Users, X } from 'lucide-react';
 import { getStoredTrinityWhatIfHistory, getTrinitySummarySnapshot, buildTrinityCommonContext, trinitySynapse } from './trinityApi';
 import { getCachedTrinitySignals } from '../../lib/trinity/liveSignals';
+import CoverageNote from '../oversight/CoverageNote';
 
 const SCENARIOS = [
     { type: 'career', label: 'High-Stress Career Change', placeholder: 'e.g. Take a VP role at a startup', example: 'Take a VP role at a startup' },
@@ -70,6 +71,9 @@ export default function CrossSaintWhatIf() {
 
     return (
         <div className="space-y-4">
+            {/* Household scenarios compute across covered members only and
+                carry Coverage Confidence, never false precision. */}
+            <CoverageNote variant="confidence" />
             <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-5">
                 <div className="flex items-center gap-2 mb-4">
                     <Beaker className="w-4 h-4 text-violet-400" />

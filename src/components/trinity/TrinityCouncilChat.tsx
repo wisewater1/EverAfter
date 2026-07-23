@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, GitBranch, Heart, Wallet, Loader2, Sparkles } from 'lucide-react';
 import { trinitySynapse, buildTrinityCommonContext } from './trinityApi';
+import CoverageNote from '../oversight/CoverageNote';
 
 interface CouncilResponse {
     saint: string;
@@ -76,11 +77,15 @@ export default function TrinityCouncilChat() {
 
     return (
         <div className="flex flex-col h-[600px] rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 overflow-hidden">
-            {/* Header */}
-            <div className="p-4 border-b border-white/5 flex items-center gap-2">
+            {/* Header. Whenever Gabriel raises a financial item in council,
+                Michael stands beside it and names the authority it rests on. */}
+            <div className="p-4 border-b border-white/5 space-y-2">
+                <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
                 <span className="text-sm font-semibold text-white">Trinity Council</span>
                 <span className="text-[10px] text-slate-500">Joseph · Raphael · Gabriel respond together</span>
+                </div>
+                <CoverageNote variant="authority" />
             </div>
 
             {/* Messages */}

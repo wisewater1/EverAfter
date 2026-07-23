@@ -14,6 +14,7 @@ import CompliancePanel from './michael/CompliancePanel';
 import GuardianLog from './michael/GuardianLog';
 import SaintsQuickNav from './shared/SaintsQuickNav';
 import DHTAnomalyAlertChain from './michael/DHTAnomalyAlertChain';
+import StandingAttestation from './oversight/StandingAttestation';
 
 interface CAIState {
     integrityScore: number;
@@ -499,6 +500,13 @@ export default function StMichaelSecurityDashboard() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Standing Attestation: Michael states Gabriel's household
+                            authority in plain language, generated live from the
+                            permission record. */}
+                        <div className="mb-8">
+                            <StandingAttestation />
                         </div>
 
                         {/* Guardian's Log */}

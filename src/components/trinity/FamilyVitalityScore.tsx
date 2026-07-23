@@ -9,9 +9,12 @@
  * rather than contributing his own bar.
  */
 import { useState, useEffect } from 'react';
-import { Shield, GitBranch, Heart, Wallet, RefreshCw, Loader2, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, GitBranch, Heart, Wallet, RefreshCw, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { trinitySynapse, buildTrinityCommonContext } from './trinityApi';
 import { refreshTrinitySignals } from '../../lib/trinity/liveSignals';
+import { useOversight } from '../oversight/useOversight';
+import { composeOverviewLine } from '../../lib/gabriel/oversight';
 
 interface VitalityBar {
     label: string;
@@ -44,6 +47,11 @@ const BAR_SOURCE_KEY: Record<string, keyof NonNullable<VitalityData['data_source
 export default function FamilyVitalityScore() {
     const [data, setData] = useState<VitalityData | null>(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    // Household oversight: Financial readiness is household scoped, computed
+    // only from members with live Oversight Grants, with Coverage Confidence
+    // shown beside it as a second number and never blended in.
+    const { overview: oversight, picture: oversightPicture } = useOversight(true);
 
     async function load(force = false) {
         setLoading(true);
@@ -79,9 +87,27 @@ export default function FamilyVitalityScore() {
     if (loading && !data) return <div className="flex items-center gap-2 text-xs text-slate-500 p-4"><Loader2 className="w-4 h-4 animate-spin" />Computing Family Vitality...</div>;
     if (!data) return null;
 
-    const score = data.vitality_score || 0;
     const breakdown = data.breakdown || {};
     const access = data.access_layer || null;
+
+    // Household scoping. When the live grant set is readable, the Gabriel bar
+    // shows Household Financial Readiness (covered members only). With no
+    // grants it is honestly unscored and the composite renormalizes over the
+    // other two axes. When the grant set cannot be read, it fails visible.
+    const oversightReady = Boolean(oversight);
+    const householdReadiness: number | null =
+        oversight && oversight.ok ? (oversightPicture?.score?.readiness ?? null) : null;
+    const coverageConfidence: number | null =
+        oversight && oversight.ok ? (oversightPicture?.score?.coverage_confidence ?? null) : null;
+    const attestationLine = oversight ? composeOverviewLine(oversight.attestation) : null;
+
+    const josephScore = breakdown.joseph?.score ?? 0;
+    const raphaelScore = breakdown.raphael?.score ?? 0;
+    const score = !oversightReady
+        ? (data.vitality_score || 0)
+        : householdReadiness !== null
+            ? Math.round(josephScore * 0.32 + raphaelScore * 0.38 + householdReadiness * 0.30)
+            : Math.round((josephScore * 0.32 + raphaelScore * 0.38) / 0.70);
     const circumference = 2 * Math.PI * 60;
     const offset = circumference - (score / 100) * circumference;
     const scoreColor = score >= 70 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
@@ -136,30 +162,72 @@ export default function FamilyVitalityScore() {
                     {[
                         { key: 'joseph', icon: GitBranch, color: '#f59e0b', label: breakdown.joseph?.label || 'Family continuity' },
                         { key: 'raphael', icon: Heart, color: '#14b8a6', label: breakdown.raphael?.label || 'Recovery and resilience' },
-                        { key: 'gabriel', icon: Wallet, color: '#10b981', label: breakdown.gabriel?.label || 'Financial readiness' },
+                        { key: 'gabriel', icon: Wallet, color: '#10b981', label: 'Financial readiness' },
                     ].map(({ key, icon: Icon, color, label }) => {
                         const s = breakdown[key] || { score: 0, weight: 0 };
                         const srcKey = BAR_SOURCE_KEY[key];
-                        const isLive = srcKey ? data.data_source?.[srcKey] === 'live' : false;
-                        return (
-                            <div key={key}>
+                        const isGabriel = key === 'gabriel';
+                        const gabrielValue = isGabriel && oversightReady ? householdReadiness : (s.score ?? 0);
+                        const barValue = isGabriel ? (gabrielValue ?? 0) : (s.score ?? 0);
+                        const isLive = isGabriel
+                            ? oversightReady && householdReadiness !== null
+                            : (srcKey ? data.data_source?.[srcKey] === 'live' : false);
+                        const row = (
+                            <div>
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="flex items-center gap-1.5">
                                         <Icon className="w-3 h-3" style={{ color }} />
                                         <span className="text-[10px] text-slate-400">{label}</span>
-                                        {s.source && <span className="text-[9px] text-slate-600 hidden sm:inline">{s.source}</span>}
+                                        {isGabriel
+                                            ? <span className="text-[9px] text-slate-600 hidden sm:inline">St. Gabriel, household scoped</span>
+                                            : s.source && <span className="text-[9px] text-slate-600 hidden sm:inline">{s.source}</span>}
                                         <span className={`text-[9px] ${isLive ? 'text-emerald-400/80' : 'text-slate-500'}`}>
-                                            {isLive ? 'live' : 'estimated'}
+                                            {isGabriel ? (householdReadiness !== null ? 'live' : 'unscored') : (isLive ? 'live' : 'estimated')}
                                         </span>
+                                        {isGabriel && coverageConfidence !== null && (
+                                            <span
+                                                className="text-[9px] px-1.5 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300"
+                                                title="How complete the household picture is. Shown beside readiness, never folded into it."
+                                            >
+                                                Coverage Confidence {coverageConfidence}/100
+                                            </span>
+                                        )}
                                     </div>
-                                    <span className="text-xs font-medium text-white">{s.score?.toFixed(0)}/100 <span className="text-slate-600">({s.weight}%)</span></span>
+                                    <span className="text-xs font-medium text-white">
+                                        {isGabriel && oversightReady && householdReadiness === null
+                                            ? 'Unscored'
+                                            : <>{Number(barValue).toFixed(0)}/100 <span className="text-slate-600">({s.weight || 30}%)</span></>}
+                                    </span>
                                 </div>
                                 <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${s.score || 0}%`, backgroundColor: color }} />
+                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${barValue || 0}%`, backgroundColor: color }} />
                                 </div>
                             </div>
                         );
+                        if (isGabriel) {
+                            return (
+                                <button
+                                    key={key}
+                                    onClick={() => navigate('/monitor#financial-coverage')}
+                                    className="block w-full text-left rounded-lg p-1 -m-1 transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                                    aria-label="Open the financial coverage drill-down"
+                                    title="Select to open the coverage drill-down"
+                                >
+                                    {row}
+                                </button>
+                            );
+                        }
+                        return <div key={key}>{row}</div>;
                     })}
+
+                    {/* Michael's one-line attestation, generated live from the
+                        grant set, directly beneath the Financial readiness bar. */}
+                    {attestationLine && (
+                        <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-slate-400">
+                            <ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-sky-400" aria-hidden="true" />
+                            <span><span className="font-semibold text-sky-300">St. Michael:</span> {attestationLine}</span>
+                        </p>
+                    )}
                 </div>
             </div>
 

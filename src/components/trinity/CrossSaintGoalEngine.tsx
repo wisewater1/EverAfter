@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { Archive, CalendarDays, CheckCircle2, ChevronRight, ChevronLeft, GitBranch, Heart, Loader2, Plus, RefreshCw, Target, Users, Wallet, X } from 'lucide-react';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
+import CoverageNote from '../oversight/CoverageNote';
 import {
     buildTrinityCommonContext,
     getStoredTrinityGoals,
@@ -172,6 +173,11 @@ export default function CrossSaintGoalEngine() {
 
     return (
         <div className="rounded-2xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5 p-5">
+            {/* Household goals build only on covered data and state which
+                members they account for. */}
+            <div className="mb-3">
+                <CoverageNote variant="goals" />
+            </div>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-teal-400" />

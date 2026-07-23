@@ -18,6 +18,10 @@ import TellMyStoryPartnerCard from './TellMyStoryPartnerCard';
 import JosephVoiceProfileCard from './JosephVoiceProfileCard';
 import { getFamilyTreeAnalysis } from '../trinity/trinityApi';
 import { aiPersonaFromProfile, personaDemoReply } from '../../lib/joseph/aiPersona';
+import { useOversight } from '../oversight/useOversight';
+import CoverageSealBadge from '../oversight/CoverageSealBadge';
+import { coverageForClientMember, requestCoverage, revokeCoverage, watchersForPerson } from '../../lib/gabriel/oversightStore';
+import { BASIS_LABEL, SCOPE_LABEL, formatLongDate, nodeCoverageLabel } from '../../lib/gabriel/oversight';
 
 // Vitality-ring colours by St. Raphael risk level (interlaced onto the tree).
 const RISK_HEX: Record<string, string> = { low: '#10b981', moderate: '#f59e0b', high: '#fb923c', critical: '#ef4444' };
@@ -38,6 +42,14 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
     const [calMember, setCalMember] = useState<FamilyMember | null>(null);
     const [chatMember, setChatMember] = useState<FamilyMember | null>(null);
     const navigate = useNavigate();
+
+    // Financial coverage on the tree: every node carries a seal, and coverage
+    // is requested, granted, and revoked from here. State comes from the live
+    // grant set through the same store every other surface reads.
+    const { overview: oversightOverview } = useOversight(false);
+    const [coverageBusy, setCoverageBusy] = useState(false);
+    const [coverageNotice, setCoverageNotice] = useState<string | null>(null);
+    const [showCoverageHistory, setShowCoverageHistory] = useState(false);
 
     // Per-member vitality (Trinity ↔ Raphael ↔ Joseph), keyed by member id for the tree rings.
     const vitalityById = useMemo(() => {
@@ -153,6 +165,11 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider">
                                     {getGenerationLabel(member.generation)}
                                 </span>
+                                {oversightOverview && (
+                                    <CoverageSealBadge
+                                        state={coverageForClientMember(oversightOverview, member.id).state}
+                                    />
+                                )}
                                 {member.occupation && (
                                     <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400/70 rounded-md border border-amber-500/10 break-words">
                                         {member.occupation}
@@ -361,6 +378,106 @@ export default function FamilyTreeView({ onTrainMember, onStartPersonalityQuiz }
                                 <Calendar className="w-4 h-4" />
                             </button>
                         </div>
+
+                        {/* Financial coverage: granted, visualized, and revoked
+                            from the tree. No silent enrollment exists; another
+                            adult only ever receives an invitation. */}
+                        {oversightOverview && (() => {
+                            const coverage = coverageForClientMember(oversightOverview, selectedMember.id);
+                            const isSelf = coverage.member?.is_account_holder_self ?? false;
+                            const history = coverage.member
+                                ? watchersForPerson(oversightOverview, coverage.member.person_id)
+                                : [];
+                            return (
+                                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <CoverageSealBadge state={coverage.state} />
+                                        <span className="text-xs font-medium text-slate-200">
+                                            Financial coverage: {nodeCoverageLabel(coverage.state)}
+                                        </span>
+                                        {history.length > 0 && (
+                                            <button
+                                                onClick={() => setShowCoverageHistory((v) => !v)}
+                                                className="ml-auto min-h-[44px] px-2 text-[10px] text-slate-400 hover:text-slate-200"
+                                                aria-expanded={showCoverageHistory}
+                                            >
+                                                {showCoverageHistory ? 'Hide history' : 'History'}
+                                            </button>
+                                        )}
+                                    </div>
+                                    {coverage.activeGrant && (
+                                        <p className="text-[10px] text-slate-500">
+                                            {SCOPE_LABEL[coverage.activeGrant.scope]}, {BASIS_LABEL[coverage.activeGrant.authority_basis]},
+                                            through {formatLongDate(coverage.activeGrant.expires_at)}
+                                        </p>
+                                    )}
+                                    {showCoverageHistory && history.length > 0 && (
+                                        <ul className="space-y-1 border-t border-white/5 pt-2 text-[10px] text-slate-500">
+                                            {history.map((g) => (
+                                                <li key={g.grant_id}>
+                                                    {BASIS_LABEL[g.authority_basis]}, granted {formatLongDate(g.granted_at)}
+                                                    {g.revoked_at ? `, revoked ${formatLongDate(g.revoked_at)}`
+                                                        : g.closed_by_passing_at ? ', closed after passing'
+                                                        : g.suspended_at ? ', suspended pending re-consent'
+                                                        : new Date(g.expires_at).getTime() <= Date.now() ? `, expired ${formatLongDate(g.expires_at)}`
+                                                        : `, active through ${formatLongDate(g.expires_at)}`}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    {coverageNotice && <p className="text-[10px] text-sky-300">{coverageNotice}</p>}
+                                    <div className="flex flex-wrap gap-2">
+                                        {coverage.member && !selectedMember.deathDate && coverage.state === 'not_requested' && !isSelf && coverage.member.role !== 'minor' && (
+                                            <button
+                                                onClick={() => {
+                                                    setCoverageBusy(true);
+                                                    setCoverageNotice(null);
+                                                    void requestCoverage(
+                                                        coverage.member!.person_id,
+                                                        oversightOverview.selfPersonId || coverage.member!.person_id,
+                                                        'balances_and_obligations',
+                                                        'Keep the household financially prepared together.',
+                                                    ).then((result) => {
+                                                        setCoverageBusy(false);
+                                                        setCoverageNotice(result.ok
+                                                            ? 'Invitation sent. The product reminds once at most, then stops asking.'
+                                                            : result.error || 'The invitation could not be sent.');
+                                                    });
+                                                }}
+                                                disabled={coverageBusy}
+                                                className="min-h-[44px] rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/20 disabled:opacity-50"
+                                            >
+                                                Request financial coverage
+                                            </button>
+                                        )}
+                                        {coverage.activeGrant && isSelf && (
+                                            <button
+                                                onClick={() => {
+                                                    setCoverageBusy(true);
+                                                    setCoverageNotice(null);
+                                                    void revokeCoverage(coverage.activeGrant!.grant_id).then((result) => {
+                                                        setCoverageBusy(false);
+                                                        setCoverageNotice(result.ok
+                                                            ? 'Your coverage was revoked. Gabriel no longer sees these accounts anywhere.'
+                                                            : result.error || 'The revocation could not be recorded.');
+                                                    });
+                                                }}
+                                                disabled={coverageBusy}
+                                                className="min-h-[44px] rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+                                            >
+                                                Revoke my coverage
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => navigate('/finance-dashboard')}
+                                            className="min-h-[44px] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-slate-300 hover:bg-white/10"
+                                        >
+                                            Manage in St. Gabriel
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {selectedMember.birthDate && (
                             <p className="text-sm text-slate-300">

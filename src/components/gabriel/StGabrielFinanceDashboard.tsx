@@ -11,6 +11,7 @@ import SaintsQuickNav from '../shared/SaintsQuickNav';
 import TrinitySynapsePanel from '../shared/TrinitySynapsePanel';
 import GabrielDHTSummary from './GabrielDHTSummary';
 import WiseGoldPanel from './WiseGoldPanel';
+import OversightPanel from '../oversight/OversightPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthFailureMessage } from '../../lib/auth-session';
 import { BankStatusResponse, BudgetEnvelope, Transaction, financeApi } from '../../lib/gabriel/finance';
@@ -19,12 +20,13 @@ import { getCapability, getRuntimeReadiness, type RuntimeCapability } from '../.
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import { fetchHealthMetrics, type HealthDataPoint } from '../../lib/raphael/healthDataService';
 
-type GabrielView = 'budget' | 'ledger' | 'reports' | 'wisegold';
+type GabrielView = 'budget' | 'ledger' | 'reports' | 'household' | 'wisegold';
 
 const GABRIEL_VIEWS: Array<{ key: GabrielView; label: string; mobileLabel: string; icon: typeof Wallet }> = [
     { key: 'budget', label: 'Budget Envelopes', mobileLabel: 'Budget', icon: Wallet },
     { key: 'ledger', label: 'Transactions', mobileLabel: 'Ledger', icon: DollarSign },
     { key: 'reports', label: 'Reports & Analysis', mobileLabel: 'Reports', icon: PieChart },
+    { key: 'household', label: 'Household Oversight', mobileLabel: 'Household', icon: Shield },
     { key: 'wisegold', label: 'Sovereign Economy', mobileLabel: 'WiseGold', icon: Sparkles },
 ];
 
@@ -490,6 +492,7 @@ export default function StGabrielFinanceDashboard() {
                         {activeView === 'budget' && 'Envelope Budget'}
                         {activeView === 'ledger' && 'Transaction Ledger'}
                         {activeView === 'reports' && 'Financial Health Check'}
+                        {activeView === 'household' && 'Household Oversight'}
                         {activeView === 'wisegold' && 'WiseGold Network'}
                     </h2>
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
@@ -526,6 +529,7 @@ export default function StGabrielFinanceDashboard() {
 
                     {activeView === 'budget' && <BudgetEnvelopes />}
                     {activeView === 'ledger' && <TransactionLedger key={ledgerRefreshKey} />}
+                    {activeView === 'household' && <OversightPanel />}
                     {activeView === 'wisegold' && <WiseGoldPanel />}
                     {activeView === 'reports' && (
                         <div className="space-y-5">

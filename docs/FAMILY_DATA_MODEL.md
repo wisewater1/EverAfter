@@ -104,6 +104,122 @@ per-user signals gathered by `src/lib/trinity/liveSignals.ts`
 Council, Chronicle, Elder Care, Inheritance, and What-If all derive from this
 one context rather than keeping a separate copy of who someone is.
 
+## Household financial oversight
+
+St. Gabriel's household review is built on the same canonical person rows.
+Coverage attaches to `family_members.id`. There is no parallel financial
+person table. St. Michael governs every financial read through one
+authorization gate in the database, and the Family Tree is the surface where
+authority is granted, visualized, and revoked.
+
+Canonical terms: a Household is the set of person nodes on one tree that
+share a financial planning scope (one tree can contain more than one
+household). An Oversight Grant is the permission record authorizing Gabriel
+to read a defined scope of one person's financial data for a defined period
+on a defined authority. Michael's Attestation is the plain language statement
+generated live from the grant set, never hand written and never cached as
+copy. Coverage is whether a person node currently has an active grant.
+Coverage Confidence is how complete the household picture is, shown beside
+Financial readiness and never folded into it.
+
+### `public.households`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid | household id |
+| `owner_user_id` | uuid | account that hosts the tree (RLS scope) |
+| `name` | text | display name |
+| `created_at` | timestamptz | |
+
+### `public.household_members`
+
+Membership and the published weighting used by the household score.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid | |
+| `household_id` | uuid | FK households |
+| `person_id` | uuid | FK family_members, the canonical person |
+| `member_user_id` | uuid | the person's own auth account when linked, else null |
+| `role` | text | adult, minor, dependent_adult |
+| `is_primary_earner` | boolean | raises the member's weight |
+| `dependency_weight` | numeric | published weight, defaults by role |
+| `joined_at`, `left_at` | timestamptz | `left_at` set = removed from household |
+
+Removing a member (setting `left_at`) suspends every grant in that household
+where the person is subject or grantor, pending explicit re-consent.
+
+### `public.oversight_grants`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `grant_id` | uuid | |
+| `household_id` | uuid | FK households |
+| `subject_person_id` | uuid | FK family_members, whose finances are covered |
+| `granted_by_person_id` | uuid | FK family_members, who authorized it |
+| `owner_user_id` | uuid | tree owner (RLS) |
+| `subject_user_id` | uuid | subject's own account when linked, for subject-side rights |
+| `authority_basis` | text | self, guardian_of_minor, power_of_attorney, trustee, court_appointed_guardian, executor_or_administrator |
+| `authority_document_id` | uuid | FK vault_items; required for every basis other than self (CHECK constraint) |
+| `authority_document_label` | text | instrument type and date shown on the attestation |
+| `scope` | text | balances_only, balances_and_obligations, balances_obligations_and_transactions, full_ledger |
+| `included_account_ids` | uuid[] | explicit inclusion list, never an implicit all |
+| `purpose_statement` | text | written at grant time, shown to the subject |
+| `granted_at`, `effective_from`, `expires_at`, `review_due_at` | timestamptz | |
+| `revoked_at`, `revoked_by_person_id`, `revocation_reason` | | revocation is instant and subject-controlled |
+| `suspended_at`, `suspension_reason` | | set by relationship-change triggers, pending re-consent |
+| `closed_by_passing_at` | timestamptz | verified passing closes the grant and hands off to the Inheritance path |
+| `verification_method`, `verification_event_id` | | how the subject's consent was verified |
+
+A grant is active only when now is inside `[effective_from, expires_at)` and
+`revoked_at`, `suspended_at`, and `closed_by_passing_at` are all null. Every
+financial read resolves through `fn_oversight_active_grants` at query time
+and fails closed. `guardian_of_minor` grants are clamped by trigger to the
+subject's age of majority (birth date plus eighteen years).
+
+### `public.oversight_invitations`
+
+One invitation plus one reminder per subject per household, then the product
+stops asking permanently unless the subject re-opens the conversation.
+`UNIQUE (household_id, subject_person_id)` enforces the single invitation and
+a trigger rejects a second reminder.
+
+### `public.financial_account_links` and `public.financial_account_snapshots`
+
+Accounts are metadata plus an explicit holder list (`holders uuid[]`, person
+ids). Values live in append-only snapshots (`balance`, `total_obligation`,
+`as_of`). Provider linking stores read-only token references only, never raw
+credentials. A joint account contributes to the household roll-up only when
+every holder has an active grant including it; with a partial grant set, only
+the granting holder's equal share is included and the account is marked
+partially covered.
+
+### `public.oversight_audit_events`
+
+Append-only and tamper-evident. `event_hash` chains over the previous event's
+hash, so any edit breaks the chain. Triggers reject UPDATE and DELETE
+outright. The subject can read and export every event about them, including
+each actual read Gabriel performs (`financial_read` events carry the grant id
+used). Break-glass access is recorded here and alerted to the subject.
+
+### `public.oversight_alerts`
+
+Every coverage lifecycle alert (expiring, revoked, review due, majority
+reached, relationship suspension, exploitation flag) is written for both
+sides, subject and grantee. An exploitation flag additionally goes to the
+subject's designated trusted contact, never exclusively to a single grantee.
+
+### Identity bridge honesty
+
+Most person nodes on a tree do not have their own EverAfter login. For those
+people, consent is captured at grant time with a recorded
+`verification_method` by the household steward, and their coverage facts are
+visible on their node and in every attestation. When the person accepts an
+invitation from their own account, `subject_user_id` binds, and from then on
+the watcher list, instant revoke, and audit export work from their own login
+at every plan tier. Nothing in this model lets any role hide the watcher
+list from a subject who can sign in.
+
 ## Write path and durability
 
 The genealogy singleton is the fast synchronous read model used across the
