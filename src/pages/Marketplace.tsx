@@ -1,6 +1,7 @@
+import { purchasesEnabled } from '../lib/platform';
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn, MessageSquare, Send, Wand2, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn, MessageSquare, Wand2, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import { supabase } from '../lib/supabase';
@@ -515,7 +516,7 @@ function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onVie
               <Check className="w-4 h-4" />
               Add to Engrams
             </button>
-          ) : (
+          ) : purchasesEnabled() ? (
             <button
               onClick={() => onPurchase(template)}
               disabled={purchasing}
@@ -533,7 +534,7 @@ function TemplateCard({ template, isPurchased, onPurchase, onAddToEngrams, onVie
                 </>
               )}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -658,7 +659,7 @@ function TemplateDetailsModal({ template, isPurchased, onClose, onPurchase, onAd
                 <Check className="w-5 h-5" />
                 Add to My Engrams
               </button>
-            ) : (
+            ) : purchasesEnabled() ? (
               <button
                 onClick={() => onPurchase(template)}
                 disabled={purchasing}
@@ -676,7 +677,7 @@ function TemplateDetailsModal({ template, isPurchased, onClose, onPurchase, onAd
                   </>
                 )}
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -745,13 +746,15 @@ function DemoPreviewModal({ template, onClose, onPurchase }: DemoPreviewModalPro
             >
               Close
             </button>
-            <button
-              onClick={() => onPurchase(template)}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-amber-500/20 transition-all hover:from-amber-700 hover:to-orange-700"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              Purchase
-            </button>
+            {purchasesEnabled() && (
+              <button
+                onClick={() => onPurchase(template)}
+                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-amber-500/20 transition-all hover:from-amber-700 hover:to-orange-700"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Purchase
+              </button>
+            )}
           </div>
         </div>
       </div>

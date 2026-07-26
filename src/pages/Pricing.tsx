@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Check, Zap, Crown, Sparkles, Loader, LogIn, Brain, Heart, Lock, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { purchasesEnabled } from '../lib/platform';
+import { useState, useEffect } from 'react';
+import { Check, Crown, Sparkles, Loader, LogIn, Brain, Heart, Lock, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -203,6 +205,14 @@ export default function Pricing() {
       clearAuthIntent();
     }
   }, [user, authIntent]);
+
+  // Apple Guideline 3.1.1/3.1.3: the native shell sells nothing and must
+  // not steer users to external purchase - the whole sales page is
+  // unreachable there. Placed after the hooks (rules-of-hooks);
+  // purchasesEnabled() is constant for the life of the session.
+  if (!purchasesEnabled()) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900">

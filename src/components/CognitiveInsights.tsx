@@ -1,5 +1,6 @@
+import { purchasesEnabled } from '../lib/platform';
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, TrendingUp, Heart, Cloud, Sparkles, Lock, Crown, Users, Calendar, BarChart3, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isDemoAuthEnabled } from '../lib/demo-auth';
@@ -75,20 +76,23 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
         archetypal_clusters: [],
       };
 
-      data?.forEach((insight) => {
-        const insightData = insight.insight_data as Record<string, unknown>;
+      data?.forEach((insight: { insight_type: string; insight_data: unknown }) => {
+        const insightData = (insight.insight_data ?? {}) as Record<string, unknown>;
         if (insight.insight_type === 'emotional_arc' && insightData.arcs) {
-          aggregated.emotional_arcs = [...(aggregated.emotional_arcs || []), ...insightData.arcs];
+          aggregated.emotional_arcs = [
+            ...(aggregated.emotional_arcs || []),
+            ...(insightData.arcs as InsightData['emotional_arcs']),
+          ];
         } else if (insight.insight_type === 'recurring_themes' && insightData.themes) {
-          aggregated.recurring_themes = insightData.themes;
+          aggregated.recurring_themes = insightData.themes as InsightData['recurring_themes'];
         } else if (insight.insight_type === 'relationship_map' && insightData.relationships) {
-          aggregated.relationship_map = insightData.relationships;
+          aggregated.relationship_map = insightData.relationships as InsightData['relationship_map'];
         } else if (insight.insight_type === 'dream_words' && insightData.words) {
-          aggregated.dream_words = insightData.words;
+          aggregated.dream_words = insightData.words as InsightData['dream_words'];
         } else if (insight.insight_type === 'mood_correlation' && insightData.correlations) {
-          aggregated.mood_correlations = insightData.correlations;
+          aggregated.mood_correlations = insightData.correlations as InsightData['mood_correlations'];
         } else if (insight.insight_type === 'archetypal_cluster' && insightData.clusters) {
-          aggregated.archetypal_clusters = insightData.clusters;
+          aggregated.archetypal_clusters = insightData.clusters as InsightData['archetypal_clusters'];
         }
       });
 
@@ -157,7 +161,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
               <p className="text-sm text-slate-400">Discover patterns in your emotional journey</p>
             </div>
           </div>
-          {!hasInsightPro && (
+          {!hasInsightPro && purchasesEnabled() && (
             <button
               onClick={() => setShowUpgradeModal(true)}
               className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl transition-all shadow-lg shadow-violet-500/20 font-medium flex items-center gap-2"
@@ -286,7 +290,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       )}
 
       {/* Premium Views (Locked) */}
-      {(['relationships', 'dreams', 'mood', 'archetypes'] as const).includes(activeView) && !hasInsightPro && (
+      {(['relationships', 'dreams', 'mood', 'archetypes'] as readonly string[]).includes(activeView) && !hasInsightPro && (
         <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-violet-500/30 p-12 text-center">
           <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-500/20">
             <Lock className="w-8 h-8 text-white" />

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { buildApiUrl } from '../lib/env';
+import { notify } from '../lib/dialogs';
 import {
   ArrowLeft,
   Plus,
@@ -10,14 +11,15 @@ import {
   Eye,
   DollarSign,
   TrendingUp,
-  Users,
   Star,
   Package,
   CheckCircle,
   Clock,
   XCircle,
   Brain,
-  Sparkles
+  Sparkles,
+  X,
+  Loader2
 } from 'lucide-react';
 
 interface CreatorProfile {
@@ -34,6 +36,7 @@ interface CreatorProfile {
 interface Template {
   id: string;
   title: string;
+  description?: string;
   category: string;
   price_usd: number;
   total_purchases: number;
@@ -62,6 +65,10 @@ export default function CreatorDashboard() {
   const [mineableEngrams, setMineableEngrams] = useState<MineableEngram[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'analytics' | 'mining'>('overview');
+  // In-page create/edit instead of the previously-unrouted /creator/new and
+  // /creator/template/:id navigations (they fell through to the catch-all).
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -206,7 +213,7 @@ export default function CreatorDashboard() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/creator/new')}
+              onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}
               className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20"
             >
               <Plus className="w-5 h-5" />
@@ -295,7 +302,7 @@ export default function CreatorDashboard() {
                 <h3 className="text-xl font-medium text-white mb-2">No templates yet</h3>
                 <p className="text-slate-400 mb-6">Create your first AI template to get started</p>
                 <button
-                  onClick={() => navigate('/creator/new')}
+                  onClick={() => { setEditingTemplate(null); setEditorOpen(true); }}
                   className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
                 >
                   <Plus className="w-5 h-5" />
@@ -312,7 +319,7 @@ export default function CreatorDashboard() {
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
                       {approvedTemplates.map((template) => (
-                        <TemplateCard key={template.id} template={template} navigate={navigate} />
+                        <TemplateCard key={template.id} template={template} navigate={navigate} onEdit={(t) => { setEditingTemplate(t); setEditorOpen(true); }} />
                       ))}
                     </div>
                   </div>
@@ -326,7 +333,7 @@ export default function CreatorDashboard() {
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
                       {pendingTemplates.map((template) => (
-                        <TemplateCard key={template.id} template={template} navigate={navigate} />
+                        <TemplateCard key={template.id} template={template} navigate={navigate} onEdit={(t) => { setEditingTemplate(t); setEditorOpen(true); }} />
                       ))}
                     </div>
                   </div>
@@ -340,7 +347,7 @@ export default function CreatorDashboard() {
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
                       {draftTemplates.map((template) => (
-                        <TemplateCard key={template.id} template={template} navigate={navigate} />
+                        <TemplateCard key={template.id} template={template} navigate={navigate} onEdit={(t) => { setEditingTemplate(t); setEditorOpen(true); }} />
                       ))}
                     </div>
                   </div>
@@ -456,16 +463,194 @@ export default function CreatorDashboard() {
           </div>
         )}
       </div>
+
+      {editorOpen && user && (
+        <TemplateEditorModal
+          template={editingTemplate}
+          creatorName={profile?.display_name || user.email?.split('@')[0] || 'Creator'}
+          userId={user.id}
+          isDemoMode={isDemoMode}
+          onClose={() => { setEditorOpen(false); setEditingTemplate(null); }}
+          onSaved={() => { setEditorOpen(false); setEditingTemplate(null); loadCreatorData(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+const TEMPLATE_CATEGORIES = ['Wellbeing', 'Legacy', 'Family', 'Memorial', 'Health', 'Career'];
+
+function TemplateEditorModal({
+  template,
+  creatorName,
+  userId,
+  isDemoMode,
+  onClose,
+  onSaved,
+}: {
+  template: Template | null;
+  creatorName: string;
+  userId: string;
+  isDemoMode: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState(template?.title || '');
+  const [description, setDescription] = useState(template?.description || '');
+  const [category, setCategory] = useState(template?.category || TEMPLATE_CATEGORIES[0]);
+  const [price, setPrice] = useState(String(template?.price_usd ?? 0));
+  const [saving, setSaving] = useState<'draft' | 'review' | null>(null);
+
+  const save = async (approvalStatus: 'draft' | 'pending_review') => {
+    if (!title.trim() || !description.trim()) {
+      notify('Please fill in a title and description.', 'warning');
+      return;
+    }
+    const priceValue = Number(price);
+    if (!Number.isFinite(priceValue) || priceValue < 0) {
+      notify('Price must be a non-negative number.', 'warning');
+      return;
+    }
+    if (isDemoMode) {
+      notify('Template publishing is disabled in the demo. Create a free account to publish.', 'info');
+      return;
+    }
+
+    setSaving(approvalStatus === 'draft' ? 'draft' : 'review');
+    try {
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        price_usd: priceValue,
+        approval_status: approvalStatus,
+        is_active: false,
+      };
+      if (template) {
+        const { error } = await supabase
+          .from('marketplace_templates')
+          .update(payload)
+          .eq('id', template.id)
+          .eq('creator_user_id', userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('marketplace_templates')
+          .insert({
+            ...payload,
+            name: title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'template',
+            creator_name: creatorName,
+            creator_user_id: userId,
+          });
+        if (error) throw error;
+      }
+      notify(
+        approvalStatus === 'pending_review'
+          ? 'Template submitted for review — it will appear in the marketplace once approved.'
+          : 'Draft saved.',
+        'success',
+      );
+      onSaved();
+    } catch (error) {
+      console.error('Template save failed:', error);
+      notify('The template could not be saved. Please try again.', 'error');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={() => !saving && onClose()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={template ? 'Edit template' : 'Create template'}
+        className="w-full max-w-lg max-h-[85vh] overflow-auto rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-xl font-medium text-white">{template ? 'Edit Template' : 'Create Template'}</h3>
+          <button onClick={onClose} disabled={!!saving} className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white" aria-label="Close editor">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-300">Description *</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              placeholder="What does this AI template do, and who is it for?"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                {TEMPLATE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">Price (USD)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              />
+            </div>
+          </div>
+          <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-xs text-slate-400">
+            Templates are reviewed before they appear in the marketplace. Drafts stay private to you.
+          </p>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={() => save('draft')}
+            disabled={!!saving}
+            className="flex-1 rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-3 font-medium text-slate-200 transition-all hover:bg-slate-700 disabled:opacity-50"
+          >
+            {saving === 'draft' ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Save Draft'}
+          </button>
+          <button
+            onClick={() => save('pending_review')}
+            disabled={!!saving}
+            className="flex-1 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 font-medium text-white transition-all hover:from-amber-700 hover:to-orange-700 disabled:opacity-50"
+          >
+            {saving === 'review' ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : 'Submit for Review'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 interface TemplateCardProps {
+  onEdit: (template: Template) => void;
   template: Template;
   navigate: (path: string) => void;
 }
 
-function TemplateCard({ template, navigate }: TemplateCardProps) {
+function TemplateCard({ template, navigate, onEdit }: TemplateCardProps) {
   const getStatusIcon = () => {
     switch (template.approval_status) {
       case 'approved':
@@ -534,7 +719,7 @@ function TemplateCard({ template, navigate }: TemplateCardProps) {
 
       <div className="flex items-center gap-2">
         <button
-          onClick={() => navigate(`/creator/template/${template.id}`)}
+          onClick={() => onEdit(template)}
           className="flex-1 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 hover:border-slate-600 text-white rounded-lg transition-all flex items-center justify-center gap-2"
         >
           <Edit className="w-4 h-4" />

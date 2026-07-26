@@ -28,6 +28,8 @@
     "audit:rls": "node scripts/audit-rls-gap.mjs"
   },
   "dependencies": {
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@mlc-ai/web-llm": "^0.2.84",
     "@netlify/neon": "^0.1.2",
     "@prisma/client": "^6.0.0",
@@ -49,6 +51,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@eslint/js": "^9.9.1",
     "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",

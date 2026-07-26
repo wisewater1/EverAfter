@@ -1,3 +1,4 @@
+import { purchasesEnabled } from '../lib/platform';
 import { notify } from '../lib/dialogs';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Brain, Sparkles, Loader, Target, AlertCircle, CheckCircle2, X, Crown, Zap } from 'lucide-react';
@@ -473,7 +474,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
                     >
                       Open engram
                     </button>
-                    {!ai.is_ai_active && (
+                    {!ai.is_ai_active && purchasesEnabled() && (
                       <button
                         onClick={() => {
                           setSelectedEngramForUpgrade(ai);
@@ -770,7 +771,7 @@ export default function CustomEngramsDashboard({ userId, onSelectAI }: CustomEng
       )}
 
       {/* Fast-Track Upgrade Modal */}
-      {showFastTrackModal && selectedEngramForUpgrade && (
+      {purchasesEnabled() && showFastTrackModal && selectedEngramForUpgrade && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 sm:backdrop-blur-xl rounded-2xl shadow-2xl border border-amber-500/30 p-8 max-w-lg w-full">
             <div className="flex items-center gap-4 mb-6">
