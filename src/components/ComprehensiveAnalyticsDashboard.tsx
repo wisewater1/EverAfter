@@ -6,7 +6,6 @@ import {
   SkipForward,
   SkipBack,
   RefreshCw,
-  Settings,
   Activity,
   Heart,
   Moon,

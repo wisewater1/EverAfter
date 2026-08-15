@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
 import type { TaskStub } from '../../lib/raphael/monitors';
 

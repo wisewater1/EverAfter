@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   X,
@@ -10,14 +10,12 @@ import {
   Moon,
   Target,
   BarChart3,
-  PieChart,
   LineChart,
   Gauge,
   Calendar,
   AlertCircle,
   LayoutDashboard,
   Brain,
-  Sparkles,
 } from 'lucide-react';
 
 interface WidgetType {

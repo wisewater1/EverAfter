@@ -1,11 +1,11 @@
 import { notify, appConfirm } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { terraClient, TerraConnection, TerraMetric } from '../lib/terra-client';
-import { validateTerraConfig, TERRA_PROVIDERS, TerraProvider } from '../lib/terra-config';
+import { terraClient, TerraConnection } from '../lib/terra-client';
+import { validateTerraConfig } from '../lib/terra-config';
 import {
   Plus, Activity, Heart, Moon, Droplet, TrendingUp, Download, Trash2,
-  CheckCircle, AlertCircle, RefreshCw, Settings, Sparkles, Clock
+  CheckCircle, RefreshCw, Settings, Sparkles, Clock
 } from 'lucide-react';
 
 const IS_DEV = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;

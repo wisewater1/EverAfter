@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
     ChevronRight, ChevronLeft, Sparkles, BarChart3, Brain,
     CheckCircle, Users, RefreshCw, Shield, Heart, TrendingUp, BookOpen,
@@ -181,15 +181,6 @@ export default function PersonalityQuiz({
     const currentQuestion = questions[currentQ];
     const progress = questions.length > 0 ? ((currentQ + 1) / questions.length * 100) : 0;
     const answeredCount = Object.keys(answers).length;
-
-    const categoryGroups = useMemo(() => {
-        const groups: Record<string, QuizQuestion[]> = {};
-        questions.forEach(q => {
-            if (!groups[q.category]) groups[q.category] = [];
-            groups[q.category].push(q);
-        });
-        return groups;
-    }, [questions]);
 
     const loadSessionIntoState = useCallback((member: FamilyMember, session: StoredQuizSession) => {
         setSelectedMember(member);

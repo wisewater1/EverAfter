@@ -6,20 +6,15 @@
  */
 
 import { appConfirm } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield,
   Link2,
   Search,
   CheckCircle,
   XCircle,
-  Clock,
   AlertTriangle,
-  ChevronRight,
-  Settings,
   FileText,
-  Lock,
-  Unlock,
   Trash2,
   PauseCircle,
   PlayCircle,
@@ -34,7 +29,6 @@ import {
   getConnectionStatusInfo,
   ValidationError,
   ConnectionExistsError,
-  PartnerNotFoundError,
 } from '../lib/vault-connect-api';
 
 interface VaultConnectPanelProps {
@@ -48,7 +42,6 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

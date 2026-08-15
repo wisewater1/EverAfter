@@ -1,5 +1,5 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Heart, Calendar, Pill, FileText, Activity, CheckCircle, Clock, AlertCircle, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 

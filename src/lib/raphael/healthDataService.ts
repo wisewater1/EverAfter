@@ -172,7 +172,7 @@ export function extractHealthDataFromMessage(text: string): ExtractedHealthData[
  * Store health data points to Supabase `health_metrics` table.
  */
 export async function storeHealthMetrics(
-    userId: string,
+    _userId: string,
     dataPoints: ExtractedHealthData[],
     source: string = 'raphael_chat'
 ): Promise<{ stored: number; error?: string }> {
@@ -212,7 +212,7 @@ export async function storeHealthMetrics(
  * Fetch recent health metrics from Supabase for a user.
  */
 export async function fetchHealthMetrics(
-    userId: string,
+    _userId: string,
     lookbackDays: number = 30
 ): Promise<HealthDataPoint[]> {
     try {

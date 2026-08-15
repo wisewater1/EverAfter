@@ -54,7 +54,7 @@ export interface HouseholdSummary {
     familyStatus: { name: string; generationLabel: string }[];
 }
 
-export async function getFamilyCalendar(userId: string): Promise<FamilyEvent[]> {
+export async function getFamilyCalendar(_userId: string): Promise<FamilyEvent[]> {
     const now = new Date();
     const currentYear = now.getFullYear();
     const genealogyEvents = getGenealogyEvents();

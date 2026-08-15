@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,7 +60,7 @@ export default function OAuthCallback() {
       const stateData = state ? JSON.parse(atob(state)) : {};
       const serviceType = stateData.serviceType || 'manual';
 
-      const { data: connectionData, error: connectionError } = await supabase
+      const { error: connectionError } = await supabase
         .from('health_connections')
         .insert({
           user_id: user?.id,

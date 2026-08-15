@@ -11,8 +11,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-    GitBranch, Heart, Wallet, Activity, TrendingUp,
-    TrendingDown, Minus, Loader2, AlertCircle
+    GitBranch, Wallet, Activity, TrendingUp,
+    TrendingDown, Minus, Loader2
 } from 'lucide-react';
 import { requestBackendJson } from '../../lib/backend-request';
 
@@ -57,13 +57,6 @@ interface Props {
     liveHeatmap?: any[];
     netWorthHistory?: any[];
 }
-
-const RISK_COLORS: Record<string, string> = {
-    low: '#10b981',
-    moderate: '#f59e0b',
-    high: '#ef4444',
-    critical: '#dc2626',
-};
 
 const GENERATION_ACCENT: Record<number, { bg: string; border: string; text: string }> = {
     [-3]: { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-300' },

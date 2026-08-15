@@ -55,7 +55,6 @@ export class FHIRObservationMapper {
     try {
       // Extract code and coding
       const code = observation.code?.coding?.[0];
-      const codeSystem = code?.system || '';
       const codeValue = code?.code || '';
 
       // Extract value

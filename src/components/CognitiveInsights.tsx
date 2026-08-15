@@ -1,5 +1,5 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, TrendingUp, Heart, Cloud, Sparkles, Lock, Crown, Users, Calendar, BarChart3, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isDemoAuthEnabled } from '../lib/demo-auth';

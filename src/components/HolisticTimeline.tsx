@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, DollarSign, Heart, Users, Calendar, Brain, Shield, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, DollarSign, Heart, Users, Calendar, Brain, Sparkles } from 'lucide-react';
 import { requestBackendJson } from '../lib/backend-request';
 import { buildAccessTokenHeaders } from '../lib/auth-session';
 
@@ -59,7 +59,7 @@ export default function HolisticTimeline() {
         fetchNeuralGraph();
     }, []);
 
-    const getEventTitle = (type: string, saintId: string) => {
+    const getEventTitle = (type: string, _saintId: string) => {
         switch (type) {
             case 'health_event': return 'Health Insight';
             case 'finance_event': return 'Financial Event';

@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { reconcileOnboarding } from '../../lib/onboardingApi';
 import { clearHealthProfileDraft, saveHealthProfileDraft } from '../../lib/onboardingDraft';
 import {
   Heart,
-  Target,
-  Activity,
   ArrowRight,
   ArrowLeft,
   Loader2,

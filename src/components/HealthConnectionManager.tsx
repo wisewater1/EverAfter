@@ -1,10 +1,10 @@
 import { appConfirm, notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import { callEdgeFunction } from '../lib/edge-functions';
-import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Radio, Moon, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Smartphone, Watch, Activity, RefreshCw, CheckCircle, AlertCircle, Plus, Settings, Wrench, Cloud, Droplet, Heart, Scale, Moon, Sparkles, LayoutDashboard } from 'lucide-react';
 import TroubleshootingWizard from './TroubleshootingWizard';
 import CustomDashboardBuilder from './CustomDashboardBuilder';
 import { createDemoId, readDemoStorage, writeDemoStorage } from '../lib/demo-storage';

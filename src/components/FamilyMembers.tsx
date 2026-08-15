@@ -1,5 +1,5 @@
 import { appConfirm, notify } from '../lib/dialogs';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Mail, Trash2, Clock, CheckCircle, X, Send, MessageCircle, Sparkles, User, Activity, Brain } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PersonalityProfileViewer from './PersonalityProfileViewer';

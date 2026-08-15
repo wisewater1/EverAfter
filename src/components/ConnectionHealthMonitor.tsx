@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -8,7 +8,6 @@ import {
   Clock,
   RefreshCw,
   TrendingUp,
-  TrendingDown,
   Zap,
   Shield,
   XCircle,
@@ -105,12 +104,6 @@ export default function ConnectionHealthMonitor() {
     if (score >= 0.9) return 'text-green-400';
     if (score >= 0.7) return 'text-yellow-400';
     return 'text-red-400';
-  }
-
-  function getHealthScoreIcon(score: number) {
-    if (score >= 0.9) return CheckCircle;
-    if (score >= 0.7) return AlertTriangle;
-    return XCircle;
   }
 
   function getStatusBadge(status: string) {
@@ -237,7 +230,6 @@ export default function ConnectionHealthMonitor() {
       {/* Individual Connection Health Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {connections.map((conn) => {
-          const HealthIcon = getHealthScoreIcon(conn.healthScore);
           const successRate = conn.totalSyncs > 0
             ? Math.round((conn.successfulSyncs / conn.totalSyncs) * 100)
             : 100;

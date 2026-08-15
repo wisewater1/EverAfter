@@ -21,7 +21,7 @@ import {
 // Mock Supabase
 vi.mock('../supabase', () => ({
   supabase: {
-    from: vi.fn((table: string) => ({
+    from: vi.fn((_table: string) => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
@@ -259,12 +259,6 @@ describe('VaultConnectAPI - Type Safety', () => {
 });
 
 describe('VaultConnectAPI - Data Sharing Config Validation', () => {
-  let api: VaultConnectAPI;
-
-  beforeEach(() => {
-    api = new VaultConnectAPI('test-user');
-  });
-
   it('should validate data sharing config', () => {
     const validConfigs = [
       {
@@ -341,12 +335,6 @@ describe('VaultConnectAPI - Data Hash Generation', () => {
 });
 
 describe('VaultConnectAPI - Edge Cases', () => {
-  let api: VaultConnectAPI;
-
-  beforeEach(() => {
-    api = new VaultConnectAPI('test-user');
-  });
-
   it('should handle empty arrays correctly', () => {
     const request = {
       partner_id: '550e8400-e29b-41d4-a716-446655440000',

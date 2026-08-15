@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   CheckCircle,
@@ -61,7 +61,9 @@ export default function TroubleshootingWizard({
   const [guides, setGuides] = useState<TroubleshootingGuide[]>([]);
   const [selectedGuide, setSelectedGuide] = useState<TroubleshootingGuide | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [stepResults, setStepResults] = useState<Record<number, 'success' | 'failure' | 'skipped'>>({});
+  // Step outcomes are recorded so they can be sent with the session, but no
+  // part of this view reads them back, so only the setter is bound.
+  const [, setStepResults] = useState<Record<number, 'success' | 'failure' | 'skipped'>>({});
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);

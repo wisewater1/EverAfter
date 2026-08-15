@@ -1,5 +1,5 @@
 import { appConfirm } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Key, Eye, EyeOff, Trash2, Plus, Shield } from 'lucide-react';

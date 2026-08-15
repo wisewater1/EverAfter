@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, User, Brain, Sparkles, RefreshCw, Info, Users, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -270,16 +270,10 @@ ${ai.interaction_count > 0 ? `We've had ${ai.interaction_count} conversations so
       ?.map(r => `- ${r.response_text}`)
       .join('\n') || '';
 
-    const { data: recentConversations } = await supabase
-      .from('archetypal_conversations')
-      .select('user_message, ai_response')
-      .eq('archetypal_ai_id', ai.id)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    const conversationHistory = recentConversations
-      ?.map(c => `User: ${c.user_message}\nAI: ${c.ai_response}`)
-      .join('\n\n') || '';
+    // Prior turns are not fetched here. chatWithEngram is given a stable
+    // conversationId and resolves the history on the server, so reading the
+    // last few exchanges in the browser only cost a round trip per message and
+    // the result was never sent anywhere.
 
     try {
       const conversationId = `${user!.id}_${ai.id}`;

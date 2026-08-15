@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield, Heart, Brain, MessageCircle, Activity, Pill,
   Calendar, CheckSquare, Lightbulb, Link, Users, BookOpen,
-  Star, Clock, TrendingUp, Zap, ChevronRight, RotateCw
+  Star, Clock, Zap, ChevronRight, RotateCw
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -226,14 +226,6 @@ export default function UnifiedActivityCenter() {
       supabase.removeChannel(channel);
     };
   }, [user, loadCategories, loadActivities]);
-
-  const getCurrentCategory = () => {
-    if (categories.length === 0) return null;
-    const index = rotationConfig.current_rotation_index % categories.length;
-    return categories[index];
-  };
-
-  const currentCategory = getCurrentCategory();
 
   if (loading) {
     return (

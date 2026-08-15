@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet, Brain, Sparkles, DollarSign, Scale, Languages, ChevronRight, Play, Pause } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -69,7 +69,6 @@ export default function BeyondModules() {
   const [currentView, setCurrentView] = useState(0);
   const [showFinal, setShowFinal] = useState(false);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (isPlaying && !activeModule) {

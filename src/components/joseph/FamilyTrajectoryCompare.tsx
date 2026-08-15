@@ -20,7 +20,6 @@ import {
 import {
     fetchCompareDataset,
     toChartRows,
-    USER_LINE_COLOR,
     type NormalizedTrajectory,
     type RiskLevel,
 } from '../../lib/joseph/familyTrajectoryCompare';

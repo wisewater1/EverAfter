@@ -14,6 +14,12 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* vitest runs with globals: true (see vitest.config.ts), so describe, it,
+       expect, vi, and beforeEach are injected rather than imported. Without
+       these ambient types, tsc reports "Cannot find name" across every test
+       file even though the suite compiles and passes at runtime. */
+    "types": ["vitest/globals"],
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

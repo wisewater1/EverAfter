@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, Bot, Heart, Activity, Clock, Star, Search, Plus, X, CheckSquare, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageCircle, Bot, Activity, Clock, Star, Search, X, CheckSquare, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import ArchetypalAIChat from './ArchetypalAIChat';
 import EngramChat from './EngramChat';
 import RaphaelChat from './RaphaelChat';
 import EngramTaskManager from './EngramTaskManager';
-import GlassCard from './GlassCard';
 import ReactiveButton from './ReactiveButton';
 
 interface ChatSession {

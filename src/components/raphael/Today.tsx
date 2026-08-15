@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TodayOverview } from '../../lib/raphael/monitors';
 import TodayAlertsCard from './TodayAlertsCard';
 import TodayVitalsCard from './TodayVitalsCard';

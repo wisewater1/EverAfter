@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Brain,
   MessageCircle,
@@ -8,13 +8,11 @@ import {
   Target,
   Sparkles,
   BarChart3,
-  Calendar,
   Clock,
   CheckCircle,
   AlertCircle,
   Loader2,
   RefreshCw,
-  Download,
   X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
