@@ -46,7 +46,8 @@ interface InteractionEvent {
     receiver: Partial<AgentProfile>;
     interaction_type?: string;
     created_at: string;
-    rapport: number;
+    // Null when the backend has no measured rapport for this interaction.
+    rapport: number | null;
 }
 
 const LOCAL_SOCIETY_EVENTS_KEY = 'everafter_society_events';
@@ -830,7 +831,7 @@ const SocietyFeed: React.FC = () => {
                                         <p className="text-xs text-slate-300 leading-relaxed font-medium">{event.summary}</p>
                                         <div className="mt-2 flex items-center justify-between">
                                             <span className="text-[8px] text-slate-500">{new Date(event.created_at).toLocaleTimeString()}</span>
-                                            {!event.id.startsWith('local-social-') && (
+                                            {!event.id.startsWith('local-social-') && typeof event.rapport === 'number' && (
                                                 <div className="flex items-center gap-1">
                                                     <Heart className="w-2.5 h-2.5 text-rose-500" />
                                                     <span className="text-[9px] text-rose-400">{(event.rapport * 100).toFixed(0)}%</span>

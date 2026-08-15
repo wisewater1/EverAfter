@@ -587,6 +587,11 @@ class SharedHealthPredictor:
         sleep = self._average_metric(metrics_history, ["sleep_duration", "sleep_quality"])
         stress = self._average_metric(metrics_history, ["stress_level", "mood"])
 
+        # No confidence figure is attached to these warnings. Each carried a
+        # fixed percentage (82, 78, 74, 69) that never varied and was computed
+        # from nothing; it described how sure the rule's author felt, not how
+        # sure the system was about this person. The trigger itself is real: a
+        # threshold on a real measured average, which is what the message says.
         if resting_hr is not None and resting_hr >= 95:
             warnings.append(
                 {
@@ -595,7 +600,6 @@ class SharedHealthPredictor:
                     "severity": "high",
                     "message": "Resting heart rate is elevated above the preferred recovery range.",
                     "recommended_action": "Review hydration, sleep debt, and near-term exertion before adding more load.",
-                    "confidence": 82,
                 }
             )
 
@@ -607,7 +611,6 @@ class SharedHealthPredictor:
                     "severity": "high",
                     "message": "Glucose is trending above the stable daily target range.",
                     "recommended_action": "Review nutrition, medication adherence, and follow-up measurements with Raphael.",
-                    "confidence": 78,
                 }
             )
 
@@ -619,7 +622,6 @@ class SharedHealthPredictor:
                     "severity": "moderate",
                     "message": "Sleep recovery is below the minimum threshold Raphael expects.",
                     "recommended_action": "Protect the next recovery window and avoid stacking additional stressors.",
-                    "confidence": 74,
                 }
             )
 
@@ -631,7 +633,6 @@ class SharedHealthPredictor:
                     "severity": "moderate",
                     "message": "Stress signals are elevated and may compound other risk lanes.",
                     "recommended_action": "Reduce avoidable load and add one concrete recovery action today.",
-                    "confidence": 69,
                 }
             )
 

@@ -5,7 +5,6 @@ from app.db.session import async_session_maker
 from sqlalchemy import select, update
 from app.models.audit import ComplianceControl, RestoreDrill, AuditLog
 from app.services.ledger_service import LedgerService
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -78,25 +77,39 @@ class ComplianceAutopilot:
 
     async def _execute_restore_drill(self, db, ledger: LedgerService):
         """
-        Simulate recovering an engram from the ledger as a test 
-        and storing the proof in RestoreDrill.
+        Record that no restore drill was performed.
+
+        No restore is attempted anywhere in this service. This previously wrote
+        a RestoreDrill row with status SUCCESS, a duration of 142 ms and a
+        proofHash built from a fresh uuid, then logged
+        "system/restore_drill_executed" with that hash as "proof". Nothing was
+        restored and nothing was verified, so the row and the ledger entry were
+        fabricated compliance evidence, produced every fifteen minutes.
+
+        Recovery evidence is exactly the kind of claim that must not be asserted
+        by the system it describes, so this records the honest status instead. A
+        real drill needs to restore an engram from the ledger and hash what came
+        back; until that exists, NOT_IMPLEMENTED is the truthful value.
         """
-        # Create a mock Restore Drill entry
-        duration = 142 # ms simulation
-        proof_hash = f"proof_{uuid.uuid4().hex[:8]}"
-        
         drill = RestoreDrill(
             targetResource="engram_backup_primary",
-            status="SUCCESS",
-            durationMs=duration,
-            proofHash=proof_hash
+            status="NOT_IMPLEMENTED",
+            durationMs=None,
+            proofHash=None,
         )
         db.add(drill)
-        
-        # We don't need to await commit here as it's committed by the caller
+
+        # Committed by the caller.
         await ledger.log_event(
-            action="system/restore_drill_executed",
-            metadata={"target": "engram_backup_primary", "durationMs": duration, "proof": proof_hash}
+            action="system/restore_drill_skipped",
+            metadata={
+                "target": "engram_backup_primary",
+                "reason": "no_restore_procedure_implemented",
+                "note": (
+                    "No restore was attempted. This entry records the absence of a "
+                    "drill and must not be read as recovery evidence."
+                ),
+            },
         )
 
 # Global singleton

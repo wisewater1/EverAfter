@@ -47,9 +47,11 @@ interface EarlyWarning {
     metric: string;
     severity: string;
     trend: string;
+    // Absent from the payload. The backend used to attach a fixed per-rule
+    // percentage that never varied and was computed from nothing.
     message: string;
     recommended_action: string;
-    confidence: number;
+    confidence?: number;
 }
 
 interface SimulationResult {

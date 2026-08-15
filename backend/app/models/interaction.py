@@ -23,7 +23,10 @@ class AgentInteraction(Base):
     
     # Sentiment and rapport tracking
     sentiment_score = Column(Float, default=0.0) # -1.0 to 1.0
-    emotional_rapport = Column(Float, default=0.5) # 0.0 to 1.0 (closeness)
+    # Nullable with no default. Nothing in this codebase measures rapport, so an
+    # unset value must read as "not measured" rather than silently becoming a
+    # mid-scale 0.5 that the social feed renders as a real percentage.
+    emotional_rapport = Column(Float, nullable=True, default=None) # 0.0 to 1.0 (closeness), null when unmeasured
     
     # Summary of the outcome (for the social feed)
     summary = Column(String)
