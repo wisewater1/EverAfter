@@ -391,7 +391,10 @@ ${ai.interaction_count > 0 ? `We've had ${ai.interaction_count} conversations so
                 {mode.selectedAI.foundational_questions.map((q: unknown, i: number) => (
                   <li key={i} className="flex gap-2">
                     <span className="text-blue-400">•</span>
-                    <span>{typeof q === 'string' ? q : q.text || 'Unknown question'}</span>
+                    {/* foundational_questions is jsonb and holds either bare
+                        strings or objects with a text field, so the object case
+                        is narrowed rather than read straight off unknown. */}
+                    <span>{typeof q === 'string' ? q : ((q as { text?: string })?.text || 'Unknown question')}</span>
                   </li>
                 ))}
               </ul>

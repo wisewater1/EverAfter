@@ -288,86 +288,33 @@ async def get_health_predictions(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Retrieves predictive health trajectories using classical baselines.
-    """
-    sub = current_user.get("sub", "demo-user-001")
-    import random
-    from datetime import datetime
-    
-    # Generate predictive data representing the new classical baselines
-    t2d_confidence = random.randint(85, 95)
-    htn_confidence = random.randint(80, 92)
-    
-    t2d_trend = random.choice(["stable", "declining"]) # 'declining' means risk is getting worse
-    htn_trend = random.choice(["improving", "stable"])
-    
-    # Realistic base scores for an average user
-    t2d_base_risk = random.uniform(15, 35)
-    htn_base_risk = random.uniform(20, 40)
-    
-    analytics_data = {
-        "analysis": {
-            "period_analyzed": f"Past {lookbackDays} days",
-            "total_data_points": lookbackDays * random.randint(12, 24),
-            "metrics_analyzed": 5
-        },
-        "patterns": [
-            {
-                "metric": "type_2_diabetes_risk",
-                "trend": t2d_trend,
-                "confidence": t2d_confidence,
-                "prediction_next_7_days": {
-                    "expected_range": [t2d_base_risk, t2d_base_risk + random.uniform(0.5, 2.0)],
-                    "risk_level": "medium" if t2d_base_risk > 30 else "low"
-                }
-            },
-            {
-                "metric": "hypertension_risk",
-                "trend": htn_trend,
-                "confidence": htn_confidence,
-                "prediction_next_7_days": {
-                    "expected_range": [max(0, htn_base_risk - random.uniform(1, 3)), htn_base_risk],
-                    "risk_level": "low" if htn_trend == "improving" else "medium"
-                }
-            },
-            {
-                "metric": "sleep_efficiency",
-                "trend": "stable",
-                "confidence": 75,
-                "prediction_next_7_days": {
-                    "expected_range": [70, 85],
-                    "risk_level": "low"
-                }
-            }
-        ],
-        "correlations": [
-            {
-                "metric_1": "sleep_efficiency",
-                "metric_2": "hypertension_risk",
-                "correlation": random.uniform(-0.65, -0.85),
-                "strength": "strong"
-            },
-            {
-                "metric_1": "activity_level",
-                "metric_2": "type_2_diabetes_risk",
-                "correlation": round(random.uniform(-0.5, -0.8), 2),
-                "strength": "moderate"
-            }
-        ],
-        "insights": [
-            "Your classical T2D baseline risk is currently stable.",
-            f"Hypertension proxy model (ACC/AHA logic) indicates a {(random.uniform(5, 15)):.1f}% potential improvement with increased evening activity.",
-            f"Based on the {lookbackDays} day lookback, sleep efficiency has a strong protective correlation on your cardiovascular baseline."
-        ],
-        "recommendations": [
-            "Maintain consistent sleep schedules to further reduce hypertension risk factors.",
-            "Consider light activity after dinner to flatten the glucose curve and reduce T2D baseline.",
-            "Schedule a standard lipid panel next month to update your classical risk priors."
-        ],
-        "generated_at": datetime.utcnow().isoformat()
-    }
+    Predictive health trajectories. Not implemented.
 
-    return analytics_data
+    This endpoint previously returned a complete, confident-looking analysis
+    built entirely from random.uniform and random.randint: type 2 diabetes and
+    hypertension risk scores, confidence percentages between 80 and 95, metric
+    correlations, and prescriptive advice such as scheduling a lipid panel. One
+    insight cited ACC/AHA logic while quoting a randomised improvement figure.
+    None of it depended on the caller or on a single recorded observation, and
+    the frontend rendered it as that person's own risk profile.
+
+    It fails closed instead. The same choice was already made for the FHIR
+    import above: refusing is honest, while inventing health data is not, and a
+    caller cannot tell the difference from the response alone.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "status": "not_implemented",
+            "lookback_days": lookbackDays,
+            "message": (
+                "Predictive health analytics are not available yet. No prediction "
+                "model is running, so no risk scores, confidence values, or "
+                "correlations can be produced. Nothing shown here would have "
+                "described your health."
+            ),
+        },
+    )
 
 @router.post("/deep_dive/{user_id}", response_model=List[PredictionResult])
 async def get_deep_dive_insights(
