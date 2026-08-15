@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, DollarSign, Heart, Users, Calendar, Brain, Shield, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, DollarSign, Heart, Users, Calendar, Brain, Sparkles } from 'lucide-react';
 import { requestBackendJson } from '../lib/backend-request';
 import { buildAccessTokenHeaders } from '../lib/auth-session';
 

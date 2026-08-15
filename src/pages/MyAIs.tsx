@@ -1,5 +1,5 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -9,9 +9,6 @@ import {
   Settings,
   Play,
   Pause,
-  Trash2,
-  TrendingUp,
-  Clock,
   CheckCircle,
   Package
 } from 'lucide-react';

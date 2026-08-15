@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Sparkles } from 'lucide-react';
 
 export default function RaphaelCinematicPrototype() {

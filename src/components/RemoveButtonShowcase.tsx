@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import RemoveButton from './RemoveButton';
 
 export default function RemoveButtonShowcase() {

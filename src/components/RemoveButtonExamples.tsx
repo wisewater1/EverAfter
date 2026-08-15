@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import RemoveButton from './RemoveButton';
 import { useAuth } from '../contexts/AuthContext';

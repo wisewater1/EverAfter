@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Link2, Activity, CheckCircle, XCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { useConnections } from '../contexts/ConnectionsContext';
 import RaphaelConnectors from './RaphaelConnectors';

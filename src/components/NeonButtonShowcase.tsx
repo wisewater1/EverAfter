@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import NeonButton from './NeonButton';
 import { Play, Download, Save, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
 

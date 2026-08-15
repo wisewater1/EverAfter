@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Heart, Activity, TrendingUp, Users, Shield, Sparkles } from 'lucide-react';
 import { attachEdgeReactive } from '../lib/edge-reactive';
 

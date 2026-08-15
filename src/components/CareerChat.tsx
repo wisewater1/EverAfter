@@ -12,9 +12,7 @@ import {
   Mail,
   Sparkles,
   Share2,
-  Copy,
-  Check,
-  ExternalLink
+  Check
 } from 'lucide-react';
 
 interface Message {

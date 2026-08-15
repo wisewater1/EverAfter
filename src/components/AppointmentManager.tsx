@@ -4,8 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Calendar, Plus, Clock, MapPin, User, CheckCircle, XCircle, Edit,
-  Trash2, AlertCircle, Upload, FileText, Image as ImageIcon,
-  Sparkles, RefreshCw, Bell, Video, Phone, Download, ExternalLink, X
+  Trash2, AlertCircle, Upload, FileText, Sparkles, RefreshCw, Bell, Video, Download, ExternalLink, X
 } from 'lucide-react';
 import { uploadFile, formatFileSize } from '../lib/file-storage';
 

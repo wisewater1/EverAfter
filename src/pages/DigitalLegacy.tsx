@@ -1,6 +1,6 @@
 import { appConfirm, notify } from '../lib/dialogs';
 import React, { useState, useEffect } from 'react';
-import { Calendar, Mail, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock, Users, Image as ImageIcon, Video, Send, ArrowLeft } from 'lucide-react';
+import { Calendar, FileText, Clock, Heart, Crown, Plus, Edit, Trash2, Lock, Users, Send, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';

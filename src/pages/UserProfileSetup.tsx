@@ -1,5 +1,5 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -7,18 +7,8 @@ import { readDemoStorage, writeDemoStorage } from '../lib/demo-storage';
 import {
   ArrowLeft,
   Save,
-  User,
-  MapPin,
-  Phone,
-  Globe,
-  Linkedin,
-  Twitter,
-  Mail,
   Plus,
-  X,
-  Shield,
-  Eye,
-  EyeOff
+  X
 } from 'lucide-react';
 
 interface UserProfile {

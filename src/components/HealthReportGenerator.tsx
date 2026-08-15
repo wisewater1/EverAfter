@@ -1,5 +1,5 @@
 import { notify } from '../lib/dialogs';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { FileText, Download, Calendar, Activity, Heart, Moon, Pill, Save, Loader } from 'lucide-react';

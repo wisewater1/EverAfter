@@ -1,27 +1,23 @@
 import { appConfirm } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard,
   Plus,
-  Save,
   X,
   Grid,
   Eye,
   Settings,
   Trash2,
   Copy,
-  Share2,
   Star,
   StarOff,
-  RefreshCw,
   Sparkles,
   Play,
   Pause,
   SkipForward,
   Loader,
-  TrendingUp,
   AlertCircle,
 } from 'lucide-react';
 import DashboardViewer from './DashboardViewer';

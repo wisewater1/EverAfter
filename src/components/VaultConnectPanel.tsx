@@ -6,20 +6,15 @@
  */
 
 import { appConfirm } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield,
   Link2,
   Search,
   CheckCircle,
   XCircle,
-  Clock,
   AlertTriangle,
-  ChevronRight,
-  Settings,
   FileText,
-  Lock,
-  Unlock,
   Trash2,
   PauseCircle,
   PlayCircle,
@@ -34,7 +29,6 @@ import {
   getConnectionStatusInfo,
   ValidationError,
   ConnectionExistsError,
-  PartnerNotFoundError,
 } from '../lib/vault-connect-api';
 
 interface VaultConnectPanelProps {

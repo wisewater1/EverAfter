@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Button, { IconButton, FloatingActionButton, ButtonGroup, ToggleButton } from './Button';
 import {
   Save,

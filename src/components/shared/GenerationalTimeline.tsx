@@ -11,8 +11,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-    GitBranch, Heart, Wallet, Activity, TrendingUp,
-    TrendingDown, Minus, Loader2, AlertCircle
+    GitBranch, Wallet, Activity, TrendingUp,
+    TrendingDown, Minus, Loader2
 } from 'lucide-react';
 import { requestBackendJson } from '../../lib/backend-request';
 

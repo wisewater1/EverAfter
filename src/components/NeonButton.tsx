@@ -1,4 +1,4 @@
-import React, { ButtonHTMLAttributes, forwardRef } from 'react';
+import { ButtonHTMLAttributes, forwardRef } from 'react';
 import './NeonButton.css';
 
 export interface NeonButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -1,6 +1,6 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { Users, Plus, Heart, Image, Video, MessageSquare, Sparkles, Settings, ChevronRight, Upload, X, Camera, Brain, Send } from 'lucide-react';
+import { useState, useEffect, Suspense, lazy } from 'react';
+import { Users, Plus, Heart, MessageSquare, Sparkles, ChevronRight, X, Brain, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api-client';
 import { useAuth } from '../contexts/AuthContext';

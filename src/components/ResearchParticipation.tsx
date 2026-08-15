@@ -1,5 +1,5 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, Check, DollarSign, Info, AlertCircle, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 

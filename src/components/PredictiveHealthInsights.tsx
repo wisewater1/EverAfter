@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
@@ -8,8 +8,6 @@ import {
   Minus,
   RefreshCw,
   Brain,
-  AlertTriangle,
-  CheckCircle,
   Link as LinkIcon,
   Lightbulb,
   Calendar,

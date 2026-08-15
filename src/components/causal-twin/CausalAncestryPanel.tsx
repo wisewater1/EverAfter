@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, TrendingUp, AlertTriangle, CheckCircle, Lightbulb, Archive, ChevronRight, Dna } from 'lucide-react';
 import ConfidenceBadge from './ConfidenceBadge';
 import SafetyDisclaimer from './SafetyDisclaimer';

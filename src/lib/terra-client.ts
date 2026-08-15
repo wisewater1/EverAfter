@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { getTerraConfig, TerraProvider } from './terra-config';
+import { TerraProvider } from './terra-config';
 
 export async function verifyTerraWebhookSignature(
   signature: string,

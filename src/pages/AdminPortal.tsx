@@ -4,17 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
   Users,
-  Mail,
   Download,
   TrendingUp,
   Activity,
   Bell,
   Shield,
   ArrowLeft,
-  Eye,
-  RefreshCw,
-  Filter,
-  Search
+  RefreshCw
 } from 'lucide-react';
 
 interface AdminStats {

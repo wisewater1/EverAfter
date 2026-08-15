@@ -1,6 +1,6 @@
 import { notify } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn, MessageSquare, Send, Wand2, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShoppingCart, Star, Check, Brain, Sparkles, TrendingUp, Filter, Search, X, Loader, ArrowLeft, Link2, LogIn, MessageSquare, Wand2, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConnections } from '../contexts/ConnectionsContext';
 import { supabase } from '../lib/supabase';

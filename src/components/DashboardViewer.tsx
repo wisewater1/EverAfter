@@ -1,5 +1,5 @@
 import { appConfirm } from '../lib/dialogs';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader, AlertCircle, RefreshCw, LayoutDashboard } from 'lucide-react';
 import WidgetRenderer from './WidgetRenderer';
