@@ -53,6 +53,24 @@ export interface QuizInviteSummary {
   profile: Record<string, unknown> | null;
 }
 
+/**
+ * Response of GET /api/v1/health/summary.
+ *
+ * Mirrors the dict returned by backend/app/api/health.py. Each score is
+ * computed from recorded metrics and is null when the metric it derives from
+ * is absent, which is why none of them is a plain number.
+ */
+export interface HealthSummary {
+  metrics: number;
+  sleep_score: number | null;
+  activity_score: number | null;
+  hrv_avg: number | null;
+  resting_heart_rate: number | null;
+  readiness_score: number | null;
+  sources: string[];
+  last_sync_at: string | null;
+}
+
 export interface SaintStatusSummary {
   saint_id: string;
   name: string;
@@ -567,15 +585,20 @@ class APIClient {
   }
 
   /**
-   * Get health summary from local backend
+   * Get health summary from local backend.
+   *
+   * The shape matches what the endpoint actually returns; see the return
+   * statement in backend/app/api/health.py. Every score is nullable there,
+   * because each one is only present when the underlying metric has been
+   * recorded, so callers must keep guarding before they read one.
    */
-  async getHealthSummary() {
+  async getHealthSummary(): Promise<HealthSummary> {
     const headers = await this.buildAuthHeaders({
       'Bypass-Tunnel-Reminder': 'true',
     });
 
     try {
-      return await this.requestBackendJson(`/api/v1/health/summary`, {
+      return await this.requestBackendJson<HealthSummary>(`/api/v1/health/summary`, {
         headers
       }, 'Health Summary API Error');
     } catch (error) {

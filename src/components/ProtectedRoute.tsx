@@ -21,7 +21,10 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
 }
 
-function hasHardRouteBlocker(routeGate: RuntimeRouteGate | null | undefined): boolean {
+// A type predicate rather than a plain boolean, so that a true result narrows
+// routeGate to non-null at the call site. The blocked branch below reads
+// routeGate.reason, which was only safe by assumption before.
+function hasHardRouteBlocker(routeGate: RuntimeRouteGate | null | undefined): routeGate is RuntimeRouteGate {
   if (!routeGate?.blocking) {
     return false;
   }

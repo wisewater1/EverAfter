@@ -5,8 +5,13 @@ export class TimeoutError extends Error {
   }
 }
 
+// The awaited value is typed PromiseLike rather than Promise so that thenables
+// can be passed directly. Supabase query builders are thenables, and callers
+// were handing them straight to this helper; Promise.race already accepts any
+// iterable of PromiseLike, so this widens the signature to match what the
+// implementation has always supported.
 export async function withTimeout<T>(
-  promise: Promise<T>,
+  promise: PromiseLike<T>,
   timeoutMs: number,
   message: string
 ): Promise<T> {

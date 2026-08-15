@@ -2,7 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    /* lib is ES2021 while target stays ES2020. The application already calls
+       String.prototype.replaceAll in seven places and has been shipping it, so
+       the runtime plainly has it; only the declared library was behind. lib
+       affects which APIs the checker believes exist, not what is emitted, and
+       replaceAll is a library method rather than syntax, so nothing is
+       downlevelled either way. */
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -18,7 +24,10 @@
        expect, vi, and beforeEach are injected rather than imported. Without
        these ambient types, tsc reports "Cannot find name" across every test
        file even though the suite compiles and passes at runtime. */
-    "types": ["vitest/globals"],
+    /* web-bluetooth supplies BluetoothDevice, BluetoothRemoteGATTServer and
+       friends, which src/lib/connectors/bluetooth-health.ts uses. They are not
+       part of lib.dom. */
+    "types": ["vitest/globals", "web-bluetooth"],
 
     /* Linting */
     "strict": true,

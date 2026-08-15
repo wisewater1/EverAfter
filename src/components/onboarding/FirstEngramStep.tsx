@@ -86,13 +86,16 @@ interface RelativeDraft {
   birthYear?: string;
 }
 
-interface OceanScores {
+// A type alias rather than an interface on purpose. This is passed to helpers
+// that take Record<string, number>, and an interface has no implicit index
+// signature, so the same shape is rejected there while a type alias is accepted.
+type OceanScores = {
   openness: number;
   conscientiousness: number;
   extraversion: number;
   agreeableness: number;
   neuroticism: number;
-}
+};
 
 const ARCHETYPES: Archetype[] = [
   {
