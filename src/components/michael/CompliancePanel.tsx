@@ -25,7 +25,7 @@ function buildLiveChecks(readiness: Awaited<ReturnType<typeof getComplianceReadi
 
     if (readiness) {
         checks.push(
-            ...readiness.controls.map((control) => ({
+            ...readiness.controls.map((control): ComplianceCheck => ({
                 id: control.id,
                 framework: 'NIST',
                 control: control.controlId,
@@ -39,7 +39,7 @@ function buildLiveChecks(readiness: Awaited<ReturnType<typeof getComplianceReadi
 
     if (hipaa) {
         checks.push(
-            ...hipaa.safeguards.map((safeguard, index) => ({
+            ...hipaa.safeguards.map((safeguard, index): ComplianceCheck => ({
                 id: `hipaa-${index}`,
                 framework: 'HIPAA',
                 control: safeguard.rule,

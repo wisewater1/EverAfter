@@ -35,9 +35,18 @@ export interface VaultItem {
     status: VaultItemStatus;
     // payload is unmodelled jsonb: kept as Record so consumers can read
     // common fields like recipients/attachments without losing the rest.
+    // The named fields are the ones the vault UI actually reads. They stay
+    // optional because which are present depends on the item's type, and
+    // reading one as unknown left it unrenderable in JSX.
     payload: Record<string, unknown> & {
         recipients?: unknown[];
         attachments?: string[];
+        message?: string;
+        subject?: string;
+        biography?: string;
+        wishes?: string;
+        ciphertext?: string;
+        iv?: string;
     };
     is_encrypted: boolean;
     encryption_key_id?: string;
