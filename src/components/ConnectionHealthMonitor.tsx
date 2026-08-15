@@ -106,12 +106,6 @@ export default function ConnectionHealthMonitor() {
     return 'text-red-400';
   }
 
-  function getHealthScoreIcon(score: number) {
-    if (score >= 0.9) return CheckCircle;
-    if (score >= 0.7) return AlertTriangle;
-    return XCircle;
-  }
-
   function getStatusBadge(status: string) {
     const styles: Record<string, { bg: string; text: string; icon: any }> = {
       active: { bg: 'bg-green-600/20', text: 'text-green-300', icon: CheckCircle },
@@ -236,7 +230,6 @@ export default function ConnectionHealthMonitor() {
       {/* Individual Connection Health Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {connections.map((conn) => {
-          const HealthIcon = getHealthScoreIcon(conn.healthScore);
           const successRate = conn.totalSyncs > 0
             ? Math.round((conn.successfulSyncs / conn.totalSyncs) * 100)
             : 100;

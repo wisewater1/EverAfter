@@ -67,11 +67,9 @@ const USE_MOCK = import.meta.env.VITE_MOCK_TERRA_DATA === 'true';
 const ALLOW_DEV_MOCKS = import.meta.env.VITE_ALLOW_DEV_MOCKS === 'true';
 
 export class TerraClient {
-  private supabaseUrl: string;
   private isMockMode: boolean;
 
   constructor() {
-    this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     this.isMockMode = IS_DEV && USE_MOCK && ALLOW_DEV_MOCKS;
   }
 

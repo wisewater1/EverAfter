@@ -239,17 +239,11 @@ export default function StJosephFamilyDashboard() {
         }
     };
 
-    const handleCompleteTask = async (taskId: string) => {
-        await apiClient.completeTask(taskId);
-        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
-        setSummary(prev => prev ? { ...prev, activeTasks: Math.max(0, prev.activeTasks - 1) } : prev);
-    };
-
-    const handleMarkBought = async (itemId: string) => {
-        await apiClient.markItemBought(itemId);
-        setShopping(prev => prev.map(s => s.id === itemId ? { ...s, status: 'bought' } : s));
-        setSummary(prev => prev ? { ...prev, shoppingListCount: Math.max(0, prev.shoppingListCount - 1) } : prev);
-    };
+    // Completing a task and marking a shopping item bought are handled inside
+    // AdvancedTasksTab and AdvancedShoppingTab, which own those lists and call
+    // apiClient.completeTask and apiClient.markItemBought from their own
+    // controls. The versions that used to live here were left behind when those
+    // tabs took over and were no longer reachable from any control.
 
     const handlePostBulletin = async () => {
         const text = newBulletin.trim();

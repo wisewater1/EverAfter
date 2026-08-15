@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { GitBranch, Heart, Wallet, AlertTriangle, Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ChevronRight, ChevronLeft, Brain, Users, Shield } from 'lucide-react';
+import { GitBranch, Heart, Wallet, AlertTriangle, Sparkles, RefreshCw, ChevronRight, ChevronLeft, Brain, Users, Shield } from 'lucide-react';
 import { requestBackendJson } from '../../lib/backend-request';
 
 interface AncestryInsight {
@@ -67,14 +67,6 @@ const RISK_COLORS: Record<string, string> = {
     moderate: '#f59e0b',
     high: '#ef4444',
     critical: '#dc2626',
-};
-
-const TrendIcon = ({ trend }: { trend: string }) => {
-    if (trend === 'rising' || trend === 'falling')
-        return trend === 'rising'
-            ? <TrendingUp className="w-3.5 h-3.5" />
-            : <TrendingDown className="w-3.5 h-3.5" />;
-    return <Minus className="w-3.5 h-3.5" />;
 };
 
 export default function TrinitySynapsePanel({

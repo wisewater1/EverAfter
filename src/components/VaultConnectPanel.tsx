@@ -42,7 +42,6 @@ export default function VaultConnectPanel({ userId }: VaultConnectPanelProps) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

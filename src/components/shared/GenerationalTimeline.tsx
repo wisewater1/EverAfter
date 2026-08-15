@@ -58,13 +58,6 @@ interface Props {
     netWorthHistory?: any[];
 }
 
-const RISK_COLORS: Record<string, string> = {
-    low: '#10b981',
-    moderate: '#f59e0b',
-    high: '#ef4444',
-    critical: '#dc2626',
-};
-
 const GENERATION_ACCENT: Record<number, { bg: string; border: string; text: string }> = {
     [-3]: { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-300' },
     [-2]: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', text: 'text-indigo-300' },

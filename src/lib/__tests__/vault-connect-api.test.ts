@@ -259,12 +259,6 @@ describe('VaultConnectAPI - Type Safety', () => {
 });
 
 describe('VaultConnectAPI - Data Sharing Config Validation', () => {
-  let api: VaultConnectAPI;
-
-  beforeEach(() => {
-    api = new VaultConnectAPI('test-user');
-  });
-
   it('should validate data sharing config', () => {
     const validConfigs = [
       {
@@ -341,12 +335,6 @@ describe('VaultConnectAPI - Data Hash Generation', () => {
 });
 
 describe('VaultConnectAPI - Edge Cases', () => {
-  let api: VaultConnectAPI;
-
-  beforeEach(() => {
-    api = new VaultConnectAPI('test-user');
-  });
-
   it('should handle empty arrays correctly', () => {
     const request = {
       partner_id: '550e8400-e29b-41d4-a716-446655440000',

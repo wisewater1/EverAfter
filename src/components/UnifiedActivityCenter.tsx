@@ -227,14 +227,6 @@ export default function UnifiedActivityCenter() {
     };
   }, [user, loadCategories, loadActivities]);
 
-  const getCurrentCategory = () => {
-    if (categories.length === 0) return null;
-    const index = rotationConfig.current_rotation_index % categories.length;
-    return categories[index];
-  };
-
-  const currentCategory = getCurrentCategory();
-
   if (loading) {
     return (
       <div className="relative bg-gradient-to-br from-slate-800/50 via-slate-800/30 to-slate-900/50 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">

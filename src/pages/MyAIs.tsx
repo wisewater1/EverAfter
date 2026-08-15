@@ -108,7 +108,7 @@ export default function MyAIs() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('marketplace_purchased_instances')
         .insert({
           purchase_id: purchase.id,

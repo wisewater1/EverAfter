@@ -148,16 +148,6 @@ function canonicalRelationship(raw: string | null | undefined): string {
   return value || 'contact';
 }
 
-function splitName(fullName: string) {
-  const trimmed = fullName.trim();
-  const parts = trimmed.split(/\s+/);
-  if (parts.length <= 1) return { firstName: trimmed, lastName: '' };
-  return {
-    firstName: parts.slice(0, -1).join(' '),
-    lastName: parts.slice(-1).join(' '),
-  };
-}
-
 function getSupportNetwork(
   elder: ElderPlan,
   members: FamilyMember[],
