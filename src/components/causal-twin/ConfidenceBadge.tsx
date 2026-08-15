@@ -12,7 +12,10 @@ export default function ConfidenceBadge({ score, level, label, showScore = true 
         low: { bg: 'from-red-500/20 to-rose-500/20', border: 'border-red-500/30', text: 'text-red-400', dot: 'bg-red-400' },
     };
 
-    const c = colors[level];
+    // Fall back rather than index blindly. colors[level] is undefined for any
+    // value outside the three, and the very next line reads c.bg, so an
+    // unexpected level took the whole badge down instead of rendering plainly.
+    const c = colors[level] ?? colors.moderate;
 
     return (
         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${c.bg} border ${c.border} sm:backdrop-blur-xl`}>

@@ -30,16 +30,6 @@ interface FamilyMember {
   interactions_count?: number;
 }
 
-interface Moment {
-  id: string;
-  title: string;
-  description: string;
-  moment_type: 'text' | 'image' | 'video';
-  media_url?: string;
-  created_at: string;
-  tags: string[];
-}
-
 type ViewMode = 'grid' | 'create' | 'detail' | 'interact';
 
 export default function FamilyEngrams() {

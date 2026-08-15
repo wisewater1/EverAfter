@@ -459,8 +459,15 @@ export default function AppointmentManager() {
                                   Virtual
                                 </span>
                               )}
+                              {/* The tooltip sits on a wrapping span. title is a
+                                  global HTML attribute but not an SVG one, so
+                                  passing it to the icon put a title attribute on
+                                  the svg, which browsers do not surface as a
+                                  tooltip. */}
                               {appointment.reminder_enabled && (
-                                <Bell className="w-4 h-4 text-yellow-400" title="Reminder enabled" />
+                                <span title="Reminder enabled" className="inline-flex">
+                                  <Bell className="w-4 h-4 text-yellow-400" aria-label="Reminder enabled" />
+                                </span>
                               )}
                             </div>
                             {appointment.description && (

@@ -104,7 +104,7 @@ The same applies to `health-api/` (separate Node/Prisma service, broken,
 undeployed).
 
 **Database Layer**:
-- **Supabase PostgreSQL**: Main database (128 migrations; RLS on every table)
+- **Supabase PostgreSQL**: Main database (130 migrations; RLS on every table)
 - **Prisma schema** (`prisma/schema.prisma`) belongs to the legacy `server/`
   stack — do not mix Prisma and the Supabase client in the same code
 
@@ -152,7 +152,11 @@ undeployed).
 
 ### Health Integrations
 - `src/components/ComprehensiveHealthConnectors.tsx` - OAuth connection manager
-- `src/components/TerraIntegration.tsx` - Terra API integration UI
+- `src/components/TerraIntegration.tsx` - **orphaned, not the live Terra UI.**
+  Nothing imports or routes it (verified 2026-08-15), so no user reaches it. It
+  and `src/lib/terra-client.ts` are kept pending an owner decision. The Terra
+  path that actually runs is the `webhook-terra` Edge Function plus the OAuth
+  functions below. Do not treat this file as the integration surface.
 - `src/components/DeviceMonitorDashboard.tsx` - Device health monitoring
 - `server/lib/terra-client.ts` - Terra API client
 - `server/api/connections/terra.ts` - Terra OAuth and webhook handlers
@@ -180,7 +184,7 @@ undeployed).
 - `knowledge-ingest`, `knowledge-query` - AI knowledge base system
 
 ### Database Schema
-- `supabase/migrations/` - 128 migration files (Supabase uses SQL migrations)
+- `supabase/migrations/` - 130 migration files (Supabase uses SQL migrations)
 - `prisma/schema.prisma` - Prisma schema for Node server (health connectors)
 - Key tables: `profiles`, `archetypal_ais`, `daily_question_pool`, `saints_subscriptions`, `agent_task_queue`, `glucose_readings`, `health_metrics`, `provider_accounts`
 
@@ -221,7 +225,7 @@ callers' error handling in the same change.
 ### Component Organization
 - Page-level components in `src/pages/`
 - Reusable components in `src/components/`
-  - Health: `ComprehensiveHealthConnectors.tsx`, `DeviceMonitorDashboard.tsx`, `TerraIntegration.tsx`
+  - Health: `ComprehensiveHealthConnectors.tsx`, `DeviceMonitorDashboard.tsx`
   - Dashboard: `SaintsDashboard.tsx`, `CustomEngramsDashboard.tsx`
   - Task management: `EngramTaskManager.tsx`, `AutonomousHealthTaskManager.tsx`
 - Raphael-specific components in `src/components/raphael/`
@@ -322,6 +326,22 @@ TERRA_API_KEY=your_terra_key
 7. **Webhook Idempotency**: Use unique constraints on `(user_id, provider, external_id, ts)` to prevent duplicates.
 
 8. **St. Raphael Safety**: Never allow diagnostic/prescriptive language. Check responses for medical claims before returning.
+
+9. **Postgres grants EXECUTE on new functions to PUBLIC by default.** Creating a
+   function in a migration makes it callable by `anon` and `authenticated`
+   through PostgREST unless you revoke it. This has already caused a real hole:
+   after the household-oversight migration was applied, ten `fn_oversight_*`
+   helpers were reachable by `anon`, two of them exploitable SECURITY DEFINER
+   (one leaked grant rows past RLS given any household id, the other injected
+   alerts). Every migration that adds a function must end with an explicit
+   `revoke all on function ... from public, anon, authenticated`, and you should
+   verify the result rather than assume it.
+
+10. **Routes gated by `VITE_ENABLE_NON_CORE_ROUTES`** redirect to the dashboard
+    when the flag is unset, which is the case in production. Any surface that
+    links into one of those routes must derive its own state from
+    `src/lib/routeAvailability.ts`, or it will show a control that silently
+    bounces the user.
 
 ## Deployment Notes
 

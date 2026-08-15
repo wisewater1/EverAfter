@@ -50,13 +50,26 @@ interface DataQualityMetric {
   total_readings: number;
 }
 
+interface DeviceStatusSummary {
+  total_devices?: number | null;
+  active_devices?: number | null;
+  disconnected_devices?: number | null;
+  error_devices?: number | null;
+  low_battery_devices?: number | null;
+  average_health_score?: number | null;
+}
+
 export default function DeviceMonitorDashboard() {
   const { user } = useAuth();
   const [devices, setDevices] = useState<DeviceConnection[]>([]);
   const [alerts, setAlerts] = useState<DeviceAlert[]>([]);
   const [qualityMetrics, setQualityMetrics] = useState<DataQualityMetric[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusSummary, setStatusSummary] = useState<Record<string, unknown> | null>(null);
+  // Named rather than Record<string, unknown>: every field below is rendered
+  // directly, and unknown is not a valid ReactNode, so the six counters were
+  // each reported separately. Fields are optional because the summary row is
+  // whatever the query returns, and each render site already falls back to 0.
+  const [statusSummary, setStatusSummary] = useState<DeviceStatusSummary | null>(null);
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<{
     id: string;

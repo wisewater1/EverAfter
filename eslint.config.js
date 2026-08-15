@@ -23,6 +23,18 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // A leading underscore marks something deliberately unused, which is the
+      // convention TypeScript's own noUnusedParameters already honours. Without
+      // this, a parameter that has to stay for arity is reported by eslint even
+      // though it was renamed precisely to say it is unused on purpose.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   }
 );

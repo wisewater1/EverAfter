@@ -50,6 +50,18 @@ interface TrinityInsights {
     personality_note: string | null;
 }
 
+/**
+ * What each Trinity Synapse action returns. The endpoint is one URL that
+ * switches on the action field, so the response shape depends on the action
+ * rather than on the route.
+ */
+interface SynapseResponses {
+    ancestry_priors: AncestryInsight;
+    financial_bridge: FinancialInsight;
+    contagion: { household_alerts?: ContagionAlert[] };
+    personality_rx: { personality_note?: string };
+}
+
 interface Props {
     memberId?: string;
     birthYear?: number;
@@ -108,8 +120,12 @@ export default function TrinitySynapsePanel({
                 personality_note: null,
             };
 
-            const post = <T,>(action: string, body: object) =>
-                requestBackendJson<T>(
+            // Keyed by action so each call infers its own response. The type
+            // parameter was previously free and never supplied at the call
+            // sites, so every response resolved to {} and each field read on
+            // one was reported separately.
+            const post = <A extends keyof SynapseResponses>(action: A, body: object) =>
+                requestBackendJson<SynapseResponses[A]>(
                     '/api/v1/trinity/synapse',
                     {
                         method: 'POST',

@@ -132,7 +132,7 @@ export default function ConnectionRotationOverview() {
   return (
     <div className="space-y-6">
       {/* Orientation Debug Panel (Development Only) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-4">
           <div className="flex items-center gap-3 mb-2">
             {orientation.type === 'portrait' ? (

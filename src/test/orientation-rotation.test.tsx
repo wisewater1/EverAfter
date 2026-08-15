@@ -121,9 +121,20 @@ describe('Connection Rotation Auto-Rotation Tests', () => {
       expect(screen.getByText(/Total Rotations/i)).toBeInTheDocument();
     });
 
-    if (process.env.NODE_ENV === 'development') {
+    // This assertion used to be guarded on process.env.NODE_ENV ===
+    // 'development'. Vitest runs with NODE_ENV of 'test', so it never executed
+    // and the test only ever checked that the panel rendered at all. Guarded on
+    // import.meta.env.DEV it does run, which is what the debug panel in the
+    // component is gated on too.
+    //
+    // The query is by heading rather than by text: the body copy below the
+    // panel also contains the word "portrait", so a bare /PORTRAIT/i matches two
+    // nodes and throws.
+    if (import.meta.env.DEV) {
       await waitFor(() => {
-        expect(screen.getByText(/PORTRAIT/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole('heading', { name: /Device Orientation: PORTRAIT/i })
+        ).toBeInTheDocument();
       });
     }
   });

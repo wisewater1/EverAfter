@@ -85,7 +85,13 @@ export default function FileManager() {
     try {
       for (const file of Array.from(uploadedFiles)) {
         await uploadFile(file, {
-          category: selectedCategory === 'all' ? 'other' : (selectedCategory as 'image' | 'document' | 'audio' | 'video' | 'other'),
+          // Cast to the categories this picker actually offers. The previous
+          // cast listed 'audio' and 'video', which are not among them and are
+          // not accepted by the storage layer, while omitting 'health_report',
+          // which is the first chip in the list.
+          category: selectedCategory === 'all'
+            ? 'other'
+            : (selectedCategory as 'health_report' | 'document' | 'image' | 'other'),
           description: `Uploaded on ${new Date().toLocaleDateString()}`,
         });
       }

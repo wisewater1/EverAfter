@@ -3,7 +3,6 @@ import { MessageCircle, Bot, Activity, Clock, Star, Search, X, CheckSquare, Aler
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import ArchetypalAIChat from './ArchetypalAIChat';
-import EngramChat from './EngramChat';
 import RaphaelChat from './RaphaelChat';
 import EngramTaskManager from './EngramTaskManager';
 import ReactiveButton from './ReactiveButton';
@@ -162,8 +161,14 @@ export default function UnifiedChatInterface() {
         return <RaphaelChat />;
       case 'archetypal':
         return <ArchetypalAIChat preselectedAIId={selectedSession.id} />;
-      case 'engram':
-        return <EngramChat engramId={selectedSession.id} />;
+      // There is deliberately no 'engram' branch here. loadChatSessions only
+      // ever builds sessions of type 'raphael' and 'archetypal', so this switch
+      // could never reach one, and the branch that used to sit here passed
+      // EngramChat an engramId prop it does not accept while omitting the
+      // engrams array it requires. Had a session of that type ever been
+      // constructed, EngramChat would have thrown on engrams.filter of
+      // undefined. The type stays in ChatSession because the icon and colour
+      // helpers above still map it.
       default:
         return null;
     }

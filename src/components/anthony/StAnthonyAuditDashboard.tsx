@@ -36,7 +36,10 @@ export default function StAnthonyAuditDashboard() {
         const requestedTab = searchParams.get('tab');
         if (!requestedTab) return;
 
-        const allowedTabs = new Set(ANTHONY_TABS.map((tab) => tab.key));
+        // Set<string> rather than Set<AnthonyTab>: the value being tested comes
+        // from the query string and is an arbitrary string, which is the whole
+        // reason this membership check exists.
+        const allowedTabs = new Set<string>(ANTHONY_TABS.map((tab) => tab.key));
         if (allowedTabs.has(requestedTab)) {
             setActiveTab(requestedTab as AnthonyTab);
         }

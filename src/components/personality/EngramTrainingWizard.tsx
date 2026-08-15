@@ -224,26 +224,47 @@ export default function EngramTrainingWizard({ ai, userId, onClose, onMemorySave
 
             setProfile(profileData);
 
-            // Save profile to Supabase alongside any family connection
-            await supabase.from('engram_personality_profiles').upsert({
-                engram_id: ai.id,
-                user_id: userId,
-                profile: profileData,
-                joseph_member_id: connection.linkedMemberId,
-                relationship: connection.relationship,
-                updated_at: new Date().toISOString(),
-            }).catch(() => {/* non-blocking */ });
+            // Save profile to Supabase alongside any family connection.
+            //
+            // Errors are read off the result rather than caught. A postgrest
+            // builder is a thenable, not a promise: it has then but no catch,
+            // so calling .catch() on one threw "catch is not a function" before
+            // the request was ever sent, and the throw skipped setStep below.
+            //
+            // onConflict is required. The table's primary key is id, which
+            // defaults to a fresh uuid, so the default conflict target never
+            // matches and a retake would hit the separate UNIQUE (engram_id)
+            // constraint instead of updating.
+            const { error: profileError } = await supabase
+                .from('engram_personality_profiles')
+                .upsert({
+                    engram_id: ai.id,
+                    user_id: userId,
+                    profile: profileData,
+                    joseph_member_id: connection.linkedMemberId,
+                    relationship: connection.relationship,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'engram_id' });
+            if (profileError) {
+                console.warn('Personality profile save failed (non-blocking):', profileError);
+            }
 
             // Also write the computed traits onto the engram itself, since
             // this is what engram-chat and ArchetypalAIChat actually read to
             // condition replies - without this, taking the quiz changed
             // nothing about how the engram talks.
-            await supabase.from('archetypal_ais').update({
-                personality_traits: profileData.traits,
-                core_values: profileData.strengths,
-                communication_style: profileData.communication_style,
-                updated_at: new Date().toISOString(),
-            }).eq('id', ai.id).catch(() => {/* non-blocking */ });
+            const { error: traitsError } = await supabase
+                .from('archetypal_ais')
+                .update({
+                    personality_traits: profileData.traits,
+                    core_values: profileData.strengths,
+                    communication_style: profileData.communication_style,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', ai.id);
+            if (traitsError) {
+                console.warn('Engram trait write failed (non-blocking):', traitsError);
+            }
 
             setStep('results');
         } catch (err) {

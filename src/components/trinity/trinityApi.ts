@@ -512,10 +512,10 @@ export function getFamilyTreeAnalysis(): FamilyTreeAnalysis {
         return {
             id: String(hp.member.id),
             name: fullName,
-            firstName: String(hp.member.firstName || hp.member.first_name || fullName.split(' ')[0] || 'Member'),
+            firstName: String(hp.member.firstName || fullName.split(' ')[0] || 'Member'),
             generation: Number(hp.member.generation || 0),
             age: hp.age,
-            deceased: Boolean(hp.member.deathDate || hp.member.death_date),
+            deceased: Boolean(hp.member.deathDate),
             wellnessScore: Math.round(hp.wellnessScore),
             riskScore: Math.round(hp.riskScore),
             riskLevel: hp.riskLevel as FamilyMemberVitality['riskLevel'],

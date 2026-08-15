@@ -1,6 +1,10 @@
 import { notify, appConfirm } from '../lib/dialogs';
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Image, Video, Mic, File, Play, Pause, Trash2, Tag, CheckCircle } from 'lucide-react';
+// File is aliased on purpose. Imported under its own name it shadows the DOM
+// File constructor for this whole module, and the lucide icon is a forwardRef
+// object rather than a class, so `new File(...)` below threw
+// "File is not a constructor" and aborted the recording handler.
+import { Upload, Image, Video, Mic, File as FileIcon, Play, Pause, Trash2, Tag, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isDemoAuthEnabled } from '../lib/demo-auth';
 
@@ -248,7 +252,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
             { type: 'photo' as const, icon: Image, label: 'Photos' },
             { type: 'video' as const, icon: Video, label: 'Videos' },
             { type: 'voice' as const, icon: Mic, label: 'Voice' },
-            { type: 'document' as const, icon: File, label: 'Documents' }
+            { type: 'document' as const, icon: FileIcon, label: 'Documents' }
           ].map(({ type, icon: Icon, label }) => (
             <button
               key={type}
@@ -377,7 +381,7 @@ export default function PersonalityMediaUploader({ familyMemberId, userId, onMed
                     </div>
                   )}
                   {media.media_type === 'document' && (
-                    <File className="w-12 h-12 text-slate-400" />
+                    <FileIcon className="w-12 h-12 text-slate-400" />
                   )}
 
                   {/* Delete Button */}

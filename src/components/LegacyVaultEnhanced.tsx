@@ -22,6 +22,10 @@ import type {
   LegacyConceptPreset,
   UnlockRequest,
   UnlockRequestDecision,
+  // Cast the select's value to UnlockRule rather than to
+  // VaultItem['unlock_rule']: that field is optional on a stored item, so the
+  // old cast put undefined back into a form field that is always set.
+  UnlockRule,
 } from '../lib/vault/types';
 import {
   fetchVaultItems,
@@ -901,7 +905,7 @@ function ItemCard({ item, onSelect }: { item: VaultItem; onSelect: (item: VaultI
   );
 }
 
-function getItemPreview(item: VaultItem) {
+function getItemPreview(item: VaultItem): string {
   const payload = item.payload || {};
   switch (item.type) {
     case 'CAPSULE':
@@ -1778,7 +1782,7 @@ function CreateItemModal({ onClose, onSave, item, defaultType, preset }: { onClo
             <label className="block text-sm font-medium text-slate-400 mb-1">Unlock Rule</label>
             <select
               value={formData.unlock_rule}
-              onChange={(e) => setFormData({ ...formData, unlock_rule: e.target.value as VaultItem['unlock_rule'] })}
+              onChange={(e) => setFormData({ ...formData, unlock_rule: e.target.value as UnlockRule })}
               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-teal-500/50"
             >
               <option value="DATE">On a chosen date</option>
@@ -1967,7 +1971,14 @@ function ItemDetailModal({
     try {
       const key = await importKey(item.encryption_key_id);
       if (!key) throw new Error('Could not import encryption key.');
-      const decrypted = await decryptVaultData(item.payload.ciphertext, item.payload.iv, key);
+      // Both halves are required to decrypt. They were previously read as
+      // unknown and passed straight through, so a record missing either one
+      // reached decryptVaultData as undefined and failed obscurely there.
+      const { ciphertext, iv } = item.payload;
+      if (!ciphertext || !iv) {
+        throw new Error('This record is marked encrypted but is missing its ciphertext or initialisation vector.');
+      }
+      const decrypted = await decryptVaultData(ciphertext, iv, key);
       try {
         setDecryptedPayload(JSON.parse(decrypted));
       } catch (parseErr) {

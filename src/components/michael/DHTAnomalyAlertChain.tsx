@@ -7,7 +7,7 @@
  */
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Activity, Loader2, RefreshCw, CheckCircle, ExternalLink } from 'lucide-react';
-import { getRiskCards, getDHT } from '../../lib/dhtApi';
+import { getRiskCards, getDHT, type Anomaly } from '../../lib/dhtApi';
 import { useNavigate } from 'react-router-dom';
 
 const LEVEL_COLORS: Record<string, { text: string; bg: string; border: string; glow: string }> = {
@@ -22,7 +22,9 @@ interface DHTAnomalyAlertChainProps {
 }
 
 export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainProps) {
-    const [anomalies, setAnomalies] = useState<any[]>([]);
+    // Typed rather than any[], which is what let the three misnamed field reads
+    // below sit here unnoticed while rendering nothing.
+    const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
     const [riskCards, setRiskCards] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -108,12 +110,14 @@ export default function DHTAnomalyAlertChain({ personId }: DHTAnomalyAlertChainP
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-300">
-                                        <span className="font-semibold">{a.metric}</span>: {a.value} {a.unit}
-                                        {a.z_score && <span className="text-slate-500 ml-1">(z={a.z_score?.toFixed(1)})</span>}
+                                        <span className="font-semibold">{a.metric}</span>: {a.value}
+                                        {typeof a.zscore === 'number' && (
+                                            <span className="text-slate-500 ml-1">(z={a.zscore.toFixed(1)})</span>
+                                        )}
                                     </p>
-                                    {a.timestamp && (
+                                    {a.detected_at && (
                                         <p className="text-[10px] text-slate-600 mt-0.5">
-                                            {new Date(a.timestamp).toLocaleString()}
+                                            {new Date(a.detected_at).toLocaleString()}
                                         </p>
                                     )}
                                 </div>

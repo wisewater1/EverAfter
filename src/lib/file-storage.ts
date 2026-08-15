@@ -1,7 +1,12 @@
 import { supabase } from './supabase';
 
 export interface FileUploadOptions {
-  category?: 'health_report' | 'document' | 'image' | 'memorial' | 'other';
+  // 'medical' is what AppointmentManager attaches appointment documents under.
+  // The column has no CHECK constraint, so those rows were always stored
+  // correctly; the union had simply never listed the value. Like 'memorial',
+  // it has no dedicated filter chip in FileManager yet, so such files are
+  // reachable under "All Files" but not by category.
+  category?: 'health_report' | 'document' | 'image' | 'memorial' | 'medical' | 'other';
   description?: string;
   isPublic?: boolean;
   metadata?: Record<string, any>;
