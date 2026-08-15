@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, TrendingUp, AlertTriangle, RefreshCw, CheckCircle, Activity } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
-import { requestBackendJson } from '../../lib/backend-request';
+import { requestBackendJson, isNotImplementedError } from '../../lib/backend-request';
 
 export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     const [health, setHealth] = useState<any>(null);
@@ -26,8 +26,7 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
             setHealth(data);
             setNotMeasured(false);
         } catch (e) {
-            const message = e instanceof Error ? e.message : String(e);
-            if (message.includes('not_implemented')) {
+            if (isNotImplementedError(e)) {
                 setNotMeasured(true);
             } else {
                 console.error(e);

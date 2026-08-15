@@ -333,7 +333,6 @@ async def get_model_health(
     return {
         "model_status": model_status,
         "drift_history": drift_history,
-        "accuracy_trend": drift_monitor._get_accuracy_trend(user_id),
     }
 
 

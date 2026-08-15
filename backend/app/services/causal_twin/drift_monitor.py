@@ -43,7 +43,7 @@ class DriftMonitor:
 
         return {
             "status": state["status"],
-            "accuracy": round(state["accuracy"], 3),
+            "accuracy": round(state["accuracy"], 3) if state.get("accuracy") is not None else None,
             "accuracy_trend": self._get_accuracy_trend(user_id),
             "last_checked": state["last_checked"],
             "predictions_evaluated": state["predictions_evaluated"],
@@ -57,7 +57,11 @@ class DriftMonitor:
             "stable": "Model is performing well. Predictions are reliable.",
             "learning": "Model is gathering data. Predictions will improve over time.",
             "degraded": "Performance has dropped. Recent changes may have affected accuracy.",
-            "recalibrating": "Model is actively recalibrating to adapt to your new patterns."
+            "recalibrating": "Model is actively recalibrating to adapt to your new patterns.",
+            "unmonitored": (
+                "No prediction accuracy has been measured for this person yet, so "
+                "there is nothing to report."
+            ),
         }
         return descriptions.get(status, "Status unknown.")
 
@@ -221,10 +225,15 @@ class DriftMonitor:
                 event["recalibration_completed_at"] = datetime.utcnow().isoformat()
                 break
 
+        accuracy = state.get("accuracy")
         return {
             "status": "stable",
-            "new_accuracy": round(state["accuracy"], 3),
-            "message": "Recalibration complete. Model has adapted to your current patterns."
+            "new_accuracy": round(accuracy, 3) if accuracy is not None else None,
+            "message": (
+                "Recalibration complete. Model has adapted to your current patterns."
+                if accuracy is not None
+                else "Recalibration complete. No accuracy has been measured yet, so none is reported."
+            ),
         }
 
     def _get_accuracy_trend(self, user_id: str) -> List[Dict[str, Any]]:

@@ -19,7 +19,28 @@ const BACKEND_BASE_URL_CANDIDATES = [
 export const DEFAULT_BACKEND_TIMEOUT_MS = 3500;
 
 class BackendRoutingError extends Error {}
-class BackendTerminalError extends Error {}
+
+/**
+ * A response the backend answered with that will not succeed on retry.
+ *
+ * Carries the HTTP status so callers can branch on it. Without this the only
+ * way to tell a deliberate 501 from a genuine failure was to search the message
+ * text for a marker, which couples the caller to how the body happens to be
+ * serialised.
+ */
+class BackendTerminalError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'BackendTerminalError';
+    this.status = status;
+  }
+}
+
+export function isNotImplementedError(error: unknown): boolean {
+  return error instanceof BackendTerminalError && error.status === 501;
+}
 
 function normalizeErrorMessage(message: string, endpoint: string): string {
   const trimmed = message.trim();
@@ -167,7 +188,7 @@ export async function requestBackendJson<T>(
         }
 
         recordBackendReachable();
-        throw new BackendTerminalError(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`);
+        throw new BackendTerminalError(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`, response.status);
       }
 
       recordBackendReachable();
@@ -240,7 +261,7 @@ export async function requestBackendResponse(
         }
 
         recordBackendReachable();
-        throw new BackendTerminalError(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`);
+        throw new BackendTerminalError(compact || `${fallbackLabel || 'Backend request failed'}: ${response.status}`, response.status);
       }
 
       recordBackendReachable();
