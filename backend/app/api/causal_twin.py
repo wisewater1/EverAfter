@@ -304,13 +304,36 @@ async def get_model_health(
     member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get drift status, accuracy trend, and model state."""
+    """
+    Drift status, accuracy trend and model state, when there is one.
+
+    Returns 501 while nothing has been measured. This endpoint used to answer
+    with a seeded accuracy of 0.82 plus a random offset, an evaluated-prediction
+    count between 20 and 100, and a thirty point trend line generated on the
+    spot. ModelHealthPanel drew all of that as the measured health of the
+    person's model, and no prediction model is running.
+    """
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     model_status = drift_monitor.get_model_status(user_id)
     drift_history = drift_monitor.get_drift_history(user_id)
+
+    if model_status.get("accuracy") is None and not drift_history:
+        raise HTTPException(
+            status_code=501,
+            detail={
+                "status": "not_implemented",
+                "message": (
+                    "Model health is not available. No prediction accuracy has been "
+                    "measured for this person, so there is no accuracy, no evaluated "
+                    "prediction count, and no trend to report."
+                ),
+            },
+        )
+
     return {
         "model_status": model_status,
-        "drift_history": drift_history
+        "drift_history": drift_history,
+        "accuracy_trend": drift_monitor._get_accuracy_trend(user_id),
     }
 
 
