@@ -46,13 +46,6 @@ interface TraitData {
   evidence: string[];
 }
 
-interface FamilyMember {
-  id: string;
-  name: string;
-  relationship: string;
-  email: string;
-}
-
 interface PersonalityProfileViewerProps {
   familyMemberId: string;
   familyMemberName: string;

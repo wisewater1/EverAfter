@@ -85,15 +85,6 @@ interface LedgerEntry {
   metadata?: Record<string, unknown>;
 }
 
-interface WalletResponse {
-  wallet: WiseGoldWallet;
-  ritual_bond: RitualBond;
-  living_will: LivingWill;
-  policy: WiseGoldPolicy;
-  social_standing: SocialStanding;
-  policy_summary?: PolicySummary;
-}
-
 interface WiseGoldAttestation {
   id: string;
   covenant_id: string;

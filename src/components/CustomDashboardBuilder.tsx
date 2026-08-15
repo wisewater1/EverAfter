@@ -73,7 +73,10 @@ export default function CustomDashboardBuilder() {
   }, [user]);
 
   useEffect(() => {
-    let rotationInterval: NodeJS.Timeout;
+    // ReturnType<typeof setInterval> rather than NodeJS.Timeout: this runs in
+    // the browser, where setInterval returns a number, and the NodeJS namespace
+    // is not available without pulling node types into a browser build.
+    let rotationInterval: ReturnType<typeof setInterval>;
 
     if (isRotating && rotationConfig && rotationConfig.dashboard_sequence.length > 0) {
       rotationInterval = setInterval(() => {
