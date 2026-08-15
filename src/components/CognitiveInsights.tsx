@@ -14,6 +14,27 @@ interface InsightData {
   archetypal_clusters: Array<{ archetype: string; percentage: number; traits: string[] }>;
 }
 
+type InsightView = 'emotional' | 'themes' | 'relationships' | 'dreams' | 'mood' | 'archetypes';
+
+// Typed as the full view union rather than left to infer from the literals.
+// With `as const` the array narrowed to its own four members, so includes()
+// rejected the two free views instead of simply returning false for them.
+const PREMIUM_VIEWS: readonly InsightView[] = ['relationships', 'dreams', 'mood', 'archetypes'];
+
+/**
+ * Shape of the insight_data jsonb column, keyed by the insight_type that
+ * produced it. Derived from InsightData so the two cannot drift apart. Every
+ * field is optional because a row only carries the payload for its own type.
+ */
+interface InsightPayload {
+  arcs?: InsightData['emotional_arcs'];
+  themes?: InsightData['recurring_themes'];
+  relationships?: InsightData['relationship_map'];
+  words?: InsightData['dream_words'];
+  correlations?: InsightData['mood_correlations'];
+  clusters?: InsightData['archetypal_clusters'];
+}
+
 interface CognitiveInsightsProps {
   userId: string;
   engramId?: string;
@@ -24,7 +45,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
   const [insights, setInsights] = useState<Partial<InsightData>>({});
   const [loading, setLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [activeView, setActiveView] = useState<'emotional' | 'themes' | 'relationships' | 'dreams' | 'mood' | 'archetypes'>('emotional');
+  const [activeView, setActiveView] = useState<InsightView>('emotional');
 
   useEffect(() => {
     checkSubscriptionStatus();
@@ -76,18 +97,21 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       };
 
       data?.forEach((insight) => {
-        const insightData = insight.insight_data as Record<string, unknown>;
-        if (insight.insight_type === 'emotional_arc' && insightData.arcs) {
+        // Array.isArray rather than a truthiness check. This is jsonb, so a
+        // malformed row could hold a string or an object here, and the spread
+        // below would throw on anything that is not iterable.
+        const insightData = insight.insight_data as InsightPayload;
+        if (insight.insight_type === 'emotional_arc' && Array.isArray(insightData.arcs)) {
           aggregated.emotional_arcs = [...(aggregated.emotional_arcs || []), ...insightData.arcs];
-        } else if (insight.insight_type === 'recurring_themes' && insightData.themes) {
+        } else if (insight.insight_type === 'recurring_themes' && Array.isArray(insightData.themes)) {
           aggregated.recurring_themes = insightData.themes;
-        } else if (insight.insight_type === 'relationship_map' && insightData.relationships) {
+        } else if (insight.insight_type === 'relationship_map' && Array.isArray(insightData.relationships)) {
           aggregated.relationship_map = insightData.relationships;
-        } else if (insight.insight_type === 'dream_words' && insightData.words) {
+        } else if (insight.insight_type === 'dream_words' && Array.isArray(insightData.words)) {
           aggregated.dream_words = insightData.words;
-        } else if (insight.insight_type === 'mood_correlation' && insightData.correlations) {
+        } else if (insight.insight_type === 'mood_correlation' && Array.isArray(insightData.correlations)) {
           aggregated.mood_correlations = insightData.correlations;
-        } else if (insight.insight_type === 'archetypal_cluster' && insightData.clusters) {
+        } else if (insight.insight_type === 'archetypal_cluster' && Array.isArray(insightData.clusters)) {
           aggregated.archetypal_clusters = insightData.clusters;
         }
       });
@@ -286,7 +310,7 @@ export default function CognitiveInsights({ userId, engramId }: CognitiveInsight
       )}
 
       {/* Premium Views (Locked) */}
-      {(['relationships', 'dreams', 'mood', 'archetypes'] as const).includes(activeView) && !hasInsightPro && (
+      {PREMIUM_VIEWS.includes(activeView) && !hasInsightPro && (
         <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-violet-500/30 p-12 text-center">
           <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-500/20">
             <Lock className="w-8 h-8 text-white" />

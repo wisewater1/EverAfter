@@ -60,7 +60,11 @@ export async function getFamilyCalendar(_userId: string): Promise<FamilyEvent[]>
     const genealogyEvents = getGenealogyEvents();
 
     const detailedEvents = genealogyEvents
-        .map((event, index) => {
+        // Annotated rather than left to `satisfies` below. With `satisfies` the
+        // callback returned the literal object type, so the array element was a
+        // literal-or-null union that the FamilyEvent type predicate on the
+        // filter could not be assigned to, and the narrowing collapsed.
+        .map((event, index): FamilyEvent | null => {
             const baseDate = new Date(`${event.date}T09:00:00`);
             if (Number.isNaN(baseDate.getTime())) return null;
 
@@ -121,7 +125,7 @@ export async function getFamilyCalendar(_userId: string): Promise<FamilyEvent[]>
                 memberName,
                 type: event.type,
                 riskSummary: index % 3 === 0 ? 'Review kin coverage and scheduling conflicts before the date.' : undefined,
-            } satisfies FamilyEvent;
+            };
         })
         .filter((event): event is FamilyEvent => Boolean(event))
         .sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime())

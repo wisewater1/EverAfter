@@ -204,9 +204,18 @@ export default function StJosephFamilyDashboard() {
             const nextTasks = results[0].status === 'fulfilled' ? results[0].value as FamilyTask[] : [];
             const nextShopping = results[1].status === 'fulfilled' ? results[1].value as ShoppingItem[] : [];
             const nextEvents = results[2].status === 'fulfilled' ? results[2].value as FamilyEvent[] : [];
-            const nextBulletin = results[3].status === 'fulfilled' ? results[3].value : [];
+            // Cast to the bulletin state's element type, matching the three
+            // lines above. Without it this stayed the full settled-value union.
+            const nextBulletin = results[3].status === 'fulfilled'
+                ? results[3].value as { id: string; text: string; author: string }[]
+                : [];
             const failures = results
-                .map((result, index) => ({ result, label: coreRequests[index].label }))
+                // The return is annotated so label widens to string. coreRequests
+                // is `as const`, so label would otherwise infer as a union of the
+                // four literals, which the predicate below could not be assigned
+                // to, and the rejected narrowing was silently lost.
+                .map((result, index): { result: PromiseSettledResult<unknown>; label: string } =>
+                    ({ result, label: coreRequests[index].label }))
                 .filter((entry): entry is { result: PromiseRejectedResult; label: string } => entry.result.status === 'rejected')
                 .map((entry) => ({ label: entry.label, reason: entry.result.reason }));
 
