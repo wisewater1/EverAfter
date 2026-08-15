@@ -30,12 +30,17 @@ export default function HealthAlertListener() {
                 .from('agent_notifications')
                 .update({ is_read: true, read_at: new Date().toISOString() })
                 .in('id', ids)
-                .then(({ error }: { error: { message?: string } | null }) => {
-                    if (error) console.warn('Failed to mark notifications as read:', error);
-                })
-                .catch((err: unknown) => {
-                    console.warn('Failed to mark notifications as read:', err);
-                });
+                // Two argument then rather than then().catch(): the query
+                // builder is declared as a PromiseLike, which has no catch, so
+                // the rejection handler goes here. Both branches only log.
+                .then(
+                    ({ error }: { error: { message?: string } | null }) => {
+                        if (error) console.warn('Failed to mark notifications as read:', error);
+                    },
+                    (err: unknown) => {
+                        console.warn('Failed to mark notifications as read:', err);
+                    },
+                );
         };
 
         // 1. Fetch unread notifications on mount
