@@ -63,6 +63,43 @@ export interface JosephVoiceProfileBundle {
   sidecar: Omit<JosephVoiceHealth, 'guided_capture_sets' | 'thresholds'>;
 }
 
+/**
+ * Training and synthesis responses.
+ *
+ * Shapes copied from JosephVoiceService in
+ * backend/app/services/joseph_voice_service.py rather than guessed. start
+ * returns a training_run, status returns a nullable one plus sidecar_status.
+ */
+export interface JosephVoiceTrainingRun {
+  id: string;
+  status: string;
+  job_ref?: string | null;
+  sample_count?: number;
+  approved_seconds?: number;
+  result?: Record<string, unknown>;
+  error_text?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface JosephVoiceTrainingStart {
+  profile: JosephVoiceProfile | null;
+  training_run: JosephVoiceTrainingRun;
+}
+
+export interface JosephVoiceTrainingStatus {
+  profile: JosephVoiceProfile | null;
+  training_run: JosephVoiceTrainingRun | null;
+  sidecar_status: Record<string, unknown> | null;
+}
+
+export interface JosephVoiceSynthesis {
+  session_id: string;
+  status: string;
+  output_ref: string | null;
+  result: Record<string, unknown>;
+}
+
 export interface JosephVoiceQuizSuggestion {
   profile: JosephVoiceProfile;
   sample: JosephVoiceSample;
@@ -219,12 +256,12 @@ export async function startJosephVoiceTraining(input: {
   familyMemberId: string;
   engramId?: string | null;
   voiceStyleNotes?: string | null;
-}, options: JosephVoiceRequestOptions = {}) {
+}, options: JosephVoiceRequestOptions = {}): Promise<JosephVoiceTrainingStart> {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   if (input.engramId) fd.append('engram_id', input.engramId);
   if (input.voiceStyleNotes) fd.append('voice_style_notes', input.voiceStyleNotes);
-  return requestBackendJson(
+  return requestBackendJson<JosephVoiceTrainingStart>(
     '/api/v1/joseph/voice/train',
     await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to start Joseph voice training.',
@@ -234,8 +271,8 @@ export async function startJosephVoiceTraining(input: {
 export async function getJosephVoiceTrainingStatus(
   familyMemberId: string,
   options: JosephVoiceRequestOptions = {},
-) {
-  return requestBackendJson(
+): Promise<JosephVoiceTrainingStatus> {
+  return requestBackendJson<JosephVoiceTrainingStatus>(
     `/api/v1/joseph/voice/train/${familyMemberId}`,
     await buildVoiceRequestInitWithOptions({}, options),
     'Failed to load Joseph voice training status.',
@@ -246,12 +283,12 @@ export async function synthesizeJosephVoice(input: {
   familyMemberId: string;
   engramId: string;
   textContent: string;
-}, options: JosephVoiceRequestOptions = {}) {
+}, options: JosephVoiceRequestOptions = {}): Promise<JosephVoiceSynthesis> {
   const fd = new FormData();
   fd.append('family_member_id', input.familyMemberId);
   fd.append('engram_id', input.engramId);
   fd.append('text_content', input.textContent);
-  return requestBackendJson(
+  return requestBackendJson<JosephVoiceSynthesis>(
     '/api/v1/joseph/voice/synthesize',
     await buildVoiceRequestInitWithOptions({ method: 'POST', body: fd }, options),
     'Failed to synthesize Joseph voice.',

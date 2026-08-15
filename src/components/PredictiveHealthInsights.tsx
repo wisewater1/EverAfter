@@ -48,6 +48,10 @@ export default function PredictiveHealthInsights() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lookbackDays, setLookbackDays] = useState(30);
+  // Separate from a transient failure on purpose. The endpoint answers 501
+  // because no prediction model runs yet, and offering a Retry button for that
+  // would imply the numbers are one refresh away.
+  const [notImplemented, setNotImplemented] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -58,10 +62,16 @@ export default function PredictiveHealthInsights() {
   async function loadAnalytics() {
     try {
       setLoading(true);
+      setNotImplemented(false);
       const data = await apiClient.getPredictiveAnalytics(lookbackDays);
-      setAnalytics(data);
+      setAnalytics(data as AnalyticsData);
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('not_implemented')) {
+        setNotImplemented(true);
+      } else {
+        console.error('Error loading analytics:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -98,6 +108,24 @@ export default function PredictiveHealthInsights() {
     return (
       <div className="flex items-center justify-center py-12">
         <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (notImplemented) {
+    return (
+      <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+        <div className="max-w-xl mx-auto text-center py-8">
+          <Brain className="w-12 h-12 mx-auto mb-3 text-gray-500" />
+          <h3 className="text-white font-semibold mb-2">Predictive analytics are not available yet</h3>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            St. Raphael does not run a prediction model today, so there are no
+            risk scores, confidence figures, or correlations to show you. Nothing
+            is missing from your account, and none of your recorded health data
+            has been lost. This area will stay empty until a real model is in
+            place rather than showing you an estimate that was not measured.
+          </p>
+        </div>
       </div>
     );
   }
