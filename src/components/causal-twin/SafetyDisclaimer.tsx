@@ -1,4 +1,3 @@
-import React from 'react';
 import { Shield } from 'lucide-react';
 
 export default function SafetyDisclaimer({ compact = false }: { compact?: boolean }) {

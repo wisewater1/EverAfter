@@ -7,7 +7,7 @@ export function RemoveConnectionExample() {
   const { user } = useAuth();
   const [connections, setConnections] = useState<any[]>([]);
 
-  const handleRemoveConnection = async (connectionId: string, providerName: string) => {
+  const handleRemoveConnection = async (connectionId: string, _providerName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -47,7 +47,7 @@ export function RemoveFamilyMemberExample() {
   const { user } = useAuth();
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
 
-  const handleRemoveFamilyMember = async (memberId: string, memberName: string) => {
+  const handleRemoveFamilyMember = async (memberId: string, _memberName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -92,7 +92,7 @@ export function RemoveHealthGoalExample() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<any[]>([]);
 
-  const handleRemoveGoal = async (goalId: string, goalTitle: string) => {
+  const handleRemoveGoal = async (goalId: string, _goalTitle: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -135,7 +135,7 @@ export function RemoveEmergencyContactExample() {
   const { user } = useAuth();
   const [contacts, setContacts] = useState<any[]>([]);
 
-  const handleRemoveContact = async (contactId: string, contactName: string) => {
+  const handleRemoveContact = async (contactId: string, _contactName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error } = await supabase
@@ -200,7 +200,7 @@ export function RemoveArchetypalAIExample() {
   const { user } = useAuth();
   const [archetypalAIs, setArchetypalAIs] = useState<any[]>([]);
 
-  const handleRemoveAI = async (aiId: string, aiName: string) => {
+  const handleRemoveAI = async (aiId: string, _aiName: string) => {
     if (!user?.id) throw new Error('User not authenticated');
 
     const { error: conversationsError } = await supabase

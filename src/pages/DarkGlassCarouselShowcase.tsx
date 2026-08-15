@@ -1,4 +1,3 @@
-import React from 'react';
 import DarkGlassCarousel from '../components/DarkGlassCarousel';
 import { Sparkles } from 'lucide-react';
 

@@ -1,6 +1,3 @@
-import React from 'react';
-import { Shield } from 'lucide-react';
-
 interface ConfidenceBadgeProps {
     score: number;
     level: 'high' | 'moderate' | 'low';

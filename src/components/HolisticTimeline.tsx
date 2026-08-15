@@ -59,7 +59,7 @@ export default function HolisticTimeline() {
         fetchNeuralGraph();
     }, []);
 
-    const getEventTitle = (type: string, saintId: string) => {
+    const getEventTitle = (type: string, _saintId: string) => {
         switch (type) {
             case 'health_event': return 'Health Insight';
             case 'finance_event': return 'Financial Event';

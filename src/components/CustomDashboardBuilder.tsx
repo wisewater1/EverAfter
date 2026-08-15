@@ -653,7 +653,7 @@ export default function CustomDashboardBuilder() {
 
       {showTemplateSelector && (
         <DashboardTemplateSelector
-          onSelectTemplate={(templateId) => {
+          onSelectTemplate={(_templateId) => {
             setShowTemplateSelector(false);
             setShowCreateModal(true);
           }}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Heart, Activity, Droplet, Moon, Footprints } from 'lucide-react';
 import type { VitalsSummary } from '../../lib/raphael/monitors';
 

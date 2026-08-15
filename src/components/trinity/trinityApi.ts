@@ -1023,7 +1023,7 @@ function buildInheritanceHeirs(context: ReturnType<typeof getLocalTrinityContext
     return context.livingMembers
         .filter(member => member.id !== target?.id)
         .slice(0, 4)
-        .map((member, index, list) => {
+        .map((member, _index, list) => {
             const path = target ? findRelationshipPath(target.id, member.id) : null;
             return {
                 name: formatMemberName(member),
@@ -1147,7 +1147,7 @@ function buildHereditarySignals(context: ReturnType<typeof getLocalTrinityContex
     };
 }
 
-function buildContinuityAutomation(context: ReturnType<typeof getLocalTrinityContext>, target: AnyRecord, heirs: AnyRecord[], estateReady: boolean) {
+function buildContinuityAutomation(_context: ReturnType<typeof getLocalTrinityContext>, target: AnyRecord, heirs: AnyRecord[], estateReady: boolean) {
     const primaryHealth = getHealthProfile(target || {});
     const releaseMode = heirs.length > 0 ? 'Executor approval + heartbeat timeout' : 'Manual family intervention';
     const automationReadiness = estateReady

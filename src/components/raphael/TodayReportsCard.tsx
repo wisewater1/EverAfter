@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileText, Calendar } from 'lucide-react';
 import type { ReportStub } from '../../lib/raphael/monitors';
 

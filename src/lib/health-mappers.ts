@@ -525,7 +525,7 @@ export class HealthDataMapper {
    */
   static normalizeTimezone(
     timestamp: string,
-    timezone?: string
+    _timezone?: string
   ): string {
     const date = new Date(timestamp);
     return date.toISOString();

@@ -1,4 +1,3 @@
-import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { TrendPoint } from '../../lib/raphael/monitors';
 

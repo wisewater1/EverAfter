@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react';
 import type { Alert } from '../../lib/raphael/monitors';
 
