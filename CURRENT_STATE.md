@@ -126,6 +126,20 @@ Trust Partners" and "Memorial Services Network", keep names that read as outside
 organisations even though both are areas of this app. That is a naming decision,
 not a defect.
 
+## Orphaned components (verified 2026-08-15)
+
+Two feature components are imported by nothing and rendered nowhere. Both are
+kept deliberately, pending an owner decision, and neither should be treated as
+a live surface.
+
+| File | Notes |
+| --- | --- |
+| `src/components/TerraIntegration.tsx` (+ `src/lib/terra-client.ts`) | CLAUDE.md described this as the live "Terra API integration UI". It is not, and that claim has been corrected. The Terra path that actually runs is the `webhook-terra` Edge Function plus the OAuth functions. |
+| `src/components/RaphaelAgentMode.tsx` | Renders `appointment_details` and `refill_details`, which do not exist on the task type the live queue uses, so it could not work as written even if it were routed. |
+
+Between them they account for 10 of the remaining type errors. Those errors are
+in dead code and are not evidence of a problem in any shipped path.
+
 ## Error-response convention (documented reality)
 
 Two shapes coexist in edge functions today:

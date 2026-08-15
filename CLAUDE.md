@@ -152,7 +152,11 @@ undeployed).
 
 ### Health Integrations
 - `src/components/ComprehensiveHealthConnectors.tsx` - OAuth connection manager
-- `src/components/TerraIntegration.tsx` - Terra API integration UI
+- `src/components/TerraIntegration.tsx` - **orphaned, not the live Terra UI.**
+  Nothing imports or routes it (verified 2026-08-15), so no user reaches it. It
+  and `src/lib/terra-client.ts` are kept pending an owner decision. The Terra
+  path that actually runs is the `webhook-terra` Edge Function plus the OAuth
+  functions below. Do not treat this file as the integration surface.
 - `src/components/DeviceMonitorDashboard.tsx` - Device health monitoring
 - `server/lib/terra-client.ts` - Terra API client
 - `server/api/connections/terra.ts` - Terra OAuth and webhook handlers
@@ -221,7 +225,7 @@ callers' error handling in the same change.
 ### Component Organization
 - Page-level components in `src/pages/`
 - Reusable components in `src/components/`
-  - Health: `ComprehensiveHealthConnectors.tsx`, `DeviceMonitorDashboard.tsx`, `TerraIntegration.tsx`
+  - Health: `ComprehensiveHealthConnectors.tsx`, `DeviceMonitorDashboard.tsx`
   - Dashboard: `SaintsDashboard.tsx`, `CustomEngramsDashboard.tsx`
   - Task management: `EngramTaskManager.tsx`, `AutonomousHealthTaskManager.tsx`
 - Raphael-specific components in `src/components/raphael/`
