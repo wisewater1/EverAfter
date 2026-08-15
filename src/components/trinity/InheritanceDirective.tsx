@@ -17,6 +17,7 @@ import {
 import { trinitySynapse } from './trinityApi';
 import { getFamilyMembers } from '../../lib/joseph/genealogy';
 import { getCachedTrinitySignals, refreshTrinitySignals, wellnessFromLiveHealth } from '../../lib/trinity/liveSignals';
+import CoverageNote from '../oversight/CoverageNote';
 
 type InheritanceCardStatus = 'ready' | 'needs_attention' | 'missing';
 
@@ -214,6 +215,9 @@ export default function InheritanceDirective() {
 
   return (
     <div className="space-y-5">
+      {/* Coverage gaps mean the estate picture is incomplete; say so plainly
+          rather than presenting a partial picture as whole. */}
+      <CoverageNote variant="inheritance" />
       <div className={`rounded-2xl border p-5 ${urgencyTone.panel}`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">

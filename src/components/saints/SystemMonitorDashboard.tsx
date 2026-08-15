@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import FinancialCoverageSection from '../oversight/FinancialCoverageSection';
 import {
     Activity,
     Server,
@@ -113,6 +114,16 @@ export default function SystemMonitorDashboard() {
         return unsubscribe;
     }, []);
 
+    // The Trinity Overview links here as /monitor#financial-coverage when the
+    // Financial readiness bar is selected; scroll to the section once rendered.
+    useEffect(() => {
+        if (loading) return;
+        if (window.location.hash === '#financial-coverage') {
+            const target = document.getElementById('financial-coverage');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [loading]);
+
     // The health pill is derived from the live error rate, never asserted.
     const systemHealth = !metrics
         ? { label: 'Telemetry unavailable', dot: 'bg-slate-500', text: 'text-slate-400' }
@@ -177,6 +188,10 @@ export default function SystemMonitorDashboard() {
             </header>
 
             <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+                {/* Household financial coverage drill-down (reached from the
+                    Trinity Overview's Financial readiness bar) */}
+                <FinancialCoverageSection />
+
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
