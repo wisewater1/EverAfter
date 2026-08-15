@@ -126,7 +126,10 @@ export default function HealthReportGenerator() {
   interface Appointment { title: string; status: string; scheduled_at: string; provider_name?: string }
   interface Goal { goal_title: string; current_value: number; target_value: number; deadline?: string }
   interface MedicationLog { status: string }
-  interface ReportData { metrics: HealthMetric[]; appointments: Appointment[]; prescriptions: Prescription[]; goals: Goal[]; logs: MedicationLog[]; startDate: string; endDate: string }
+  // startDate/endDate arrive as Date objects (the caller passes `new Date(...)`),
+  // and the report body calls toLocaleDateString on them. Declaring them as
+  // string made tsc flag correct code; Date is what is actually passed.
+  interface ReportData { metrics: HealthMetric[]; appointments: Appointment[]; prescriptions: Prescription[]; goals: Goal[]; logs: MedicationLog[]; startDate: Date; endDate: Date }
 
   const generateReportHTML = (data: ReportData) => {
     const { metrics, appointments, prescriptions, goals, logs, startDate, endDate } = data;

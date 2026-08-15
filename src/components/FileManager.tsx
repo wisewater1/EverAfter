@@ -34,7 +34,12 @@ export default function FileManager() {
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [storageStats, setStorageStats] = useState<{ used_bytes: number; total_bytes: number; file_count: number } | null>(null);
+  // Derived from the source of truth so the annotation cannot drift again. The
+  // previous inline type claimed used_bytes/total_bytes/file_count, which
+  // getUserStorageStats has never returned; the JSX below always read the real
+  // fields (total_size_mb, total_files, by_category), so this corrects the type
+  // rather than the behaviour.
+  const [storageStats, setStorageStats] = useState<Awaited<ReturnType<typeof getUserStorageStats>> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
