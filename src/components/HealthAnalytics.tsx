@@ -3,14 +3,17 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { TrendingUp, TrendingDown, Activity, Heart, Moon, Footprints, Calendar, Target, Award } from 'lucide-react';
 
-// Reserved for future use
-// interface HealthMetric {
-//   id: string;
-//   metric_type: string;
-//   metric_value: number;
-//   metric_unit: string;
-//   recorded_at: string;
-// }
+// The shape this component reads out of health_metrics. The Supabase client
+// here is untyped, so select('*') resolves to any and every callback over the
+// result was an implicit any. Naming the row once gives the whole file real
+// types without annotating each callback.
+interface HealthMetric {
+  id: string;
+  metric_type: string;
+  metric_value: number;
+  metric_unit: string;
+  recorded_at: string;
+}
 
 interface AnalyticsData {
   avgSteps: number;
@@ -59,13 +62,15 @@ export default function HealthAnalytics() {
         .from('health_metrics')
         .select('*')
         .gte('recorded_at', weekAgo.toISOString())
-        .order('recorded_at', { ascending: true });
+        .order('recorded_at', { ascending: true })
+        .returns<HealthMetric[]>();
 
       const { data: previousMetrics } = await supabase
         .from('health_metrics')
         .select('*')
         .gte('recorded_at', twoWeeksAgo.toISOString())
-        .lt('recorded_at', weekAgo.toISOString());
+        .lt('recorded_at', weekAgo.toISOString())
+        .returns<HealthMetric[]>();
 
       if (recentMetrics) {
         const steps = recentMetrics.filter(m => m.metric_type === 'steps');
