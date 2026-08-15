@@ -124,7 +124,11 @@ export default function HealthReportGenerator() {
   interface HealthMetric { metric_type: string; metric_value: number }
   interface Prescription { medication_name: string; dosage: string; frequency: string; refills_remaining: number }
   interface Appointment { title: string; status: string; scheduled_at: string; provider_name?: string }
-  interface Goal { goal_title: string; current_value: number; target_value: number; deadline?: string }
+  // Mirrors the health_goals table. It previously declared an optional
+  // `deadline`, which is not a column and was read nowhere, while omitting
+  // target_unit and target_date, which are both NOT NULL there and are both
+  // rendered in the report body below.
+  interface Goal { goal_title: string; current_value: number; target_value: number; target_unit: string; target_date: string }
   interface MedicationLog { status: string }
   // startDate/endDate arrive as Date objects (the caller passes `new Date(...)`),
   // and the report body calls toLocaleDateString on them. Declaring them as

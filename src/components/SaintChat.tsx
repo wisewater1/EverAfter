@@ -585,7 +585,7 @@ export default function SaintChat({
                             <div className="mx-4">
                                 <FeatureBlockedState
                                     title={`${saintName} Is Unavailable`}
-                                    reason={blockedReason}
+                                    reason={blockedReason || 'This chat is blocked until its runtime dependencies recover.'}
                                     detail="This chat stays blocked until the required runtime storage and history dependencies recover."
                                 />
                             </div>

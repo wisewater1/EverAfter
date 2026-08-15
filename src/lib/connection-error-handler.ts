@@ -400,7 +400,7 @@ export class CircuitBreaker {
     // underscore, rather than removed, because dropping it would silently turn
     // any positional third argument into resetTimeout. Wrap the operation in
     // withTimeout if a caller needs one, or implement it here first.
-    private _timeout: number = 60000,
+    _timeout: number = 60000,
     private resetTimeout: number = 300000 // 5 minutes
   ) {}
 

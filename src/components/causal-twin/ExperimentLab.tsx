@@ -46,7 +46,14 @@ const HEALTH_CONDITION_KEYWORDS: Record<string, string[]> = {
 
 interface ExperimentResultConfidence {
   score: number;
+  // Left as string because that is what the wire carries; the badge only
+  // renders three levels, so callers narrow through toConfidenceLevel below
+  // rather than this type pretending the backend is constrained.
   level: string;
+}
+
+function toConfidenceLevel(level: string): 'high' | 'moderate' | 'low' {
+  return level === 'high' || level === 'low' ? level : 'moderate';
 }
 
 interface ExperimentResult {
@@ -937,7 +944,7 @@ export default function ExperimentLab({ memberId }: { memberId?: string }) {
                           {experiment.results.confidence && (
                             <ConfidenceBadge
                               score={experiment.results.confidence.score}
-                              level={experiment.results.confidence.level}
+                              level={toConfidenceLevel(experiment.results.confidence.level)}
                             />
                           )}
                         </div>
