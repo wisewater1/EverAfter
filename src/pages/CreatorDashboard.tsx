@@ -62,6 +62,10 @@ export default function CreatorDashboard() {
   const [mineableEngrams, setMineableEngrams] = useState<MineableEngram[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'analytics' | 'mining'>('overview');
+  // Template authoring does not ship in this release. The buttons below used to
+  // navigate to /creator/new, which matches no route, so the catch-all quietly
+  // returned people to the dashboard. Say so plainly instead.
+  const [authoringNotice, setAuthoringNotice] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -206,13 +210,35 @@ export default function CreatorDashboard() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/creator/new')}
+              onClick={() => setAuthoringNotice(true)}
               className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20"
             >
               <Plus className="w-5 h-5" />
               <span className="hidden sm:inline">Create Template</span>
             </button>
           </div>
+
+          {authoringNotice && (
+            <div
+              role="status"
+              className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4"
+            >
+              <Package className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-100">Template authoring is not available yet</p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-200/80">
+                  Publishing a new template to the marketplace is not part of the current release. Templates you already
+                  own continue to appear here, and your revenue and analytics stay accurate.
+                </p>
+              </div>
+              <button
+                onClick={() => setAuthoringNotice(false)}
+                className="min-h-[44px] rounded-lg px-3 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/10"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 sm:backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
@@ -295,7 +321,7 @@ export default function CreatorDashboard() {
                 <h3 className="text-xl font-medium text-white mb-2">No templates yet</h3>
                 <p className="text-slate-400 mb-6">Create your first AI template to get started</p>
                 <button
-                  onClick={() => navigate('/creator/new')}
+                  onClick={() => setAuthoringNotice(true)}
                   className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl transition-all inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
                 >
                   <Plus className="w-5 h-5" />
