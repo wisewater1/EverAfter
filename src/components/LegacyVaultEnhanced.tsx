@@ -13,6 +13,7 @@ import {
 import FileUploadZone from './FileUploadZone';
 import { generateVaultKey, exportKey, importKey, encryptVaultData, decryptVaultData } from '../lib/vault-encryption';
 import { getSignedUrlForPath } from '../lib/file-storage';
+import { nonCoreRoutesEnabled } from '../lib/routeAvailability';
 import type {
   VaultItem,
   Beneficiary,
@@ -952,33 +953,44 @@ function LegacyAssuranceSection({
   onCreateBeneficiary: (payload: { name?: string; email: string; phone?: string; relationship?: string }) => Promise<void>;
   onDeleteBeneficiary: (beneficiaryId: string) => Promise<void>;
 }) {
+  // Each area carries the route it opens, and whether that route is part of
+  // this build. Two of these three sit behind the non-core route flag, and when
+  // that flag is off App.tsx redirects them to the dashboard. Deriving the card
+  // state from the same flag keeps a card from advertising a destination that
+  // would silently bounce the person somewhere else.
   const trustPartners = [
     {
       id: 'legacy-trust',
       name: 'Legacy Trust Partners',
       description: 'Estate planning and digital legacy management services',
       icon: Crown,
-      status: 'Available',
+      route: '/portal',
+      available: true,
       color: 'from-amber-500/20 to-orange-500/20',
       borderColor: 'border-amber-500/30',
       features: ['Estate Planning', 'Trust Management', 'Legal Consultation', 'Document Custody']
     },
     {
       id: 'eternal-care',
-      name: 'Eternal Care Insurance',
-      description: 'Specialized life insurance and legacy protection plans',
+      // EverAfter does not sell, broker, or underwrite insurance. This area
+      // holds a record of cover the person has already taken out with their
+      // own insurer, so the copy describes record keeping and nothing else.
+      name: 'Insurance records',
+      description: 'Keep a record of the cover you already hold, and who it is meant to reach',
       icon: Heart,
-      status: 'Available',
+      route: '/insurance/connect',
+      available: nonCoreRoutesEnabled,
       color: 'from-rose-500/20 to-pink-500/20',
       borderColor: 'border-rose-500/30',
-      features: ['Life Insurance', 'Legacy Protection', 'Beneficiary Management', 'Claims Support']
+      features: ['Your policies', 'Beneficiaries', 'Claims history', 'Premium payments']
     },
     {
       id: 'memorial-services',
       name: 'Memorial Services Network',
       description: 'Comprehensive memorial and funeral service coordination',
       icon: Heart,
-      status: 'Available',
+      route: '/memorial-services',
+      available: nonCoreRoutesEnabled,
       color: 'from-cyan-500/20 to-blue-500/20',
       borderColor: 'border-cyan-500/30',
       features: ['Funeral Planning', 'Memorial Services', 'Cemetery Services', 'Online Tributes']
@@ -1016,9 +1028,11 @@ function LegacyAssuranceSection({
 
       <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
         <div className="mb-6">
-          <h3 className="text-xl font-bold text-white mb-2">Legacy Trust Partners</h3>
+          <h3 className="text-xl font-bold text-white mb-2">Legacy planning areas</h3>
           <p className="text-slate-400 text-sm">
-            Connect with verified service providers for comprehensive legacy planning and protection
+            Parts of EverAfter where you can record and organize the arrangements
+            you have already made. These are areas of this app rather than outside
+            providers, and none of them sells a product or gives legal advice.
           </p>
         </div>
 
@@ -1034,8 +1048,14 @@ function LegacyAssuranceSection({
                   <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium border border-emerald-500/30">
-                    {partner.status}
+                  <span
+                    className={`px-2 py-1 rounded-lg text-xs font-medium border ${
+                      partner.available
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-slate-500/20 text-slate-300 border-slate-400/30'
+                    }`}
+                  >
+                    {partner.available ? 'Available' : 'Not in this release'}
                   </span>
                 </div>
 
@@ -1051,21 +1071,20 @@ function LegacyAssuranceSection({
                   ))}
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (partner.id === 'eternal-care') {
-                      navigate('/insurance/connect');
-                    } else if (partner.id === 'memorial-services') {
-                      navigate('/memorial-services');
-                    } else {
-                      navigate('/portal');
-                    }
-                  }}
-                  className="w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2"
-                >
-                  Connect
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                {partner.available ? (
+                  <button
+                    onClick={() => navigate(partner.route)}
+                    className="w-full min-h-11 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    Open
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-300 bg-slate-900/40 border border-white/10 rounded-lg px-3 py-2">
+                    This area is not part of the current release. Nothing is
+                    missing from your vault, and there is nothing for you to do.
+                  </p>
+                )}
               </div>
             );
           })}

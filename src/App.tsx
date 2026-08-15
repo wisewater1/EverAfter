@@ -10,6 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 import { attachEdgeReactive } from './lib/edge-reactive';
 import { lazyWithRetry } from './lib/lazyWithRetry';
+import { nonCoreRoutesEnabled } from './lib/routeAvailability';
 import { startSaintHeartbeat, stopSaintHeartbeat } from './lib/saintBridge';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -66,7 +67,6 @@ const ConnectionsPanel = lazyWithRetry(() => import('./components/ConnectionsPan
 const NotificationToast = lazyWithRetry(() => import('./components/NotificationToast'), 'components/NotificationToast');
 const HealthAlertListener = lazyWithRetry(() => import('./components/HealthAlertListener'), 'components/HealthAlertListener');
 
-const nonCoreRoutesEnabled = import.meta.env.VITE_ENABLE_NON_CORE_ROUTES === 'true';
 const publicReleaseRedirect = <Navigate to="/" replace />;
 const protectedReleaseRedirect = (
   <ProtectedRoute>
