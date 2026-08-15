@@ -131,23 +131,25 @@ chasing an unrelated type error.
 random.uniform(0.5, 0.8)`, commented "Initial proof of concept". It is
 persisted, served as `"rapport"` by `social.py:147`, and feeds reputation
 scoring at `social_reputation_service.py:160`, which sets
-`daily_manna_multiplier_bps`. The frontend display was corrected earlier in this
-engagement; the backend still generates it. Changing it alters stored data and
-the reputation calculation.
+`daily_manna_multiplier_bps`. Changing it alters stored data and the reputation
+calculation, which is why it was left alone when the other rapport sites were
+fixed.
 
-Also raised and not changed: hardcoded rapport constants in `oasis_service.py`
-(88, 130); 10/20/30-year family health trajectories in `ancestry_engine.py`
-derived from trait strings and occupation multipliers (`"nurse": 0.85`), whose
-wellness disclaimer wrongly says "based on your personal data patterns";
-`compliance_service.py:79` recording a restore drill as SUCCESS with a proof
-hash without attempting a restore; and fixed per-rule confidence percentages in
-`shared_health_predictor.py` (82/78/74/69) presented as computed confidence.
+That leaves a visible split worth closing: the feed now shows no rapport for
+Agora posts and vignette replies, because those write null, while still showing
+a random percentage for engram interactions. Nothing in the codebase measures
+rapport at all, so the consistent end state is either a real measurement or no
+rapport display anywhere.
 
-Two landmines rather than live leaks: `health/strategies.py:255` builds a
-24-hour trajectory as a random walk but is currently unreachable, and
-`environmental_matrix.py:100` derives threat levels from an MD5 of the location
-string with no UI consumer. Both would be live the moment something wires them
-up.
+### Fixed in the second pass (the MEDIUM tier)
+
+| Site | What it asserted |
+| --- | --- |
+| `oasis_service.py` (88, 130) | `emotional_rapport` of 1.0 on Agora posts and 0.9 on vignette replies. 1.0 was perfect closeness for a broadcast with no recipient. Both now null, and the model default of 0.5 was removed so an unset value cannot silently become another invented figure. |
+| `causal_twin/ancestry_engine.py` | Multiplied every projected midpoint, and the family-map wellness score, by an `OCCUPATION_RISK` constant (`"nurse": 0.85`, `"executive": 0.75`, 0.87 for anything unrecognised) with no derivation. Table and helper removed; occupation still reported qualitatively by `_derive_risk_factors`. |
+| `causal_twin/ancestry_engine.py` | Carried the standard wellness disclaimer, which claims the insight is "based on your personal data patterns". The path uses no health measurement from anyone. Now carries its own disclaimer plus `basis` and `measurements_used: 0`. |
+| `compliance_service.py:79` | Wrote a `RestoreDrill` row every 15 minutes with status SUCCESS, 142 ms, and a `proofHash` from a fresh uuid, then logged `restore_drill_executed` with that hash as "proof", without attempting a restore. Now `NOT_IMPLEMENTED` with no proof, logged as `restore_drill_skipped`. |
+| `shared_health_predictor.py` | Fixed per-rule confidence of 82/78/74/69 on early warnings, never varying, computed from nothing. Removed. The threshold triggers themselves are real and unchanged. Note this field was typed in both panels but never rendered, so unlike the others no user was seeing it. |
 
 ### Standing check
 
