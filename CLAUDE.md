@@ -104,7 +104,7 @@ The same applies to `health-api/` (separate Node/Prisma service, broken,
 undeployed).
 
 **Database Layer**:
-- **Supabase PostgreSQL**: Main database (128 migrations; RLS on every table)
+- **Supabase PostgreSQL**: Main database (130 migrations; RLS on every table)
 - **Prisma schema** (`prisma/schema.prisma`) belongs to the legacy `server/`
   stack — do not mix Prisma and the Supabase client in the same code
 
@@ -180,7 +180,7 @@ undeployed).
 - `knowledge-ingest`, `knowledge-query` - AI knowledge base system
 
 ### Database Schema
-- `supabase/migrations/` - 128 migration files (Supabase uses SQL migrations)
+- `supabase/migrations/` - 130 migration files (Supabase uses SQL migrations)
 - `prisma/schema.prisma` - Prisma schema for Node server (health connectors)
 - Key tables: `profiles`, `archetypal_ais`, `daily_question_pool`, `saints_subscriptions`, `agent_task_queue`, `glucose_readings`, `health_metrics`, `provider_accounts`
 
@@ -322,6 +322,22 @@ TERRA_API_KEY=your_terra_key
 7. **Webhook Idempotency**: Use unique constraints on `(user_id, provider, external_id, ts)` to prevent duplicates.
 
 8. **St. Raphael Safety**: Never allow diagnostic/prescriptive language. Check responses for medical claims before returning.
+
+9. **Postgres grants EXECUTE on new functions to PUBLIC by default.** Creating a
+   function in a migration makes it callable by `anon` and `authenticated`
+   through PostgREST unless you revoke it. This has already caused a real hole:
+   after the household-oversight migration was applied, ten `fn_oversight_*`
+   helpers were reachable by `anon`, two of them exploitable SECURITY DEFINER
+   (one leaked grant rows past RLS given any household id, the other injected
+   alerts). Every migration that adds a function must end with an explicit
+   `revoke all on function ... from public, anon, authenticated`, and you should
+   verify the result rather than assume it.
+
+10. **Routes gated by `VITE_ENABLE_NON_CORE_ROUTES`** redirect to the dashboard
+    when the flag is unset, which is the case in production. Any surface that
+    links into one of those routes must derive its own state from
+    `src/lib/routeAvailability.ts`, or it will show a control that silently
+    bounces the user.
 
 ## Deployment Notes
 
