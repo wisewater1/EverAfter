@@ -21,13 +21,20 @@ class DriftMonitor:
         self._accuracy_history: Dict[str, List[Dict[str, Any]]] = {}  # user_id -> history
 
     def get_model_status(self, user_id: str) -> Dict[str, Any]:
-        """Get the current model status for a user."""
+        """
+        Current model status for a user.
+
+        A user with no recorded state gets "unmonitored" and no accuracy at all.
+        This used to seed 0.82 plus a random offset and an evaluated-prediction
+        count between 20 and 100, which the UI then showed as a measured
+        percentage for a model that is not running.
+        """
         if user_id not in self._model_states:
             self._model_states[user_id] = {
-                "status": "stable",
-                "accuracy": 0.82 + random.uniform(-0.05, 0.05),
-                "last_checked": datetime.utcnow().isoformat(),
-                "predictions_evaluated": random.randint(20, 100),
+                "status": "unmonitored",
+                "accuracy": None,
+                "last_checked": None,
+                "predictions_evaluated": 0,
                 "last_drift_event": None,
                 "recalibrating_since": None
             }
@@ -36,7 +43,7 @@ class DriftMonitor:
 
         return {
             "status": state["status"],
-            "accuracy": round(state["accuracy"], 3),
+            "accuracy": round(state["accuracy"], 3) if state.get("accuracy") is not None else None,
             "accuracy_trend": self._get_accuracy_trend(user_id),
             "last_checked": state["last_checked"],
             "predictions_evaluated": state["predictions_evaluated"],
@@ -50,7 +57,11 @@ class DriftMonitor:
             "stable": "Model is performing well. Predictions are reliable.",
             "learning": "Model is gathering data. Predictions will improve over time.",
             "degraded": "Performance has dropped. Recent changes may have affected accuracy.",
-            "recalibrating": "Model is actively recalibrating to adapt to your new patterns."
+            "recalibrating": "Model is actively recalibrating to adapt to your new patterns.",
+            "unmonitored": (
+                "No prediction accuracy has been measured for this person yet, so "
+                "there is nothing to report."
+            ),
         }
         return descriptions.get(status, "Status unknown.")
 
@@ -65,20 +76,48 @@ class DriftMonitor:
         Compares recent prediction accuracy to historical baseline.
         """
         state = self._model_states.get(user_id, {})
-        baseline_accuracy = state.get("accuracy", 0.82)
+        baseline_accuracy = state.get("accuracy")
 
-        # Simulate accuracy check (production: compare predicted vs actual)
-        if recent_predictions and recent_actuals:
-            correct = sum(
-                1 for p, a in zip(recent_predictions, recent_actuals)
-                if abs(p.get("value", 0) - a.get("value", 0)) < a.get("tolerance", 5)
-            )
-            current_accuracy = correct / max(len(recent_predictions), 1)
-        else:
-            # Simulated — slight random fluctuation
-            current_accuracy = baseline_accuracy + random.uniform(-0.08, 0.04)
+        # Only a real comparison of predictions against actuals produces an
+        # accuracy figure. Without both, this reports that it cannot tell rather
+        # than inventing a fluctuation, which is what it did before: it drew
+        # baseline plus random.uniform(-0.08, 0.04) and could then announce to
+        # the user that their accuracy had dropped, quoting both numbers.
+        if not (recent_predictions and recent_actuals):
+            return {
+                "drift_detected": False,
+                "current_accuracy": None,
+                "monitored": False,
+                "message": (
+                    "No prediction accuracy has been measured for this person yet, "
+                    "so drift cannot be assessed."
+                ),
+            }
 
+        correct = sum(
+            1 for p, a in zip(recent_predictions, recent_actuals)
+            if abs(p.get("value", 0) - a.get("value", 0)) < a.get("tolerance", 5)
+        )
+        current_accuracy = correct / max(len(recent_predictions), 1)
         current_accuracy = max(0, min(1, current_accuracy))
+
+        if baseline_accuracy is None:
+            # First real measurement establishes the baseline; nothing to
+            # compare against, so no drift can be claimed yet.
+            state = self._model_states.setdefault(user_id, {})
+            state["accuracy"] = current_accuracy
+            state["last_checked"] = datetime.utcnow().isoformat()
+            self._accuracy_history.setdefault(user_id, []).append({
+                "accuracy": round(current_accuracy, 3),
+                "timestamp": datetime.utcnow().isoformat(),
+            })
+            return {
+                "drift_detected": False,
+                "current_accuracy": round(current_accuracy, 3),
+                "monitored": True,
+                "message": "First accuracy measurement recorded. No baseline to compare against yet.",
+            }
+
         drift_detected = current_accuracy < baseline_accuracy - 0.1
 
         # Record accuracy point
@@ -111,16 +150,22 @@ class DriftMonitor:
         }
 
     def _record_drift(
-        self, user_id: str, old_accuracy: float, new_accuracy: float
+        self, user_id: str, old_accuracy: Optional[float], new_accuracy: Optional[float]
     ) -> Dict[str, Any]:
-        """Record a drift event and trigger recalibration."""
+        """
+        Record a drift event and trigger recalibration.
+
+        Accuracies are optional, because a person may be recalibrated before any
+        real measurement exists. They are carried through as null rather than
+        being defaulted, so a reader can tell "not measured" from "measured low".
+        """
         event = {
             "id": str(uuid.uuid4()),
             "user_id": user_id,
             "trigger": "accuracy_drop",
             "metric_affected": "overall",
-            "old_accuracy": round(old_accuracy, 3),
-            "new_accuracy": round(new_accuracy, 3),
+            "old_accuracy": round(old_accuracy, 3) if old_accuracy is not None else None,
+            "new_accuracy": round(new_accuracy, 3) if new_accuracy is not None else None,
             "status": "recalibrating",
             "created_at": datetime.utcnow().isoformat(),
             "recalibration_started_at": datetime.utcnow().isoformat(),
@@ -146,7 +191,10 @@ class DriftMonitor:
         """Manually trigger recalibration."""
         state = self._model_states.get(user_id)
         if not state:
-            state = {"accuracy": 0.82, "predictions_evaluated": 0}
+            # accuracy stays None. The default used to be 0.82, so recalibrating
+            # a person who had never been measured invented a baseline and then
+            # reported it back as their old accuracy.
+            state = {"accuracy": None, "predictions_evaluated": 0}
             self._model_states[user_id] = state
 
         event = self._record_drift(user_id, state["accuracy"], state["accuracy"])
@@ -165,7 +213,9 @@ class DriftMonitor:
 
         state["status"] = "stable"
         state["recalibrating_since"] = None
-        state["accuracy"] = min(1.0, state.get("accuracy", 0.82) + random.uniform(0.05, 0.12))
+        # Accuracy is left as it was. This previously added a random 5 to 12
+        # points, so finishing recalibration appeared to improve the model
+        # without a single new observation being evaluated.
         state["last_checked"] = datetime.utcnow().isoformat()
 
         # Mark latest drift event as completed
@@ -175,28 +225,22 @@ class DriftMonitor:
                 event["recalibration_completed_at"] = datetime.utcnow().isoformat()
                 break
 
+        accuracy = state.get("accuracy")
         return {
             "status": "stable",
-            "new_accuracy": round(state["accuracy"], 3),
-            "message": "Recalibration complete. Model has adapted to your current patterns."
+            "new_accuracy": round(accuracy, 3) if accuracy is not None else None,
+            "message": (
+                "Recalibration complete. Model has adapted to your current patterns."
+                if accuracy is not None
+                else "Recalibration complete. No accuracy has been measured yet, so none is reported."
+            ),
         }
 
     def _get_accuracy_trend(self, user_id: str) -> List[Dict[str, Any]]:
         """Get recent accuracy data points for trend visualization."""
-        history = self._accuracy_history.get(user_id, [])
-
-        # If no history, generate some baseline points
-        if not history:
-            base_time = datetime.utcnow() - timedelta(days=30)
-            history = [
-                {
-                    "accuracy": round(0.82 + random.uniform(-0.03, 0.03), 3),
-                    "timestamp": (base_time + timedelta(days=i)).isoformat()
-                }
-                for i in range(30)
-            ]
-
-        return history[-30:]  # Last 30 data points
+        # Empty when nothing has been measured. This used to backfill thirty
+        # days of points around 0.82, which the panel drew as a real trend line.
+        return self._accuracy_history.get(user_id, [])[-30:]
 
     def get_drift_history(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all drift events for a user."""

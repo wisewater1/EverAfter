@@ -1210,10 +1210,20 @@ class FinanceService:
         }
 
     async def run_wisegold_tick(self) -> Dict[str, Any]:
-        from app.services.chainlink_service import ChainlinkService
+        from app.services.chainlink_service import ChainlinkService, GoldPriceUnavailable
         from app.services.wisegold_engine import GoldenSovereignEngine
 
-        latest_gold_price = await ChainlinkService.get_latest_xau_usd_price()
+        # Skipped rather than run against an invented price. A tick prices real
+        # holdings, so without a real reading there is nothing honest to run it
+        # on.
+        try:
+            latest_gold_price = await ChainlinkService.get_latest_xau_usd_price()
+        except GoldPriceUnavailable as exc:
+            return {
+                "status": "skipped",
+                "reason": "gold_price_unavailable",
+                "message": f"WiseGold tick skipped because no real gold price is available. {exc}",
+            }
         velocity_24h = await self.get_wisegold_velocity_24h()
 
         engine = GoldenSovereignEngine(self.session)

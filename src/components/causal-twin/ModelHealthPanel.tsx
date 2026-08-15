@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, TrendingUp, AlertTriangle, RefreshCw, CheckCircle, Activity } from 'lucide-react';
 import { apiClient } from '../../lib/api-client';
-import { requestBackendJson } from '../../lib/backend-request';
+import { requestBackendJson, isNotImplementedError } from '../../lib/backend-request';
 
 export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
     const [health, setHealth] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    // The endpoint answers 501 until a real accuracy measurement exists. That is
+    // a different thing from a request failing, and it must not be rendered as
+    // an empty chart or a zero percent score.
+    const [notMeasured, setNotMeasured] = useState(false);
 
     useEffect(() => { loadHealth(); }, []);
 
@@ -20,7 +24,14 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
                 'Failed to load model health.',
             );
             setHealth(data);
-        } catch (e) { console.error(e); }
+            setNotMeasured(false);
+        } catch (e) {
+            if (isNotImplementedError(e)) {
+                setNotMeasured(true);
+            } else {
+                console.error(e);
+            }
+        }
         setLoading(false);
     }
 
@@ -28,6 +39,29 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
         return (
             <div className="flex items-center justify-center py-20">
                 <Radio className="w-6 h-6 text-teal-400 motion-safe:animate-pulse" />
+            </div>
+        );
+    }
+
+    if (notMeasured) {
+        return (
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1a1a24] to-[#13131a] border border-white/5">
+                <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-black/20 flex items-center justify-center text-slate-400 shrink-0">
+                        <Radio className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-semibold mb-2">No model accuracy has been measured</h3>
+                        <p className="text-sm text-slate-400 leading-relaxed">
+                            Prediction accuracy is only reported once predictions have
+                            been compared against what actually happened. That has not
+                            occurred for this profile, so there is no accuracy score,
+                            no evaluated prediction count, and no trend to show. This
+                            panel stays empty rather than displaying a figure that was
+                            not measured.
+                        </p>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -64,7 +98,9 @@ export default function ModelHealthPanel({ memberId }: { memberId?: string }) {
                         <div className="flex items-center gap-3">
                             <h3 className="text-xl font-bold text-white capitalize">{ms.status}</h3>
                             <span className="text-sm text-slate-400">
-                                {(ms.accuracy * 100).toFixed(1)}% accuracy
+                                {typeof ms.accuracy === 'number'
+                                    ? `${(ms.accuracy * 100).toFixed(1)}% accuracy`
+                                    : 'accuracy not measured'}
                             </span>
                         </div>
                         <p className="text-sm text-slate-400 mt-1">{ms.status_description}</p>

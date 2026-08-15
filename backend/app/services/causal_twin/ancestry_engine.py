@@ -49,16 +49,14 @@ TRAIT_BEHAVIOUR_MAP: dict[str, dict[str, float]] = {
     "introverted":      {"steps": -500},
 }
 
-OCCUPATION_RISK: dict[str, float] = {
-    "nurse":          0.85,   "doctor":         0.80,
-    "teacher":        0.88,   "engineer":       0.90,
-    "athlete":        0.95,   "artist":         0.87,
-    "farmer":         0.82,   "executive":      0.75,
-    "military":       0.78,   "laborer":        0.72,
-    "software":       0.86,   "student":        0.92,
-}
-
 BASE_BEHAVIOURS = {k: float(v) for k, v in BEHAVIOUR_BASELINES.items()}
+
+ANCESTRY_DISCLAIMER = (
+    "This is an illustrative projection built from the traits and occupation "
+    "recorded for this family member. It uses no health measurements from them "
+    "or from anyone else, it is not a prediction about their health, and it is "
+    "not medical advice."
+)
 
 
 def _age_from_birth_year(birth_year: int | None) -> int:
@@ -77,16 +75,6 @@ def _traits_to_behaviours(traits: list[str]) -> dict[str, float]:
     behaviours["hydration_liters"] = max(0.5, min(4.0, behaviours["hydration_liters"]))
     behaviours["meditation_minutes"] = max(0, min(30, behaviours["meditation_minutes"]))
     return behaviours
-
-
-def _occupation_modifier(occupation: str | None) -> float:
-    if not occupation:
-        return 1.0
-    key = occupation.lower()
-    for k, v in OCCUPATION_RISK.items():
-        if k in key:
-            return v
-    return 0.87  # default moderate
 
 
 def _generation_risk_factor(generation: int) -> float:
@@ -114,7 +102,6 @@ class AncestryEngine:
 
         age = _age_from_birth_year(birth_year)
         behaviours = _traits_to_behaviours(traits)
-        occ_mod = _occupation_modifier(occupation)
         gen_completeness = _generation_risk_factor(generation)
 
         # Ask the counterfactual engine with their estimated behaviours
@@ -127,19 +114,18 @@ class AncestryEngine:
             data_completeness=gen_completeness * 0.6,
         )
 
-        # Apply occupation modifier to all mid-point projections
-        for metric, horizons in simulation.get("projections", {}).items():
-            for h_key, h_data in horizons.items():
-                if isinstance(h_data, dict) and "mid" in h_data:
-                    h_data["mid"] = round(float(h_data["mid"]) * occ_mod, 1)
+        # No occupation multiplier is applied to the projections. Each value in
+        # The removed OCCUPATION_RISK table ("nurse": 0.85, "teacher": 0.88)
+        # was invented with no derivation, and multiplying a projected HRV by
+        # it produced a specific number that looked measured. Occupation still
+        # appears where it can be stated honestly: _derive_risk_factors below
+        # reports a high-stress occupation as a qualitative risk factor.
 
         # Top risk factors
         risk_factors = _derive_risk_factors(traits, occupation, age)
 
         # Suggested interventions
         interventions = _suggest_interventions(behaviours, risk_factors)
-
-        safety_guardrails.get_wellness_disclaimer()
 
         return {
             "member_id": member_id,
@@ -154,7 +140,13 @@ class AncestryEngine:
             "risk_factors": risk_factors,
             "interventions": interventions,
             "narrative": simulation.get("narrative", ""),
-            "disclaimer": safety_guardrails.get_wellness_disclaimer(),
+            # The standard wellness disclaimer says "based on your personal data
+            # patterns", which is untrue here: this projection uses no health
+            # measurement from anyone. It is derived entirely from trait words
+            # and an occupation someone typed into a family tree.
+            "basis": "self_reported_traits_and_occupation",
+            "measurements_used": 0,
+            "disclaimer": ANCESTRY_DISCLAIMER,
             "generated_at": datetime.utcnow().isoformat(),
         }
 
@@ -207,7 +199,6 @@ class AncestryEngine:
             age = _age_from_birth_year(birth_year)
 
             behaviours = _traits_to_behaviours(traits)
-            occ_mod = _occupation_modifier(occ)
             gen_score = _generation_risk_factor(gen)
 
             # Compute wellness score
@@ -218,7 +209,8 @@ class AncestryEngine:
             
             base_score = (sleep_score * 0.3 + steps_score * 0.3
                           + hydration_score * 0.2 + meditation_score * 0.2)
-            wellness = base_score * occ_mod * gen_score
+            # No occupation multiplier here either, for the same reason.
+            wellness = base_score * gen_score
 
             # Age adjustment
             if age > 60:

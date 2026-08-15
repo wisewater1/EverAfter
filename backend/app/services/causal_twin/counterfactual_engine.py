@@ -3,7 +3,6 @@ Counterfactual Forecasting Engine for Health Causal Twin.
 Simulates multiple likely outcomes based on behavior changes
 and shows projected effects across key health metrics.
 """
-import random
 import asyncio
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -13,7 +12,7 @@ from app.services.causal_twin.uncertainty_engine import uncertainty_engine
 from app.services.causal_twin.safety_guardrails import safety_guardrails, WELLNESS_DISCLAIMER
 from app.ai.llm_client import get_llm_client
 from app.db.session import get_session_factory
-from app.models.health import Metric
+from app.models.health import Metric, Source
 import logging
 
 logger = logging.getLogger(__name__)
@@ -140,11 +139,20 @@ class CounterfactualEngine:
                 if metric_key not in baselines:
                     continue
                 
+                # Joined through Source, because Metric.sourceId is a foreign
+                # key to sources.id and the user id lives on Source.userId.
+                # Comparing sourceId to user_id directly, as this did, matched
+                # nothing for anyone, so every caller silently received the
+                # population defaults below while the result was presented as
+                # their personal baseline. The same join is done correctly in
+                # app/ai/prompt_builder.py.
                 query = select(
                     func.avg(Metric.value).label("avg"),
                     func.stddev(Metric.value).label("std")
+                ).select_from(Metric).join(
+                    Source, Metric.sourceId == Source.id
                 ).where(
-                    Metric.sourceId == user_id, # Simplified userId check
+                    Source.userId == user_id,
                     Metric.type == metric_type,
                     Metric.ts >= start_date
                 )
@@ -410,9 +418,14 @@ class CounterfactualEngine:
                 completeness_val = float(data_completeness or 0.0)
                 noise_factor = max(0.05, 1.0 - (completeness_val * 0.7))
                 std_val = float(baseline.get("std", 10.0))
-                noise = random.gauss(0, std_val * noise_factor * 0.3)
 
-                mid = float(baseline.get("mean", 50.0)) + total_effect + noise
+                # The midpoint is baseline plus modelled effect, with nothing
+                # added. It used to carry random.gauss(0, std * noise_factor *
+                # 0.3), which made the same inputs return a different projection
+                # on every call. Uncertainty is already expressed by band_width
+                # below, so the draw was not modelling anything; it only stopped
+                # the number being reproducible.
+                mid = float(baseline.get("mean", 50.0)) + total_effect
                 band_width = std_val * noise_factor * (1.0 + float(horizon) / 30.0)
 
                 metric_projections[f"{horizon}d"] = {

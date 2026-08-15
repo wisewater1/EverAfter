@@ -16,6 +16,7 @@ import {
   getConnectionStatusInfo,
   Partner,
   Connection,
+  ConnectionRequest,
 } from '../vault-connect-api';
 
 // Mock Supabase
@@ -346,7 +347,10 @@ describe('VaultConnectAPI - Edge Cases', () => {
   });
 
   it('should handle optional fields correctly', () => {
-    const request = {
+    // Annotated as ConnectionRequest so the assertion below is meaningful. As a
+    // bare literal the type had no expiry_days at all, so reading it was an
+    // error rather than the "optional field is absent" check this test intends.
+    const request: ConnectionRequest = {
       partner_id: '550e8400-e29b-41d4-a716-446655440000',
       data_sharing_level: 'standard' as const,
       permissions: [],

@@ -186,60 +186,98 @@ class HIPAAService:
 
     def get_compliance_report(self, user_id: str) -> Dict[str, Any]:
         """
-        Generate a structured HIPAA compliance posture report.
-        St. Michael presents this; St. Anthony verifies the audit trail.
+        Report what this service has actually observed about PHI access.
+
+        Deliberately not a compliance certification. It previously returned a
+        compliance_score starting at 100 and a status of "compliant", plus two
+        safeguards hardcoded to "active" asserting that a security officer was
+        designated and that role-based access was enforced. Nothing in this
+        codebase verifies either claim, and an empty violation log means only
+        that nothing was logged, not that a control exists. A regulatory posture
+        cannot be asserted by the system that is supposed to be under review.
+
+        What is real here is the access log: it is written by log_phi_access and
+        persisted to data/hipaa_access_log.json, so the counts below are genuine
+        observations. Their durability is a separate question, noted in
+        log_persistence.
         """
         user_log = [e for e in self._log if e.get("user_id") == user_id]
         flagged = [e for e in user_log if e.get("outcome") == "flagged"]
         denied  = [e for e in user_log if e.get("outcome") == "denied"]
 
-        # Compute score: 100 - 10 pts per flagged, -5 per denied
-        base_score = 100
-        score = max(0, base_score - len(flagged) * 10 - len(denied) * 5)
-
         safeguards = [
-            {
-                "rule": "§164.308 — Administrative Safeguards",
-                "officer": "St. Michael",
-                "status": "active",
-                "description": "Security officer designated. Access policies enforced.",
-            },
             {
                 "rule": "§164.312(b) — Audit Controls",
                 "officer": "St. Anthony",
-                "status": "active" if len(user_log) > 0 else "pending",
-                "description": f"Access log contains {len(user_log)} PHI events for this user.",
+                "status": "observed" if user_log else "no_events_recorded",
+                "verified": True,
+                "description": (
+                    f"Access log contains {len(user_log)} recorded PHI events for this user. "
+                    "This is a count of what was logged, not an assessment of whether "
+                    "logging covers every access path."
+                ),
             },
             {
                 "rule": "§164.514(d) — Minimum Necessary",
                 "officer": "St. Michael",
-                "status": "compliant" if not flagged else "violations_detected",
-                "description": f"{len(flagged)} minimum-necessary violations logged.",
+                "status": "violations_logged" if flagged else "no_violations_logged",
+                "verified": True,
+                "description": (
+                    f"{len(flagged)} minimum-necessary violations were logged by the "
+                    "checker in this service. Requests that never reach the checker "
+                    "are not represented."
+                ),
+            },
+            {
+                "rule": "§164.308 — Administrative Safeguards",
+                "officer": "St. Michael",
+                "status": "not_verified",
+                "verified": False,
+                "description": (
+                    "Nothing in this system checks whether a security officer is "
+                    "designated or whether access policies are enforced. Previously "
+                    "reported as active."
+                ),
             },
             {
                 "rule": "§164.312(a)(1) — Access Control",
                 "officer": "St. Michael",
-                "status": "active",
-                "description": "Role-based access enforced per saint domain permissions.",
+                "status": "not_verified",
+                "verified": False,
+                "description": (
+                    "Role-based access may well be enforced, but this report does not "
+                    "test it, so it is not claimed here. Previously reported as active."
+                ),
             },
         ]
+
+        verified = [s for s in safeguards if s["verified"]]
 
         return {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "user_id": user_id,
-            "compliance_score": score,
-            "status": "compliant" if score >= 80 else "at_risk" if score >= 50 else "non_compliant",
+            "report_type": "observed_activity",
+            "disclaimer": (
+                "This is a record of PHI access events observed by this service. It is "
+                "not a HIPAA compliance assessment or certification, and it should not "
+                "be presented as one."
+            ),
+            "checks_performed": len(verified),
+            "checks_not_verified": len(safeguards) - len(verified),
             "total_phi_events": len(user_log),
             "flagged_events": len(flagged),
             "denied_events": len(denied),
             "safeguards": safeguards,
             "recent_events": list(reversed(user_log[-10:])),
-            "certifying_saints": {
-                "security_officer": "St. Michael — §164.308(a)(2)",
-                "audit_officer": "St. Anthony — §164.312(b)",
+            "log_persistence": {
+                "location": "local_json_file",
+                "note": (
+                    "The access log is a JSON file on local disk. On an ephemeral "
+                    "filesystem it does not survive a redeploy, so absence of events "
+                    "is not evidence that no access occurred."
+                ),
             },
         }
-
 
 # Singleton
 hipaa_service = HIPAAService()

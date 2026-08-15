@@ -396,10 +396,16 @@ export default function RitualAltar() {
 
             const rawSteps = Array.isArray(data?.steps) ? data.steps : [];
             const mapped: CeremonyStep[] = rawSteps
-                .map((step: { title?: string; actor?: string; dialogue?: string; action?: string }, index: number) => ({
-                    title: step.title || step.actor || `Step ${index + 1}`,
-                    text: step.dialogue || step.action || '',
-                }))
+                // The payload is unmodelled, so each entry arrives as unknown and
+                // is narrowed here rather than the callback claiming a shape the
+                // array type does not carry.
+                .map((raw: unknown, index: number) => {
+                    const step = (raw ?? {}) as { title?: string; actor?: string; dialogue?: string; action?: string };
+                    return {
+                        title: step.title || step.actor || `Step ${index + 1}`,
+                        text: step.dialogue || step.action || '',
+                    };
+                })
                 .filter((step: CeremonyStep) => step.text.trim().length > 0);
 
             if (mapped.length > 0) {

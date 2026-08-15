@@ -144,6 +144,8 @@ async def get_society_feed(
             "receiver": engram_map.get(i.receiver_id, {"name": "Unknown"}),
             "interaction_type": i.interaction_type,
             "created_at": i.created_at.isoformat(),
+            # Null when nothing measured it. Consumers must treat null as
+            # "no rapport to show" rather than coercing it to a percentage.
             "rapport": i.emotional_rapport
         }
         for i in interactions

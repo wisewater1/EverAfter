@@ -85,7 +85,9 @@ class OasisService:
             interaction_type="agora_post",
             summary=content,
             conversation_log=[{"role": engram.name, "content": content}],
-            emotional_rapport=1.0
+            # Left unmeasured. This was 1.0, a perfect-closeness score asserted
+            # for a broadcast post with no recipient to be close to.
+            emotional_rapport=None
         )
         
         session.add(interaction)
@@ -127,7 +129,9 @@ class OasisService:
                 interaction_type="vignette_propagation",
                 summary=f"{amp.name} resonated with the story: {reply_content}",
                 conversation_log=[{"role": amp.name, "content": reply_content}],
-                emotional_rapport=0.9
+                # Left unmeasured. This was 0.9, which the feed rendered as
+                # "90%" beside a reply that nothing had evaluated.
+                emotional_rapport=None
             )
             session.add(reply_interaction)
 

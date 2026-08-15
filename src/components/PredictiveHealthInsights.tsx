@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
+import { isNotImplementedError } from '../lib/backend-request';
 import {
   TrendingUp,
   TrendingDown,
@@ -66,8 +67,7 @@ export default function PredictiveHealthInsights() {
       const data = await apiClient.getPredictiveAnalytics(lookbackDays);
       setAnalytics(data as AnalyticsData);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('not_implemented')) {
+      if (isNotImplementedError(error)) {
         setNotImplemented(true);
       } else {
         console.error('Error loading analytics:', error);

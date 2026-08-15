@@ -8,7 +8,7 @@ from uuid import UUID
 from app.db.session import get_async_session
 from app.auth.dependencies import get_current_user
 from app.services.finance_service import FinanceService
-from app.services.chainlink_service import ChainlinkService
+from app.services.chainlink_service import ChainlinkService, GoldPriceUnavailable
 from app.services.treasury_analyst_service import TreasuryAnalystService
 from app.core.config import settings
 
@@ -466,9 +466,35 @@ async def run_wisegold_tick(
 
 @router.get("/wisegold/price")
 async def get_wisegold_price():
-    """Get the live XAU/USD price from Chainlink Data Feeds"""
-    price = await ChainlinkService.get_latest_xau_usd_price()
-    return {"xau_usd_price": price, "timestamp": datetime.utcnow().isoformat()}
+    """
+    Live XAU/USD price per gram from Chainlink Data Feeds.
+
+    Returns 503 when no real reading is available, instead of the synthetic
+    curve this used to fall back to. The response now names its source and the
+    age of the reading, so a caller can tell a fresh feed value from a cached
+    one rather than having to trust an unlabelled float.
+    """
+    try:
+        price = await ChainlinkService.get_latest_xau_usd_price()
+    except GoldPriceUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "price_unavailable",
+                "message": (
+                    "No live gold price is available, so no value is being shown. "
+                    f"{exc}"
+                ),
+            },
+        ) from exc
+
+    age = ChainlinkService.cached_price_age_seconds()
+    return {
+        "xau_usd_price": price,
+        "source": "chainlink_data_feed",
+        "reading_age_seconds": round(age, 1) if age is not None else 0.0,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
 
 @router.post("/wisegold/bridge/ccip")
 async def bridge_wisegold_ccip(

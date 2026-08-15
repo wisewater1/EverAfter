@@ -152,15 +152,25 @@ async def get_active_predictions(
     member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get current active predictions for the user or a specific family member."""
-    user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
+    """
+    Active predictions for the user or a family member.
 
-    # Generate a default prediction set if none exist (default activity)
-    default = await counterfactual_engine.simulate_scenarios(
-        user_id=user_id,
-        behavior_changes={"sleep_hours": 7.5, "steps": 8000}
-    )
-    return {"predictions": [default]}
+    There is no store of standing predictions, so this returns an empty list
+    until the caller runs an explicit scenario through /simulate.
+
+    It used to answer by simulating behaviour changes of 7.5 hours sleep and
+    8000 steps. The endpoint accepts no scenario input, so those numbers came
+    from nowhere: every user received a projection built on a sleep figure and a
+    step count they had never entered and that had never been measured, labelled
+    as their current active predictions.
+    """
+    return {
+        "predictions": [],
+        "message": (
+            "No active predictions. Run a scenario through /simulate with the "
+            "behaviour changes you want projected."
+        ),
+    }
 
 
 # ============================================================
@@ -275,10 +285,12 @@ async def get_evidence_trail(
         user_id=user_id, limit=limit, evidence_type=evidence_type
     )
 
-    # If empty, seed with demo data
-    if not entries:
-        entries = await _seed_demo_evidence(user_id)
-
+    # An empty ledger stays empty. It used to be seeded with three invented
+    # recommendations at 78, 62 and 45 percent confidence, attributed to sources
+    # like "wearable:fitbit" and "journal:sleep" that the person may never have
+    # connected. record_recommendation persists them, so those entries survived
+    # into the real ledger and sat there alongside genuine ones. Fabricated
+    # provenance is the one thing an evidence trail must never contain.
     quality = evidence_ledger.compare_quality_over_time(user_id)
     return {"entries": entries, "quality_trend": quality}
 
@@ -304,13 +316,35 @@ async def get_model_health(
     member_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get drift status, accuracy trend, and model state."""
+    """
+    Drift status, accuracy trend and model state, when there is one.
+
+    Returns 501 while nothing has been measured. This endpoint used to answer
+    with a seeded accuracy of 0.82 plus a random offset, an evaluated-prediction
+    count between 20 and 100, and a thirty point trend line generated on the
+    spot. ModelHealthPanel drew all of that as the measured health of the
+    person's model, and no prediction model is running.
+    """
     user_id = member_id if member_id else current_user.get("id", current_user.get("sub", "demo-user-001"))
     model_status = drift_monitor.get_model_status(user_id)
     drift_history = drift_monitor.get_drift_history(user_id)
+
+    if model_status.get("accuracy") is None and not drift_history:
+        raise HTTPException(
+            status_code=501,
+            detail={
+                "status": "not_implemented",
+                "message": (
+                    "Model health is not available. No prediction accuracy has been "
+                    "measured for this person, so there is no accuracy, no evaluated "
+                    "prediction count, and no trend to report."
+                ),
+            },
+        )
+
     return {
         "model_status": model_status,
-        "drift_history": drift_history
+        "drift_history": drift_history,
     }
 
 
@@ -346,36 +380,3 @@ async def get_next_measurements(
 # HELPERS
 # ============================================================
 
-async def _seed_demo_evidence(user_id: str) -> list:
-    """Seed demo evidence entries for first-time users."""
-    demos = [
-        {
-            "text": "Maintain consistent sleep schedules to improve HRV",
-            "sources": ["wearable:fitbit", "journal:sleep"],
-            "confidence": 78.0,
-            "evidence": "strong_correlation"
-        },
-        {
-            "text": "Light activity after dinner helps flatten the glucose curve",
-            "sources": ["wearable:fitbit", "journal:nutrition"],
-            "confidence": 62.0,
-            "evidence": "weak_correlation"
-        },
-        {
-            "text": "Stay hydrated during afternoon to prevent fatigue spikes",
-            "sources": ["journal:mood", "population_research"],
-            "confidence": 45.0,
-            "evidence": "population_prior"
-        }
-    ]
-    entries = []
-    for d in demos:
-        entry = await evidence_ledger.record_recommendation(
-            user_id=user_id,
-            recommendation_text=d["text"],
-            data_sources=d["sources"],
-            confidence=d["confidence"],
-            evidence_type=d["evidence"]
-        )
-        entries.append(entry)
-    return entries

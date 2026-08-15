@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Shield, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Shield, RefreshCw, HelpCircle } from 'lucide-react';
 import {
     ComplianceCheck,
     getComplianceReadiness,
@@ -11,6 +11,7 @@ const STATUS_DISPLAY: Record<string, { icon: typeof CheckCircle; color: string; 
     fail: { icon: XCircle, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
     warning: { icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
     not_applicable: { icon: Shield, color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20' },
+    not_assessed: { icon: HelpCircle, color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20' },
 };
 
 const FRAMEWORK_COLORS: Record<string, string> = {
@@ -44,12 +45,17 @@ function buildLiveChecks(readiness: Awaited<ReturnType<typeof getComplianceReadi
                 framework: 'HIPAA',
                 control: safeguard.rule,
                 description: safeguard.description,
+                // "not_verified" is not a failure, it means the system never
+                // checked. Showing it as fail would be as misleading as the
+                // hardcoded "active" it replaced.
                 status:
-                    safeguard.status === 'compliant' || safeguard.status === 'active'
-                        ? 'pass'
-                        : safeguard.status === 'pending'
-                            ? 'warning'
-                            : 'fail',
+                    safeguard.verified === false
+                        ? 'not_assessed'
+                        : safeguard.status === 'violations_logged'
+                            ? 'fail'
+                            : safeguard.status === 'no_events_recorded'
+                                ? 'warning'
+                                : 'pass',
                 lastChecked: hipaa.generated_at,
                 details: `${safeguard.officer} :: ${safeguard.status}`,
             })),
@@ -65,7 +71,8 @@ export default function CompliancePanel() {
     const [exporting, setExporting] = useState(false);
     const [loading, setLoading] = useState(true);
     const [readinessScore, setReadinessScore] = useState<number | null>(null);
-    const [hipaaScore, setHipaaScore] = useState<number | null>(null);
+    // Event count, not a score. There is no honest percentage to show.
+    const [hipaaEvents, setHipaaEvents] = useState<number | null>(null);
     const [liveSnapshot, setLiveSnapshot] = useState<{ readiness: any; hipaa: any } | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -81,13 +88,13 @@ export default function CompliancePanel() {
             // never substitute fabricated pass/fail rows.
             setChecks(buildLiveChecks(readiness, hipaa));
             setReadinessScore(readiness.readiness_score);
-            setHipaaScore(hipaa.compliance_score);
+            setHipaaEvents(hipaa.total_phi_events);
             setLiveSnapshot({ readiness, hipaa });
         } catch (error) {
             console.error('Failed to load live compliance data', error);
             setChecks([]);
             setReadinessScore(null);
-            setHipaaScore(null);
+            setHipaaEvents(null);
             setLiveSnapshot(null);
             setLoadError('Live compliance data is unavailable. Compliance posture cannot be verified until the monitoring service recovers.');
         } finally {
@@ -105,7 +112,7 @@ export default function CompliancePanel() {
             const payload = {
                 exportedAt: new Date().toISOString(),
                 readinessScore,
-                hipaaScore,
+                hipaaEvents,
                 checks,
                 liveSnapshot,
             };
@@ -178,9 +185,9 @@ export default function CompliancePanel() {
                         Anthony readiness {readinessScore}%
                     </span>
                 )}
-                {hipaaScore !== null && (
+                {hipaaEvents !== null && (
                     <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 font-bold text-emerald-300">
-                        HIPAA posture {hipaaScore}%
+                        {hipaaEvents} PHI events logged
                     </span>
                 )}
             </div>
