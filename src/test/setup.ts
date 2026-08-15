@@ -38,7 +38,10 @@ for (const name of ['localStorage', 'sessionStorage'] as const) {
       writable: true,
     });
   }
-  if (typeof window !== 'undefined' && (window as Record<string, unknown>)[name] == null) {
+  // Through unknown: Window declares its own members, so it does not overlap a
+  // bare string-keyed record and the direct assertion is rejected. The indexing
+  // is deliberate, since this polyfills globals the test environment lacks.
+  if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>)[name] == null) {
     Object.defineProperty(window, name, {
       value: (globalThis as Record<string, unknown>)[name],
       configurable: true,

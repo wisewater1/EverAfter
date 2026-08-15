@@ -15,7 +15,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { financeApi } from '../../lib/gabriel/finance';
+import { financeApi, type BudgetEnvelope } from '../../lib/gabriel/finance';
 import {
   getFamilyMembers,
   getRelationships,
@@ -116,7 +116,11 @@ function normalizeFamilyMembers(members: FamilyMember[]) {
 function deriveMetricsByMember(members: FamilyMember[]) {
   return Object.fromEntries(
     members
-      .map(member => {
+      // Annotated, and narrowed by a predicate below, rather than cast at the
+      // end. The `as const` that used to close this callback made the element a
+      // readonly tuple of a literal object, which does not overlap the mutable
+      // array type the assertion claimed, so the assertion could not hold.
+      .map((member): [string, Array<Record<string, unknown>>] | null => {
         const age = getAge(member);
         if (!age || age < 65) return null;
 
@@ -132,9 +136,9 @@ function deriveMetricsByMember(members: FamilyMember[]) {
               source: 'family_record_baseline',
             },
           ],
-        ] as const;
+        ];
       })
-      .filter(Boolean) as Array<readonly [string, Array<Record<string, unknown>>]>
+      .filter((entry): entry is [string, Array<Record<string, unknown>>] => entry !== null)
   );
 }
 
@@ -281,7 +285,7 @@ export default function ElderCareCoordination() {
         // getBudget() resolves to the envelopes array (real backend) OR a budget
         // object { envelopes: [...] } (demo mock): normalize so .reduce can't crash.
         const budgetRaw: any = budgetResult.status === 'fulfilled' ? budgetResult.value : [];
-        const budgetEnvelopes = Array.isArray(budgetRaw) ? budgetRaw : (budgetRaw?.envelopes ?? []);
+        const budgetEnvelopes: BudgetEnvelope[] = Array.isArray(budgetRaw) ? budgetRaw : (budgetRaw?.envelopes ?? []);
         const emergencyContacts = contactsResult.status === 'fulfilled' ? contactsResult.value : [];
         const monthlyIncome = Math.max(
           budgetEnvelopes.reduce((sum, env) => sum + Number(env.assigned || 0), 0) * 1.4,

@@ -344,7 +344,7 @@ export default function FamilyTrajectoryCompare({
                                         borderRadius: 12,
                                         fontSize: 12,
                                     }}
-                                    labelFormatter={formatDateLabel}
+                                    labelFormatter={(label) => formatDateLabel(String(label))}
                                 />
                                 {chartingLines.map((t) => (
                                     <Line
