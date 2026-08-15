@@ -787,7 +787,10 @@ export interface ComplianceCheck {
     framework: string;           // HIPAA, PCI-DSS, GDPR, NIST
     control: string;
     description: string;
-    status: 'pass' | 'fail' | 'warning' | 'not_applicable';
+    // not_assessed is distinct from not_applicable: the control may well apply,
+    // the system simply never checked it. Collapsing the two would restate the
+    // unverified-as-verified problem in the opposite direction.
+    status: 'pass' | 'fail' | 'warning' | 'not_applicable' | 'not_assessed';
     lastChecked: string;
     details: string;
 }
@@ -829,19 +832,28 @@ export interface HipaaSafeguard {
     officer: string;
     status: string;
     description: string;
+    // Whether the backend actually checked this control, as opposed to merely
+    // naming it. False means "not examined", which the UI must not render as
+    // either a pass or a failure.
+    verified: boolean;
 }
 
 export interface HipaaReportResponse {
     generated_at: string;
     user_id: string;
-    compliance_score: number;
-    status: string;
+    // Deliberately no compliance_score. The backend reports observed PHI access
+    // events, not a compliance assessment, because nothing in the system
+    // verifies that the controls it used to certify are in place.
+    report_type: string;
+    disclaimer: string;
+    checks_performed: number;
+    checks_not_verified: number;
     total_phi_events: number;
     flagged_events: number;
     denied_events: number;
     safeguards: HipaaSafeguard[];
     recent_events: Array<Record<string, any>>;
-    certifying_saints?: Record<string, string>;
+    log_persistence?: { location: string; note: string };
 }
 
 // ── Mock Data Generators ───────────────────────────────────

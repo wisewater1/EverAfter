@@ -17,8 +17,11 @@ except Exception:  # pragma: no cover - optional until environment installs web3
 
 TROY_OUNCE_GRAMS = 31.1034768
 
-_cached_gold_price = {
-    "price": 72.00,
+# Starts empty. This used to be seeded with 72.00, an invented price that was
+# indistinguishable from a cached real reading and was returned verbatim
+# whenever the feed failed.
+_cached_gold_price: dict = {
+    "price": None,
     "timestamp": 0.0,
 }
 CACHE_TTL = 300
@@ -47,38 +50,74 @@ _AGGREGATOR_V3_ABI = [
 ]
 
 
+class GoldPriceUnavailable(RuntimeError):
+    """No real XAU/USD reading is available."""
+
+
 class ChainlinkService:
     """
     Chainlink access layer.
 
-    - If RPC/feed addresses are configured, reads XAU/USD from a real Chainlink Data Feed.
-    - Otherwise falls back to the existing local simulation for development.
+    Reads XAU/USD from a real Chainlink Data Feed when RPC and feed addresses
+    are configured. When no real reading can be obtained it raises
+    GoldPriceUnavailable.
+
+    It used to fall through to a local simulator whose price was
+    90.00 + sin(now / 3600) * 1.5 + a small ramp, with a 5 percent chance per
+    call of switching to a cosine variant logged as a stale primary oracle. That
+    value was returned through the same float as a genuine feed reading, so
+    /wisegold/price, whose docstring promises the live Chainlink price, served a
+    sine wave that a caller had no way to distinguish, and it valued real
+    holdings. The simulator is still available for local development, but only
+    behind get_simulated_price_for_development, which names what it is.
     """
 
     @staticmethod
     async def get_latest_xau_usd_price() -> float:
+        """
+        Latest real XAU/USD price per gram.
+
+        Raises GoldPriceUnavailable rather than substituting an invented number.
+        A cached value is reused inside the TTL, and only real readings are ever
+        written to that cache.
+        """
         current_time = time.time()
-        if current_time - _cached_gold_price["timestamp"] < CACHE_TTL:
+        if (
+            _cached_gold_price["price"] is not None
+            and current_time - _cached_gold_price["timestamp"] < CACHE_TTL
+        ):
             return _cached_gold_price["price"]
 
-        if settings.CHAINLINK_RPC_URL and settings.CHAINLINK_XAU_USD_FEED and Web3 is not None:
-            try:
-                live_price = await asyncio.to_thread(ChainlinkService._fetch_chainlink_xau_price_per_gram)
-                _cached_gold_price["price"] = live_price
-                _cached_gold_price["timestamp"] = current_time
-                logger.info("Chainlink XAU/USD feed updated from onchain source: $%.2f/gram", live_price)
-                return live_price
-            except Exception as exc:
-                logger.warning("Real Chainlink feed unavailable, falling back to simulator: %s", exc)
+        if not (settings.CHAINLINK_RPC_URL and settings.CHAINLINK_XAU_USD_FEED):
+            raise GoldPriceUnavailable(
+                "No Chainlink feed is configured (CHAINLINK_RPC_URL and "
+                "CHAINLINK_XAU_USD_FEED are required)."
+            )
+        if Web3 is None:
+            raise GoldPriceUnavailable("web3 is not installed, so the Chainlink feed cannot be read.")
 
         try:
-            simulated = await ChainlinkService._fetch_simulated_price(current_time)
-            _cached_gold_price["price"] = simulated
-            _cached_gold_price["timestamp"] = current_time
-            return simulated
+            live_price = await asyncio.to_thread(ChainlinkService._fetch_chainlink_xau_price_per_gram)
         except Exception as exc:
-            logger.error("Failed to produce WGOLD gold price: %s", exc)
-            return _cached_gold_price["price"]
+            logger.warning("Chainlink XAU/USD feed unavailable: %s", exc)
+            if _cached_gold_price["price"] is not None:
+                # A stale real reading is still a real reading. Callers are told
+                # how old it is so they can decide whether to use it.
+                logger.info("Serving last known real Chainlink price from cache")
+                return _cached_gold_price["price"]
+            raise GoldPriceUnavailable(f"Chainlink feed read failed: {exc}") from exc
+
+        _cached_gold_price["price"] = live_price
+        _cached_gold_price["timestamp"] = current_time
+        logger.info("Chainlink XAU/USD feed updated from onchain source: $%.2f/gram", live_price)
+        return live_price
+
+    @staticmethod
+    def cached_price_age_seconds() -> Optional[float]:
+        """Age of the cached real reading, or None if nothing real is cached."""
+        if _cached_gold_price["price"] is None:
+            return None
+        return time.time() - _cached_gold_price["timestamp"]
 
     @staticmethod
     def _fetch_chainlink_xau_price_per_gram() -> float:
@@ -105,7 +144,13 @@ class ChainlinkService:
         return round(xau_usd_per_gram, 2)
 
     @staticmethod
-    async def _fetch_simulated_price(current_time: float) -> float:
+    async def get_simulated_price_for_development(current_time: float) -> float:
+        """
+        A synthetic price curve for local development only.
+
+        Named so that no caller can mistake it for a feed reading. Never called
+        by get_latest_xau_usd_price.
+        """
         base_price_per_gram = 90.00
         time_factor = math.sin(current_time / 3600.0) * 1.5
         noise = (current_time % 100) / 100.0 * 0.5
