@@ -4,7 +4,6 @@
 import { buildApiUrl } from './env';
 import { requestBackendJson } from './backend-request';
 import { buildAccessTokenHeaders } from './auth-session';
-import type { DelphiTrajectory } from '../types/database.types';
 
 const BASE = buildApiUrl('');
 
@@ -78,8 +77,67 @@ export interface FamilyDHTMap {
     edges: Array<{ from_id: string; to_id: string; genetic_weight: number }>;
 }
 
+/**
+ * A single anomalous reading, as the DHT engine emits it.
+ *
+ * Field names mirror backend/app/models/dht.py exactly. They are worth reading
+ * closely: the backend sends `zscore` with no underscore and `detected_at`
+ * rather than `timestamp`, and it sends no unit at all. Consumers that guessed
+ * otherwise rendered nothing for those fields.
+ */
+export interface Anomaly {
+    metric: string;
+    value: number;
+    expected_range: [number, number];
+    zscore: number;
+    detected_at: string;
+    severity: 'minor' | 'moderate' | 'severe';
+}
+
+/**
+ * The Delphi Health Trajectory itself, as returned under the `dht` key.
+ *
+ * Mirrors DelphiHealthTrajectory in backend/app/models/dht.py. Sub-objects that
+ * nothing in the frontend reads yet are typed loosely rather than invented, so
+ * this stays honest about what has actually been checked against the backend.
+ */
+export interface DelphiHealthTrajectory {
+    dht_id: string;
+    person_id: string;
+    family_id?: string | null;
+    computed_at: string;
+    data_freshness_seconds: number;
+    observation_count: number;
+    data_quality: 'rich' | 'moderate' | 'sparse' | 'empty';
+    baselines: Record<string, number>;
+    rolling_deltas_7d: Record<string, number>;
+    rolling_deltas_30d: Record<string, number>;
+    variability: Record<string, number>;
+    adherence_signals: Record<string, number>;
+    trend_breaks: Array<Record<string, unknown>>;
+    anomalies: Anomaly[];
+    context_tags: string[];
+    short_term?: Record<string, unknown> | null;
+    mid_term?: Record<string, unknown> | null;
+    long_term?: Record<string, unknown> | null;
+    overall_direction: string;
+    risk_cards: RiskCard[];
+    leading_indicators: Array<Record<string, unknown>>;
+    next_best_measurement?: NextBestMeasurement | null;
+    confidence: number;
+    uncertainty_lower: number;
+    uncertainty_upper: number;
+    saint_notes: string[];
+    ocean_version?: number | null;
+    behavioral_modifiers?: BehavioralModifier | null;
+}
+
 export interface DHTResponse {
-    dht: DelphiTrajectory;
+    // Was typed DelphiTrajectory, which is an unrelated prediction record in
+    // database.types.ts and shares almost no fields with what this endpoint
+    // returns. Reading anomalies off it did work at runtime, because the field
+    // is really there, but nothing about the shape was actually checked.
+    dht: DelphiHealthTrajectory;
     stale?: boolean;
     last_observation_at?: string | null;
 }

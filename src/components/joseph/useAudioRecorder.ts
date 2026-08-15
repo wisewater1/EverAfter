@@ -56,9 +56,14 @@ export function useAudioRecorder(): AudioRecorderState {
   // default in startRecording, which is correct behavior on Safari iOS
   // where MediaRecorder works but none of our preferred candidates are
   // reported as supported.
+  // getUserMedia is checked with typeof rather than for truthiness. lib.dom
+  // declares it as always present on MediaDevices, so a bare truthiness test is
+  // reported as a condition that is always true. The check is still worth
+  // making: older and locked-down browsers really do omit it, which is the
+  // whole point of the guard.
   const isSupported = Boolean(
     typeof window !== 'undefined'
-    && navigator.mediaDevices?.getUserMedia
+    && typeof navigator.mediaDevices?.getUserMedia === 'function'
     && typeof MediaRecorder !== 'undefined',
   );
 
