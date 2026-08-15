@@ -54,10 +54,11 @@ Lint composition: 724 `no-explicit-any`, 94 `react-hooks/exhaustive-deps`, the
 rest a long tail. Neither is safe to bulk-fix: the first is a real typing
 project, and the second changes render behaviour when dependencies are added.
 
-`no-explicit-any` earns more than its cosmetic reputation here. Three of the
+`no-explicit-any` earns more than its cosmetic reputation here. Four of the
 defects found on 2026-08-15 were sitting behind one: the personality quiz that
-never saved, St. Michael's anomaly z-scores that never rendered, and the
-fabricated health predictions described below.
+never saved, St. Michael's anomaly z-scores that never rendered, the voice
+recorder that discarded its own recording, and the fabricated health predictions
+described below.
 
 Re-confirmed 2026-08-15: the "Workers Builds: everafter" check fails on every
 commit in zero seconds. See the Cloudflare row above. It carries no information
@@ -104,50 +105,61 @@ about the code and should not be read as a broken build.
 - Truthfulness bar: the fabricated-data layer was removed across PRs
   #110–#117 (see `docs/audits/2026-07-12-step4-final-qa.md` §3).
 
-## Fabricated health data (found and fixed 2026-08-15)
+## Fabricated data (swept 2026-08-15)
 
 The 2026-07 audit recorded the fabricated-data layer as removed across PRs #110
-to #117. **That claim was incomplete.** At least one endpoint survived it, and a
-second generator is still live.
+to #117. **That claim was wrong.** Seven generators survived it, five of them
+serving health, financial or regulatory numbers to any signed-in user. A
+systematic sweep of `backend/` found them; the first was found by accident,
+chasing an unrelated type error.
 
-**Fixed.** `GET /api/v1/health/predictions` built its whole response from
-Python's `random`: type 2 diabetes and hypertension risk scores, confidence
-figures between 80 and 95, metric correlations, and a `total_data_points` count.
-Nothing depended on the caller or on any recorded observation. The docstring
-claimed "classical baselines", one generated insight cited ACC/AHA logic while
-quoting a randomised percentage, and the recommendations were prescriptive
-("schedule a standard lipid panel next month"). The frontend rendered it as
-"Predictive Health Analytics" with confidence bars and risk badges, reachable by
-any signed-in user through `/health-dashboard`, which carries no feature flag.
-It now returns 501, matching the FHIR import in the same file, and the component
-shows an honest explanation with no retry control. This also breached the
-standing rule in `CLAUDE.md` that St. Raphael must never produce diagnostic or
-prescriptive output.
+### Fixed
 
-**Still open, owner decision needed.**
-`backend/app/services/causal_twin/drift_monitor.py` invents model health.
-`get_model_status` seeds `accuracy` as `0.82 + random.uniform(-0.05, 0.05)` and
-`predictions_evaluated` as `random.randint(20, 100)`; drift detection at line 79
-and recalibration at line 168 are simulated the same way, and the accuracy trend
-at line 193 is generated per point. `GET /api/v1/causal-twin/model-health`
-serves it, and `ModelHealthPanel` renders it as a percentage accuracy figure, an
-evaluated-predictions count, and a trend sparkline. The panel is reached from
-`StRaphaelHealthHub` (route `/health-dashboard`, no feature flag) and from
-`PersonalityQuiz`. It therefore reports the measured health of a model that does
-not exist, which is the same problem as the predictions endpoint above and was
-found by running the standing grep at the end of this section.
+| Site | What it invented |
+| --- | --- |
+| `api/health.py` `/predictions` | Whole response from `random`: T2D and hypertension risk, confidence 80-95, correlations. Cited ACC/AHA logic with a randomised percentage and gave prescriptive advice. Now 501. |
+| `causal_twin/drift_monitor.py` | Model accuracy (`0.82 + random`), evaluated-prediction counts, drift events, and a 30-point accuracy trend. Could tell a user their accuracy "dropped from 82% to 74%". Now measures only real prediction-vs-actual comparisons. |
+| `api/causal_twin.py` `/predictions` | Simulated `sleep_hours: 7.5, steps: 8000` for a user who supplied no scenario. Now returns empty and points at `/simulate`. |
+| `causal_twin/counterfactual_engine.py` | `random.gauss` added to the plotted midpoint, so identical inputs differed per call. Also queried baselines with `Metric.sourceId == user_id`, which **never matched a row for anyone**, so every projection silently used population defaults presented as personal. Noise removed, join corrected through `Source`. |
+| `api/causal_twin.py` `/evidence` | Seeded an empty ledger with three invented recommendations at 78/62/45% confidence, sourced from devices the user may never have connected, and **persisted** them. Seeder deleted. |
+| `services/chainlink_service.py` | Gold price advertised as a live Chainlink feed was `90.00 + sin(now/3600)*1.5`, returned through the same float as a real reading, valuing real holdings. Cache was also pre-seeded with a hardcoded `72.00`. Now raises; endpoint answers 503 and names its source. |
+| `services/hipaa_service.py` | Two §164 safeguards hardcoded `"active"` and a `compliance_score` starting at 100, rendered as "HIPAA posture 100%". Now reports observed activity only, with unchecked controls marked `not_verified`. |
 
-`backend/app/services/interaction_service.py:106` writes
-`emotional_rapport = random.uniform(0.5, 0.8)`, commented "Initial proof of
-concept". That value is persisted, served as `"rapport"` by `social.py:147`, and
-fed into reputation scoring at `social_reputation_service.py:160`. The frontend
-display of fabricated rapport was corrected earlier in this engagement, but the
-backend still generates it. Changing it alters stored data and the reputation
-calculation, so it was raised rather than edited.
+### Still open, owner decision needed
 
-**Standing check.** `grep -rn "random\.\(uniform\|randint\|choice\)" backend/`
-is the cheap way to look for more. Treat any hit that reaches a user-facing
-number as suspect until traced.
+`services/interaction_service.py:106` writes `emotional_rapport =
+random.uniform(0.5, 0.8)`, commented "Initial proof of concept". It is
+persisted, served as `"rapport"` by `social.py:147`, and feeds reputation
+scoring at `social_reputation_service.py:160`, which sets
+`daily_manna_multiplier_bps`. The frontend display was corrected earlier in this
+engagement; the backend still generates it. Changing it alters stored data and
+the reputation calculation.
+
+Also raised and not changed: hardcoded rapport constants in `oasis_service.py`
+(88, 130); 10/20/30-year family health trajectories in `ancestry_engine.py`
+derived from trait strings and occupation multipliers (`"nurse": 0.85`), whose
+wellness disclaimer wrongly says "based on your personal data patterns";
+`compliance_service.py:79` recording a restore drill as SUCCESS with a proof
+hash without attempting a restore; and fixed per-rule confidence percentages in
+`shared_health_predictor.py` (82/78/74/69) presented as computed confidence.
+
+Two landmines rather than live leaks: `health/strategies.py:255` builds a
+24-hour trajectory as a random walk but is currently unreachable, and
+`environmental_matrix.py:100` derives threat levels from an MD5 of the location
+string with no UI consumer. Both would be live the moment something wires them
+up.
+
+### Standing check
+
+```
+grep -rn "random\.\(uniform\|randint\|choice\|gauss\)" backend/
+```
+
+Running this is what surfaced the drift monitor immediately after the first fix,
+and a full sweep from it found the other five. Treat any hit that reaches a
+user-facing number as suspect until traced to a route and a component. Note that
+fabrication is not only `random`: the HIPAA score, the evidence seeder and the
+gold-price cache seed were all hardcoded constants.
 
 ## Truthfulness and dead ends found 2026-08-15
 
