@@ -34,25 +34,30 @@ those dates as the real age of the claim, not as a claim about today.
 | `utils/` | **Standalone unbuilt npm package, zero imports** | Same bulk commit. Kept pending owner call. |
 | Cloudflare Workers "everafter" | **Dashboard-managed, failing on every commit** | No `wrangler.toml` in-repo; logs need the owner's Cloudflare access. Netlify is the real deploy; fix or disconnect this integration from the repo's checks. |
 
-## Gates (measured 2026-08-15 on `main` at `e03ba02`)
+## Gates (measured 2026-08-15 on `main` at `1ed9592`)
 
 | Gate | Status |
 | --- | --- |
 | `npx vitest run` | **PASS**, 145/145 across 18 files |
 | `npm run build` | **PASS** (requires `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; `scripts/validate-build-env.mjs` intentionally hard-fails without them) |
-| `npm run type-check` | **FAIL, 176 errors** (413 on 2026-07-12, 583 when the gate was first made real; the old "passing" state was a vacuous solution-style tsconfig that checked nothing) |
-| `npm run lint` | **FAIL, 925 problems** (~1,090 on 2026-07-12) |
+| `npm run type-check` | **FAIL, 18 errors** (176 earlier the same day, 413 on 2026-07-12, 583 when the gate was first made real; the old "passing" state was a vacuous solution-style tsconfig that checked nothing) |
+| `npm run lint` | **FAIL, 903 problems** (~1,090 on 2026-07-12) |
 | CI | `.github/workflows/ci.yml` — test + build REQUIRED; type-check + lint advisory until their backlogs are zero (do not weaken rule configs). |
 
-Type-error composition on `main` at this date: `no-unused` declarations are at
-**zero** (was 202), implicit-any parameters are the largest remaining group.
-Lint composition: 724 `no-explicit-any`, 94 `react-hooks/exhaustive-deps`, the
-rest a long tail. `no-explicit-any` is a genuine typing project rather than a
-mechanical pass, and `exhaustive-deps` changes render behaviour when
-dependencies are added, so neither is safe to bulk-fix.
+Type-error composition: unused declarations and implicit-any parameters are
+both at **zero**, from 202 and 69 respectively. Of the 18 that remain, 11 sit
+inside the two orphaned components recorded below, so they are not in any path
+a user can reach. PR #127 clears the other 7, after which every type error in
+reachable code is gone.
 
-An open branch (PR #125) takes type errors to **109** and lint to **909** by
-declaring the Supabase client's type. See the note under the security section.
+Lint composition: 724 `no-explicit-any`, 94 `react-hooks/exhaustive-deps`, the
+rest a long tail. Neither is safe to bulk-fix: the first is a real typing
+project, and the second changes render behaviour when dependencies are added.
+
+`no-explicit-any` earns more than its cosmetic reputation here. Three of the
+defects found on 2026-08-15 were sitting behind one: the personality quiz that
+never saved, St. Michael's anomaly z-scores that never rendered, and the
+fabricated health predictions described below.
 
 Re-confirmed 2026-08-15: the "Workers Builds: everafter" check fails on every
 commit in zero seconds. See the Cloudflare row above. It carries no information
@@ -98,6 +103,51 @@ about the code and should not be read as a broken build.
   payloads.
 - Truthfulness bar: the fabricated-data layer was removed across PRs
   #110–#117 (see `docs/audits/2026-07-12-step4-final-qa.md` §3).
+
+## Fabricated health data (found and fixed 2026-08-15)
+
+The 2026-07 audit recorded the fabricated-data layer as removed across PRs #110
+to #117. **That claim was incomplete.** At least one endpoint survived it, and a
+second generator is still live.
+
+**Fixed.** `GET /api/v1/health/predictions` built its whole response from
+Python's `random`: type 2 diabetes and hypertension risk scores, confidence
+figures between 80 and 95, metric correlations, and a `total_data_points` count.
+Nothing depended on the caller or on any recorded observation. The docstring
+claimed "classical baselines", one generated insight cited ACC/AHA logic while
+quoting a randomised percentage, and the recommendations were prescriptive
+("schedule a standard lipid panel next month"). The frontend rendered it as
+"Predictive Health Analytics" with confidence bars and risk badges, reachable by
+any signed-in user through `/health-dashboard`, which carries no feature flag.
+It now returns 501, matching the FHIR import in the same file, and the component
+shows an honest explanation with no retry control. This also breached the
+standing rule in `CLAUDE.md` that St. Raphael must never produce diagnostic or
+prescriptive output.
+
+**Still open, owner decision needed.**
+`backend/app/services/causal_twin/drift_monitor.py` invents model health.
+`get_model_status` seeds `accuracy` as `0.82 + random.uniform(-0.05, 0.05)` and
+`predictions_evaluated` as `random.randint(20, 100)`; drift detection at line 79
+and recalibration at line 168 are simulated the same way, and the accuracy trend
+at line 193 is generated per point. `GET /api/v1/causal-twin/model-health`
+serves it, and `ModelHealthPanel` renders it as a percentage accuracy figure, an
+evaluated-predictions count, and a trend sparkline. The panel is reached from
+`StRaphaelHealthHub` (route `/health-dashboard`, no feature flag) and from
+`PersonalityQuiz`. It therefore reports the measured health of a model that does
+not exist, which is the same problem as the predictions endpoint above and was
+found by running the standing grep at the end of this section.
+
+`backend/app/services/interaction_service.py:106` writes
+`emotional_rapport = random.uniform(0.5, 0.8)`, commented "Initial proof of
+concept". That value is persisted, served as `"rapport"` by `social.py:147`, and
+fed into reputation scoring at `social_reputation_service.py:160`. The frontend
+display of fabricated rapport was corrected earlier in this engagement, but the
+backend still generates it. Changing it alters stored data and the reputation
+calculation, so it was raised rather than edited.
+
+**Standing check.** `grep -rn "random\.\(uniform\|randint\|choice\)" backend/`
+is the cheap way to look for more. Treat any hit that reaches a user-facing
+number as suspect until traced.
 
 ## Truthfulness and dead ends found 2026-08-15
 
