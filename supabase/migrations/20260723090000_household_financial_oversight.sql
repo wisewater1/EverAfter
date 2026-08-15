@@ -1176,6 +1176,30 @@ end $$;
 -- Grants and revocations of execution rights
 -- ------------------------------------------------------------------
 
+-- Postgres grants EXECUTE on every new function to PUBLIC by default, which
+-- would leave the internal helpers reachable by anon over PostgREST. Two of
+-- them are SECURITY DEFINER and would therefore bypass RLS outright:
+-- fn_oversight_active_grants returns SETOF oversight_grants (a read leak given
+-- any household id), and fn_oversight_alert_both_sides inserts alert rows (a
+-- write vector). Lock every helper down first. The RPCs below call them from
+-- SECURITY DEFINER bodies owned by postgres, which retain their rights, and
+-- trigger functions run through the trigger mechanism regardless of EXECUTE
+-- grants, so nothing internal breaks.
+do $$
+declare
+  f record;
+begin
+  for f in
+    select p.oid::regprocedure as sig
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname like 'fn_oversight%'
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', f.sig);
+  end loop;
+end $$;
+
 revoke all on function public.rpc_oversight_bootstrap(uuid) from public, anon;
 revoke all on function public.rpc_oversight_overview(uuid) from public, anon;
 revoke all on function public.rpc_oversight_picture(uuid) from public, anon;
