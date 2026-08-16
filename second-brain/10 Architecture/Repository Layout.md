@@ -21,11 +21,16 @@ Directory-by-directory tour of `/home/user/EverAfter`. The live product is `src/
   - `src/test/` — Vitest setup and a few unit tests
 - **`supabase/`** — the primary backend.
   - `supabase/functions/` — **55 Edge Functions** + `_shared/` utilities ([[Edge Functions Overview]], [[Shared Edge Function Utilities]])
-  - `supabase/migrations/` — **122 SQL migrations**, the schema source of truth ([[Migrations]])
-- **`server/`** — the secondary Express backend ([[Express Server]]).
+  - `supabase/migrations/` — **130 SQL migrations**, the schema source of truth ([[Migrations]])
+- **`backend/`** — the Python FastAPI backend, **live** on Render as `everafter-api` plus the `everafter-elohim-anchor` worker (`render.yaml`); proxied at `/api/v1/*` and `/governance/*` via `netlify.toml` and consumed through `src/lib/backend-request.ts`. The directory also still contains dozens of one-off debug/seed scripts (`check_db.py`, `diagnose_500.py`, ...).
+- **`voice-ai-service/`** — Python voice sidecar, **live** on Render as `everafter-voice-ai` (ElevenLabs); consumed via `src/lib/joseph/voice.ts`.
+
+### Legacy backend (in-tree, NOT deployed)
+
+- **`server/`** — the legacy Express backend ([[Express Server]]); no deploy config references it and it does not type-check standalone. Local-only via `npm run dev:server`.
   - `server/index.ts` — entry; `server/api/raphael.ts`; `server/api/connections/` (`terra.ts`, `bridges.ts`, `webhooks.ts`, `iot_webhooks.ts`); `server/lib/` (`terra-client.ts`, `audit.ts`, `consent.ts`); `server/workers/scheduler.ts` ([[BullMQ Scheduler]])
-- **`prisma/`** — `schema.prisma` (12 models: User, Source, Device, Metric, Consent, EngramEntry, AuditLog, ComplianceControl, JITAccessRequest, RestoreDrill, EmergencyContact, AgentRun), `migrations/`, `seed.ts` ([[Prisma Schema]])
-- **`agents/raphael/`** — `manifest.json`, `runner.ts`, `tools.ts`: the autonomous agent the BullMQ worker executes ([[Autonomous Task System]])
+- **`prisma/`** — `schema.prisma` (12 models: User, Source, Device, Metric, Consent, EngramEntry, AuditLog, ComplianceControl, JITAccessRequest, RestoreDrill, EmergencyContact, AgentRun), `migrations/`, `seed.ts` ([[Prisma Schema]]) — belongs to the legacy `server/` stack
+- **`agents/raphael/`** — `manifest.json`, `runner.ts`, `tools.ts`: the autonomous agent the (legacy) BullMQ worker executes ([[Autonomous Task System]])
 
 ### Tooling, tests, config
 
