@@ -11,7 +11,7 @@ EverAfter stores protected health information — glucose readings, heart rate, 
 
 Two written definitions exist, and they agree in substance:
 
-- `docs/archive/SECURITY.md:140-152` (the threat-model doc): health data content, plus anything that identifies a user — never logged, encrypted at rest and in transit, RLS-isolated.
+- `docs/archive/SECURITY.md:138-146` (the threat-model doc): health data content, plus anything that identifies a user — never logged, encrypted at rest and in transit, RLS-isolated.
 - `backend/app/services/hipaa_service.py` — the live FastAPI backend's `PHI_DATA_TYPES` map, categorized per HIPAA §164.514(b)(2): **demographics** (name, address, email, birth date), **identifiers** (SSN, MRN, device id, account number), **biometrics** (heart rate, blood pressure, glucose, BMI, steps, sleep), **clinical** (diagnosis, medication, ICD/CPT codes, lab results), **financial** (payment, insurance, claim).
 
 `CLAUDE.md` ("Never log PHI/credentials") adds device serials and OAuth tokens to the never-log list even though they are credentials rather than PHI proper.
