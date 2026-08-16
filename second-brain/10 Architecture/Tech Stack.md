@@ -52,7 +52,7 @@ Every major technology in EverAfter and the role it plays, verified against `pac
 > `@netlify/neon` (Neon Postgres client), the Express/Prisma/BullMQ `server/` stack, `health-api/` (standalone Node service with its own Prisma — broken, undeployed), and `smart-contracts/` (Hardhat/Solana, unstarted) are all present in the repo but not live. Do not assume a technology is live just because it is in the tree — check [[Repository Layout]].
 
 > [!warning] LLM provider mismatch in docs
-> `CLAUDE.md` says the deployed secret for `raphael-chat` is `GROQ_API_KEY`, but `supabase/functions/raphael-chat/index.ts:91-116` reads `OPENAI_API_KEY` and calls OpenAI `gpt-4o-mini`. The code is authoritative for this repo snapshot; the deployed function may differ from what the doc remembers. See [[Secrets Management]].
+> `CLAUDE.md` still lists `GROQ_API_KEY` as the secret set for `raphael-chat`, but `supabase/functions/raphael-chat/index.ts` resolves an OpenAI key (the user's own saved key via `_shared/user-api-keys.ts`, else the `OPENAI_API_KEY` secret) and calls OpenAI `gpt-4o-mini`. No function in `supabase/functions/` calls the Groq API. The code is authoritative for this repo snapshot; the deployed secret list may differ from what the doc remembers. See [[Secrets Management]].
 
 ## Key Files
 
@@ -63,12 +63,13 @@ Every major technology in EverAfter and the role it plays, verified against `pac
 - `eslint.config.js` — lint rules
 - `prisma/schema.prisma` — Node-side data model
 - `tsconfig.app.json` — strict TS settings for the SPA
-- `netlify.toml` — frontend deploy config
+- `netlify.toml` — frontend deploy config + Render proxies
+- `render.yaml` — blueprint for the three live Render services
 
 ## Related
 
 - [[System Overview]] — how these pieces compose at runtime
-- [[Dual Backend System]] — Deno vs. Node split the stack serves
+- [[Dual Backend System]] — which backends are live vs. legacy
 - [[Commands Cheatsheet]] — the npm scripts that drive each tool
 - [[Testing Strategy]] — Vitest/Playwright usage in depth
 - [[Deployment]] — where each layer ships
