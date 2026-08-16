@@ -47,21 +47,22 @@ graph LR
 > [!warning] The Express server does not validate JWTs
 > `server/index.ts:20-23` installs middleware that hard-codes `req.user = { id: 'demo-user-001' }` for every request. There is no Supabase JWT verification on this backend today, unlike the Edge Functions. Treat any Express endpoint as unauthenticated until this stub is replaced; do not expose it publicly as-is. This contradicts docs that imply uniform JWT auth across backends.
 
-> [!note] A third backend exists but is optional/legacy
-> `ARCHITECTURE.md` describes an optional Python FastAPI backend (`backend/app/main.py`) for advanced NLP/ML with Celery. It is still in the tree (and `vite.config.ts` proxies `/api/v1` and `/ws` to `localhost:8010` for it), but the active secondary backend is the Express server. `health-api/` is yet another standalone Dockerized service with its own Prisma schema, exercised via `npm run test:health`.
+> [!note] The FastAPI backend is live; Express and health-api are not
+> The Python FastAPI backend (`backend/app/main.py`) is deployed on Render as `everafter-api` (plus the `everafter-elohim-anchor` worker from the same tree), and `vite.config.ts` proxies `/api/v1` and `/ws` to `localhost:8010` for local dev. An earlier revision of this note called the Express server "the active secondary backend" — deploy configs show the opposite. `health-api/` is yet another standalone Node/Prisma service (exercised via `npm run test:health`); it is broken and not deployed.
 
 ## Gotchas
 
 - **Never mix clients in one file**: Edge Functions (Deno) use supabase-js via `npm:` specifiers; the Node server uses Prisma. Importing Prisma into a Deno function or supabase-js server-side patterns into Express is the classic mistake (`CLAUDE.md` gotcha #1). `vite.config.ts:43-45` even isolates `@prisma` into its own chunk in case a stray client import slips into the frontend.
-- **Two migration systems**: Supabase SQL migrations (`supabase/migrations/`, 122 files) define the real schema; `prisma/schema.prisma` + `prisma/migrations/` model the subset the Node server touches. Keep them in sync manually — see [[Migrations]].
-- **Secrets live in different places**: Edge Function secrets go in the Supabase Dashboard ([[Secrets Management]]); the Express server reads `.env` (`DATABASE_URL`, `REDIS_URL`, `TERRA_API_KEY`).
+- **Two migration systems**: Supabase SQL migrations (`supabase/migrations/`, 130 files) define the real schema; `prisma/schema.prisma` + `prisma/migrations/` model the subset the legacy Node server touches. Keep them in sync manually — see [[Migrations]].
+- **Secrets live in different places**: Edge Function secrets go in the Supabase Dashboard ([[Secrets Management]]); the legacy Express server reads `.env` (`DATABASE_URL`, `REDIS_URL`, `TERRA_API_KEY`); the Render services get theirs from the Render dashboard per `render.yaml`.
 - The scheduler silently no-ops without `REDIS_URL` — "background jobs not running" usually means Redis is not configured, not a code bug.
 
 ## Key Files
 
 - `supabase/functions/raphael-chat/index.ts` — canonical Edge Function: JWT validation, RLS-forwarding client, OpenAI call
-- `supabase/functions/_shared/` — cross-function utilities (`connectors.ts`, `token-refresh.ts`, `glucose.ts`, `logger.ts`, ...)
-- `server/index.ts` — Express entry: routers, Prisma init, scheduler startup, auth stub
+- `supabase/functions/_shared/` — cross-function utilities (`connectors.ts`, `http.ts`, `glucose.ts`, `data-transform.ts`, `user-api-keys.ts`)
+- `src/lib/backend-request.ts` — SPA-side client for the live FastAPI backend
+- `server/index.ts` — legacy Express entry: routers, Prisma init, scheduler startup, auth stub
 - `server/api/connections/terra.ts` — Terra OAuth + webhook handlers
 - `server/api/raphael.ts` — Raphael routes on the Node side
 - `server/lib/terra-client.ts` — [[Terra Client Library|Terra API client]]
@@ -71,10 +72,10 @@ graph LR
 
 ## Related
 
-- [[System Overview]] — where the two backends sit in the whole platform
+- [[System Overview]] — where the backends sit in the whole platform
 - [[Edge Functions Overview]] — per-function catalog of the Deno side
-- [[Express Server]] — deeper dive on the Node side
-- [[BullMQ Scheduler]] — the background job half of the Express stack
+- [[Express Server]] — deeper dive on the legacy Node side
+- [[BullMQ Scheduler]] — the background job half of the legacy Express stack
 - [[Prisma Schema]] — the ORM models only the Node server uses
 - [[Authentication and JWT Flow]] — why the auth guarantees differ between backends
-- [[Terra Integration]] — the main reason the Express server exists
+- [[Terra Integration]] — now served by Edge Functions, not the Express stack

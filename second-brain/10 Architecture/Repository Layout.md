@@ -1,11 +1,11 @@
 ---
 tags: [architecture, repo-structure, navigation, monorepo]
-updated: 2026-07-02
+updated: 2026-08-16
 ---
 
 # Repository Layout
 
-Directory-by-directory tour of `/home/user/EverAfter`. The live product is `src/` + `supabase/` + `server/` + `prisma/`; the rest is auxiliary services, tooling, and a very large pile of root-level markdown docs. All counts below were verified by listing the tree on 2026-07-02.
+Directory-by-directory tour of `/home/user/EverAfter`. The live product is `src/` + `supabase/` + `backend/` + `voice-ai-service/`; `server/` + `prisma/` are legacy and undeployed, and the rest is parked services and tooling. All counts below were re-verified by listing the tree on 2026-08-16.
 
 ## Overview
 
@@ -13,8 +13,8 @@ Directory-by-directory tour of `/home/user/EverAfter`. The live product is `src/
 
 - **`src/`** — the React SPA.
   - `src/main.tsx`, `src/App.tsx` — entry + all routes (see [[Pages and Routing]])
-  - `src/pages/` — 32 page components (Dashboard, StRaphaelHealthHub, LegacyVault, Marketplace, Onboarding, TrinityDashboard, ...)
-  - `src/components/` — 119 components, with feature subfolders (`raphael/`, `council/`, `capsules/`, `rituals/`, `personality/`, `anthony/`, `gabriel/`, `saints/`) — see [[Saints Dashboard UI]] and [[Health UI Components]]
+  - `src/pages/` — 34 page components (Dashboard, StRaphaelHealthHub, LegacyVault, Marketplace, Onboarding, TrinityDashboard, ...)
+  - `src/components/` — 94 top-level components (~212 including feature subfolders such as `raphael/`, `council/`, `capsules/`, `rituals/`, `personality/`, `anthony/`, `gabriel/`, `saints/`, `oversight/`) — see [[Saints Dashboard UI]] and [[Health UI Components]]
   - `src/contexts/` — `AuthContext`, `ConnectionsContext`, `NotificationContext` ([[Contexts and Hooks]])
   - `src/hooks/` — `useAuth`, `useAuthModal`, `useKeyboardNavigation`
   - `src/lib/` — ~45 modules: `supabase.ts`, `api-client.ts`, `edge-functions.ts`, per-saint helpers (`raphael/`, `michael/`, `joseph/`, `gabriel/`, `saints/`), `vault/` + `vault-encryption.ts`, `llm/`, `voice/`, `demo/`, `connectors/`, terra clients
