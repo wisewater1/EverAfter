@@ -1,11 +1,11 @@
 ---
 tags: [architecture, tech-stack, tooling, dependencies]
-updated: 2026-07-02
+updated: 2026-08-16
 ---
 
 # Tech Stack
 
-Every major technology in EverAfter and the role it plays, verified against `package.json` and the configs. Frontend: React 18 + TypeScript + Vite + Tailwind. Backend: Supabase (Postgres/Auth/Deno Edge Functions) plus Express + Prisma + BullMQ/Redis. Testing: Vitest + Playwright.
+Every major technology in EverAfter and the role it plays, verified against `package.json` and the configs. Frontend: React 18 + TypeScript + Vite + Tailwind. Live backend: Supabase (Postgres/Auth/Deno Edge Functions) plus a Python FastAPI service and voice sidecar on Render. Express + Prisma + BullMQ/Redis remain in the tree as a legacy, undeployed stack. Testing: Vitest + Playwright.
 
 ## Overview
 
