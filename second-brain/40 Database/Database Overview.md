@@ -1,17 +1,17 @@
 ---
 tags: [database, supabase, postgresql, pgvector, prisma]
-updated: 2026-07-02
+updated: 2026-08-16
 ---
 
 # Database Overview
 
-EverAfter's single source of truth is a Supabase-hosted PostgreSQL database (project `sncvecvgxwkkxnxbvglv`), evolved through 122 SQL migration files in `supabase/migrations/`. Four different clients talk to it — the React frontend, Deno Edge Functions, the Express/Prisma server, and a FastAPI backend — with very different security properties.
+EverAfter's single source of truth is a Supabase-hosted PostgreSQL database (project `sncvecvgxwkkxnxbvglv`), evolved through 130 SQL migration files in `supabase/migrations/`. Four different clients talk to it — the React frontend, Deno Edge Functions, the live FastAPI backend, and the legacy (undeployed) Express/Prisma server — with very different security properties.
 
 ## Overview
 
 - **Engine**: PostgreSQL managed by Supabase (Auth, Storage, and Edge Functions live alongside it).
-- **Schema management**: 122 timestamped SQL files under `supabase/migrations/` (see [[Migrations]]). A separate, much smaller Prisma migration exists in `prisma/migrations/` for the Node server's tables (see [[Prisma Schema]]).
-- **Security**: [[Row Level Security]] on user-facing tables, keyed off `auth.uid()` from Supabase Auth JWTs ([[Authentication and JWT Flow]]).
+- **Schema management**: 130 timestamped SQL files under `supabase/migrations/` (see [[Migrations]]). A separate, much smaller Prisma migration exists in `prisma/migrations/` for the legacy Node server's tables (see [[Prisma Schema]]).
+- **Security**: [[Row Level Security]] enabled on all 211 live tables (exhaustive replay audit 2026-07-12; hardening migration `20260712130000`), keyed off `auth.uid()` from Supabase Auth JWTs ([[Authentication and JWT Flow]]).
 - **Extensions actually enabled by migrations**:
   - `vector` (pgvector) — `supabase/migrations/20251020021144_add_vector_embeddings_system.sql:53`, re-asserted in the agent-memories and AI-knowledge migrations. Powers `vector(1536)` columns with HNSW cosine indexes ([[Embeddings and Vector Search]]).
   - `pgcrypto` — `supabase/migrations/20251025135354_enable_pgcrypto_extension.sql` (bcrypt for the admin user function).
