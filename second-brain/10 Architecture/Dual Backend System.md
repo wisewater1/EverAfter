@@ -30,19 +30,19 @@ The two backends actually live in production are Supabase Edge Functions (Deno, 
 ```mermaid
 graph LR
     FE[React SPA] -->|"supabase.functions.invoke + JWT"| EF[Edge Functions<br/>Deno]
-    FE -->|"/api → :3001 via Vite proxy"| EX[Express Server]
+    FE -->|"Netlify proxy /api/v1, /governance"| FA["FastAPI backend<br/>Render everafter-api"]
+    FE -.->|"/api → :3001 Vite proxy, local dev only"| EX["Express Server (legacy)"]
     EF -->|supabase-js, RLS enforced| DB[(PostgreSQL)]
-    EX -->|Prisma, service-level access| DB
-    EX --> SCHED[BullMQ Scheduler]
-    SCHED --> REDIS[(Redis)]
-    SCHED -->|runs agents/raphael/runner.ts| DB
-    TERRA[Terra / providers] -->|OAuth + webhooks| EX
-    TERRA -->|webhooks| EF
+    FA --> DB
+    EX -.->|Prisma, service-level access| DB
+    EX -.-> SCHED["BullMQ Scheduler (legacy)"]
+    SCHED -.-> REDIS[(Redis)]
+    TERRA[Terra / providers] -->|webhooks, signature-verified| EF
 ```
 
-**Edge Function shape** — every function is an `index.ts` with `Deno.serve`, CORS preflight handling, manual `Authorization` header validation, and the standard `{ code, message, hint }` error envelope. `supabase/functions/raphael-chat/index.ts` is the canonical example: it builds a supabase client that forwards the caller's JWT (so RLS applies), calls `supabase.auth.getUser()`, verifies engram ownership, then calls OpenAI. Shared helpers (logging, token refresh, provider APIs, glucose math, validation) live in `supabase/functions/_shared/` — see [[Shared Edge Function Utilities]].
+**Edge Function shape** — every function is an `index.ts` with `Deno.serve`, CORS preflight handling, and manual `Authorization` header validation. Newer/edited functions use the prescribed `{ code, message, hint }` error envelope; a legacy majority still return `{ error: message }` via `_shared/connectors.ts`, so read the function before assuming either shape. `supabase/functions/raphael-chat/index.ts` is the canonical example: it builds a supabase client that forwards the caller's JWT (so RLS applies), calls `supabase.auth.getUser()`, verifies engram ownership, then calls OpenAI. Shared helpers (logging, token refresh, provider APIs, glucose math, validation) live in `supabase/functions/_shared/` — see [[Shared Edge Function Utilities]].
 
-**Express side** — `server/index.ts` mounts five routers: Terra connections, bridges, generic provider webhooks, IoT webhooks, and Raphael API routes. It instantiates Prisma directly and, outside development, starts the scheduler when `REDIS_URL` is set (`isSchedulerEnabled()`). The scheduler enqueues per-user `agent-run` jobs on BullMQ queues (`agent-schedule`, `agent-run`) but only for users with active `Consent` rows (`purpose in ('train','project')`, not revoked) — consent gating is enforced in `server/workers/scheduler.ts` before any autonomous run.
+**Express side (legacy, local only)** — `server/index.ts` mounts five routers: Terra connections, bridges, generic provider webhooks, IoT webhooks, and Raphael API routes. It instantiates Prisma directly and, outside development, starts the scheduler when `REDIS_URL` is set (`isSchedulerEnabled()`). The scheduler enqueues per-user `agent-run` jobs on BullMQ queues (`agent-schedule`, `agent-run`) but only for users with active `Consent` rows (`purpose in ('train','project')`, not revoked) — consent gating is enforced in `server/workers/scheduler.ts` before any autonomous run. Per `CURRENT_STATE.md` this stack also does not type-check standalone (Prisma client not generated, missing `Request.user` augmentation).
 
 > [!warning] The Express server does not validate JWTs
 > `server/index.ts:20-23` installs middleware that hard-codes `req.user = { id: 'demo-user-001' }` for every request. There is no Supabase JWT verification on this backend today, unlike the Edge Functions. Treat any Express endpoint as unauthenticated until this stub is replaced; do not expose it publicly as-is. This contradicts docs that imply uniform JWT auth across backends.
