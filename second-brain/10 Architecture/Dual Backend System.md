@@ -1,29 +1,29 @@
 ---
 tags: [architecture, backend, supabase, express, deno]
-updated: 2026-07-02
+updated: 2026-08-16
 ---
 
 # Dual Backend System
 
-EverAfter runs two backends side by side: Supabase Edge Functions (Deno, serverless, the primary API surface) and an Express/Node server (`server/`, for Terra and health-provider plumbing plus BullMQ background jobs). They share the same PostgreSQL database but access it through different clients — Supabase client vs. [[Prisma Schema|Prisma]].
+The two backends actually live in production are Supabase Edge Functions (Deno, serverless, the primary API surface) and the Python FastAPI service in `backend/` (Render web service `everafter-api`, proxied at `/api/v1/*` and `/governance/*` via `netlify.toml`, reached through `src/lib/backend-request.ts`). The Express/Node server (`server/`, Terra plumbing plus BullMQ background jobs) that this note originally paired with the Edge Functions is **legacy and not deployed** — no deploy config references it. The Express and Supabase sides share the same PostgreSQL database but access it through different clients — Supabase client vs. [[Prisma Schema|Prisma]].
 
 ## Overview
 
-| | Supabase Edge Functions | Express Server |
+| | Supabase Edge Functions | Express Server (legacy) |
 |---|---|---|
 | Runtime | Deno (TypeScript, `Deno.serve`) | Node (tsx, `express`) |
 | Location | `supabase/functions/` (55 functions) | `server/` |
 | DB access | supabase-js with forwarded user JWT → [[Row Level Security|RLS]] | Prisma Client (direct connection, no RLS) |
 | Auth | Validates user JWT per request | Stubbed (see warning below) |
-| Deploy | `supabase functions deploy` (project `sncvecvgxwkkxnxbvglv`) | Railway/Render-style host, PM2/Docker |
+| Deploy | `supabase functions deploy` (project `sncvecvgxwkkxnxbvglv`) | **Not deployed** — no deploy config anywhere in the repo |
 | Run locally | `supabase functions serve` | `npm run dev:server` (port 3001) |
 | Scaling | Auto-scales | Single process + separate worker |
 
-**When to use which** (per `CLAUDE.md`, matches the code):
+**What actually serves which** (per `CURRENT_STATE.md`, verified against deploy configs):
 
-- Frontend + Edge Functions alone cover [[St Raphael]] chat, [[Custom Engrams]], tasks, and [[Payments and Subscriptions|payments]].
-- The [[Express Server]] is required for [[Terra Integration]] OAuth/webhooks and other provider bridges (`server/api/connections/`).
-- The [[BullMQ Scheduler]] worker is required for background agent runs and health sync jobs; it is a separate process (`npm run dev:worker`).
+- Frontend + Edge Functions cover [[St Raphael]] chat, [[Custom Engrams]], tasks, [[Payments and Subscriptions|payments]], and all health OAuth/webhook flows — [[Terra Integration]] webhooks run through the `webhook-terra` Edge Function (signature-verified), **not** the Express stack.
+- The Python FastAPI backend on Render serves the Saints runtime, monitoring/audit, family/genealogy, finance, and personality-training APIs at `/api/v1/*` and `/governance/*`.
+- The [[Express Server]] and [[BullMQ Scheduler]] run only locally (`npm run dev:server` / `dev:worker`); do not build new features on them — owner decision pending on fix-vs-remove.
 
 ## How It Works
 
